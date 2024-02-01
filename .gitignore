@@ -1,0 +1,3 @@
+*.o
+*.bat
+build/.tmp_kernel
