@@ -101,10 +101,10 @@ UefiMain
 
 
 
-    DISPLAY_INFO(L"\r---------------------------------------------------------------------\r\n"
-                    "----- Clay Figure Boot v1.0                                     -----\r\n"
-                    "----- Copyright (c) Clay Figure developers,All Rights Reserved. -----\r\n"
-                    "---------------------------------------------------------------------\r\n");
+    DISPLAY_INFO(L"\r---------------------------------------------------------\r\n"
+                    "----- Clay Figure Boot v1.0                         -----\r\n"
+                    "----- Copyright (c) LinChenjun,All Rights Reserved. -----\r\n"
+                    "---------------------------------------------------------\r\n");
 
 
 
@@ -117,6 +117,11 @@ UefiMain
     }
     gBS->SetMem(boot_info,sizeof(*boot_info),0);
     boot_info->magic = 0x5a42cb1613d4a62f;
+    boot_info->graph_info.horizontal_resolution = Gop->Mode->
+                                                  Info->HorizontalResolution;
+    boot_info->graph_info.vertical_resolution   = Gop->Mode->
+                                                  Info->VerticalResolution;
+    boot_info->graph_info.frame_buffer_base     = 0xffff807fc0000000;
 
 
 

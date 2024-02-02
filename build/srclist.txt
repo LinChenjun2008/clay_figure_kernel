@@ -6,7 +6,7 @@ BOOTLOADER_SRC          := \
 $(BOOTLOADER_SRC_PATH)/main.c \
 $(BOOTLOADER_SRC_PATH)/video.c \
 $(BOOTLOADER_SRC_PATH)/memory.c \
-$(BOOTLOADER_SRC_PATH)/file.c
+$(BOOTLOADER_SRC_PATH)/file.c \
 
 BOOTLOADER_INCLUDE_PATH := $(BOOTLOADER_SRC_PATH)/include/
 
@@ -14,6 +14,13 @@ KERNEL_LINKER_SCRIPT    := ./kernel.lds
 
 KERNEL_SRC              := \
 $(KERNEL_SRC_PATH)/setup.c \
-$(KERNEL_SRC_PATH)/main.c
+$(KERNEL_SRC_PATH)/main.c \
+$(KERNEL_SRC_PATH)/init.c \
+$(KERNEL_SRC_PATH)/intr/intr.c \
+$(KERNEL_SRC_PATH)/device/pic/pic.c \
+$(KERNEL_SRC_PATH)/device/pic/8259a.c \
+$(KERNEL_SRC_PATH)/device/pic/apic.c \
+$(KERNEL_SRC_PATH)/device/timer/hpet.c \
+$(KERNEL_SRC_PATH)/task/tss.c \
 
 KERNEL_INCLUDE_PATH     := $(KERNEL_SRC_PATH)/include/
