@@ -6,6 +6,7 @@
 typedef enum
 {
     TASK_NO_TASK = 0,
+    TASK_USING,
     TASK_RUNNING,
     TASK_READY,
     TASK_BLOCKED,
@@ -84,5 +85,8 @@ PUBLIC void task_init();
 
 /// schedule.c
 PUBLIC void schedule();
+
+/// tss.c
+PUBLIC void init_tss();
 
 #endif

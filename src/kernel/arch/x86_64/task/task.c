@@ -58,6 +58,7 @@ PUBLIC pid_t task_alloc()
     {
         if (task_table[i].status == TASK_NO_TASK)
         {
+            task_table[i].status = TASK_USING;
             return i;
         }
     }
@@ -147,7 +148,7 @@ PUBLIC task_struct_t* task_start
         return NULL;
     }
     task_struct_t *task = pid2task(pid);
-    init_task_struct(task,name,priority,KADDR_P2V(kstack_base),kstack_size);
+    init_task_struct(task,name,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
     create_task_struct(task,func,arg);
     list_append(&task_list,&task->general_tag);
     return task;
@@ -159,7 +160,7 @@ PRIVATE void make_main_task(void)
     init_task_struct(main_task,
                     "Main task",
                     31,
-                    KADDR_P2V(KERNEL_STACK_BASE),
+                    (uintptr_t)KADDR_P2V(KERNEL_STACK_BASE),
                     KERNEL_STACK_SIZE);
     list_append(&task_list,&main_task->general_tag);
     return;
@@ -167,6 +168,12 @@ PRIVATE void make_main_task(void)
 
 PUBLIC void task_init()
 {
+    memset(task_table,0,sizeof(task_table[0]) * MAX_TASK);
+    pid_t i;
+    for (i = 0;i < MAX_TASK;i++)
+    {
+        task_table[i].status = TASK_NO_TASK;
+    }
     list_init(&task_list);
     make_main_task();
     return;
