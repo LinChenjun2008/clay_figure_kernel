@@ -62,6 +62,9 @@ void kernel_main()
     while(color--);
     pr_log("\1I am \"%s\",my pid is %d. My kstack is: %p\n",running_task()->name,running_task()->pid,running_task()->kstack_base);
     pr_log("\1pid2task(%d)->name is \"%s\".\n",running_task()->pid,pid2task(running_task()->pid)->name);
+
+    basic_print(0x00ffffff,"Clay Figure Kernel. %d",0);
+
     while(1)
     {
         uint32_t x,y;

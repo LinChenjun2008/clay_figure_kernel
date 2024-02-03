@@ -16,7 +16,7 @@ PUBLIC void init_8259a()
     io_out8(PIC_S_DATA, 0x02 ); /* PIC1 IRQ2 */
     io_out8(PIC_S_DATA, 0x01 ); /* 无缓冲区模式 */
 
-    io_out8(PIC_M_DATA, 0xfc ); /* 1 1 1 1 1 1 键盘 时钟*/
+    io_out8(PIC_M_DATA, 0xfe ); /* 1 1 1 1 1 1 键盘 时钟*/
     io_out8(PIC_S_DATA, 0xff ); /* 1 硬盘 1 PS/2鼠标 1 1 1 实时时钟*/
     return;
 }

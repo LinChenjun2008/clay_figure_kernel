@@ -33,5 +33,7 @@ $(KERNEL_SRC_PATH)/mem/allocator.c \
 $(KERNEL_SRC_PATH)/lib/bitmap.c \
 $(KERNEL_SRC_PATH)/lib/list.c \
 $(KERNEL_SRC_PATH)/lib/stdio.c \
+$(KERNEL_SRC_PATH)/graphic/print.c \
+$(KERNEL_SRC_PATH)/graphic/character.c \
 
 KERNEL_INCLUDE_PATH     := $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include/
