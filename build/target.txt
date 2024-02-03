@@ -1,4 +1,6 @@
 ESP_PATH          := ../../run/esp/
 
+TARGET_ARCH       := x86_64
+
 TARGET_BOOTLOADER := $(ESP_PATH)/EFI/Boot/BootX64.efi
 TARGET_KERNEL     := $(ESP_PATH)/Kernel/kernel.sys

@@ -3,13 +3,13 @@
 
 EFI_STATUS ReadFile
 (
-    CHAR16* FileName,
+    CHAR16 *FileName,
     EFI_PHYSICAL_ADDRESS *FileBufferBase,
     EFI_ALLOCATE_TYPE BufferType,
-    UINT64* FileSize
+    UINT64 *FileSize
 )
 {
-    EFI_FILE_PROTOCOL* FileHandle;
+    EFI_FILE_PROTOCOL *FileHandle;
     EFI_STATUS Status = EFI_SUCCESS;
     UINTN HandleCount = 0;
     EFI_HANDLE *HandleBuffer;
@@ -26,8 +26,8 @@ EFI_STATUS ReadFile
     {
         return Status;
     }
-    EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* FileSystem;
-    EFI_FILE_PROTOCOL* Root;
+    EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *FileSystem;
+    EFI_FILE_PROTOCOL *Root;
     UINTN Nr;
     for (Nr = 0;Nr < HandleCount;Nr++)
     {
@@ -72,7 +72,7 @@ EFI_STATUS ReadFile
         }
     }
 
-    EFI_FILE_INFO* FileInfo;
+    EFI_FILE_INFO *FileInfo;
     UINTN InfoSize = sizeof(EFI_FILE_INFO) + sizeof(*FileName) * 256;
     Status = gBS->AllocatePool
     (

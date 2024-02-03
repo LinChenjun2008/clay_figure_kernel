@@ -1,5 +1,5 @@
-include srclist.txt
 include target.txt
+include srclist.txt
 include tools_def.txt
 
 TMP_KERNEL_TARGET := .tmp_kernel
@@ -19,7 +19,7 @@ $(TARGET_BOOTLOADER): $(BOOTLOADER_SRC)
 	@$(ECHO) compile $^
 	@"$(MINGW64_GCC)" $(BOOTLOADER_FLAGS) -o $@ $^
 
-%.o: %.c
+%.o: %.c $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include/kernel/global.h
 	@$(ECHO) compile $*.c
 	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -c -o $*.o $*.c
 

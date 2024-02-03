@@ -6,7 +6,7 @@
 
 struct Files
 {
-    CHAR16* Name;
+    CHAR16 *Name;
     EFI_ALLOCATE_TYPE    FileBufferType;
     file_info_t Info;
 };

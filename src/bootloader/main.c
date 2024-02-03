@@ -16,19 +16,19 @@
 #define DISPLAY_INFO(msg) \
     do \
     { \
-        gST->ConOut->SetAttribute(gST->ConOut, 0x0A | 0x00); \
-        gST->ConOut->OutputString(gST->ConOut,L"[ INFO  ]"); \
-        gST->ConOut->SetAttribute(gST->ConOut, 0x0F | 0x00); \
+        gST->ConOut->SetAttribute(gST->ConOut,  0x0A | 0x00); \
+        gST->ConOut->OutputString(gST->ConOut,L"[ INFO  ] "); \
+        gST->ConOut->SetAttribute(gST->ConOut,  0x0F | 0x00); \
         gST->ConOut->OutputString(gST->ConOut,msg); \
-        gST->ConOut->SetAttribute(gST->ConOut, 0x07 | 0x00); \
+        gST->ConOut->SetAttribute(gST->ConOut,  0x07 | 0x00); \
     }while(0);
 
 #define DISPLAY_ERROR(msg) \
     do \
     { \
-        gST->ConOut->SetAttribute(gST->ConOut, 0x0C | 0x00); \
-        gST->ConOut->OutputString(gST->ConOut,L"[ ERROR ]"); \
-        gST->ConOut->SetAttribute(gST->ConOut, 0x0F | 0x00); \
+        gST->ConOut->SetAttribute(gST->ConOut,  0x0C | 0x00); \
+        gST->ConOut->OutputString(gST->ConOut,L"[ ERROR ] "); \
+        gST->ConOut->SetAttribute(gST->ConOut,  0x0F | 0x00); \
         gST->ConOut->OutputString(gST->ConOut,msg); \
     }while(0);
 
@@ -45,15 +45,15 @@ EFI_GUID gEfiAcpiTableGuid                = EFI_ACPI_TABLE_GUID;
 EFI_STATUS SetVideoMode(int x,int y);
 EFI_STATUS ReadFile
 (
-    CHAR16* FileName,
+    CHAR16 *FileName,
     EFI_PHYSICAL_ADDRESS *FileBufferBase,
     EFI_ALLOCATE_TYPE BufferType,
-    UINT64* FileSize
+    UINT64 *FileSize
 );
-EFI_STATUS GetMemoryMap(memory_map_t* memmap);
+EFI_STATUS GetMemoryMap(memory_map_t *memmap);
 VOID CreatePage(EFI_PHYSICAL_ADDRESS PML4T);
 
-int CompareGuid(EFI_GUID* guid1,EFI_GUID* guid2)
+int CompareGuid(EFI_GUID *guid1,EFI_GUID *guid2)
 {
     return    ((guid1->Data1 == guid2->Data1)
             && (guid1->Data2 == guid2->Data2)
@@ -173,7 +173,7 @@ UefiMain
     //    Get RSDP
     DISPLAY_INFO(L"Get MADT.\r\n");
     EFI_CONFIGURATION_TABLE *ConfigTable = gST->ConfigurationTable;
-    EFI_ACPI_6_4_ROOT_SYSTEM_DESCRIPTION_POINTER* rsdp;
+    EFI_ACPI_6_4_ROOT_SYSTEM_DESCRIPTION_POINTER *rsdp;
     for (UINTN i = 0;i < gST->NumberOfTableEntries;i++)
     {
         if (CompareGuid(&ConfigTable->VendorGuid,&gEfiAcpiTableGuid))
@@ -192,11 +192,11 @@ UefiMain
     DISPLAY_INFO(L"    Get MADT.\r\n");
     XSDT_TABLE *xsdt = (void*)rsdp->XsdtAddress;
     UINT32 entries = (xsdt->Header.Length - sizeof(xsdt->Header)) / 8;
-    uint64_t* point_to_other_sdt = &xsdt->Entry;
+    uint64_t *point_to_other_sdt = &xsdt->Entry;
     UINT32 i;
     for (i = 0;i < entries;i++)
     {
-        EFI_ACPI_DESCRIPTION_HEADER* h = \
+        EFI_ACPI_DESCRIPTION_HEADER *h = \
                 (EFI_ACPI_DESCRIPTION_HEADER*)point_to_other_sdt[i];
         if (h->Signature == MADT_SIGNATURE)
         {

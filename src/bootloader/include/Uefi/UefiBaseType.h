@@ -7,9 +7,9 @@ typedef RETURN_STATUS EFI_STATUS;
 
 typedef GUID EFI_GUID;
 
-typedef VOID* EFI_HANDLE;
+typedef VOID *EFI_HANDLE;
 
-typedef VOID* EFI_EVENT;
+typedef VOID *EFI_EVENT;
 
 typedef UINT64 EFI_PHYSICAL_ADDRESS;
 
