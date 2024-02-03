@@ -14,7 +14,6 @@ static inline void pr_log(const char *log,...)
 {
     char msg[128];
     char *buf;
-    uint16_t port = 0x3f8;
     char *level[] =
     {
         "[ INFO  ] ",

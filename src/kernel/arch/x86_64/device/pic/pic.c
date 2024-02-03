@@ -17,7 +17,7 @@ PUBLIC void pic_init()
     #if !__DISABLE_APIC__
     if (support_apic())
     {
-        pr_log("\1APIC init.\n");
+        pr_log("\1HW support APIC.Now init APIC.\n");
         apic_init();
     }
     else

@@ -3,6 +3,8 @@
 #include <device/cpu.h>
 #include <device/pic.h>
 
+#include <log.h>
+
 PUBLIC apic_t apic_struct;
 
 PUBLIC bool support_apic()
@@ -46,6 +48,7 @@ PRIVATE void detect_cores()
     apic_struct.ioapic_index_address = (uint8_t*)(apic_struct.ioapic_address + 0UL);
     apic_struct.ioapic_data_address  = (uint32_t*)(apic_struct.ioapic_address + 0x10UL);
     apic_struct.ioapic_EOI_address   = (uint32_t*)(apic_struct.ioapic_address + 0x40UL);
+    pr_log("\1cores: %d, local apic addr %p,ioapic addr %p.\n",apic_struct.number_of_cores,apic_struct.local_apic_address,apic_struct.ioapic_address);
     return;
 }
 
@@ -59,9 +62,11 @@ PUBLIC void local_apic_write(uint16_t index,uint32_t value)
 PRIVATE void local_apic_init()
 {
     // enable SVR[8]
+    pr_log("\1enable SVR[8].\n");
     local_apic_write(0x0f0,1 << 8);
 
     // Mask all LVT
+    pr_log("\1Mask all LVT.\n");
     local_apic_write(0x2f0,0x10000);
     local_apic_write(0x320,0x10000);
     local_apic_write(0x330,0x10000);
@@ -135,6 +140,7 @@ PUBLIC void apic_init()
     io_out8(PIC_S_DATA, 0xff ); /* 11111111 禁止所有中断 */
 
     local_apic_init();
+    pr_log("\1Init ioapic.\n");
     ioapic_init();
     return;
 }
