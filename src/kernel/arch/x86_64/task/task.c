@@ -28,6 +28,10 @@ PRIVATE void kernel_thread(void)
 
 PUBLIC task_struct_t* pid2task(pid_t pid)
 {
+    if (pid >= MAX_TASK)
+    {
+        return NULL;
+    }
     return &task_table[pid];
 }
 
@@ -77,7 +81,7 @@ PUBLIC task_struct_t* running_prog()
     return NULL;
 }
 
-PUBLIC task_struct_t* get_running_prog_kstack()
+PUBLIC uintptr_t get_running_prog_kstack()
 {
     task_struct_t *cur = running_prog();
     return cur->kstack_base + cur->kstack_size;
@@ -138,7 +142,7 @@ PUBLIC task_struct_t* init_task_struct
     task->elapsed_ticks = 0;
 
     task->page_dir      = NULL;
-    task->message       = NULL;
+
     task->send_to       = MAX_TASK;
     task->recv_from     = MAX_TASK;
     task->has_intr_msg  = 0;

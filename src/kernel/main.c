@@ -32,7 +32,6 @@ void ktask()
 void ktask2()
 {
     uint32_t color = 0x00000000;
-    syscall(1,2,3);
     while(1)
     {
         uint32_t x,y;
@@ -58,7 +57,6 @@ void kernel_main()
     pr_log("\1Kernel initializing done.\n");
     task_start("k task",3,65536,ktask,0);
     prog_execute(ktask2,"k task 2",65536);
-    pr_log("Clay Figure Kernel. %d\n",0);
 
     uint32_t color = 0;
     while(1)

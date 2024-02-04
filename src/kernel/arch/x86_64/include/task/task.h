@@ -55,7 +55,7 @@ typedef struct
     uint64_t              *page_dir;
     allocate_table_t       vaddr_table; // available when page_dir == NULL;
 
-    void                  *message;
+    message_t              msg;
     pid_t                  send_to;
     pid_t                  recv_from;
     uint8_t                has_intr_msg;
@@ -65,7 +65,7 @@ typedef struct
 PUBLIC task_struct_t* pid2task(pid_t pid);
 PUBLIC task_struct_t* running_task();
 PUBLIC task_struct_t* running_prog();
-PUBLIC task_struct_t* get_running_prog_kstack();
+PUBLIC uintptr_t get_running_prog_kstack();
 PUBLIC pid_t task_alloc();
 PUBLIC void task_free(pid_t pid);
 PUBLIC task_struct_t* init_task_struct
@@ -89,6 +89,8 @@ PUBLIC void task_init();
 
 /// schedule.c
 PUBLIC void schedule();
+PUBLIC void task_block(task_status_t status);
+PUBLIC void task_unblock(pid_t pid);
 
 /// tss.c
 PUBLIC void init_tss();

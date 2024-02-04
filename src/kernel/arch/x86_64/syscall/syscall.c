@@ -1,7 +1,8 @@
 #include <kernel/global.h>
 #include <device/cpu.h>
-
 #include <task/task.h>
+#include <kernel/syscall.h>
+
 #include <log.h>
 
 PUBLIC void syscall(uint32_t nr,pid_t src_dest,void *msg)
@@ -21,7 +22,48 @@ PUBLIC void syscall(uint32_t nr,pid_t src_dest,void *msg)
     );
 }
 
-void syscall_entry();
+PUBLIC syscall_status_t ASMLINKAGE sys_sendrecv(uint32_t nr,pid_t src_dest,void *msg)
+{
+    syscall_status_t res;
+    switch (nr)
+    {
+        case NR_SEND:
+            res = msg_send(src_dest,msg);
+            break;
+        case NR_RECV:
+            res = msg_recv(src_dest,msg);
+            break;
+        case NR_BOTH:
+            res = msg_send(src_dest,msg);
+            if (res == SYSCALL_SUCCESS)
+            {
+                res = msg_recv(src_dest,msg);
+            }
+            break;
+        default:
+            pr_log("\3 unknow syscall nr: 0x%x",nr);
+            res = SYSCALL_NO_SYSCALL;
+            break;
+    }
+    return res;
+}
+
+PUBLIC void syscall_entry();
+PUBLIC void syscall_init()
+{
+    wordsize_t val;
+    val = rdmsr(IA32_EFER);
+    val |= IA32_EFER_SCE;
+    wrmsr(IA32_EFER,val);
+
+    wrmsr(IA32_LSTAR,(uint64_t)syscall_entry);
+    // IA32_STAR[63:48] + 16 = user CS,IA32_STAR[63:48] + 8 = user SS
+    wrmsr(IA32_STAR,(uint64_t)SELECTOR_CODE64_K << 32 | (uint64_t)(SELECTOR_CODE64_U - 16) << 48);
+    wrmsr(IA32_FMASK,0);
+    return;
+}
+
+
 __asm__
 (
     ".global syscall_entry \n\t"
@@ -63,25 +105,3 @@ __asm__
         "sti \n\t"
         "sysretq \n\t"
 );
-
-PUBLIC void ASMLINKAGE sys_sendrecv(uint32_t nr,pid_t src_dest,void *msg)
-{
-    pr_log("\2syscall!! ");
-    pr_log(" task name is %s\n",running_task()->name);
-    pr_log("\2 Nr: %d, src_dest %d,msg %p\n",nr,src_dest,msg);
-    return;
-}
-
-PUBLIC void syscall_init()
-{
-    wordsize_t val;
-    val = rdmsr(IA32_EFER);
-    val |= IA32_EFER_SCE;
-    wrmsr(IA32_EFER,val);
-
-    wrmsr(IA32_LSTAR,(uint64_t)syscall_entry);
-    // IA32_STAR[63:48] + 16 = user CS,IA32_STAR[63:48] + 8 = user SS
-    wrmsr(IA32_STAR,(uint64_t)SELECTOR_CODE64_K << 32 | (uint64_t)(SELECTOR_CODE64_U - 16) << 48);
-    wrmsr(IA32_FMASK,0);
-    return;
-}

@@ -29,7 +29,7 @@ PUBLIC void schedule()
     task_struct_t *next = NULL;
     if (list_empty(&task_list))
     {
-        // thread_unblock(idle_thread);
+        // task_unblock(idle_task);
     }
     list_node_t *next_task_tag = NULL;
     next_task_tag = list_pop(&task_list);
@@ -37,8 +37,35 @@ PUBLIC void schedule()
     next->status = TASK_RUNNING;
 
     prog_activate(next);
-    // fpu_set(cur_thread,next);
+    // fpu_set(cur_task,next);
     switch_to(&cur_task->context,&next->context);
+    return;
+}
+
+PUBLIC void task_block(task_status_t status)
+{
+    intr_status_t intr_status = intr_disable();
+    task_struct_t *cur_task = running_task();
+    cur_task->status = status;
+    schedule();
+    intr_set_status(intr_status);
+    return;
+}
+
+PUBLIC void task_unblock(pid_t pid)
+{
+    task_struct_t *task = pid2task(pid);
+    if (task == NULL)
+    {
+        return;
+    }
+    intr_status_t intr_status = intr_disable();
+    if (task->status != TASK_READY)
+    {
+        list_push(&task_list,&task->general_tag);
+        task->status = TASK_READY;
+    };
+    intr_set_status(intr_status);
     return;
 }
 

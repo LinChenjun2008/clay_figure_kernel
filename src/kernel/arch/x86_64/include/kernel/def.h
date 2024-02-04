@@ -56,4 +56,14 @@ typedef unsigned long long int wordsize_t;
 typedef unsigned long long int size_t;
 
 typedef uint16_t pid_t;
+
+typedef uint32_t syscall_status_t;
+
+typedef struct
+{
+    pid_t    src;
+    uint32_t type;
+    uint64_t msg[8];
+} message_t;
+
 #endif
