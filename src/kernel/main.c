@@ -2,16 +2,17 @@
 #include <common.h>
 #include <kernel/init.h>
 #include <intr.h>
-#include <log.h>
 #include <task/task.h>
+#include <kernel/syscall.h>
+
+#include <device/cpu.h>
+#include <log.h>
 
 boot_info_t *g_boot_info = (boot_info_t*)0xffff800000310000;
 
 void ktask()
 {
     uint32_t color = 0x00000000;
-    pr_log("\1I am \"%s\",my pid is %d. My kstack is: %p\n",running_task()->name,running_task()->pid,running_task()->kstack_base);
-    pr_log("\1pid2task(%d)->name is \"%s\".\n",running_task()->pid,pid2task(running_task()->pid)->name);
     while(1)
     {
         uint32_t x,y;
@@ -31,8 +32,7 @@ void ktask()
 void ktask2()
 {
     uint32_t color = 0x00000000;
-    pr_log("\1I am \"%s\",my pid is %d. My kstack is: %p\n",running_task()->name,running_task()->pid,running_task()->kstack_base);
-    pr_log("\1pid2task(%d)->name is \"%s\".\n",running_task()->pid,pid2task(running_task()->pid)->name);
+    syscall(1,2,3);
     while(1)
     {
         uint32_t x,y;
@@ -56,15 +56,11 @@ void kernel_main()
     init_all();
     intr_enable();
     pr_log("\1Kernel initializing done.\n");
-    task_start("k task",31,65536,ktask,0);
-    task_start("k task2",31,65536,ktask2,0);
-    uint32_t color = 0x0fffffff;
-    while(color--);
-    pr_log("\1I am \"%s\",my pid is %d. My kstack is: %p\n",running_task()->name,running_task()->pid,running_task()->kstack_base);
-    pr_log("\1pid2task(%d)->name is \"%s\".\n",running_task()->pid,pid2task(running_task()->pid)->name);
+    task_start("k task",3,65536,ktask,0);
+    prog_execute(ktask2,"k task 2",65536);
+    pr_log("Clay Figure Kernel. %d\n",0);
 
-    basic_print(0x00ffffff,"Clay Figure Kernel. %d",0);
-
+    uint32_t color = 0;
     while(1)
     {
         uint32_t x,y;

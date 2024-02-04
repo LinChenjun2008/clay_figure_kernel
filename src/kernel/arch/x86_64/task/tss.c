@@ -42,9 +42,9 @@ PUBLIC void init_tss()
     uint64_t tss_base_l = ((uint64_t)&tss) & 0xffffffff;
     uint64_t tss_base_h = (((uint64_t)&tss) >> 32) & 0xffffffff;
 
-            gdt_table[9    ] = make_segmdesc((uint32_t)(tss_base_l & 0xffffffff),
+            gdt_table[5    ] = make_segmdesc((uint32_t)(tss_base_l & 0xffffffff),
                                               tss_size - 1,AR_TSS64);
-    memcpy(&gdt_table[9 + 1],&tss_base_h,8);
+    memcpy(&gdt_table[5 + 1],&tss_base_h,8);
     return;
 }
 

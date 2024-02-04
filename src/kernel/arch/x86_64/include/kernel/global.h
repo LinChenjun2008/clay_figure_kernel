@@ -1,11 +1,11 @@
 #ifndef __GLOBAL_H__
 #define __GLOBAL_H__
 
-#define __DISABLE_APIC__ 0
+#define __DISABLE_APIC__ 1
 #define __DISABLE_LOG__  1
 
-#define __TIMER_HPET__
-// #define __TIMER_8254__
+// #define __TIMER_HPET__
+#define __TIMER_8254__
 
 #include <kernel/def.h>
 #include <kernel/const.h>

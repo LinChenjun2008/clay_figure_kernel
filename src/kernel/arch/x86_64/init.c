@@ -5,6 +5,7 @@
 #include <device/timer.h>
 #include <mem/mem.h>
 #include <task/task.h>
+#include <kernel/syscall.h>
 
 PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access)
 {
@@ -18,19 +19,15 @@ PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access)
     return desc;
 }
 
-PUBLIC segmdesc_t gdt_table[17];
+PUBLIC segmdesc_t gdt_table[7];
 
 PRIVATE void init_desctrib()
 {
     gdt_table[0] = make_segmdesc(0,      0,             0);
     gdt_table[1] = make_segmdesc(0,      0,     AR_CODE64);
     gdt_table[2] = make_segmdesc(0,      0,     AR_DATA64);
-    gdt_table[3] = make_segmdesc(0,0xfffff,AR_CODE32_DPL3);
-    gdt_table[4] = make_segmdesc(0,0xfffff,AR_DATA32_DPL3);
-    gdt_table[5] = make_segmdesc(0,      0,AR_CODE64_DPL3);
-    gdt_table[6] = make_segmdesc(0,      0,AR_DATA64_DPL3);
-    gdt_table[7] = make_segmdesc(0,0xfffff,     AR_CODE32);
-    gdt_table[8] = make_segmdesc(0,0xfffff,     AR_DATA32);
+    gdt_table[3] = make_segmdesc(0,      0,AR_DATA64_DPL3);
+    gdt_table[4] = make_segmdesc(0,      0,AR_CODE64_DPL3);
     init_tss();
     uint128_t gdt_ptr = (((uint128_t)0
                         + ((uint128_t)((uint64_t)gdt_table))) << 16)
@@ -69,6 +66,8 @@ PUBLIC void init_all()
     mem_init();
     mem_alloctor_init();
     task_init();
+
+    syscall_init();
     // init_screen();
     //
     // init_pit();

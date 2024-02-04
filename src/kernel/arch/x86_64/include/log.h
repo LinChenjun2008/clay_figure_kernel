@@ -12,7 +12,7 @@ PUBLIC void basic_print(uint32_t col,const char *str,...);
 #if __DISABLE_LOG__
 static inline void pr_log(const char *log,...)
 {
-    char msg[128];
+    char msg[256];
     char *buf;
     char *level[] =
     {
@@ -23,7 +23,18 @@ static inline void pr_log(const char *log,...)
     if (*log >= 1 && *log <= 3)
     {
         buf = level[*log - 1];
-        basic_print(0x0000ff00,buf);
+        if (*log - 1 == 0)
+        {
+            basic_print(0x0000ff00,buf);
+        }
+        else if (*log - 1 == 1)
+        {
+            basic_print(0x00ffcc00,buf);
+        }
+        else if (*log - 1 == 2)
+        {
+            basic_print(0x00ff0000,buf);
+        }
     }
     va_list ap;
     va_start(ap,log);
@@ -37,7 +48,7 @@ static inline void pr_log(const char *log,...)
 
 static inline void pr_log(const char *log,...)
 {
-    char msg[128];
+    char msg[256];
     char *buf;
     uint16_t port = 0x3f8;
     char *level[] =

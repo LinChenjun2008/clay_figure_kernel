@@ -2,14 +2,17 @@
 #include <io.h>
 #include <intr.h>
 
+#include <log.h>
+
 void (*irq_handler[IRQ_CNT])(intr_stack_t*);
 
 PRIVATE char *intr_name[IRQ_CNT] =
 {
-    "#DE\n","#DB\n","NMI\n","#BP\n","#OF\n",
-    "#BR\n","#UD\n","#NM\n","#DF\n","CSO\n",
-    "#TS\n","#NP\n","#SS\n","#GP\n","#PF\n",
-    "RSV\n","#MF\n","#AC\n","#MC\n","#XF\n",
+    "#DE","#DB","NMI","#BP","#OF",
+    "#BR","#UD","#NM","#DF","CSO",
+    "#TS","#NP","#SS","#GP","#PF",
+    "RSV","#MF","#AC","#MC","#XF",
+    " "
 };
 
 #pragma pack(1)
@@ -38,30 +41,42 @@ PRIVATE void set_gatedesc(gate_desc_t *gd,void *func,int selector,int ar)
     return;
 }
 
-PRIVATE void ASMLINKAGE do_irq(uint16_t nr,intr_stack_t *stack)
+PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
+{
+    pr_log("\n");
+    pr_log("\3INTR :%d ( %s )\n",nr,intr_name[nr < 20 ? nr : 20]);
+    uint64_t cr2,cr3;
+    __asm__ __volatile__
+    (
+        "movq %%cr2,%0\n\t""movq %%cr3,%1\n\t":"=r"(cr2),"=r"(cr3)::
+    );
+    pr_log("CS:RIP %04x:%016x\n"
+           "ERROR CODE: %016x\n"
+        ,stack->cs,stack->rip,
+        stack->error_code);
+    pr_log("CR2 - %016x, CR3 - %016x\n",cr2,cr3);
+    pr_log("RAX - %016x, PBX - %016x, RCX - %016x, RDX - %016x\n",
+            stack->rax,stack->rbx,stack->rcx,stack->rdx);
+    pr_log("RSP - %016x, RBP - %016x, RSI - %016x, RDI - %016x\n",
+            stack,stack->rbp,stack->rsi,stack->rdi);
+    pr_log("R8  - %016x, R9  - %016x, R10 - %016x, R11 - %016x\n",
+        stack->r8,stack->r9,stack->r10,stack->r11);
+    pr_log("R12 - %016x, R13 - %016x, R14 - %016x, R15 - %016x\n",
+           stack->r12,stack->r13,stack->r14,stack->r15);
+    while(1);
+}
+
+PRIVATE void ASMLINKAGE do_irq(uint8_t nr,intr_stack_t *stack)
 {
     if (irq_handler[nr] != NULL)
     {
         irq_handler[nr](stack);
     }
-    return;
-}
-
-PRIVATE void default_irq_handler(intr_stack_t *stack)
-{
-    uint32_t color = 0x00ff0000;
-    uint32_t x,y;
-    for(y = 0;y < 30;y++)
+    else
     {
-        uint32_t *buffer = \
-            (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
-            + g_boot_info->graph_info.horizontal_resolution * y;
-        for (x = 0;x < g_boot_info->graph_info.horizontal_resolution;x++)
-        {
-            *(buffer + x) = color;
-        }
+        default_irq_handler(nr,stack);
     }
-    while(1);
+    return;
 }
 
 #define INTR_HANDLER(ENTRY,NR,ERROR_CODE) extern void ENTRY(intr_stack_t*);
@@ -81,10 +96,11 @@ PRIVATE void idt_desc_init(void)
 PUBLIC void intr_init()
 {
     idt_desc_init();
-    #define INTR_HANDLER(ENTRY,NR,ERROR_CODE) \
-            irq_handler[NR] = default_irq_handler;
-    #include <intr.h>
-    #undef INTR_HANDLER
+    int i;
+    for (i = 0;i < IRQ_CNT;i++)
+    {
+        irq_handler[i] = NULL;
+    }
     uint128_t idt_ptr = (((uint128_t)0 + ((uint128_t)((uint64_t)idt))) << 16) \
                         | (sizeof(idt) - 1);
     __asm__ __volatile__ ("lidt %[idt_ptr]"::[idt_ptr]"m"(idt_ptr):);

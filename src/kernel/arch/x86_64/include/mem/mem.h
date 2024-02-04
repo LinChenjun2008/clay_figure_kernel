@@ -10,6 +10,9 @@ PUBLIC uint64_t* pdpt_entry(void *pml4t,void *vaddr);
 PUBLIC uint64_t* pdt_entry(void *pml4t,void *vaddr);
 PUBLIC void* to_physical_address(void *pml4t,void *vaddr);
 
+PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr);
+PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr);
+
 PUBLIC void mem_alloctor_init();
 PUBLIC void* pmalloc(size_t size);
 PUBLIC void pfree(void *addr);

@@ -31,6 +31,8 @@ PUBLIC task_struct_t* pid2task(pid_t pid)
     return &task_table[pid];
 }
 
+
+// running_task() can only be called in ring 0
 PUBLIC task_struct_t* running_task()
 {
     wordsize_t rsp;
@@ -49,6 +51,36 @@ PUBLIC task_struct_t* running_task()
         }
     }
     return NULL;
+}
+
+// running_prog() can only be called in syscall
+PUBLIC task_struct_t* running_prog()
+{
+    wordsize_t rsp;
+    wordsize_t pml4t;
+    __asm__ __volatile__ ("movq %%rsp,%0 \n\t""movq %%cr3,%1":"=g"(rsp),"=g"(pml4t)::);
+
+    rsp = (wordsize_t)to_physical_address((void*)pml4t,(void*)rsp);
+    int i;
+    for (i = 0;i < MAX_TASK;i++)
+    {
+        if (task_table[i].status == TASK_NO_TASK)
+        {
+            continue;
+        }
+        if (rsp >= task_table[i].ustack_base
+            && rsp <= task_table[i].ustack_base + task_table[i].ustack_size)
+        {
+            return &task_table[i];
+        }
+    }
+    return NULL;
+}
+
+PUBLIC task_struct_t* get_running_prog_kstack()
+{
+    task_struct_t *cur = running_prog();
+    return cur->kstack_base + cur->kstack_size;
 }
 
 PUBLIC pid_t task_alloc()
@@ -89,7 +121,7 @@ PUBLIC task_struct_t* init_task_struct
     task->kstack_base = kstack_base;
     task->kstack_size = kstack_size;
 
-    task->ustack      = 0;
+    task->ustack_base = 0;
     task->ustack_size = 0;
 
     task->pid         = ((uintptr_t)task - (uintptr_t)task_table) / sizeof(*task);
@@ -136,6 +168,11 @@ PUBLIC task_struct_t* task_start
     uint64_t arg
 )
 {
+    // kstack_size == 2 ** n
+    if (kstack_size & (kstack_size - 1))
+    {
+        return NULL;
+    }
     pid_t pid = task_alloc();
     if (pid == MAX_TASK)
     {
@@ -159,7 +196,7 @@ PRIVATE void make_main_task(void)
     task_struct_t *main_task = pid2task(task_alloc());
     init_task_struct(main_task,
                     "Main task",
-                    31,
+                    3,
                     (uintptr_t)KADDR_P2V(KERNEL_STACK_BASE),
                     KERNEL_STACK_SIZE);
     list_append(&task_list,&main_task->general_tag);

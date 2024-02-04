@@ -2,6 +2,7 @@
 #define __TASK_H__
 
 #include <lib/list.h>
+#include <lib/alloc_table.h>
 
 typedef enum
 {
@@ -37,7 +38,7 @@ typedef struct
     uintptr_t              kstack_base;
     size_t                 kstack_size;
 
-    wordsize_t             ustack;
+    uintptr_t              ustack_base;
     size_t                 ustack_size;
 
     pid_t                  pid;
@@ -52,6 +53,7 @@ typedef struct
     list_node_t            general_tag;
 
     uint64_t              *page_dir;
+    allocate_table_t       vaddr_table; // available when page_dir == NULL;
 
     void                  *message;
     pid_t                  send_to;
@@ -62,6 +64,8 @@ typedef struct
 
 PUBLIC task_struct_t* pid2task(pid_t pid);
 PUBLIC task_struct_t* running_task();
+PUBLIC task_struct_t* running_prog();
+PUBLIC task_struct_t* get_running_prog_kstack();
 PUBLIC pid_t task_alloc();
 PUBLIC void task_free(pid_t pid);
 PUBLIC task_struct_t* init_task_struct
@@ -88,5 +92,9 @@ PUBLIC void schedule();
 
 /// tss.c
 PUBLIC void init_tss();
+PUBLIC void update_tss_rsp0(task_struct_t *task);
+/// prog.c
+PUBLIC void prog_activate(task_struct_t *task);
+PUBLIC task_struct_t *prog_execute(void *prog,char *name,size_t kstack_size);
 
 #endif

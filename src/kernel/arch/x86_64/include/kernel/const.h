@@ -71,22 +71,20 @@
 #define SELECTOR_CODE64_K     ((1 << 3) | TI_GDT | RPL0) /* 代码段 */
 #define SELECTOR_DATA64_K     ((2 << 3) | TI_GDT | RPL0) /* 数据段 */
 
-#define SELECTOR_CODE32_U     ((3 << 3) | TI_GDT | RPL3) /* 用户代码段 */
-#define SELECTOR_DATA32_U     ((4 << 3) | TI_GDT | RPL3) /* 用户数据段 */
+#define SELECTOR_DATA64_U     ((3 << 3) | TI_GDT | RPL3) /* 用户数据段 */
+#define SELECTOR_CODE64_U     ((4 << 3) | TI_GDT | RPL3) /* 用户代码段 */
 
-#define SELECTOR_CODE64_U     ((5 << 3) | TI_GDT | RPL3) /* 用户代码段 */
-#define SELECTOR_DATA64_U     ((6 << 3) | TI_GDT | RPL3) /* 用户数据段 */
-
-#define SELECTOR_CODE32_K     ((7 << 3) | TI_GDT | RPL0) /* 代码段 */
-#define SELECTOR_DATA32_K     ((8 << 3) | TI_GDT | RPL0) /* 数据段 */
-
-#define SELECTOR_TSS          ((9 << 3) | TI_GDT | RPL0) /* TSS段 */
+#define SELECTOR_TSS          ((5 << 3) | TI_GDT | RPL0) /* TSS段 */
 
 #define AR_DESC_32 0xe
 #define AR_DESC_16 0x6
 
 #define AR_IDT_DESC_DPL0 (AR_P | AR_DPL_0 | AR_DESC_32)
 #define AR_IDT_DESC_DPL3 (AR_P | AR_DPL_3 | AR_DESC_32)
+
+#define USER_STACK_VADDR_BASE (0x0000800000000000 - PG_SIZE)
+// #define USER_VADDR_START 0x804800
+#define USER_VADDR_START 0x800000
 
 #define MAX_TASK 1024
 
@@ -103,5 +101,12 @@
 #define IA32_APIC_BASE        0x0000001b
 #define IA32_APIC_BASE_BSP    (1 << 8)
 #define IA32_APIC_BASE_ENABLE (1 << 11)
+
+#define IA32_EFER   0xc0000080
+#define IA32_STAR   0xc0000081
+#define IA32_LSTAR  0xc0000082
+#define IA32_FMASK  0xc0000084
+
+#define IA32_EFER_SCE 1
 
 #endif

@@ -36,7 +36,7 @@ PUBLIC void schedule()
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
     next->status = TASK_RUNNING;
 
-    // process_activate(next);
+    prog_activate(next);
     // fpu_set(cur_thread,next);
     switch_to(&cur_task->context,&next->context);
     return;
