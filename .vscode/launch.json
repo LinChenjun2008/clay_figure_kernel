@@ -5,7 +5,7 @@
             "name": "(gdb) 调试",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/src/kernel/.tmp_kernel",
+            "program": "${workspaceRoot}/build/.tmp_kernel",
             "args": [],
             "stopAtEntry": true,
             "cwd": "${workspaceRoot}/src/kernel",

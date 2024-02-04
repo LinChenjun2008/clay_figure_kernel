@@ -1,0 +1,43 @@
+SRC_PATH                := ../src/
+BOOTLOADER_SRC_PATH     := $(SRC_PATH)/bootloader/
+KERNEL_SRC_PATH         := $(SRC_PATH)/kernel/
+
+BOOTLOADER_SRC          := \
+$(BOOTLOADER_SRC_PATH)/main.c \
+$(BOOTLOADER_SRC_PATH)/video.c \
+$(BOOTLOADER_SRC_PATH)/memory.c \
+$(BOOTLOADER_SRC_PATH)/file.c \
+
+BOOTLOADER_INCLUDE_PATH := $(BOOTLOADER_SRC_PATH)/include/
+
+KERNEL_LINKER_SCRIPT    := ./kernel.lds
+
+KERNEL_SRC              := \
+$(KERNEL_SRC_PATH)/setup.c \
+$(KERNEL_SRC_PATH)/main.c \
+ \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/init.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/intr/intr.c \
+ \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pic/pic.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pic/8259a.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pic/apic.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/timer/timer.c \
+ \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/tss.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/task.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/schedule.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/prog.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/mem/mem.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/syscall.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/ipc.c \
+ \
+$(KERNEL_SRC_PATH)/mem/allocator.c \
+$(KERNEL_SRC_PATH)/lib/alloc_table.c \
+$(KERNEL_SRC_PATH)/lib/bitmap.c \
+$(KERNEL_SRC_PATH)/lib/list.c \
+$(KERNEL_SRC_PATH)/lib/stdio.c \
+$(KERNEL_SRC_PATH)/graphic/print.c \
+$(KERNEL_SRC_PATH)/graphic/character.c \
+
+KERNEL_INCLUDE_PATH     := $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include/

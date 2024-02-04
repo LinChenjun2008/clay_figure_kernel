@@ -1,0 +1,34 @@
+TOOL_PATH        := ../../tools/
+MINGW64_GCC      := $(TOOL_PATH)/MinGW64/bin/gcc.exe
+X86_64-ELF-GCC   := $(TOOL_PATH)/X86_64-elf-tools/bin/x86_64-elf-gcc.exe
+X86_64-ELF-LD    := $(TOOL_PATH)/x86_64-elf-tools/x86_64-elf/bin/ld.exe
+OBJCOPY          := $(TOOL_PATH)/objcopy
+QEMU             := $(TOOL_PATH)/qemu/qemu-system-x86_64.exe
+ECHO             := echo
+RM               := $(TOOL_PATH)/rm
+OVMF             := $(ESP_PATH)/../bios.bin
+
+BOOTLOADER_FLAGS := -Wall -Wextra -I$(BOOTLOADER_INCLUDE_PATH) -I$(SRC_PATH) -I$(BOOTLOADER_SRC_PATH) \
+ -std=c99 \
+ -e UefiMain -nostdinc -nostdlib \
+ -finput-charset=UTF-8 -fexec-charset=UTF-8 -fno-stack-protector -O0 \
+ -fno-builtin -Wl,--subsystem,10 -m64 -mcmodel=large -fpic
+
+KERNEL_FLAGS     := -I$(KERNEL_INCLUDE_PATH) -I$(SRC_PATH) -Wall -Wextra \
+ -nostdlib -nostdinc \
+ -finput-charset=UTF-8 -fexec-charset=UTF-8 \
+ -fno-builtin -fno-strict-aliasing -ffreestanding \
+ -fstrength-reduce -falign-loops -falign-jumps \
+ -fwrapv \
+ -mno-red-zone -m64 -mcmodel=large -march=x86-64 \
+ -O0 \
+ -g3 -gdwarf-2 -gstrict-dwarf
+
+QEMU_FLAGS :=  -m 128M -bios $(OVMF) \
+ -smp 1,cores=1,threads=1,sockets=1 \
+ -drive file=fat:rw:$(ESP_PATH),index=0,format=vvfat -net none \
+ -device nec-usb-xhci,id=xhci \
+ -device usb-mouse \
+ -no-shutdown \
+ -chardev stdio,mux=on,id=com1 \
+ -serial chardev:com1

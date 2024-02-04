@@ -57,7 +57,7 @@ typedef
 EFI_STATUS
 (EFIAPI *EFI_FILE_CLOSE)
 (
-    EFI_FILE_PROTOCOL* This
+    EFI_FILE_PROTOCOL *This
 );
 
 typedef

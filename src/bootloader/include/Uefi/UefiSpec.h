@@ -30,7 +30,7 @@ EFI_STATUS
     EFI_ALLOCATE_TYPE     Type,
     EFI_MEMORY_TYPE       MemoryType,
     UINTN                 Pages,
-    EFI_PHYSICAL_ADDRESS* Memory
+    EFI_PHYSICAL_ADDRESS *Memory
 );
 
 typedef
@@ -193,7 +193,7 @@ typedef struct
         EFI_RESET_TYPE ResetType,
         UINTN ResetStatus,
         UINTN DataSize,
-        VOID* ResetData
+        VOID *ResetData
     );
 } EFI_RUNTIME_SERVICES;
 
