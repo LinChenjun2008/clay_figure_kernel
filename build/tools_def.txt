@@ -1,5 +1,3 @@
-# ../../tools/qemu/qemu-system-x86_64 -m 128M -bios ../../run/bios.bin -drive  file=fat:rw:../../run/esp/,index=0,format=vvfat -chardev stdio,mux=on,id=com1 -serial chardev:com1 -S -s
-
 TOOL_PATH        := ../../tools/
 MINGW64_GCC      := $(TOOL_PATH)/MinGW64/bin/gcc.exe
 X86_64-ELF-GCC   := $(TOOL_PATH)/X86_64-elf-tools/bin/x86_64-elf-gcc.exe

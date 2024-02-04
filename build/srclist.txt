@@ -30,6 +30,7 @@ $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/schedule.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/prog.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/mem/mem.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/syscall.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/ipc.c \
  \
 $(KERNEL_SRC_PATH)/mem/allocator.c \
 $(KERNEL_SRC_PATH)/lib/alloc_table.c \
