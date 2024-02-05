@@ -3,6 +3,7 @@
 #include <intr.h>
 #include <device/pic.h>
 #include <device/timer.h>
+#include <device/pci.h>
 #include <mem/mem.h>
 #include <task/task.h>
 #include <kernel/syscall.h>
@@ -63,6 +64,7 @@ PUBLIC void init_all()
     intr_init();
     pit_init();
     pic_init();
+    pci_scan_all_bus();
     mem_init();
     mem_alloctor_init();
     task_init();

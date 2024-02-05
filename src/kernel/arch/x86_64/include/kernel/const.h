@@ -109,6 +109,9 @@
 
 #define IA32_EFER_SCE 1
 
+#define PCI_CONFIG_ADDRESS 0x0cf8
+#define PCI_CONFIG_DATA    0x0cfc
+
 #define NR_SEND 0x80000001
 #define NR_RECV 0x80000002
 #define NR_BOTH 0x80000003

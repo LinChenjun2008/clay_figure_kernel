@@ -5,7 +5,6 @@
 #include <task/task.h>
 #include <kernel/syscall.h>
 
-#include <device/cpu.h>
 #include <log.h>
 
 boot_info_t *g_boot_info = (boot_info_t*)0xffff800000310000;
@@ -57,7 +56,6 @@ void kernel_main()
     pr_log("\1Kernel initializing done.\n");
     task_start("k task",3,65536,ktask,0);
     prog_execute(ktask2,"k task 2",65536);
-
     uint32_t color = 0;
     while(1)
     {
