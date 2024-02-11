@@ -4,6 +4,7 @@
 #include <device/pic.h>
 #include <device/timer.h>
 #include <device/pci.h>
+#include <device/usb/hci/xhci.h>
 #include <mem/mem.h>
 #include <task/task.h>
 #include <kernel/syscall.h>
@@ -62,9 +63,11 @@ PUBLIC void init_all()
 {
     init_desctrib();
     intr_init();
-    pit_init();
+    detect_cores();
     pic_init();
+    pit_init();
     pci_scan_all_bus();
+    xhci_init();
     mem_init();
     mem_alloctor_init();
     task_init();

@@ -14,7 +14,8 @@ BOOTLOADER_FLAGS := -Wall -Wextra -I$(BOOTLOADER_INCLUDE_PATH) -I$(SRC_PATH) -I$
  -finput-charset=UTF-8 -fexec-charset=UTF-8 -fno-stack-protector -O0 \
  -fno-builtin -Wl,--subsystem,10 -m64 -mcmodel=large -fpic
 
-KERNEL_FLAGS     := -I$(KERNEL_INCLUDE_PATH) -I$(SRC_PATH) -Wall -Wextra \
+KERNEL_FLAGS     := -I$(KERNEL_INCLUDE_PATH) -I$(SRC_PATH) \
+ -Wall -Wextra -Werror \
  -nostdlib -nostdinc \
  -finput-charset=UTF-8 -fexec-charset=UTF-8 \
  -fno-builtin -fno-strict-aliasing -ffreestanding \

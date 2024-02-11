@@ -14,7 +14,7 @@ PUBLIC bool support_apic()
     return (d & (1 << 9)) && (rdmsr(IA32_APIC_BASE) & (1 << 11));
 }
 
-PRIVATE void detect_cores()
+PUBLIC void detect_cores()
 {
     apic_struct.local_apic_address   = 0;
     apic_struct.ioapic_address       = 0;
@@ -55,15 +55,26 @@ PRIVATE void detect_cores()
 PUBLIC void local_apic_write(uint16_t index,uint32_t value)
 {
     *(uint32_t*)KADDR_P2V(apic_struct.local_apic_address + index) = value;
-    // wait for write finish
-    value = *(uint32_t*)KADDR_P2V(apic_struct.local_apic_address + 0x020);
+    io_mfence();
+}
+
+PUBLIC uint32_t local_apic_read(uint16_t index)
+{
+    return *(uint32_t*)KADDR_P2V(apic_struct.local_apic_address + index);
 }
 
 PRIVATE void local_apic_init()
 {
     // enable SVR[8]
     pr_log("\1enable SVR[8].\n");
-    local_apic_write(0x0f0,1 << 8);
+    uint32_t svr = local_apic_read(0x0f0);
+    svr |= 1 << 8;
+    if (local_apic_read(0x030) & (1 << 24))
+    {
+        pr_log("\1enable SVR[12]\n");
+        svr |= 1 << 12;
+    }
+    local_apic_write(0x0f0,svr);
 
     // Mask all LVT
     pr_log("\1Mask all LVT.\n");
@@ -134,7 +145,6 @@ PRIVATE void ioapic_init()
 
 PUBLIC void apic_init()
 {
-    detect_cores();
     // 禁止8259A的所有中断
     io_out8(PIC_M_DATA, 0xff ); /* 11111111 禁止所有中断 */
     io_out8(PIC_S_DATA, 0xff ); /* 11111111 禁止所有中断 */

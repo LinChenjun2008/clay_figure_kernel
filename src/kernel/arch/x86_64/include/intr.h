@@ -43,6 +43,7 @@ typedef enum
     INTR_ON,
 } intr_status_t;
 
+PUBLIC void ASMLINKAGE do_irq(uint8_t nr,intr_stack_t *stack);
 PUBLIC void intr_init();
 PUBLIC void register_handle(uint8_t nr,void (*handle)(intr_stack_t*));
 PUBLIC intr_status_t intr_get_status();
@@ -100,8 +101,6 @@ INTR_HANDLER(asm_intr0x2d_handler,0x2d, pushq $0) // fpu浮点单元异常
 INTR_HANDLER(asm_intr0x2e_handler,0x2e, pushq $0) // 硬盘
 INTR_HANDLER(asm_intr0x2f_handler,0x2f, pushq $0) // 保留
 
-// INTR_HANDLER(asm_syscall_handler,0x40, pushq $0) // 系统调用
 #endif
-
 
 #endif

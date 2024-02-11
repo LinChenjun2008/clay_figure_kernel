@@ -47,6 +47,7 @@ typedef struct
 
 PUBLIC bool support_apic();
 
+PUBLIC void detect_cores();
 PUBLIC void pic_init();
 PUBLIC void eoi();
 

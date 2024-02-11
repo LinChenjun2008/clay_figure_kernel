@@ -24,43 +24,73 @@ PRIVATE uint32_t pci_config_read(uint8_t bus, uint8_t dev, uint8_t func, uint8_t
     return io_in32(PCI_CONFIG_DATA);
 }
 
-PRIVATE uint8_t read_header_type(uint8_t bus, uint8_t dev, uint8_t func)
+/// Header:
+/// Offset | 31 - 24    |  23 - 16    | 15 - 8        | 7 - 0           |
+/// 0x00   | Device ID                | Vendor ID                       |
+/// 0x04   | Status                   | Command                         |
+/// 0x08   | Class Code | Subclass    | Prog IF       | Revision ID     |
+/// 0x0c   | BIST       | Header Type | Latency Timer | Cache Line Size |
+/// 0x10   | ...                                                        |
+
+PUBLIC uint32_t pci_dev_config_read(pci_device_t *dev,uint8_t offset)
+{
+    return pci_config_read(dev->bus,dev->device,dev->func,offset);
+}
+
+PRIVATE uint8_t pci_read_header_type(uint8_t bus, uint8_t dev, uint8_t func)
 {
     return (uint8_t)((pci_config_read(bus,dev,func,0x0c) >> 16) & 0xff);
 }
 
-PRIVATE uint16_t read_vendor_id(uint8_t bus, uint8_t dev, uint8_t func)
+PRIVATE uint16_t pci_read_vendor_id(uint8_t bus, uint8_t dev, uint8_t func)
 {
     return (uint16_t)(pci_config_read(bus,dev,func,0x00) & 0xffff);
 }
 
-PRIVATE uint32_t read_class_code(uint8_t bus, uint8_t dev, uint8_t func)
+PRIVATE uint32_t pci_read_class_code(uint8_t bus, uint8_t dev, uint8_t func)
 {
     return pci_config_read(bus,dev,func,0x08);
 }
 
-PRIVATE uint8_t read_base_class_code(uint8_t bus, uint8_t dev, uint8_t func)
+PRIVATE uint8_t pci_read_base_class_code(uint8_t bus, uint8_t dev, uint8_t func)
 {
-    return (uint8_t)((read_class_code(bus,dev,func) >> 24) & 0xff);
+    return (uint8_t)((pci_read_class_code(bus,dev,func) >> 24) & 0xff);
 }
 
-PRIVATE uint8_t read_sub_class_code(uint8_t bus, uint8_t dev, uint8_t func)
+PRIVATE uint8_t pci_read_sub_class_code(uint8_t bus, uint8_t dev, uint8_t func)
 {
-    return (uint8_t)((read_class_code(bus,dev,func) >> 16) & 0xff);
+    return (uint8_t)((pci_read_class_code(bus,dev,func) >> 16) & 0xff);
 }
 
-PRIVATE uint8_t read_secondary_bus_number(uint8_t bus, uint8_t dev, uint8_t func)
+PRIVATE uint8_t pci_read_secondary_bus_number(uint8_t bus, uint8_t dev, uint8_t func)
 {
     return (uint8_t)((pci_config_read(bus,dev,func,0x18) >> 8) & 0xff);
+}
+
+PUBLIC uint64_t pci_read_bar(pci_device_t *dev,uint8_t bar_index)
+{
+    if (bar_index > 5)
+    {
+        return 0;
+    }
+    uint8_t offset = bar_index * 4 + 0x10;
+    uint64_t bar = pci_dev_config_read(dev,offset);
+    if ((bar & 0x4) == 0)
+    {
+        return bar;
+    }
+    if (bar_index > 4)
+    {
+        return 0;
+    }
+    return ((uint64_t)pci_dev_config_read(dev,offset + 4) << 32) | bar;
 }
 
 PRIVATE void add_device(pci_device_t *device)
 {
     pr_log("\2pci device: %d:",number_of_pci_device);
-    pr_log("{bus: %d,dev %d,func %d,header type: %d,class code 0x%x}\n",
+    pr_log(" { %02x.%02x.%02x,header type: %02x,class code 0x%08x } \n",
         device->bus,device->device,device->func,device->header_type,device->class_code);
-
-
 
     pci_devices[number_of_pci_device] = *device;
     number_of_pci_device++;
@@ -77,17 +107,17 @@ PRIVATE void scan_func(uint8_t bus,uint8_t dev,uint8_t func)
     uint8_t sub_class;
     uint8_t secondary_bus;
 
-    base_class = read_base_class_code(bus,dev,func);
-    sub_class  = read_sub_class_code(bus,dev,func);
+    base_class = pci_read_base_class_code(bus,dev,func);
+    sub_class  = pci_read_sub_class_code(bus,dev,func);
 
-    uint8_t header_type = read_header_type(bus,dev,func);
-    uint32_t class_code = read_class_code(bus,dev,func);
+    uint8_t header_type = pci_read_header_type(bus,dev,func);
+    uint32_t class_code = pci_read_class_code(bus,dev,func);
     pci_device_t device = {bus,dev,func,header_type,class_code};
     add_device(&device);
 
     if (base_class == 0x06 && sub_class == 0x04) // PCI to PCI bridge
     {
-        secondary_bus = read_secondary_bus_number(bus,dev,func);
+        secondary_bus = pci_read_secondary_bus_number(bus,dev,func);
         scan_bus(secondary_bus);
     }
 }
@@ -95,12 +125,12 @@ PRIVATE void scan_func(uint8_t bus,uint8_t dev,uint8_t func)
 PRIVATE void scan_device(uint8_t bus,uint8_t dev)
 {
     uint8_t func = 0;
-    uint16_t vendor_id = read_vendor_id(bus,dev,func);
+    uint16_t vendor_id = pci_read_vendor_id(bus,dev,func);
     if (vendor_id == 0xffff) // device dosen't exist
     {
         return;
     }
-    uint8_t header_type = read_header_type(bus,dev,func);
+    uint8_t header_type = pci_read_header_type(bus,dev,func);
     if ((header_type & 0x80) == 0) // single-function device
     {
         scan_func(bus,dev,0);
@@ -109,7 +139,7 @@ PRIVATE void scan_device(uint8_t bus,uint8_t dev)
     // multi-functon device
     for (func = 0;func < 8;func++)
     {
-        vendor_id = read_vendor_id(bus,dev,func);
+        vendor_id = pci_read_vendor_id(bus,dev,func);
         if (vendor_id != 0xffff)
         {
             scan_func(bus,dev,func);
@@ -131,7 +161,7 @@ PUBLIC void pci_scan_all_bus()
 {
     number_of_pci_device = 0;
     uint8_t func;
-    uint8_t header_type = read_header_type(0,0,0);
+    uint8_t header_type = pci_read_header_type(0,0,0);
     if ((header_type & 0x80) == 0)// singal pci host controller
     {
         scan_bus(0);
@@ -139,7 +169,7 @@ PUBLIC void pci_scan_all_bus()
     }
     for (func = 0;func < 8;func++)
     {
-        if (read_vendor_id(0,0,func) == 0xffff)
+        if (pci_read_vendor_id(0,0,func) == 0xffff)
         {
             continue;
         }
@@ -147,4 +177,18 @@ PUBLIC void pci_scan_all_bus()
         scan_bus(func);
     }
     return;
+}
+
+PUBLIC pci_device_t* pci_dev_match(uint8_t base_class,uint8_t sub_class,uint8_t prog_if)
+{
+    int i;
+    for (i = 0;i < number_of_pci_device;i++)
+    {
+        uint32_t class_code = (pci_devices[i].class_code >> 8) & 0x00ffffff;
+        if (((uint32_t)base_class << 16 | (uint32_t)sub_class << 8 | prog_if) == class_code)
+        {
+            return &pci_devices[i];
+        }
+    }
+    return NULL;
 }

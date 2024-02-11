@@ -66,7 +66,7 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     while(1);
 }
 
-PRIVATE void ASMLINKAGE do_irq(uint8_t nr,intr_stack_t *stack)
+PUBLIC void ASMLINKAGE do_irq(uint8_t nr,intr_stack_t *stack)
 {
     if (irq_handler[nr] != NULL)
     {
