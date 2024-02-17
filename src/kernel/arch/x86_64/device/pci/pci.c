@@ -21,7 +21,26 @@ PRIVATE uint32_t pci_config_read(uint8_t bus, uint8_t dev, uint8_t func, uint8_t
             | (offset & 0xfc);
 
     io_out32(PCI_CONFIG_ADDRESS,address);
-    return io_in32(PCI_CONFIG_DATA);
+    uint32_t data = io_in32(PCI_CONFIG_DATA);
+    return data;
+}
+
+PRIVATE void pci_config_write(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset,uint32_t value)
+{
+    uint32_t address;
+    /// PCI_CONFIG_ADDRESS:
+    /// 31         | 30 - 24  | 23 - 16    | 15 - 11       | 10 - 8          | 7 - 0           |
+    /// Enable bit | Reserved | Bus Number | Device NUmber | Function NUmber | Register offset |
+
+    address = 0x80000000 \
+            | (uint32_t)bus << 16 \
+            | (uint32_t)dev << 11 \
+            | (uint32_t)func << 8 \
+            | (offset & 0xfc);
+
+    io_out32(PCI_CONFIG_ADDRESS,address);
+    io_out32(PCI_CONFIG_DATA,value);
+    return;
 }
 
 /// Header:
@@ -35,6 +54,12 @@ PRIVATE uint32_t pci_config_read(uint8_t bus, uint8_t dev, uint8_t func, uint8_t
 PUBLIC uint32_t pci_dev_config_read(pci_device_t *dev,uint8_t offset)
 {
     return pci_config_read(dev->bus,dev->device,dev->func,offset);
+}
+
+PUBLIC void pci_dev_config_write(pci_device_t *dev,uint8_t offset,uint32_t value)
+{
+    pci_config_write(dev->bus,dev->device,dev->func,offset,value);
+    return;
 }
 
 PRIVATE uint8_t pci_read_header_type(uint8_t bus, uint8_t dev, uint8_t func)
@@ -67,7 +92,7 @@ PRIVATE uint8_t pci_read_secondary_bus_number(uint8_t bus, uint8_t dev, uint8_t 
     return (uint8_t)((pci_config_read(bus,dev,func,0x18) >> 8) & 0xff);
 }
 
-PUBLIC uint64_t pci_read_bar(pci_device_t *dev,uint8_t bar_index)
+PUBLIC uint64_t pci_dev_read_bar(pci_device_t *dev,uint8_t bar_index)
 {
     if (bar_index > 5)
     {
@@ -75,23 +100,26 @@ PUBLIC uint64_t pci_read_bar(pci_device_t *dev,uint8_t bar_index)
     }
     uint8_t offset = bar_index * 4 + 0x10;
     uint64_t bar = pci_dev_config_read(dev,offset);
+    uint32_t mask;
+    mask = bar & 1 ? 0xfffffffc : 0xfffffff0;
     if ((bar & 0x4) == 0)
     {
-        return bar;
+        return bar & mask;
     }
     if (bar_index > 4)
     {
         return 0;
     }
-    return ((uint64_t)pci_dev_config_read(dev,offset + 4) << 32) | bar;
+    return ((uint64_t)pci_dev_config_read(dev,offset + 4) << 32) | (bar & mask);
+}
+
+PUBLIC uint8_t pci_dev_read_cap_point(pci_device_t *dev)
+{
+    return pci_dev_config_read(dev,0x34) & 0xff;
 }
 
 PRIVATE void add_device(pci_device_t *device)
 {
-    pr_log("\2pci device: %d:",number_of_pci_device);
-    pr_log(" { %02x.%02x.%02x,header type: %02x,class code 0x%08x } \n",
-        device->bus,device->device,device->func,device->header_type,device->class_code);
-
     pci_devices[number_of_pci_device] = *device;
     number_of_pci_device++;
 }

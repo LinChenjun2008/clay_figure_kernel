@@ -126,5 +126,4 @@
 #define SYSCALL_NO_DST        (SYSCALL_ERROR | 0x00000003)
 #define SYSCALL_NO_SRC        (SYSCALL_ERROR | 0x00000004)
 
-
 #endif

@@ -5,6 +5,21 @@
 
 #include <log.h>
 
+/*
+ Base Address | MSR address | Name               | Attribute
+ 0xfee00020   | 0x802       | Local APIC ID      | RW
+ 0xfee00030   | 0x803       | Local APIC Version | RO
+ 0xfee00080   | 0x808       | TPR                | RW
+ 0xfee00090   | -           | APR                | RO
+ 0xfee000a0   | 0x80a       | PPR                | RO
+ 0xfee000b0   | 0x80b       | EOI                | WO
+ 0xfee000f0   | 0x80f       | SVR                | RW
+ 0xfee00350   | 0x835       | LVT LINT0          | RW
+ 0xfee00360   | 0x836       | LVT LINT1          | RW
+ 0xfee00370   | 0x837       | LVT Error          | RW
+*/
+
+
 PUBLIC apic_t apic_struct;
 
 PUBLIC bool support_apic()
@@ -61,15 +76,31 @@ PUBLIC void local_apic_write(uint16_t index,uint32_t value)
 PUBLIC uint32_t local_apic_read(uint16_t index)
 {
     return *(uint32_t*)KADDR_P2V(apic_struct.local_apic_address + index);
+    io_mfence();
 }
 
 PRIVATE void local_apic_init()
 {
+    uint32_t a,b,c,d;
+    cpuid(1,0,&a,&b,&c,&d);
+    if (a & 0x800)
+    {
+        pr_log("\1APIC & xAPIC enabled\n");
+    }
+    if (a & 0x400)
+    {
+        pr_log("\1x2APIC enabled\n");
+    }
+
+    pr_log("\1APIC ID: %x\n",local_apic_read(0x020));
+    pr_log("\1APIC version: %x\n",local_apic_read(0x030) & 0xff);
+    pr_log("\1APIC Max LVT Entry: %x\n",((local_apic_read(0x030) >> 16) & 0xff) + 1);
+    pr_log("\1Suppress EOI Broadcast: %s\n",(local_apic_read(0x030) >> 24) & 1 ? "Yes" : "No");
     // enable SVR[8]
     pr_log("\1enable SVR[8].\n");
     uint32_t svr = local_apic_read(0x0f0);
     svr |= 1 << 8;
-    if (local_apic_read(0x030) & (1 << 24))
+    if (local_apic_read(0x030) >> 24 & 1)
     {
         pr_log("\1enable SVR[12]\n");
         svr |= 1 << 12;
@@ -85,6 +116,9 @@ PRIVATE void local_apic_init()
     local_apic_write(0x350,0x10000);
     local_apic_write(0x360,0x10000);
     local_apic_write(0x370,0x10000);
+
+    pr_log("\1APIC LVT TPR: %x\n",local_apic_read(0x080));
+    pr_log("\1APIC LVT PPR: %x\n",local_apic_read(0x0a0));
 
     return;
 }
@@ -126,7 +160,7 @@ PUBLIC void ioapic_enable(uint64_t pin,uint64_t vector)
 {
     uint64_t value = 0;
     value = ioapic_rte_read(pin * 2 + 0x10);
-    value = value & (~0x10000UL);
+    value = value & (~0x100ffUL);
     ioapic_rte_write(pin * 2 + 0x10,value | vector);
     return;
 }
@@ -149,8 +183,9 @@ PUBLIC void apic_init()
     io_out8(PIC_M_DATA, 0xff ); /* 11111111 禁止所有中断 */
     io_out8(PIC_S_DATA, 0xff ); /* 11111111 禁止所有中断 */
 
+    pr_log("\1init local apic.\n");
     local_apic_init();
-    pr_log("\1Init ioapic.\n");
+    pr_log("\1init ioapic.\n");
     ioapic_init();
     return;
 }

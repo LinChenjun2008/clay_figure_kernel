@@ -1,12 +1,24 @@
 TOOL_PATH        := ../../tools/
 MINGW64_GCC      := $(TOOL_PATH)/MinGW64/bin/gcc.exe
 X86_64-ELF-GCC   := $(TOOL_PATH)/X86_64-elf-tools/bin/x86_64-elf-gcc.exe
+X86_64-ELF-AS    := $(TOOL_PATH)/X86_64-elf-tools/bin/x86_64-elf-as.exe
 X86_64-ELF-LD    := $(TOOL_PATH)/x86_64-elf-tools/x86_64-elf/bin/ld.exe
 OBJCOPY          := $(TOOL_PATH)/objcopy
 QEMU             := $(TOOL_PATH)/qemu/qemu-system-x86_64.exe
 ECHO             := echo
 RM               := $(TOOL_PATH)/rm
 OVMF             := $(ESP_PATH)/../bios.bin
+
+# in Linux:
+# MINGW64_GCC      := x86_64-w64-mingw32-gcc
+# X86_64-ELF-GCC   := gcc
+# X86_64-ELF-AS    := as
+# X86_64-ELF-LD    := ld
+# OBJCOPY          := objcopy
+# QEMU             := qemu-system-x86_64
+# ECHO             := echo
+# RM               := rm
+# OVMF             := $(ESP_PATH)/../bios.bin
 
 BOOTLOADER_FLAGS := -Wall -Wextra -I$(BOOTLOADER_INCLUDE_PATH) -I$(SRC_PATH) -I$(BOOTLOADER_SRC_PATH) \
  -std=c99 \

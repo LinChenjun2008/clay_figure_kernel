@@ -1,18 +1,18 @@
 #include <kernel/global.h>
 #include <io.h>
 #include <intr.h>
+#include <task/task.h>
 
 #include <log.h>
 
 void (*irq_handler[IRQ_CNT])(intr_stack_t*);
 
-PRIVATE char *intr_name[IRQ_CNT] =
+PRIVATE char *intr_name[20] =
 {
     "#DE","#DB","NMI","#BP","#OF",
     "#BR","#UD","#NM","#DF","CSO",
     "#TS","#NP","#SS","#GP","#PF",
     "RSV","#MF","#AC","#MC","#XF",
-    " "
 };
 
 #pragma pack(1)
@@ -44,7 +44,7 @@ PRIVATE void set_gatedesc(gate_desc_t *gd,void *func,int selector,int ar)
 PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
 {
     pr_log("\n");
-    pr_log("\3INTR :%d ( %s )\n",nr,intr_name[nr < 20 ? nr : 20]);
+    pr_log("\3INTR : 0x%x ( %s )\n",nr,nr < 20 ? intr_name[nr] : "Other Intr");
     uint64_t cr2,cr3;
     __asm__ __volatile__
     (
@@ -55,6 +55,8 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
         ,stack->cs,stack->rip,
         stack->error_code);
     pr_log("CR2 - %016x, CR3 - %016x\n",cr2,cr3);
+    pr_log("DS  - %016x, ES  - %016x, FS  - %016x, GS  - %016x\n",
+            stack->ds,stack->es,stack->fs,stack->gs);
     pr_log("RAX - %016x, PBX - %016x, RCX - %016x, RDX - %016x\n",
             stack->rax,stack->rbx,stack->rcx,stack->rdx);
     pr_log("RSP - %016x, RBP - %016x, RSI - %016x, RDI - %016x\n",
@@ -63,6 +65,10 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
         stack->r8,stack->r9,stack->r10,stack->r11);
     pr_log("R12 - %016x, R13 - %016x, R14 - %016x, R15 - %016x\n",
            stack->r12,stack->r13,stack->r14,stack->r15);
+    if (running_task() != NULL)
+    {
+        pr_log("running task: %s\n",running_task()->name);
+    }
     while(1);
 }
 
@@ -89,8 +95,6 @@ PRIVATE void idt_desc_init(void)
             set_gatedesc(&idt[NR],ENTRY,SELECTOR_CODE64_K,AR_IDT_DESC_DPL0);
     #include <intr.h>
     #undef INTR_HANDLER
-    // set_gatedesc(&idt[SYSCALL_INTR],asm_syscall_handler,SELECTOR_CODE64_K,
-    //              AR_IDT_DESC_DPL3);
 }
 
 PUBLIC void intr_init()
@@ -112,87 +116,6 @@ PUBLIC void register_handle(uint8_t nr,void (*handle)(intr_stack_t*))
     irq_handler[nr] = handle;
     return;
 }
-
-#define INTR_HANDLER(ENTRY,NR,ERROR_CODE) \
-__asm__ \
-( \
-    ".global "#ENTRY" \n\t" \
-    #ENTRY": \n\t" \
-    #ERROR_CODE"\n\t" \
- \
-    "pushq %r15 \n\t" \
-    "pushq %r14 \n\t" \
-    "pushq %r13 \n\t" \
-    "pushq %r12 \n\t" \
-    "pushq %r11 \n\t" \
-    "pushq %r10 \n\t" \
-    "pushq %r9 \n\t" \
-    "pushq %r8 \n\t" \
- \
-    "pushq %rdi \n\t" \
-    "pushq %rsi \n\t" \
-    "pushq %rbp \n\t" \
-    "pushq %rdx \n\t" \
-    "pushq %rcx \n\t" \
-    "pushq %rbx \n\t" \
-    "pushq %rax \n\t" \
- \
-    "movq  $0,%rax \n\t" \
-    "movw  %gs,%ax \n\t" \
-    "pushq %rax \n\t" \
-    "movw  %fs,%ax \n\t" \
-    "pushq %rax \n\t" \
-    "movw  %es,%ax \n\t" \
-    "pushq %rax \n\t" \
-    "movw  %ds,%ax \n\t" \
-    "pushq %rax \n\t" \
- \
-    "movq $"#NR",%rdi \n\t" \
-    "movq %rsp,%rsi \n\t" \
- \
-    "leaq do_irq(%rip),%rax \n\t" \
-    "callq *%rax \n\t" \
-    "leaq intr_exit(%rip),%rax \n\t" \
-    "jmpq *%rax" \
-);
-
-#include <intr.h>
-#undef INTR_HANDLER
-
-__asm__
-(
-    ".global intr_exit \n\t"
-    "intr_exit: \n\t"
-
-    "popq %rax \n\t"
-    "movw  %ax,%ds \n\t"
-    "popq %rax \n\t"
-    "movw  %ax,%es \n\t"
-    "popq %rax \n\t"
-    "movw  %ax,%fs \n\t"
-    "popq %rax \n\t"
-    "movw  %ax,%gs \n\t"
-
-    "popq %rax \n\t"
-    "popq %rbx \n\t"
-    "popq %rcx \n\t"
-    "popq %rdx \n\t"
-    "popq %rbp \n\t"
-    "popq %rsi \n\t"
-    "popq %rdi \n\t"
-
-    "popq %r8 \n\t"
-    "popq %r9 \n\t"
-    "popq %r10 \n\t"
-    "popq %r11 \n\t"
-    "popq %r12 \n\t"
-    "popq %r13 \n\t"
-    "popq %r14 \n\t"
-    "popq %r15 \n\t"
-
-    "addq $8,%rsp \n\t"
-    "iretq"
-);
 
 PUBLIC intr_status_t intr_get_status()
 {

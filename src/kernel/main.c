@@ -25,6 +25,7 @@ void ktask()
                 *(buffer + x) = color++;
             }
         }
+        __asm__ ("hlt");
     };
 }
 
@@ -70,5 +71,6 @@ void kernel_main()
                 *(buffer + x) = color++;
             }
         }
+        __asm__ ("hlt");
     };
 }

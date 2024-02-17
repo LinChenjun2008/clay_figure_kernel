@@ -21,10 +21,13 @@ PUBLIC void pic_init()
         apic_init();
     }
     else
-    #endif
     {
+        pr_log("\3HW NO support APIC.Now init 8259a.\n");
         init_8259a();
     }
+    #else
+    init_8259a();
+    #endif
     return;
 }
 

@@ -63,13 +63,13 @@ PUBLIC void init_all()
 {
     init_desctrib();
     intr_init();
+    mem_init();
+    mem_alloctor_init();
     detect_cores();
     pic_init();
     pit_init();
     pci_scan_all_bus();
     xhci_init();
-    mem_init();
-    mem_alloctor_init();
     task_init();
 
     syscall_init();
