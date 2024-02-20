@@ -46,9 +46,12 @@ typedef struct
 } apic_t;
 
 PUBLIC bool support_apic();
-
 PUBLIC void detect_cores();
+
+PUBLIC void local_apic_write(uint16_t index,uint32_t value);
+PUBLIC uint32_t local_apic_read(uint16_t index);
+
 PUBLIC void pic_init();
-PUBLIC void eoi();
+PUBLIC void eoi(uint8_t irq);
 
 #endif

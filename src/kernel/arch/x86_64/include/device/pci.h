@@ -17,5 +17,13 @@ PUBLIC uint8_t pci_dev_read_cap_point(pci_device_t *dev);
 
 PUBLIC void pci_scan_all_bus();
 PUBLIC pci_device_t* pci_dev_match(uint8_t base_class,uint8_t sub_class,uint8_t prog_if);
+PUBLIC void configure_msi
+(
+    pci_device_t *dev,
+    uint8_t trigger_mode,
+    uint32_t delivery_mode,
+    uint8_t vector,
+    uint8_t num_vector_exponent
+);
 
 #endif

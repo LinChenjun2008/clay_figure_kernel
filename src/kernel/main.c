@@ -50,10 +50,8 @@ void ktask2()
 
 void kernel_main()
 {
-    intr_disable();
     pr_log("\1Kernel initializing.\n");
     init_all();
-    intr_enable();
     pr_log("\1Kernel initializing done.\n");
     task_start("k task",3,65536,ktask,0);
     prog_execute(ktask2,"k task 2",65536);

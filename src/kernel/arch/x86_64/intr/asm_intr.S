@@ -1,3 +1,5 @@
+#include <kernel/const.h>
+
 #define INTR_HANDLER(ENTRY,NR,ERROR_CODE) \
 .global ENTRY; \
 ENTRY:; \

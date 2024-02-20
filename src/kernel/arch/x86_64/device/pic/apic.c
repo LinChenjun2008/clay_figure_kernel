@@ -83,17 +83,46 @@ PRIVATE void local_apic_init()
 {
     uint32_t a,b,c,d;
     cpuid(1,0,&a,&b,&c,&d);
-    if (a & 0x800)
+
+    if (d & (1 << 9))
+    {
+        pr_log("\2HW Suooprt APIC & xAPIC\n");
+    }
+    else
+    {
+        pr_log("\3HW no Suooprt APIC & xAPIC\n");
+    }
+    if (c & (1 << 21))
+    {
+        pr_log("\2HW Suooprt x2APIC\n");
+    }
+    else
+    {
+        pr_log("\3HW no Suooprt x2APIC\n");
+    }
+
+    uint64_t ia32_apic_base = rdmsr(IA32_APIC_BASE);
+    if (ia32_apic_base & 0x800)
     {
         pr_log("\1APIC & xAPIC enabled\n");
     }
-    if (a & 0x400)
+    if (ia32_apic_base & 0x400)
     {
         pr_log("\1x2APIC enabled\n");
     }
 
+
     pr_log("\1APIC ID: %x\n",local_apic_read(0x020));
     pr_log("\1APIC version: %x\n",local_apic_read(0x030) & 0xff);
+
+    if ((local_apic_read(0x030) & 0xff) < 0x10)
+    {
+        pr_log("\1 82489DX discrete APIC\n");
+    }
+    if ((local_apic_read(0x030) & 0xff) >= 0x10 && (local_apic_read(0x030) & 0xff) <= 0x15)
+    {
+        pr_log("\1 Integrated APIC\n");
+    }
     pr_log("\1APIC Max LVT Entry: %x\n",((local_apic_read(0x030) >> 16) & 0xff) + 1);
     pr_log("\1Suppress EOI Broadcast: %s\n",(local_apic_read(0x030) >> 24) & 1 ? "Yes" : "No");
     // enable SVR[8]
@@ -124,22 +153,22 @@ PRIVATE void local_apic_init()
 }
 
 
-PRIVATE uint64_t ioapic_rte_read(uint8_t index)
-{
-    uint64_t ret;
-    *(uint8_t*)KADDR_P2V(apic_struct.ioapic_index_address) = index + 1;
-    io_mfence();
-    ret = *(uint32_t*)KADDR_P2V(apic_struct.ioapic_data_address);
-    ret <<= 32;
-    io_mfence();
+// PRIVATE uint64_t ioapic_rte_read(uint8_t index)
+// {
+//     uint64_t ret;
+//     *(uint8_t*)KADDR_P2V(apic_struct.ioapic_index_address) = index + 1;
+//     io_mfence();
+//     ret = *(uint32_t*)KADDR_P2V(apic_struct.ioapic_data_address);
+//     ret <<= 32;
+//     io_mfence();
 
-    *(uint8_t*)KADDR_P2V(apic_struct.ioapic_index_address) = index;
-    io_mfence();
-    ret |= *(uint32_t*)KADDR_P2V(apic_struct.ioapic_data_address);
-    io_mfence();
+//     *(uint8_t*)KADDR_P2V(apic_struct.ioapic_index_address) = index;
+//     io_mfence();
+//     ret |= *(uint32_t*)KADDR_P2V(apic_struct.ioapic_data_address);
+//     io_mfence();
 
-    return ret;
-}
+//     return ret;
+// }
 
 PRIVATE void ioapic_rte_write(uint8_t index,uint64_t value)
 {
@@ -158,10 +187,11 @@ PRIVATE void ioapic_rte_write(uint8_t index,uint64_t value)
 
 PUBLIC void ioapic_enable(uint64_t pin,uint64_t vector)
 {
-    uint64_t value = 0;
-    value = ioapic_rte_read(pin * 2 + 0x10);
-    value = value & (~0x100ffUL);
-    ioapic_rte_write(pin * 2 + 0x10,value | vector);
+    // uint64_t value = 0;
+    // value = ioapic_rte_read(pin * 2 + 0x10);
+    // value = value & (~0x100ffUL);
+    // ioapic_rte_write(pin * 2 + 0x10,value | vector);
+    ioapic_rte_write(pin * 2 + 0x10,vector & 0xff);
     return;
 }
 

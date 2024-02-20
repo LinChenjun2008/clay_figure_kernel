@@ -1,8 +1,11 @@
 #include <kernel/global.h>
 #include <device/pci.h>
 #include <io.h>
+#include <device/pic.h>
 
 #include <log.h>
+
+extern apic_t apic_struct;
 
 PRIVATE pci_device_t pci_devices[256];
 PRIVATE uint8_t number_of_pci_device;
@@ -219,4 +222,81 @@ PUBLIC pci_device_t* pci_dev_match(uint8_t base_class,uint8_t sub_class,uint8_t 
         }
     }
     return NULL;
+}
+
+PUBLIC void configure_msi
+(
+    pci_device_t *dev,
+    uint8_t trigger_mode,
+    uint32_t delivery_mode,
+    uint8_t vector,
+    uint8_t num_vector_exponent
+)
+{
+    uint32_t msg_addr = apic_struct.local_apic_address | apic_struct.lapic_id[0] << 12;
+    uint32_t msg_data = delivery_mode << 8 | vector;
+    if (trigger_mode == 1)
+    {
+        msg_data |= 0xc00;
+    }
+    uint8_t cap_addr = pci_dev_config_read(dev,0x34) & 0xffu;
+    uint8_t msi_cap_addr = 0;
+    uint8_t msix_cap_addr = 0;
+    while (cap_addr != 0)
+    {
+        uint32_t header = pci_dev_config_read(dev, cap_addr);
+        if ((header & 0xff) == 5)
+        {
+            msi_cap_addr = cap_addr;
+        }
+        else if ((header & 0xff) == 17)
+        {
+            msix_cap_addr = cap_addr;
+        }
+        cap_addr = (header & 0xff00) >> 8;
+    }
+
+    if (msi_cap_addr)
+    {
+        uint32_t msi_cap = pci_dev_config_read(dev,msi_cap_addr);
+        if (((msi_cap >> 16) & 0b0111) /* multi msg capable */ <= num_vector_exponent)
+        {
+            // multi msg enable = multi msg capable
+            msi_cap &= 0x00700000;
+            msi_cap |= (msi_cap & 0x000e0000) << 3;
+        }
+        else
+        {
+            msi_cap &= 0x00700000;
+            msi_cap |= num_vector_exponent << 20;
+        }
+        // msi enable
+        msi_cap |= (1 << 16);
+
+        // write
+        pci_dev_config_write(dev,msi_cap_addr,msi_cap);
+        pci_dev_config_write(dev,msi_cap_addr + 4,msg_addr);
+
+        uint8_t msg_data_addr = msi_cap_addr + 8;
+        if (msi_cap & (1 << 23)) // 64 bit
+        {
+            pci_dev_config_write(dev,msi_cap_addr + 8,0);
+            msg_data_addr = msi_cap_addr + 12;
+        }
+        pci_dev_config_write(dev,msg_data_addr,msg_data);
+
+        if (msi_cap & (1 << 24)) // per-vector masking
+        {
+            // msi mask bits
+            pci_dev_config_write(dev,msg_data_addr + 4,pci_dev_config_read(dev,msi_cap_addr + 0x10));
+            // msi pending bits
+            pci_dev_config_write(dev,msg_data_addr + 4,pci_dev_config_read(dev,msi_cap_addr + 0x14));
+        }
+        pr_log("\1Congiure MSI done.\n");
+        return;
+    }
+    else if (msix_cap_addr)
+    {
+        pr_log("\3MSI-X not implemented.\n");
+    }
 }

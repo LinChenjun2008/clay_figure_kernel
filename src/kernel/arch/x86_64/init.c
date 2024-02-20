@@ -61,6 +61,8 @@ PRIVATE void init_desctrib()
 */
 PUBLIC void init_all()
 {
+    intr_disable();
+
     init_desctrib();
     intr_init();
     mem_init();
@@ -69,19 +71,11 @@ PUBLIC void init_all()
     pic_init();
     pit_init();
     pci_scan_all_bus();
-    xhci_init();
     task_init();
-
     syscall_init();
-    // init_screen();
-    //
-    // init_pit();
-    // init_syscall();
-    // init_memory();
-    // init_thread();
-    // init_keyboard();
-    // // 清除内核在低地址的映射
-    // *(uint64_t*)KERNEL_PAGE_DIR_TABLE_POS = 0;
-    // flush_tlb();
+
+    intr_enable();
+
+    xhci_init();
     return;
 }

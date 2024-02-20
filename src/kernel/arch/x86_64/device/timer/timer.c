@@ -4,9 +4,12 @@
 #include <device/pic.h>
 #include <task/task.h>
 
+PUBLIC uint64_t global_ticks;
+
 PRIVATE void irq_timer_handler()
 {
-    eoi();
+    eoi(0x20);
+    global_ticks++;
     task_struct_t *cur_task = running_task();
     cur_task->elapsed_ticks++;
     if (cur_task->ticks == 0)
@@ -22,6 +25,7 @@ PRIVATE void irq_timer_handler()
 
 PUBLIC void pit_init()
 {
+    global_ticks = 0;
     register_handle(0x20,irq_timer_handler);
     #if defined __TIMER_HPET__ && defined __TIMER_8254__
         "Only one timer can be selected."

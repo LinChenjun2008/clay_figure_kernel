@@ -31,8 +31,9 @@ PUBLIC void pic_init()
     return;
 }
 
-PUBLIC void eoi()
+PUBLIC void eoi(uint8_t irq)
 {
+    (void)irq;
     #if !__DISABLE_APIC__
     if (support_apic())
     {

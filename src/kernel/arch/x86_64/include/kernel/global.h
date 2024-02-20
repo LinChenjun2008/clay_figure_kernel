@@ -1,7 +1,7 @@
 #ifndef __GLOBAL_H__
 #define __GLOBAL_H__
 
-#define __DISABLE_APIC__ 0
+#define __DISABLE_APIC__ 1
 #define __DISABLE_LOG__  0
 #define __DISABLE_SERIAL_LOG__ 0 // available when __DISABLE_LOG__ == FALSE
 

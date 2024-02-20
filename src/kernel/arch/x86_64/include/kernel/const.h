@@ -88,7 +88,7 @@
 
 #define MAX_TASK 1024
 
-#define IRQ_CNT 0x41
+#define IRQ_CNT 0xff
 
 #define PIC_M_CTRL 0x20	/* 8259A主片的控制端口是0x20 */
 #define PIC_M_DATA 0x21	/* 8259A主片的数据端口是0x21 */
@@ -125,5 +125,8 @@
 #define SYSCALL_DEADLOCK      (SYSCALL_ERROR | 0x00000002)
 #define SYSCALL_NO_DST        (SYSCALL_ERROR | 0x00000003)
 #define SYSCALL_NO_SRC        (SYSCALL_ERROR | 0x00000004)
+
+// xhci
+#define IRQ_XHCI 0x30
 
 #endif
