@@ -69,36 +69,36 @@ PUBLIC void task_unblock(pid_t pid)
     return;
 }
 
-__asm__
-(
-    "asm_switch_to: \n\t"
-    /***    next     *** rsp + 8*10 */
-    /***     cur     *** rsp + 8* 9 */
-    /*** return addr *** rsp + 8* 8 */
-    "pushq %rsi \n\t"
-    "pushq %rdi \n\t"
-    "pushq %rbx \n\t"
-    "pushq %rbp \n\t"
+// __asm__
+// (
+//     "asm_switch_to: \n\t"
+//     /***    next     *** rsp + 8*10 */
+//     /***     cur     *** rsp + 8* 9 */
+//     /*** return addr *** rsp + 8* 8 */
+//     "pushq %rsi \n\t"
+//     "pushq %rdi \n\t"
+//     "pushq %rbx \n\t"
+//     "pushq %rbp \n\t"
 
-    "pushq %r12 \n\t"
-    "pushq %r13 \n\t"
-    "pushq %r14 \n\t"
-    "pushq %r15 \n\t"
+//     "pushq %r12 \n\t"
+//     "pushq %r13 \n\t"
+//     "pushq %r14 \n\t"
+//     "pushq %r15 \n\t"
 
-    /* 栈切换 */
-    "movq 72(%rsp),%rax \n\t"
-    "movq %rsp,(%rax) \n\t"
-    "movq 80(%rsp),%rax \n\t"
-    "movq (%rax),%rsp \n\t"
+//     /* 栈切换 */
+//     "movq 72(%rsp),%rax \n\t"
+//     "movq %rsp,(%rax) \n\t"
+//     "movq 80(%rsp),%rax \n\t"
+//     "movq (%rax),%rsp \n\t"
 
-    "popq %r15 \n\t"
-    "popq %r14 \n\t"
-    "popq %r13 \n\t"
-    "popq %r12 \n\t"
+//     "popq %r15 \n\t"
+//     "popq %r14 \n\t"
+//     "popq %r13 \n\t"
+//     "popq %r12 \n\t"
 
-    "popq %rbp \n\t"
-    "popq %rbx \n\t"
-    "popq %rdi \n\t"
-    "popq %rsi \n\t"
-    "retq \n\t"
-);
+//     "popq %rbp \n\t"
+//     "popq %rbx \n\t"
+//     "popq %rdi \n\t"
+//     "popq %rsi \n\t"
+//     "retq \n\t"
+// );

@@ -67,13 +67,19 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
            stack->r12,stack->r13,stack->r14,stack->r15);
     if (running_task() != NULL)
     {
-        pr_log("running task: %s\n",running_task()->name);
+        task_struct_t *running = running_task();
+        pr_log("running task: %s\n",running->name);
+        pr_log("task context: %p\n",running->context);
     }
     while(1);
 }
 
 PUBLIC void ASMLINKAGE do_irq(uint8_t nr,intr_stack_t *stack)
 {
+    if (nr == 0x27)
+    {
+        return;
+    }
     if (irq_handler[nr] != NULL)
     {
         irq_handler[nr](stack);
@@ -119,16 +125,8 @@ PUBLIC void register_handle(uint8_t nr,void (*handle)(intr_stack_t*))
 
 PUBLIC intr_status_t intr_get_status()
 {
-    /* 判断flags寄存器的if位 */
     wordsize_t flags;
-    __asm__ __volatile__
-    (
-        "pushf;"      /* 将flage寄存器压栈 */
-        "popq %q0"
-        :"=a"(flags)
-        :
-        :"memory"
-    );
+    __asm__ __volatile__ ("pushf\n\t""popq %q0":"=a"(flags)::"memory");
     return ((flags & 0x00000200) ? INTR_ON : INTR_OFF);
 }
 

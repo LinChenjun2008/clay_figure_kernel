@@ -123,7 +123,7 @@ PUBLIC task_struct_t *prog_execute(void *prog,char *name,size_t kstack_size)
         return NULL;
     }
     task_struct_t *task = pid2task(pid);
-    init_task_struct(task,name,3,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
+    init_task_struct(task,name,DEFAULT_PRIORITY,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
     create_task_struct(task,start_process,(uint64_t)prog);
     task->page_dir = create_page_dir();
     user_vaddr_table_init(task);

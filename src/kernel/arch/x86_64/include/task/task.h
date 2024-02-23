@@ -63,6 +63,7 @@ typedef struct
 } task_struct_t;
 
 PUBLIC task_struct_t* pid2task(pid_t pid);
+PUBLIC bool task_exist(pid_t pid);
 PUBLIC task_struct_t* running_task();
 PUBLIC task_struct_t* running_prog();
 PUBLIC uintptr_t get_running_prog_kstack();

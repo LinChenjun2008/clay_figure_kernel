@@ -213,9 +213,33 @@ PUBLIC uint64_t* pdt_entry(void *pml4t,void *vaddr)
 
 PUBLIC void* to_physical_address(void *pml4t,void *vaddr)
 {
-    return (void*)
-        ( (*(uint64_t*)KADDR_P2V(pdt_entry(pml4t,vaddr)) & ~0xfff)
-        + ADDR_OFFSET(vaddr));
+    uint64_t *v_pml4t,*v_pml4e;
+    uint64_t *pdpt,*v_pdpte,*pdpte;
+    uint64_t *pdt,*v_pde,*pde;
+    v_pml4t = KADDR_P2V(pml4t);
+    v_pml4e = v_pml4t + ADDR_PML4T_INDEX(vaddr);
+    if (!(*v_pml4e & PG_P))
+    {
+        pr_log("\3 %s:vaddr pml4e not exist: %p\n",__func__,vaddr);
+        return NULL;
+    }
+    pdpt = (uint64_t*)(*v_pml4e & (~0xfff));
+    pdpte = pdpt + ADDR_PDPT_INDEX(vaddr);
+    v_pdpte = KADDR_P2V(pdpte);
+    if (!(*v_pdpte & PG_P))
+    {
+        pr_log("\3 %s:vaddr pdpte not exist: %p\n",__func__,vaddr);
+        return NULL;
+    }
+    pdt = (uint64_t*)(*v_pdpte & (~0xfff));
+    pde = pdt + ADDR_PDT_INDEX(vaddr);
+    v_pde = KADDR_P2V(pde);
+    if (!(*v_pde & PG_P))
+    {
+        pr_log("\3 %s:vaddr pde not exist: %p\n",__func__,vaddr);
+        return NULL;
+    }
+    return (void*)((*v_pde & ~0xfff) + ADDR_OFFSET(vaddr));
 }
 
 PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
@@ -230,6 +254,10 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
     if (!(*v_pml4e & PG_P))
     {
         pdpt = pmalloc(PT_SIZE);
+        if (pdpt == NULL)
+        {
+            pr_log("\3 Can not alloc addr for pdpt.\n");
+        }
         v_pdpt = KADDR_P2V(pdpt);
         memset(v_pdpt,0,PT_SIZE);
         *v_pml4e = (uint64_t)pdpt | PG_US_U | PG_RW_W | PG_P;
@@ -240,6 +268,10 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
     if (!(*v_pdpte & PG_P))
     {
         pdt = pmalloc(PT_SIZE);
+        if (pdt == NULL)
+        {
+            pr_log("\3 Can not alloc addr for pdt.\n");
+        }
         v_pdt = KADDR_P2V(pdt);
         memset(v_pdt,0,PT_SIZE);
         *v_pdpte = (uint64_t)pdt | PG_US_U | PG_RW_W | PG_P;
@@ -248,7 +280,6 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
     pde = pdt + ADDR_PDT_INDEX(vaddr);
     v_pde = KADDR_P2V(pde);
     *v_pde = (uint64_t)paddr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
-    pr_log("\2memmap: p:%p ---> v:%p\n",paddr,vaddr);
 }
 
 PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
@@ -281,5 +312,4 @@ PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
         return;
     }
     *v_pde &= ~PG_P;
-    pr_log("\2page unmap: p:%p -x-> v:%p\n",*v_pde & ~(PG_SIZE - 1),vaddr);
 }

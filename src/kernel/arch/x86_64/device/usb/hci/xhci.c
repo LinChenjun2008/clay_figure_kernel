@@ -3,6 +3,7 @@
 #include <mem/mem.h>
 #include <io.h>
 #include <device/pic.h>
+#include <intr.h>
 
 #include <log.h>
 
@@ -13,7 +14,7 @@ extern uint64_t volatile global_ticks;
 #define MAX_SLOTS 0x000000ff
 
 // RTSOFF
-#define OFFSET    0xfffffff0
+#define OFFSET    0xffffffe0
 
 // USBCMD
 #define RUN_STOP (1 <<  0)
@@ -166,9 +167,11 @@ PRIVATE void xhci_reset()
     usbcmd |= HCRST;
     xhci.opt_regs->USBCMD = usbcmd;
     // Wait 1ms
-    pr_log("\1xHCI reseting,wait 1ms.(Actually 10ms)\n");
+    intr_status_t intr_status = intr_enable();
+    pr_log("\1xHCI reseting,wait 1ms.\n");
     uint64_t old_ticks = global_ticks;
-    while(global_ticks < old_ticks + 10);
+    while(global_ticks < old_ticks + 1);
+    intr_set_status(intr_status);
 
     while (xhci.opt_regs->USBCMD & HCRST);
     while (xhci.opt_regs->USBSTS & CNR);
@@ -376,6 +379,6 @@ PUBLIC void xhci_init()
     xhci.opt_regs->USBCMD = usbcmd;
 
     xhci_run();
-    pr_log("\1xHCI Max port: %d\n",xhci.max_ports);
+    pr_log("\1xHCI init done.\n");
     return;
 }

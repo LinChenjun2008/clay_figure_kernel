@@ -4,10 +4,12 @@
 #include <intr.h>
 #include <std/string.h>
 
+#include <log.h>
+
 PRIVATE task_struct_t task_table[MAX_TASK];
 PUBLIC  list_t        task_list;
 
-PRIVATE void kernel_thread(void)
+PRIVATE void kernel_task(void)
 {
     uintptr_t  func;
     wordsize_t arg;
@@ -28,13 +30,17 @@ PRIVATE void kernel_thread(void)
 
 PUBLIC task_struct_t* pid2task(pid_t pid)
 {
-    if (pid >= MAX_TASK)
+    if (pid <= MAX_TASK)
     {
-        return NULL;
+        return &task_table[pid];
     }
-    return &task_table[pid];
+    return NULL;
 }
 
+PUBLIC bool task_exist(pid_t pid)
+{
+    return pid <= MAX_TASK ? task_table[pid].status != TASK_NO_TASK : 0;
+}
 
 // running_task() can only be called in ring 0
 PUBLIC task_struct_t* running_task()
@@ -155,7 +161,7 @@ PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg)
     uintptr_t kstack = (uintptr_t)task->context;
     kstack -= sizeof(intr_stack_t);
     kstack -= sizeof(uintptr_t);
-    *(uintptr_t*)kstack = (uintptr_t)kernel_thread;
+    *(uintptr_t*)kstack = (uintptr_t)kernel_task;
     kstack -= sizeof(task_context_t);
     task->context = (task_context_t*)kstack;
     task_context_t *context =task->context;
@@ -200,7 +206,7 @@ PRIVATE void make_main_task(void)
     task_struct_t *main_task = pid2task(task_alloc());
     init_task_struct(main_task,
                     "Main task",
-                    3,
+                    DEFAULT_PRIORITY,
                     (uintptr_t)KADDR_P2V(KERNEL_STACK_BASE),
                     KERNEL_STACK_SIZE);
     list_append(&task_list,&main_task->general_tag);

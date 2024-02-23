@@ -2,6 +2,7 @@
 #include <task/task.h>
 #include <mem/mem.h>
 #include <std/string.h>
+#include <service.h>
 
 #include <log.h>
 
@@ -31,14 +32,36 @@ PRIVATE bool deadlock(pid_t src,pid_t dest)
     return FALSE;
 }
 
+PUBLIC void inform_intr(pid_t dest)
+{
+    if (is_service_id(dest))
+    {
+        dest = service_id_to_pid(dest);
+    }
+    if (!task_exist(dest))
+    {
+        return;
+    }
+    pid2task(dest)->has_intr_msg++;
+    pid_t recv_from = pid2task(dest)->recv_from;
+    if (recv_from == RECV_FROM_ANY || recv_from == RECV_FROM_INT)
+    {
+        if (pid2task(dest)->status == TASK_RECEIVING)
+        {
+            task_unblock(dest);
+        }
+    }
+    return;
+}
+
 PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
 {
     running_task()->send_to = dest;
 
-    if (pid2task(dest) == NULL)
+    if (!task_exist(dest))
     {
         running_task()->send_to = MAX_TASK;
-        return SYSCALL_NO_DST;
+        return SYSCALL_DEST_NOT_EXIST;
     }
     msg->src = running_task()->pid;
     if (deadlock(running_task()->pid,dest))
@@ -67,13 +90,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
     {
         return SYSCALL_DEADLOCK;
     }
-    if (pid2task(src) == NULL)
-    {
-        running_task()->recv_from = MAX_TASK;
-        return SYSCALL_NO_SRC;
-    }
     running_task()->recv_from = src;
-
     if (src == RECV_FROM_ANY || src == RECV_FROM_INT)
     {
         if (list_empty(&running_task()->sender_list) && !running_task()->has_intr_msg)
@@ -84,6 +101,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
         {
             msg->src  = RECV_FROM_INT;
             msg->type = RECV_FROM_INT;
+            msg->m1.i1 = running_task()->has_intr_msg;
             running_task()->has_intr_msg = 0;
             return SYSCALL_SUCCESS;
         }
@@ -91,10 +109,15 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
     }
     else
     {
+        if (!task_exist(src))
+        {
+            running_task()->recv_from = MAX_TASK;
+            return SYSCALL_SRC_NOT_EXIST;
+        }
         if (pid2task(src) == NULL)
         {
             running_task()->recv_from = MAX_TASK;
-            return SYSCALL_NO_SRC;
+            return SYSCALL_SRC_NOT_EXIST;
         }
         while (!list_find(&running_task()->sender_list,&pid2task(src)->general_tag))
         {
@@ -108,8 +131,6 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
     {
         task_unblock(src);
     }
-    running_task()->ticks += pid2task(src)->ticks;
-    pid2task(src)->ticks = 0;
     running_task()->recv_from = MAX_TASK;
     return SYSCALL_SUCCESS;
 }

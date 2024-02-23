@@ -8,6 +8,7 @@
 #include <mem/mem.h>
 #include <task/task.h>
 #include <kernel/syscall.h>
+#include <service.h>
 
 PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access)
 {
@@ -73,9 +74,21 @@ PUBLIC void init_all()
     pci_scan_all_bus();
     task_init();
     syscall_init();
+    service_init();
 
+
+    // xhci_init();
     intr_enable();
 
-    xhci_init();
+    extern uint64_t global_ticks;
+    uint64_t ticks = global_ticks;
+    while(global_ticks <= ticks + running_task()->priority * 2);
+
+    message_t msg;
+    msg.m3.p1 = (void*)g_boot_info->graph_info.frame_buffer_base;
+    msg.m3.i1 = g_boot_info->graph_info.horizontal_resolution;
+    msg.m3.i2 = g_boot_info->graph_info.vertical_resolution;
+    sys_send_recv(NR_SEND,VIEW,&msg);
+
     return;
 }

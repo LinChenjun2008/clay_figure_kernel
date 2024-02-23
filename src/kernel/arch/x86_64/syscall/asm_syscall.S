@@ -1,7 +1,14 @@
+.global send_recv
+send_recv:
+    pushq %r10
+    movq %rcx,%r10 // save rcx in r10
+    syscall
+    popq %r10
+    retq
+
 .extern get_running_prog_kstack
 .global syscall_entry
 syscall_entry:
-    cli
     // user stack
     pushq %rbp
     pushq %rcx // origin rip
@@ -22,9 +29,10 @@ syscall_entry:
 
     movq %rsp,%rbp
     movq %rax,%rsp
+
     pushq %rbp // save rbp
 
-    leaq sys_sendrecv(%rip),%rax
+    leaq sys_send_recv(%rip),%rax
     callq *%rax
 
 // switch to user stack
