@@ -24,8 +24,8 @@ PUBLIC void view_main();
 
 PUBLIC void service_init()
 {
-    service_pid_table[TICK - SERVICE_ID_BASE] = prog_execute(tick_main,"TICK",65536)->pid;
-    service_pid_table[MM   - SERVICE_ID_BASE] = task_start("MM",DEFAULT_PRIORITY,65536,mm_main,0)->pid;
-    service_pid_table[VIEW - SERVICE_ID_BASE] = prog_execute(view_main,"VIEW",65536)->pid;
+    service_pid_table[TICK - SERVICE_ID_BASE] = prog_execute("TICK",SERVICE_PRIORITY,65536,tick_main)->pid;
+    service_pid_table[MM   - SERVICE_ID_BASE] =   task_start(  "MM",SERVICE_PRIORITY,65536,mm_main,0)->pid;
+    service_pid_table[VIEW - SERVICE_ID_BASE] = prog_execute("VIEW",SERVICE_PRIORITY,65536,view_main)->pid;
     return;
 }

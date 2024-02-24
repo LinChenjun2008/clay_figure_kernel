@@ -18,15 +18,15 @@ clean:
 	-@"$(RM)" $(KERNEL_C_SRC:c=o) $(KERNEL_ASM_SRC:S=o) $(TMP_KERNEL_TARGET) $(TARGET_BOOTLOADER)
 
 $(TARGET_BOOTLOADER): $(BOOTLOADER_SRC)
-	@$(ECHO) compile $^
+	@$(ECHO) compiling $^
 	@"$(MINGW64_GCC)" $(BOOTLOADER_FLAGS) -o $@ $^
 
 %.o: %.c $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include/kernel/global.h
-	@$(ECHO) compile $*.c
+	@$(ECHO) compiling $*.c
 	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -c -o $*.o $*.c
 
 %.o: %.S
-	@$(ECHO) compile $*.S
+	@$(ECHO) compiling $*.S
 	@"$(X86_64-ELF-GCC)" -E $(KERNEL_FLAGS) $*.S > $*.tmp.S
 	@"$(X86_64-ELF-AS)" --64 -o $*.o $*.tmp.S
 	@"$(RM)" $*.tmp.S

@@ -2,8 +2,6 @@
 #include <kernel/syscall.h>
 #include <service.h>
 
-#include <log.h>
-
 PRIVATE uint64_t tick = 0;
 
 PUBLIC void tick_main()
@@ -21,6 +19,7 @@ PUBLIC void tick_main()
             case TICK_GET_TICKS:
                 msg.m3.l1 = tick;
                 send_recv(NR_SEND,msg.src,&msg);
+                break;
             default:
                 break;
         }

@@ -47,6 +47,7 @@ PUBLIC task_struct_t* running_task()
 {
     wordsize_t rsp;
     __asm__ __volatile__ ("movq %%rsp,%0":"=g"(rsp)::);
+    intr_status_t intr_status = intr_disable();
     int i;
     for (i = 0;i < MAX_TASK;i++)
     {
@@ -57,9 +58,11 @@ PUBLIC task_struct_t* running_task()
         if (rsp >= task_table[i].kstack_base
             && rsp <= task_table[i].kstack_base + task_table[i].kstack_size)
         {
+            intr_set_status(intr_status);
             return &task_table[i];
         }
     }
+    intr_set_status(intr_status);
     return NULL;
 }
 

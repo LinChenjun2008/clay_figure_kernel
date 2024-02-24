@@ -1,6 +1,7 @@
 #include <kernel/global.h>
 #include <kernel/syscall.h>
 #include <service.h>
+#include <ulib.h>
 
 #include <log.h>
 
@@ -18,12 +19,8 @@ PRIVATE void view_put_pixel(message_t *msg)
 
 PRIVATE void view_fill(message_t *msg)
 {
-    message_t msg_to_mm;
     // alloc buffer
-    msg_to_mm.type = MM_ALLOCATE_PAGE;
-    msg_to_mm.m1.i1 = msg->m3.l1 / PG_SIZE + 1;
-    send_recv(NR_BOTH,MM,&msg_to_mm);
-    uint32_t *buf = msg_to_mm.m2.p1;
+    uint32_t *buf = allocate_page(msg->m3.l1 / PG_SIZE + 1);
     if (buf == NULL)
     {
         pr_log("\3 can not alloc buffer.\n");
@@ -31,29 +28,19 @@ PRIVATE void view_fill(message_t *msg)
     }
 
     // read buffer
-    msg_to_mm.type  = MM_READ_PROG_ADDR;
-    msg_to_mm.m3.i1 = msg->src;
-    msg_to_mm.m3.p1 = msg->m3.p1;
-    msg_to_mm.m3.l1 = msg->m3.l1;
-    msg_to_mm.m3.p2 = buf;
-    send_recv(NR_BOTH,MM,&msg_to_mm);
-    if (msg_to_mm.m1.i1 == SYSCALL_SUCCESS)
+    read_prog_addr(msg->src,msg->m3.p1,msg->m3.l1,buf);
+
+    // print buf to screen.
+    uint32_t x,y;
+    for (y = 0;y < msg->m3.i1;y++)
     {
-        // print buf to screen.
-        uint32_t x,y;
-        for (y = 0;y < msg->m3.i1;y++)
+        for (x = 0;x < msg->m3.i2;x++)
         {
-            for (x = 0;x < msg->m3.i2;x++)
-            {
-                uint32_t pixel = *(buf + y * msg->m3.i1 + x);
-                *(gi.vram + (msg->m3.i4 + y) * gi.xsize + msg->m3.i3 + x) = pixel;
-            }
+            uint32_t pixel = *(buf + y * msg->m3.i1 + x);
+            *(gi.vram + (msg->m3.i4 + y) * gi.xsize + msg->m3.i3 + x) = pixel;
         }
     }
-    msg_to_mm.type = MM_FREE_PAGE;
-    msg_to_mm.m3.i1 = msg->m3.l1 / PG_SIZE + 1;
-    msg_to_mm.m3.p1 = buf;
-    send_recv(NR_SEND,MM,&msg_to_mm);
+    free_page(buf,msg->m3.l1 / PG_SIZE + 1);
     return;
 }
 

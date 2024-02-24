@@ -4,7 +4,7 @@
 enum
 {
     TICK_NO = 0x80000000,
-    /*
+    /**
      * GET_TICKS
      * return: ticks(m3.l1)
     */
@@ -16,21 +16,21 @@ enum
     MM_NO = 0x80000000,
 
     /**
-     * @name MM_ALLOCATE_PAGE
+     * MM_ALLOCATE_PAGE
      * @param count The number of page will be allocated (m1.i1).
      * @return The base address of the allocated page (m2.p1).
     */
     MM_ALLOCATE_PAGE,
 
     /**
-     * @name MM_FREE_PAGE
+     * MM_FREE_PAGE
      * @param addr The base address of the page to be freed (m3.p1).
      * @param count The number of pages (m3.i1).
     */
     MM_FREE_PAGE,
 
     /**
-     * @name MM_READ_PROG_ADDR
+     * MM_READ_PROG_ADDR
      * @param pid Read the address of this program (m3.i1).
      * @param addr The base address of the data (m3.p1).
      * @param size The number of bytes you want to read (m3.l1).
@@ -46,7 +46,7 @@ enum
     VIEW_NO = 0x80000000,
 
     /**
-     * @name VIEW_PUT_PIXEL
+     * VIEW_PUT_PIXEL
      * @param color m1.i1
      * @param x m1.i2
      * @param y m1.i3
@@ -54,7 +54,7 @@ enum
     VIEW_PUT_PIXEL,
 
     /**
-     * @name VIEW_FILL
+     * VIEW_FILL
      * @param buffer m3.p1
      * @param buffer_szie m3.li
      * @param xszie m3.i1

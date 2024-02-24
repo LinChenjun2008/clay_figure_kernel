@@ -96,8 +96,9 @@ PUBLIC void task_unblock(pid_t pid);
 /// tss.c
 PUBLIC void init_tss();
 PUBLIC void update_tss_rsp0(task_struct_t *task);
+
 /// prog.c
 PUBLIC void prog_activate(task_struct_t *task);
-PUBLIC task_struct_t *prog_execute(void *prog,char *name,size_t kstack_size);
+PUBLIC task_struct_t *prog_execute(char *name,uint64_t priority,size_t kstack_size,void *prog);
 
 #endif

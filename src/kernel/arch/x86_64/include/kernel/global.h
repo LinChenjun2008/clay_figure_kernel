@@ -9,6 +9,7 @@
 #define __TIMER_8254__
 
 #define DEFAULT_PRIORITY 3
+#define SERVICE_PRIORITY 7
 
 #include <kernel/def.h>
 #include <kernel/const.h>

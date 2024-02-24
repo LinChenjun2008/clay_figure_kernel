@@ -49,5 +49,8 @@ $(KERNEL_SRC_PATH)/lib/list.c \
 $(KERNEL_SRC_PATH)/lib/stdio.c \
 $(KERNEL_SRC_PATH)/graphic/print.c \
 $(KERNEL_SRC_PATH)/graphic/character.c \
+ \
+$(KERNEL_SRC_PATH)/ulib/ulib.c \
 
-KERNEL_INCLUDE_PATH     := $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include/
+KERNEL_ARCH_INCLUDE_PATH := $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include/
+KERNEL_INCLUDE_PATH      := $(KERNEL_SRC_PATH)/include/
