@@ -43,6 +43,7 @@ EFI_GUID gEfiFileInfoGuid                 = EFI_FILE_INFO_ID;
 EFI_GUID gEfiAcpiTableGuid                = EFI_ACPI_TABLE_GUID;
 
 EFI_STATUS SetVideoMode(int x,int y);
+EFI_STATUS DisplayLogo();
 EFI_STATUS ReadFile
 (
     CHAR16 *FileName,
@@ -100,13 +101,13 @@ UefiMain
     // }
 
 
+    DisplayLogo();
+
     gST->ConOut->SetAttribute(gST->ConOut,  0x0F | 0x00);
     DISPLAY_INFO(L"\r---------------------------------------------------------\r\n"
                     "----- Clay Figure Boot v1.0                         -----\r\n"
                     "----- Copyright (c) LinChenjun,All Rights Reserved. -----\r\n"
                     "---------------------------------------------------------\r\n");
-
-
 
     // prepare boot info
     boot_info_t *boot_info = (boot_info_t*)0x310000;
