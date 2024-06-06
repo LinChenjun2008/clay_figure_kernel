@@ -7,7 +7,8 @@
 #include <log.h>
 
 PRIVATE task_struct_t task_table[MAX_TASK];
-PUBLIC  list_t        task_list;
+
+PUBLIC list_t task_level[TASK_LEVEL];
 
 PRIVATE void kernel_task(void)
 {
@@ -123,6 +124,7 @@ PUBLIC task_struct_t* init_task_struct
 (
     task_struct_t* task,
     char* name,
+    uint64_t level,
     uint64_t priority,
     uintptr_t kstack_base,
     size_t kstack_size
@@ -146,6 +148,7 @@ PUBLIC task_struct_t* init_task_struct
     strcpy(task->name,name);
     task->status        = TASK_READY;
 
+    task->level         = level;
     task->priority      = priority;
     task->ticks         = 0;
     task->elapsed_ticks = 0;
@@ -175,6 +178,7 @@ PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg)
 PUBLIC task_struct_t* task_start
 (
     char* name,
+    uint64_t level,
     uint64_t priority,
     size_t kstack_size,
     void* func,
@@ -198,9 +202,9 @@ PUBLIC task_struct_t* task_start
         return NULL;
     }
     task_struct_t *task = pid2task(pid);
-    init_task_struct(task,name,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
+    init_task_struct(task,name,level,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
     create_task_struct(task,func,arg);
-    list_append(&task_list,&task->general_tag);
+    list_append(&task_level[level],&task->general_tag);
     return task;
 }
 
@@ -209,10 +213,11 @@ PRIVATE void make_main_task(void)
     task_struct_t *main_task = pid2task(task_alloc());
     init_task_struct(main_task,
                     "Main task",
+                    TASK_LEVEL_LOW,
                     DEFAULT_PRIORITY,
                     (uintptr_t)KADDR_P2V(KERNEL_STACK_BASE),
                     KERNEL_STACK_SIZE);
-    list_append(&task_list,&main_task->general_tag);
+    list_append(&task_level[TASK_LEVEL_LOW],&main_task->general_tag);
     return;
 }
 
@@ -224,7 +229,10 @@ PUBLIC void task_init()
     {
         task_table[i].status = TASK_NO_TASK;
     }
-    list_init(&task_list);
+    for (i = 0;i < TASK_LEVEL;i++)
+    {
+        list_init(&task_level[i]);
+    }
     make_main_task();
     return;
 }

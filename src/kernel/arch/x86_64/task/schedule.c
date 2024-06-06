@@ -2,7 +2,7 @@
 #include <task/task.h>
 #include <intr.h>
 
-extern list_t task_list;
+extern list_t task_level[TASK_LEVEL];
 
 PRIVATE void switch_to(task_context_t **cur,task_context_t **next)
 {
@@ -22,17 +22,21 @@ PUBLIC void schedule()
     task_struct_t *cur_task = running_task();
     if (cur_task->status == TASK_RUNNING)
     {
-        list_append(&task_list,&cur_task->general_tag);
+        list_append(&task_level[cur_task->level],&cur_task->general_tag);
         cur_task->ticks = cur_task->priority;
         cur_task->status = TASK_READY;
     }
     task_struct_t *next = NULL;
-    if (list_empty(&task_list))
-    {
-        // task_unblock(idle_task);
-    }
     list_node_t *next_task_tag = NULL;
-    next_task_tag = list_pop(&task_list);
+    int i;
+    for (i = 0;i < TASK_LEVEL;i++)
+    {
+        if (!list_empty(&task_level[i]))
+        {
+            break;
+        }
+    }
+    next_task_tag = list_pop(&task_level[i]);
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
     next->status = TASK_RUNNING;
 
@@ -62,7 +66,7 @@ PUBLIC void task_unblock(pid_t pid)
     intr_status_t intr_status = intr_disable();
     if (task->status != TASK_READY)
     {
-        list_push(&task_list,&task->general_tag);
+        list_push(&task_level[task->level],&task->general_tag);
         task->status = TASK_READY;
     };
     intr_set_status(intr_status);

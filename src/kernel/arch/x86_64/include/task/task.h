@@ -46,6 +46,7 @@ typedef struct
     char                   name[32];
     volatile task_status_t status;
 
+    uint64_t               level;
     uint64_t               priority;
     uint64_t               ticks;
     uint64_t               elapsed_ticks;
@@ -73,6 +74,7 @@ PUBLIC task_struct_t* init_task_struct
 (
     task_struct_t* task,
     char* name,
+    uint64_t level,
     uint64_t priority,
     uintptr_t kstack_base,
     size_t kstack_size
@@ -81,6 +83,7 @@ PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg);
 PUBLIC task_struct_t* task_start
 (
     char* name,
+    uint64_t level,
     uint64_t priority,
     size_t kstack_size,
     void* func,
@@ -99,6 +102,13 @@ PUBLIC void update_tss_rsp0(task_struct_t *task);
 
 /// prog.c
 PUBLIC void prog_activate(task_struct_t *task);
-PUBLIC task_struct_t *prog_execute(char *name,uint64_t priority,size_t kstack_size,void *prog);
+PUBLIC task_struct_t *prog_execute
+(
+    char *name,
+    uint64_t level,
+    uint64_t priority,
+    size_t kstack_size,
+    void *prog
+);
 
 #endif

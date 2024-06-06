@@ -4,7 +4,9 @@
 #include <intr.h>
 #include <std/string.h>
 
-extern list_t task_list;
+#include <log.h>
+
+extern list_t task_level[TASK_LEVEL];
 
 PRIVATE void start_process(void *process)
 {
@@ -91,21 +93,32 @@ PRIVATE uint64_t *create_page_dir(void)
     return (uint64_t*)KADDR_V2P(pgdir_v);
 }
 
-PRIVATE void user_vaddr_table_init(task_struct_t *task)
+PRIVATE int user_vaddr_table_init(task_struct_t *task)
 {
     size_t entry_size          = sizeof(*task->vaddr_table.entries);
     uint64_t number_of_entries = 1024;
-    void *p;
-    p = KADDR_P2V(pmalloc(entry_size * number_of_entries));
+    void *p = pmalloc(entry_size * number_of_entries);
+    if (p == NULL)
+    {
+        return 0;
+    }
+    p = KADDR_P2V(p);
     allocate_table_init(&task->vaddr_table,p,number_of_entries);
 
     uint64_t index = USER_VADDR_START / PG_SIZE;
     uint64_t cnt   = (USER_STACK_VADDR_BASE - USER_VADDR_START) / PG_SIZE;
     free_units(&task->vaddr_table,index,cnt);
-    return;
+    return 1;
 }
 
-PUBLIC task_struct_t *prog_execute(char *name,uint64_t priority,size_t kstack_size,void *prog)
+PUBLIC task_struct_t *prog_execute
+(
+    char *name,
+    uint64_t level,
+    uint64_t priority,
+    size_t kstack_size,
+    void *prog
+)
 {
     if (kstack_size & (kstack_size - 1))
     {
@@ -123,10 +136,23 @@ PUBLIC task_struct_t *prog_execute(char *name,uint64_t priority,size_t kstack_si
         return NULL;
     }
     task_struct_t *task = pid2task(pid);
-    init_task_struct(task,name,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
+    init_task_struct(task,name,level,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
     create_task_struct(task,start_process,(uint64_t)prog);
     task->page_dir = create_page_dir();
-    user_vaddr_table_init(task);
-    list_append(&task_list,&(task->general_tag));
+    if (task->page_dir == NULL)
+    {
+        pr_log("\3 Can not alloc memory for task page table.\n");
+        task_free(pid);
+        pfree(kstack_base);
+    }
+    if (!user_vaddr_table_init(task))
+    {
+        pr_log("\3 Can not init vaddr table.\n");
+        task_free(pid);
+        pfree(kstack_base);
+        pfree(task->page_dir);
+        return NULL;
+    }
+    list_append(&task_level[level],&(task->general_tag));
     return task;
 }

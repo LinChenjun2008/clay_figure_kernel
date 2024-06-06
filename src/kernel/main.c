@@ -41,22 +41,10 @@ void kernel_main()
     init_all();
     pr_log("\1Kernel initializing done.\n");
 
-    prog_execute("k task",DEFAULT_PRIORITY,65536,ktask);
-    uint32_t color = 0;
+    prog_execute("k task",TASK_LEVEL_NORMAL,DEFAULT_PRIORITY,65536,ktask);
+
     while(1)
     {
-        uint32_t x,y;
-        for(y = 0;y < 20;y++)
-        {
-            uint32_t *buffer = \
-                (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
-                + g_boot_info->graph_info.horizontal_resolution * y;
-            for (x = 20;x < 40;x++)
-            {
-                *(buffer + x) = color;
-            }
-        }
-        color ++;
         __asm__ ("hlt");
     };
 }
