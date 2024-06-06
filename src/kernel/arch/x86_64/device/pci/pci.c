@@ -5,7 +5,7 @@
 
 #include <log.h>
 
-extern apic_t apic_struct;
+extern apic_t apic;
 
 PRIVATE pci_device_t pci_devices[256];
 PRIVATE uint8_t number_of_pci_device;
@@ -233,7 +233,7 @@ PUBLIC void configure_msi
     uint8_t num_vector_exponent
 )
 {
-    uint32_t msg_addr = apic_struct.local_apic_address | apic_struct.lapic_id[0] << 12;
+    uint32_t msg_addr = apic.local_apic_address | apic.lapic_id[0] << 12;
     uint32_t msg_data = delivery_mode << 8 | vector;
     if (trigger_mode == 1)
     {

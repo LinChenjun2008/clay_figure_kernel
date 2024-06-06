@@ -10,11 +10,10 @@ PUBLIC void init_8259a();
 PUBLIC void apic_init();
 PUBLIC void local_apic_write(uint16_t index,uint32_t value);
 
-extern apic_t apic_struct;
+extern apic_t apic;
 
 PUBLIC void pic_init()
 {
-    #if !__DISABLE_APIC__
     if (support_apic())
     {
         pr_log("\1HW support APIC.Now init APIC.\n");
@@ -25,9 +24,6 @@ PUBLIC void pic_init()
         pr_log("\3HW NO support APIC.Now init 8259a.\n");
         init_8259a();
     }
-    #else
-    init_8259a();
-    #endif
     return;
 }
 
@@ -37,7 +33,19 @@ PUBLIC void eoi(uint8_t irq)
     #if !__DISABLE_APIC__
     if (support_apic())
     {
-        local_apic_write(0x0b0,0);
+
+        uint32_t a,b,c,d;
+        cpuid(1,0,&a,&b,&c,&d);
+
+        if (c & (1 << 21))
+        {
+            wrmsr(0x80b,0);
+        }
+        else
+        {
+            local_apic_write(0x0b0,0);
+        }
+
     }
     else
     #endif
