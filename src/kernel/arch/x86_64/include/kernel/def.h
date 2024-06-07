@@ -22,7 +22,6 @@ typedef int bool;
 #define FALSE (1 == 0)
 #endif
 
-#define KERNEL_PAGE_DIR_TABLE_POS 0x00000000005f9000
 #define KERNEL_VMA_BASE           0xffff800000000000
 
 #define KADDR_P2V(ADDR) ((void*)((uintptr_t)(ADDR) + KERNEL_VMA_BASE))

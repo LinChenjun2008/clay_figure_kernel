@@ -2,6 +2,7 @@
 #include <kernel/init.h>
 #include <intr.h>
 #include <device/pic.h>
+#include <device/cpu.h>
 #include <device/timer.h>
 #include <device/pci.h>
 #include <device/usb/hci/xhci.h>
@@ -76,6 +77,7 @@ PUBLIC void init_all()
     syscall_init();
     service_init();
 
+    smp_start();
 
     // xhci_init();
     intr_enable();

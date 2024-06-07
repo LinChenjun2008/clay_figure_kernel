@@ -31,4 +31,31 @@ static __inline__ void cpuid(uint32_t mop,uint32_t sop,uint32_t *a,uint32_t *b,
     return;
 }
 
+static __inline__ void cpu_name(char *s)
+{
+    uint32_t i;
+    for (i = 0x80000002; i < 0x80000005;i++)
+    {
+        cpuid
+        (
+            i,
+            0,
+            (uint32_t*)s + (i - 0x80000002) * 4,
+            (uint32_t*)s + (i - 0x80000002) * 4 + 1,
+            (uint32_t*)s + (i - 0x80000002) * 4 + 2,
+            (uint32_t*)s + (i - 0x80000002) * 4 + 3
+        );
+    }
+}
+
+static __inline__ bool is_bsp()
+{
+    return rdmsr(IA32_APIC_BASE) & IA32_APIC_BASE_BSP;
+}
+
+PUBLIC void smp_start();
+
+extern uint8_t AP_BOOT_BASE[];
+extern uint8_t AP_BOOT_END[];
+
 #endif

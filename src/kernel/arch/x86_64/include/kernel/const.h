@@ -1,6 +1,8 @@
 #ifndef __CONST_H__
 #define __CONST_H__
 
+#define KERNEL_PAGE_DIR_TABLE_POS 0x00000000005f9000
+
 #define KERNEL_STACK_BASE 0x300000
 #define KERNEL_STACK_SIZE 0x10000
 
@@ -106,6 +108,11 @@
 #define IA32_STAR   0xc0000081
 #define IA32_LSTAR  0xc0000082
 #define IA32_FMASK  0xc0000084
+
+#define ICR_DELIVER_MODE_INIT (0x05 <<  8)
+#define ICR_DEST_MODE_PHY     (   0 << 11)
+#define ICR_TRIGGER_EDGE      (   0 << 15)
+#define ICR_ALL_EXCLUDE_SELF  (   3 << 18)
 
 #define EFLAGS_IF     (1 << 9)
 

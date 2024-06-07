@@ -38,7 +38,7 @@ KERNEL_FLAGS     := -I$(KERNEL_ARCH_INCLUDE_PATH) -I$(SRC_PATH) -I$(KERNEL_INCLU
  -g3 -gdwarf-2 -gstrict-dwarf
 
 QEMU_FLAGS :=  -m 128M -bios $(OVMF) \
- -smp 1,cores=1,threads=1,sockets=1 \
+ -smp 4,cores=4,threads=1,sockets=1 \
  -drive file=fat:rw:$(ESP_PATH),index=0,format=vvfat -net none \
  -device nec-usb-xhci,id=xhci \
  -device usb-mouse \
