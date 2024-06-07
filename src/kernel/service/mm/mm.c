@@ -10,31 +10,58 @@
 PRIVATE void mm_allocate_page(message_t *msg)
 {
     void *paddr;
-    uintptr_t vaddr;
+    uintptr_t vaddr_start,vaddr;
     task_struct_t *src = pid2task(msg->src);
-    paddr = alloc_physical_page(msg->m1.i1);
-    if (paddr == NULL)
+    if (src->page_dir == NULL)
     {
         msg->m2.p1 = NULL;
         return;
     }
-    vaddr = (uintptr_t)paddr;
-    if (src->page_dir != NULL)
+
+    vaddr_start = allocate_units(&src->vaddr_table,msg->m1.i1);
+    if ((int64_t)vaddr_start == -1)
     {
-        vaddr = allocate_units(&src->vaddr_table,msg->m1.i1) * PG_SIZE;
-        page_map(src->page_dir,paddr,(void*)vaddr);
+        msg->m2.p1 = NULL;
+        return;
     }
-    msg->m2.p1 = (void*)vaddr;
+    vaddr_start *= PG_SIZE;
+    vaddr = vaddr_start;
+    uint32_t i;
+    for (i = 0;i < msg->m1.i1;i++)
+    {
+        paddr = alloc_physical_page(1);
+        if (paddr == NULL)
+        {
+            while (i > 0)
+            {
+                vaddr -= PG_SIZE;
+                page_unmap(src->page_dir,(void*)vaddr);
+                i--;
+            }
+            msg->m2.p1 = NULL;
+            return;
+        }
+        page_map(src->page_dir,paddr,(void*)vaddr);
+        vaddr += PG_SIZE;
+    }
+
+    msg->m2.p1 = (void*)vaddr_start;
     return;
 }
 
 PRIVATE void mm_free_page(message_t *msg)
 {
     task_struct_t *src = pid2task(msg->src);
-    void *vaddr = msg->m3.p1;
-    void *paddr = to_physical_address(src->page_dir,vaddr);
-    free_physical_page(paddr,msg->m3.i1);
+    uintptr_t vaddr = (uintptr_t)msg->m3.p1;
     free_units(&src->vaddr_table,(uintptr_t)vaddr & ~(PG_SIZE - 1),msg->m3.i1);
+
+    uint32_t i;
+    for (i = 0;i < msg->m3.i1;i++)
+    {
+        void *paddr = to_physical_address(src->page_dir,(void*)vaddr);
+        free_physical_page(paddr,1);
+        vaddr += PG_SIZE;
+    }
     return;
 }
 
