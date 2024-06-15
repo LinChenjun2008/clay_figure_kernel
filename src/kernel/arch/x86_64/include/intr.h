@@ -45,6 +45,7 @@ typedef enum
 
 PUBLIC void ASMLINKAGE do_irq(uint8_t nr,intr_stack_t *stack);
 PUBLIC void intr_init();
+PUBLIC void ap_intr_init();
 PUBLIC void register_handle(uint8_t nr,void (*handle)(intr_stack_t*));
 PUBLIC intr_status_t intr_get_status();
 PUBLIC intr_status_t intr_set_status(intr_status_t status);

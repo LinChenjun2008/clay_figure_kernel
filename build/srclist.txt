@@ -13,7 +13,7 @@ BOOTLOADER_INCLUDE_PATH := $(BOOTLOADER_SRC_PATH)/include/
 KERNEL_LINKER_SCRIPT    := ./kernel.lds
 
 KERNEL_SRC              := \
-$(KERNEL_SRC_PATH)/setup.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/start.S \
 $(KERNEL_SRC_PATH)/main.c \
  \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/init.c \

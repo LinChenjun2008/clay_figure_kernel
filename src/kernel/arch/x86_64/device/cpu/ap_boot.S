@@ -85,8 +85,14 @@ AP_CODE64_BASE:
     movq %rax,%ss
     cli
 
-loop:
-jmp loop
+    movq $1,%rax
+    movq $0,%rbx
+    cpuid
+    shrq $24,%rbx
+    shlq $16,%rbx
+    movq $AP_STACK_BASE_PTR,%rax
+    addq (%rax),%rbx
+    movq %rbx,%rsp
 
     movq $0xffff800000100000,%rax
     jmpq *%rax

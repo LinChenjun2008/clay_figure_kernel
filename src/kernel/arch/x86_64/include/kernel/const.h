@@ -76,7 +76,7 @@
 #define SELECTOR_DATA64_U     ((3 << 3) | TI_GDT | RPL3) /* 用户数据段 */
 #define SELECTOR_CODE64_U     ((4 << 3) | TI_GDT | RPL3) /* 用户代码段 */
 
-#define SELECTOR_TSS          ((5 << 3) | TI_GDT | RPL0) /* TSS段 */
+#define SELECTOR_TSS(CPU)     (((5 + CPU * 2) << 3) | TI_GDT | RPL0) /* TSS段 */
 
 #define AR_DESC_32 0xe
 #define AR_DESC_16 0x6
@@ -108,6 +108,8 @@
 #define IA32_STAR   0xc0000081
 #define IA32_LSTAR  0xc0000082
 #define IA32_FMASK  0xc0000084
+
+#define AP_STACK_BASE_PTR 0x1000
 
 #define ICR_DELIVER_MODE_INIT (0x05 <<  8)
 #define ICR_DEST_MODE_PHY     (   0 << 11)

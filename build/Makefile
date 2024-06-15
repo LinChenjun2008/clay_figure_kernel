@@ -34,6 +34,6 @@ $(TARGET_BOOTLOADER): $(BOOTLOADER_SRC)
 $(TARGET_KERNEL): $(TMP_KERNEL_TARGET)
 	@"$(OBJCOPY)" -I elf64-x86-64 --strip-debug -S -R ".eh_frame" -R ".comment" -O binary $^ $@
 
-$(TMP_KERNEL_TARGET): $(KERNEL_C_SRC:c=o) $(KERNEL_ASM_SRC:S=o)
+$(TMP_KERNEL_TARGET): $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o)
 	@$(ECHO) link
 	@"$(X86_64-ELF-LD)" -T $(KERNEL_LINKER_SCRIPT) -o $@ $^

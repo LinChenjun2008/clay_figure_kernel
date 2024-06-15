@@ -23,16 +23,10 @@ PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access)
     return desc;
 }
 
-PUBLIC segmdesc_t gdt_table[7];
+PUBLIC segmdesc_t gdt_table[8192];
 
-PRIVATE void init_desctrib()
+PRIVATE void load_gdt()
 {
-    gdt_table[0] = make_segmdesc(0,      0,             0);
-    gdt_table[1] = make_segmdesc(0,      0,     AR_CODE64);
-    gdt_table[2] = make_segmdesc(0,      0,     AR_DATA64);
-    gdt_table[3] = make_segmdesc(0,      0,AR_DATA64_DPL3);
-    gdt_table[4] = make_segmdesc(0,      0,AR_CODE64_DPL3);
-    init_tss();
     uint128_t gdt_ptr = (((uint128_t)0
                         + ((uint128_t)((uint64_t)gdt_table))) << 16)
                         | (sizeof(gdt_table) - 1);
@@ -50,12 +44,52 @@ PRIVATE void init_desctrib()
         "pushq %%rax \n\t"
         "lretq \n\t"// == jmp SELECTOR_CODE64:.next
         ".next: \n\t"
-        "ltr %w[TSS] \n\t"
         :
         :[gdt_ptr]"m"(gdt_ptr),[SELECTOR_CODE64]"i"(SELECTOR_CODE64_K),
-         [SELECTOR_DATA64]"ax"(SELECTOR_DATA64_K),[TSS]"r"(SELECTOR_TSS)
+         [SELECTOR_DATA64]"ax"(SELECTOR_DATA64_K)
         :"memory"
     );
+}
+
+PRIVATE void load_tss(uint8_t nr_cpu)
+{
+    __asm__ __volatile__ ("ltr %w0"::"r"(SELECTOR_TSS(nr_cpu)));
+    return;
+}
+
+PRIVATE void init_desctrib()
+{
+    gdt_table[0] = make_segmdesc(0,      0,             0);
+    gdt_table[1] = make_segmdesc(0,      0,     AR_CODE64);
+    gdt_table[2] = make_segmdesc(0,      0,     AR_DATA64);
+    gdt_table[3] = make_segmdesc(0,      0,AR_DATA64_DPL3);
+    gdt_table[4] = make_segmdesc(0,      0,AR_CODE64_DPL3);
+    init_tss(0);
+    load_gdt();
+    load_tss(0);
+    // uint128_t gdt_ptr = (((uint128_t)0
+    //                     + ((uint128_t)((uint64_t)gdt_table))) << 16)
+    //                     | (sizeof(gdt_table) - 1);
+    // __asm__ __volatile__
+    // (
+    //     "lgdtq %[gdt_ptr] \n\t"
+    //     "movw %%ax,%%ds \n\t"
+    //     "movw %%ax,%%es \n\t"
+    //     "movw %%ax,%%fs \n\t"
+    //     "movw %%ax,%%gs \n\t"
+    //     "movw %%ax,%%ss \n\t"
+
+    //     "pushq %[SELECTOR_CODE64] \n\t"
+    //     "leaq .next(%%rip),%%rax \n\t"
+    //     "pushq %%rax \n\t"
+    //     "lretq \n\t"// == jmp SELECTOR_CODE64:.next
+    //     ".next: \n\t"
+    //     "ltr %w[TSS] \n\t"
+    //     :
+    //     :[gdt_ptr]"m"(gdt_ptr),[SELECTOR_CODE64]"i"(SELECTOR_CODE64_K),
+    //      [SELECTOR_DATA64]"ax"(SELECTOR_DATA64_K),[TSS]"r"(SELECTOR_TSS(0))
+    //     :"memory"
+    // );
 }
 
 /**
@@ -67,17 +101,19 @@ PUBLIC void init_all()
 
     init_desctrib();
     intr_init();
+
     mem_init();
     mem_alloctor_init();
+
     detect_cores();
+    smp_start();
+
     pic_init();
     pit_init();
     pci_scan_all_bus();
     task_init();
     syscall_init();
     service_init();
-
-    smp_start();
 
     // xhci_init();
     intr_enable();
@@ -92,5 +128,41 @@ PUBLIC void init_all()
     msg.m3.i2 = g_boot_info->graph_info.vertical_resolution;
     sys_send_recv(NR_SEND,VIEW,&msg);
 
+    return;
+}
+
+PUBLIC void ap_init_all()
+{
+    // intr_disable();
+    uint32_t a,b,c,d;
+    cpuid(1,0,&a,&b,&c,&d);
+    b >>= 24;
+    init_tss(b);
+    load_gdt();
+    load_tss(b);
+    ap_intr_init();
+    // uint128_t gdt_ptr = (((uint128_t)0
+    //                     + ((uint128_t)((uint64_t)gdt_table))) << 16)
+    //                     | (sizeof(gdt_table) - 1);
+    // __asm__ __volatile__
+    // (
+    //     "lgdtq %[gdt_ptr] \n\t"
+    //     "movw %%ax,%%ds \n\t"
+    //     "movw %%ax,%%es \n\t"
+    //     "movw %%ax,%%fs \n\t"
+    //     "movw %%ax,%%gs \n\t"
+    //     "movw %%ax,%%ss \n\t"
+
+    //     "pushq %[SELECTOR_CODE64] \n\t"
+    //     "leaq .next1(%%rip),%%rax \n\t"
+    //     "pushq %%rax \n\t"
+    //     "lretq \n\t"// == jmp SELECTOR_CODE64:.next
+    //     ".next1: \n\t"
+    //     "ltr %w[TSS] \n\t"
+    //     :
+    //     :[gdt_ptr]"m"(gdt_ptr),[SELECTOR_CODE64]"i"(SELECTOR_CODE64_K),
+    //      [SELECTOR_DATA64]"ax"(SELECTOR_DATA64_K),[TSS]"r"(SELECTOR_TSS(b))
+    //     :"memory"
+    // );
     return;
 }

@@ -97,7 +97,7 @@ PUBLIC void task_block(task_status_t status);
 PUBLIC void task_unblock(pid_t pid);
 
 /// tss.c
-PUBLIC void init_tss();
+PUBLIC void init_tss(uint8_t nr_cpu);
 PUBLIC void update_tss_rsp0(task_struct_t *task);
 
 /// prog.c

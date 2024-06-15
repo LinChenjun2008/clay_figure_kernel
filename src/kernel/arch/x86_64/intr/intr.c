@@ -2,6 +2,7 @@
 #include <io.h>
 #include <intr.h>
 #include <task/task.h>
+#include <device/cpu.h>
 
 #include <log.h>
 
@@ -71,6 +72,10 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
         pr_log("running task: %s\n",running->name);
         pr_log("task context: %p\n",running->context);
     }
+    uint32_t a,b,c,d;
+    cpuid(1,0,&a,&b,&c,&d);
+    b >>= 24;
+    pr_log("CPUID: %x",b);
     while(1);
 }
 
@@ -115,6 +120,13 @@ PUBLIC void intr_init()
                         | (sizeof(idt) - 1);
     __asm__ __volatile__ ("lidt %[idt_ptr]"::[idt_ptr]"m"(idt_ptr):);
     return;
+}
+
+PUBLIC void ap_intr_init()
+{
+    uint128_t idt_ptr = (((uint128_t)0 + ((uint128_t)((uint64_t)idt))) << 16) \
+                        | (sizeof(idt) - 1);
+    __asm__ __volatile__ ("lidt %[idt_ptr]"::[idt_ptr]"m"(idt_ptr):);
 }
 
 PUBLIC void register_handle(uint8_t nr,void (*handle)(intr_stack_t*))

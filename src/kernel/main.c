@@ -38,17 +38,23 @@ void ktask()
 
 void kernel_main()
 {
-    if (is_bsp())
+    pr_log("\1Kernel initializing.\n");
+    init_all();
+    pr_log("\1Kernel initializing done.\n");
+    char s[16];
+    cpu_name(s);
+    pr_log("\1 CPU: %s.\n",s);
+    pr_log("\2 AP_BOOT_BASE: %p, end %p \n",AP_BOOT_BASE,AP_BOOT_END);
+    prog_execute("k task",TASK_LEVEL_NORMAL,DEFAULT_PRIORITY,4096,ktask);
+    while(1)
     {
-        pr_log("\1Kernel initializing.\n");
-        init_all();
-        pr_log("\1Kernel initializing done.\n");
-        char s[16];
-        cpu_name(s);
-        pr_log("\1 CPU: %s.\n",s);
-        pr_log("\2 AP_BOOT_BASE: %p, end %p \n",AP_BOOT_BASE,AP_BOOT_END);
-            prog_execute("k task",TASK_LEVEL_NORMAL,DEFAULT_PRIORITY,4096,ktask);
-    }
+        __asm__ ("hlt");
+    };
+}
+
+void ap_kernel_main()
+{
+    ap_init_all();
     while(1)
     {
         __asm__ ("hlt");
