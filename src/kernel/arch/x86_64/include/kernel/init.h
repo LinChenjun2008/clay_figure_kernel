@@ -13,5 +13,6 @@ typedef struct
 
 PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access);
 PUBLIC void init_all();
+PUBLIC void ap_init_all();
 
 #endif

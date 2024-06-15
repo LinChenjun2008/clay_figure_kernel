@@ -49,6 +49,7 @@ PUBLIC void basic_print(uint32_t col,const char *str,...)
     va_list ap;
     va_start(ap,str);
     vsprintf(msg,str,ap);
+    va_end(ap);
     char *s = msg;
     while(*s)
     {

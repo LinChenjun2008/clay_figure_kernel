@@ -3,11 +3,24 @@
 #include <intr.h>
 #include <device/pic.h>
 #include <task/task.h>
+#include <kernel/syscall.h>
+
+
+#include <log.h>
+
+PUBLIC uint64_t global_ticks;
 
 PRIVATE void irq_timer_handler()
 {
-    eoi();
+    eoi(0x20);
+    inform_intr(TICK);
+    global_ticks++;
     task_struct_t *cur_task = running_task();
+    if (cur_task == NULL)
+    {
+        pr_log("\3 cur_task == NULL.");
+        while(1);
+    }
     cur_task->elapsed_ticks++;
     if (cur_task->ticks == 0)
     {
@@ -22,6 +35,7 @@ PRIVATE void irq_timer_handler()
 
 PUBLIC void pit_init()
 {
+    global_ticks = 0;
     register_handle(0x20,irq_timer_handler);
     #if defined __TIMER_HPET__ && defined __TIMER_8254__
         "Only one timer can be selected."
@@ -30,8 +44,8 @@ PUBLIC void pit_init()
 
     *(uint64_t*)(HPET_addr +  0x10) = 3;
     *(uint64_t*)(HPET_addr + 0x100) = 0x004c;
-    // 1000000 / 69.841279 = 1000000 / 70 = 1ms
-    *(uint64_t*)(HPET_addr + 0x108) = 1000000 / 70;
+    // 100000000 / 69.841279 = 100000000 / 70 = 1ms
+    *(uint64_t*)(HPET_addr + 0x108) = 100000000 / 70;
     *(uint64_t*)(HPET_addr + 0xf0) = 0;
     #elif defined __TIMER_8254__
     io_out8(PIT_CTRL,0x34);

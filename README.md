@@ -18,7 +18,9 @@ sudo apt-get install gcc g++ gcc-mingw-w64-x86_64 qemu-system-x86 ovmf
 
 或者下载精简过的[BuildTools](https://gitee.com/linchenjun2008/build_tools)(请将其中所有的压缩文件解压缩)。
 
+ * 注：以下部分均假设在Windows环境下进行。
 # 编译
+
 1. 获取源代码：
 ```bash
 mkdir project
@@ -81,3 +83,4 @@ make run
 * 大神 祐真.[フルスクラッチで作る!UEFIベアメタルプログラミング](https://kagurazakakotori.github.io/ubmp-cn/).神楽坂琴梨 译.
 * [osdev](https://wiki.osdev.org)
 * [GuideOS](https://github.com/Codetector1374/GuideOS)
+* eXtensible Host Controller Interface for Universal Serial Bus

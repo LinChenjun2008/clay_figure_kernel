@@ -4,45 +4,33 @@
 #include <intr.h>
 #include <task/task.h>
 #include <kernel/syscall.h>
-
 #include <device/cpu.h>
+
+#include <service.h>
 #include <log.h>
 
+#include <ulib.h>
+
 boot_info_t *g_boot_info = (boot_info_t*)0xffff800000310000;
+
+extern uint64_t global_ticks;
 
 void ktask()
 {
     uint32_t color = 0x00000000;
+    uint32_t xsize = 20;
+    uint32_t ysize = 20;
+    uint32_t *buf = allocate_page(xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1);
     while(1)
     {
+        fill(buf,xsize * ysize * sizeof(uint32_t),xsize,ysize,0,0);
+        color ++;
         uint32_t x,y;
-        for(y = 10;y < 20;y++)
+        for(y = 0;y < ysize;y++)
         {
-            uint32_t *buffer = \
-                (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
-                + g_boot_info->graph_info.horizontal_resolution * y;
-            for (x = 0;x < 10;x++)
+            for (x = 0;x < xsize;x++)
             {
-                *(buffer + x) = color++;
-            }
-        }
-    };
-}
-
-void ktask2()
-{
-    uint32_t color = 0x00000000;
-    while(1)
-    {
-        uint32_t x,y;
-        for(y = 20;y < 30;y++)
-        {
-            uint32_t *buffer = \
-                (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
-                + g_boot_info->graph_info.horizontal_resolution * y;
-            for (x = 0;x < 10;x++)
-            {
-                *(buffer + x) = color++;
+                *(buf + y * xsize + x) = color;
             }
         }
     };
@@ -50,27 +38,25 @@ void ktask2()
 
 void kernel_main()
 {
-    intr_disable();
     pr_log("\1Kernel initializing.\n");
     init_all();
-    intr_enable();
     pr_log("\1Kernel initializing done.\n");
-    task_start("k task",3,65536,ktask,0);
-    prog_execute(ktask2,"k task 2",65536);
-
-    uint32_t color = 0;
+    char s[16];
+    cpu_name(s);
+    pr_log("\1 CPU: %s.\n",s);
+    pr_log("\2 AP_BOOT_BASE: %p, end %p \n",AP_BOOT_BASE,AP_BOOT_END);
+    prog_execute("k task",TASK_LEVEL_NORMAL,DEFAULT_PRIORITY,4096,ktask);
     while(1)
     {
-        uint32_t x,y;
-        for(y = 0;y < 10;y++)
-        {
-            uint32_t *buffer = \
-                (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
-                + g_boot_info->graph_info.horizontal_resolution * y;
-            for (x = 0;x < 10;x++)
-            {
-                *(buffer + x) = color++;
-            }
-        }
+        __asm__ ("hlt");
+    };
+}
+
+void ap_kernel_main()
+{
+    ap_init_all();
+    while(1)
+    {
+        __asm__ ("hlt");
     };
 }

@@ -22,7 +22,6 @@ typedef int bool;
 #define FALSE (1 == 0)
 #endif
 
-#define KERNEL_PAGE_DIR_TABLE_POS 0x00000000005f9000
 #define KERNEL_VMA_BASE           0xffff800000000000
 
 #define KADDR_P2V(ADDR) ((void*)((uintptr_t)(ADDR) + KERNEL_VMA_BASE))
@@ -55,15 +54,44 @@ typedef unsigned long long int uintptr_t;
 typedef unsigned long long int wordsize_t;
 typedef unsigned long long int size_t;
 
-typedef uint16_t pid_t;
+typedef uint32_t pid_t;
 
 typedef uint32_t syscall_status_t;
 
 typedef struct
 {
-    pid_t    src;
-    uint32_t type;
-    uint64_t msg[8];
+    volatile pid_t    src;
+    volatile uint32_t type;
+    union
+    {
+        struct
+        {
+            uint32_t i1;
+            uint32_t i2;
+            uint32_t i3;
+            uint32_t i4;
+        } m1;
+
+        struct
+        {
+            void* p1;
+            void* p2;
+            void* p3;
+            void* p4;
+        } m2;
+
+        struct
+        {
+            uint32_t  i1;
+            uint32_t  i2;
+            uint32_t  i3;
+            uint32_t  i4;
+            uint64_t  l1;
+            uint64_t  l2;
+            void     *p1;
+            void     *p2;
+        } m3;
+    };
 } message_t;
 
 #endif

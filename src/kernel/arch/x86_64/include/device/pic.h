@@ -36,18 +36,27 @@ typedef struct
 
 typedef struct
 {
+    uint8_t  *index_addr;
+    uint32_t *data_addr;
+    uint32_t *EOI_addr;
+} ioapic_t;
+
+typedef struct
+{
     uint64_t  local_apic_address;
-    uint32_t  ioapic_address;
-    uint8_t  *ioapic_index_address;
-    uint32_t *ioapic_data_address;
-    uint32_t *ioapic_EOI_address;
     uint8_t   number_of_cores;
     uint8_t   lapic_id[256];
+    uint8_t   number_of_ioapic;
+    ioapic_t  ioapic[8];
 } apic_t;
 
 PUBLIC bool support_apic();
+PUBLIC void detect_cores();
+
+PUBLIC void local_apic_write(uint16_t index,uint32_t value);
+PUBLIC uint32_t local_apic_read(uint16_t index);
 
 PUBLIC void pic_init();
-PUBLIC void eoi();
+PUBLIC void eoi(uint8_t irq);
 
 #endif

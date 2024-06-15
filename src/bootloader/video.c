@@ -22,3 +22,71 @@ EFI_STATUS SetVideoMode(UINT32 xsize,UINT32 ysize)
     }
     return Gop->SetMode(Gop,Mode);
 }
+
+static char logo[13][13] =\
+{
+    "#############",
+    "# #          ",
+    "# # #########",
+    "# # #        ",
+    "# # # #######",
+    "# # # #      ",
+    "# # # # #####",
+    "# # # #     #",
+    "# # # #######",
+    "# # #        ",
+    "# ###########",
+    "#            ",
+    "#############"
+};
+
+static void CleanBlock(UINT32 x,UINT32 y,UINT32 x1,UINT32 y1)
+{
+    EFI_PHYSICAL_ADDRESS vram = Gop->Mode->FrameBufferBase;
+    UINT32 i,j;
+    for (i = x;i < x1;i++)
+    {
+        for (j = y;j < y1;j++)
+        {
+            *((UINT32*)vram + j * Gop->Mode->Info->HorizontalResolution + i) = 0;
+        }
+    }
+}
+
+static void DisplayBlock(UINT32 x,UINT32 y,UINT32 x1,UINT32 y1)
+{
+    EFI_PHYSICAL_ADDRESS vram = Gop->Mode->FrameBufferBase;
+    UINT32 i,j;
+    for (i = x;i < x1;i++)
+    {
+        for (j = y;j < y1;j++)
+        {
+            *((UINT32*)vram + j * Gop->Mode->Info->HorizontalResolution + i) = 0xffffff;
+        }
+    }
+}
+
+EFI_STATUS DisplayLogo()
+{
+    UINT32 bx = (Gop->Mode->Info->HorizontalResolution - 130) / 2;
+    INT32 by = (Gop->Mode->Info->VerticalResolution - 130) / 2;
+    INT32 i,j;
+    for (i = -1; i < 14;i++)
+    {
+        for (j = -1;j < 14;j++)
+        {
+            CleanBlock(bx + i * 10,by + j * 10,bx + (i + 1) * 10,by + (j + 1) * 10);
+        }
+    }
+    for (i = 0; i < 13;i++)
+    {
+        for (j = 0;j < 13;j++)
+        {
+            if (logo[j][i] == '#')
+            {
+                DisplayBlock(bx + i * 10,by + j * 10,bx + (i + 1) * 10,by + (j + 1) * 10);
+            }
+        }
+    }
+    return EFI_SUCCESS;
+}

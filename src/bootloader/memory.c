@@ -11,7 +11,6 @@
 #define PG_US_U 0x4
 #define PG_SIZE_2M 0x80
 
-
 EFI_STATUS GetMemoryMap(memory_map_t *memmap)
 {
     EFI_STATUS Status = EFI_SUCCESS;

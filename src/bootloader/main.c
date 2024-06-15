@@ -43,6 +43,7 @@ EFI_GUID gEfiFileInfoGuid                 = EFI_FILE_INFO_ID;
 EFI_GUID gEfiAcpiTableGuid                = EFI_ACPI_TABLE_GUID;
 
 EFI_STATUS SetVideoMode(int x,int y);
+EFI_STATUS DisplayLogo();
 EFI_STATUS ReadFile
 (
     CHAR16 *FileName,
@@ -93,20 +94,20 @@ UefiMain
 
 
 
-    Status = SetVideoMode(HORIZONTAL_RESOLUTION,VERTICAL_RESOLUTION);
-    if (EFI_ERROR(Status))
-    {
-        DISPLAY_ERROR(L"Can not set video mode.\r\n");
-    }
+    // Status = SetVideoMode(HORIZONTAL_RESOLUTION,VERTICAL_RESOLUTION);
+    // if (EFI_ERROR(Status))
+    // {
+    //     DISPLAY_ERROR(L"Can not set video mode.\r\n");
+    // }
 
 
+    DisplayLogo();
 
+    gST->ConOut->SetAttribute(gST->ConOut,  0x0F | 0x00);
     DISPLAY_INFO(L"\r---------------------------------------------------------\r\n"
                     "----- Clay Figure Boot v1.0                         -----\r\n"
                     "----- Copyright (c) LinChenjun,All Rights Reserved. -----\r\n"
                     "---------------------------------------------------------\r\n");
-
-
 
     // prepare boot info
     boot_info_t *boot_info = (boot_info_t*)0x310000;
@@ -123,7 +124,12 @@ UefiMain
                                                   Info->VerticalResolution;
     boot_info->graph_info.frame_buffer_base     = 0xffff807fc0000000;
 
-
+    UINT64 ScriptSize = 0;
+    ReadFile(L"EFI/Boot/boot.txt",
+                          0,
+                          AllocateAnyPages,
+                          &ScriptSize);
+    DISPLAY_INFO(L"Read EFI/Boot/boot.txt ...\r\n");
 
     // load file
     DISPLAY_INFO(L"Load Files ...\r\n");
@@ -133,6 +139,9 @@ UefiMain
          file_index < sizeof(Files) / sizeof(Files[0]);
          file_index++)
     {
+        DISPLAY_INFO(L"    Load file: ");
+        gST->ConOut->OutputString(gST->ConOut,Files[file_index].Name);
+        gST->ConOut->OutputString(gST->ConOut,L"\r\n");
         UINT64 FileSize = 0;
         boot_info->loaded_file[boot_info->loaded_files] = Files[file_index].Info;
         Status = ReadFile(Files[file_index].Name,
@@ -141,10 +150,10 @@ UefiMain
                           &FileSize);
         if (EFI_ERROR(Status))
         {
-            DISPLAY_ERROR(L"Load File ERROR.\r\n");
+            DISPLAY_ERROR(L"    Load File ERROR.\r\n");
             continue;
         }
-        DISPLAY_INFO(L"Load file success.\r\n");
+        DISPLAY_INFO(L"    Load file success.\r\n");
         boot_info->loaded_file[boot_info->loaded_files].size         = FileSize;
         boot_info->loaded_files++;
     }

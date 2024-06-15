@@ -50,11 +50,13 @@ PRIVATE mem_cache_t* block2cache(mem_block_t *b)
 
 PUBLIC void* pmalloc(size_t size)
 {
+    intr_status_t intr_status = intr_disable();
     int i;
     mem_cache_t *c;
     mem_block_t *b;
     if (size > MAX_ALLOCATE_MEMORY_SIZE)
     {
+        intr_set_status(intr_status);
         return NULL;
     }
     for (i = 0;i < NUMBER_OF_MEMORY_BLOCK_TYPES;i++)
@@ -69,6 +71,7 @@ PUBLIC void* pmalloc(size_t size)
         c = KADDR_P2V(alloc_physical_page(1));
         if (c == NULL)
         {
+            intr_set_status(intr_status);
             return NULL;
         }
         memset(c,0,PG_SIZE);
@@ -92,6 +95,7 @@ PUBLIC void* pmalloc(size_t size)
     c = block2cache(b);
     c->cnt--;
     mem_groups[i].total_free--;
+    intr_set_status(intr_status);
     return (void*)KADDR_V2P(b);
 }
 
@@ -101,6 +105,7 @@ PUBLIC void pfree(void *addr)
     {
         return;
     }
+    intr_status_t intr_status = intr_disable();
     mem_cache_t *c;
     mem_block_t *b;
     b = KADDR_P2V(addr);
@@ -117,5 +122,6 @@ PUBLIC void pfree(void *addr)
         }
         free_physical_page(KADDR_V2P(c),1);
     }
+    intr_set_status(intr_status);
     return;
 }

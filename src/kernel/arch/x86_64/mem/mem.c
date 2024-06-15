@@ -4,6 +4,8 @@
 #include <intr.h>
 #include <mem/mem.h>
 
+#include <log.h>
+
 typedef enum
 {
     FREE_MEMORY = 1,
@@ -91,19 +93,6 @@ PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
     return MAX_MEMORY_TYPE;
 }
 
-// PRIVATE void make_page_table(uintptr_t max_address)
-// {
-//     uint8_t *paddr;
-//     for ( paddr = (void*)0x10000000UL;
-//           paddr <= (uint8_t*)max_address;
-//           paddr += PG_SIZE )
-//     {
-//         page_map((uint64_t*)KERNEL_PAGE_DIR_TABLE_POS,paddr,paddr);
-//     }
-//     return;
-// }
-
-
 PUBLIC void mem_init()
 {
     page_bitmap.map = page_bitmap_map;
@@ -112,7 +101,8 @@ PUBLIC void mem_init()
     int number_of_memory_desct;
     number_of_memory_desct = g_boot_info->memory_map.map_size
                            / g_boot_info->memory_map.descriptor_size;
-    uintptr_t total_free = 0;
+    uintptr_t total_free  = 0;
+    size_t    mem_size    = 0;
     uintptr_t max_address = 0;
     int i;
     for (i = 0;i < number_of_memory_desct;i++)
@@ -123,6 +113,7 @@ PUBLIC void mem_init()
         uintptr_t end   = start + (efi_memory_desc[i].NumberOfPages << 12);
         max_address     = efi_memory_desc[i].PhysicalStart
                           + (efi_memory_desc[i].NumberOfPages << 12);
+        mem_size       += efi_memory_desc[i].NumberOfPages << 12;
         if (memory_type(efi_memory_desc[i].Type) != FREE_MEMORY)
         {
             start = page_size_round_down(start);
@@ -152,10 +143,9 @@ PUBLIC void mem_init()
     {
         bitmap_set(&page_bitmap,i,1);
     }
-    // if (max_address > 0xffffffff)
-    // {
-    //     make_page_table(max_address);
-    // }
+    pr_log("\1Memory: total: %d MB ( %d GB ),free: %d MB (%d GB)\n",
+            mem_size >> 20,mem_size >> 30,
+            total_free >> 20,total_free >> 30);
     return;
 }
 
@@ -223,9 +213,33 @@ PUBLIC uint64_t* pdt_entry(void *pml4t,void *vaddr)
 
 PUBLIC void* to_physical_address(void *pml4t,void *vaddr)
 {
-    return (void*)
-        ( (*(uint64_t*)KADDR_P2V(pdt_entry(pml4t,vaddr)) & ~0xfff)
-        + ADDR_OFFSET(vaddr));
+    uint64_t *v_pml4t,*v_pml4e;
+    uint64_t *pdpt,*v_pdpte,*pdpte;
+    uint64_t *pdt,*v_pde,*pde;
+    v_pml4t = KADDR_P2V(pml4t);
+    v_pml4e = v_pml4t + ADDR_PML4T_INDEX(vaddr);
+    if (!(*v_pml4e & PG_P))
+    {
+        pr_log("\3 %s:vaddr pml4e not exist: %p\n",__func__,vaddr);
+        return NULL;
+    }
+    pdpt = (uint64_t*)(*v_pml4e & (~0xfff));
+    pdpte = pdpt + ADDR_PDPT_INDEX(vaddr);
+    v_pdpte = KADDR_P2V(pdpte);
+    if (!(*v_pdpte & PG_P))
+    {
+        pr_log("\3 %s:vaddr pdpte not exist: %p\n",__func__,vaddr);
+        return NULL;
+    }
+    pdt = (uint64_t*)(*v_pdpte & (~0xfff));
+    pde = pdt + ADDR_PDT_INDEX(vaddr);
+    v_pde = KADDR_P2V(pde);
+    if (!(*v_pde & PG_P))
+    {
+        pr_log("\3 %s:vaddr pde not exist: %p\n",__func__,vaddr);
+        return NULL;
+    }
+    return (void*)((*v_pde & ~0xfff) + ADDR_OFFSET(vaddr));
 }
 
 PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
@@ -240,6 +254,10 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
     if (!(*v_pml4e & PG_P))
     {
         pdpt = pmalloc(PT_SIZE);
+        if (pdpt == NULL)
+        {
+            pr_log("\3 Can not alloc addr for pdpt.\n");
+        }
         v_pdpt = KADDR_P2V(pdpt);
         memset(v_pdpt,0,PT_SIZE);
         *v_pml4e = (uint64_t)pdpt | PG_US_U | PG_RW_W | PG_P;
@@ -250,6 +268,10 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
     if (!(*v_pdpte & PG_P))
     {
         pdt = pmalloc(PT_SIZE);
+        if (pdt == NULL)
+        {
+            pr_log("\3 Can not alloc addr for pdt.\n");
+        }
         v_pdt = KADDR_P2V(pdt);
         memset(v_pdt,0,PT_SIZE);
         *v_pdpte = (uint64_t)pdt | PG_US_U | PG_RW_W | PG_P;
@@ -270,6 +292,7 @@ PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
     v_pml4e = v_pml4t + ADDR_PML4T_INDEX(vaddr);
     if (!(*v_pml4e & PG_P))
     {
+        pr_log("\3vaddr pml4e not exist: %p\n",vaddr);
         return;
     }
     pdpt = (uint64_t*)(*v_pml4e & (~0xfff));
@@ -277,10 +300,16 @@ PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
     v_pdpte = KADDR_P2V(pdpte);
     if (!(*v_pdpte & PG_P))
     {
+        pr_log("\3vaddr pdpte not exist: %p\n",vaddr);
         return;
     }
     pdt = (uint64_t*)(*v_pdpte & (~0xfff));
     pde = pdt + ADDR_PDT_INDEX(vaddr);
     v_pde = KADDR_P2V(pde);
+    if (!(*v_pde & PG_P))
+    {
+        pr_log("\3vaddr pde not exist: %p\n",vaddr);
+        return;
+    }
     *v_pde &= ~PG_P;
 }

@@ -13,24 +13,36 @@ BOOTLOADER_INCLUDE_PATH := $(BOOTLOADER_SRC_PATH)/include/
 KERNEL_LINKER_SCRIPT    := ./kernel.lds
 
 KERNEL_SRC              := \
-$(KERNEL_SRC_PATH)/setup.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/start.S \
 $(KERNEL_SRC_PATH)/main.c \
  \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/init.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/intr/intr.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/intr/asm_intr.S \
  \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pic/pic.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pic/8259a.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pic/apic.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/cpu/smp.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/cpu/ap_boot.S \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/timer/timer.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pci/pci.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/usb/hci/xhci.c \
  \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/tss.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/task.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/schedule.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/asm_schedule.S \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/prog.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/mem/mem.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/syscall.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/asm_syscall.S \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/ipc.c \
+ \
+$(KERNEL_SRC_PATH)/service/service.c \
+$(KERNEL_SRC_PATH)/service/tick/tick.c \
+$(KERNEL_SRC_PATH)/service/mm/mm.c \
+$(KERNEL_SRC_PATH)/service/view/view.c \
  \
 $(KERNEL_SRC_PATH)/mem/allocator.c \
 $(KERNEL_SRC_PATH)/lib/alloc_table.c \
@@ -39,5 +51,8 @@ $(KERNEL_SRC_PATH)/lib/list.c \
 $(KERNEL_SRC_PATH)/lib/stdio.c \
 $(KERNEL_SRC_PATH)/graphic/print.c \
 $(KERNEL_SRC_PATH)/graphic/character.c \
+ \
+$(KERNEL_SRC_PATH)/ulib/ulib.c \
 
-KERNEL_INCLUDE_PATH     := $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include/
+KERNEL_ARCH_INCLUDE_PATH := $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include/
+KERNEL_INCLUDE_PATH      := $(KERNEL_SRC_PATH)/include/

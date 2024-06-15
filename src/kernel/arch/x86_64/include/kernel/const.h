@@ -1,6 +1,8 @@
 #ifndef __CONST_H__
 #define __CONST_H__
 
+#define KERNEL_PAGE_DIR_TABLE_POS 0x00000000005f9000
+
 #define KERNEL_STACK_BASE 0x300000
 #define KERNEL_STACK_SIZE 0x10000
 
@@ -74,7 +76,7 @@
 #define SELECTOR_DATA64_U     ((3 << 3) | TI_GDT | RPL3) /* 用户数据段 */
 #define SELECTOR_CODE64_U     ((4 << 3) | TI_GDT | RPL3) /* 用户代码段 */
 
-#define SELECTOR_TSS          ((5 << 3) | TI_GDT | RPL0) /* TSS段 */
+#define SELECTOR_TSS(CPU)     (((5 + CPU * 2) << 3) | TI_GDT | RPL0) /* TSS段 */
 
 #define AR_DESC_32 0xe
 #define AR_DESC_16 0x6
@@ -88,7 +90,7 @@
 
 #define MAX_TASK 1024
 
-#define IRQ_CNT 0x41
+#define IRQ_CNT 0xff
 
 #define PIC_M_CTRL 0x20	/* 8259A主片的控制端口是0x20 */
 #define PIC_M_DATA 0x21	/* 8259A主片的数据端口是0x21 */
@@ -107,7 +109,19 @@
 #define IA32_LSTAR  0xc0000082
 #define IA32_FMASK  0xc0000084
 
+#define AP_STACK_BASE_PTR 0x1000
+
+#define ICR_DELIVER_MODE_INIT (0x05 <<  8)
+#define ICR_DEST_MODE_PHY     (   0 << 11)
+#define ICR_TRIGGER_EDGE      (   0 << 15)
+#define ICR_ALL_EXCLUDE_SELF  (   3 << 18)
+
+#define EFLAGS_IF     (1 << 9)
+
 #define IA32_EFER_SCE 1
+
+#define PCI_CONFIG_ADDRESS 0x0cf8
+#define PCI_CONFIG_DATA    0x0cfc
 
 #define NR_SEND 0x80000001
 #define NR_RECV 0x80000002
@@ -116,12 +130,22 @@
 #define RECV_FROM_INT (MAX_TASK + 1)
 #define RECV_FROM_ANY (MAX_TASK + 2)
 
-#define SYSCALL_SUCCESS       0x80000000
-#define SYSCALL_ERROR         0xc0000000
-#define SYSCALL_NO_SYSCALL    (SYSCALL_ERROR | 0x00000001)
-#define SYSCALL_DEADLOCK      (SYSCALL_ERROR | 0x00000002)
-#define SYSCALL_NO_DST        (SYSCALL_ERROR | 0x00000003)
-#define SYSCALL_NO_SRC        (SYSCALL_ERROR | 0x00000004)
+#define SERVICE_ID_BASE 0x80000000UL
 
+#define SERVICES 3
+
+#define TICK     SERVICE_ID_BASE
+#define MM       SERVICE_ID_BASE + 1
+#define VIEW     SERVICE_ID_BASE + 2
+
+#define SYSCALL_SUCCESS        0x80000000
+#define SYSCALL_ERROR          0xc0000000
+#define SYSCALL_NO_SYSCALL     (SYSCALL_ERROR | 0x00000001)
+#define SYSCALL_DEADLOCK       (SYSCALL_ERROR | 0x00000002)
+#define SYSCALL_DEST_NOT_EXIST (SYSCALL_ERROR | 0x00000003)
+#define SYSCALL_SRC_NOT_EXIST  (SYSCALL_ERROR | 0x00000004)
+
+// xhci
+#define IRQ_XHCI 0x30
 
 #endif
