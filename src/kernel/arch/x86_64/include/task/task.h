@@ -3,6 +3,7 @@
 
 #include <lib/list.h>
 #include <lib/alloc_table.h>
+#include <device/spinlock.h>
 
 typedef enum
 {
@@ -45,7 +46,7 @@ typedef struct
 
     char                   name[32];
     volatile task_status_t status;
-
+    uint64_t               spinlock_count;
     uint64_t               level;
     uint64_t               priority;
     uint64_t               ticks;
@@ -60,6 +61,7 @@ typedef struct
     pid_t                  send_to;
     pid_t                  recv_from;
     uint8_t                has_intr_msg;
+    spinlock_t             send_lock;
     list_t                 sender_list;
 } task_struct_t;
 

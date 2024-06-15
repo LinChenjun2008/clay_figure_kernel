@@ -146,18 +146,19 @@ PUBLIC task_struct_t* init_task_struct
         name[31] = 0;
     }
     strcpy(task->name,name);
-    task->status        = TASK_READY;
+    task->status         = TASK_READY;
+    task->spinlock_count = 0;
+    task->level          = level;
+    task->priority       = priority;
+    task->ticks          = 0;
+    task->elapsed_ticks  = 0;
 
-    task->level         = level;
-    task->priority      = priority;
-    task->ticks         = 0;
-    task->elapsed_ticks = 0;
+    task->page_dir       = NULL;
 
-    task->page_dir      = NULL;
-
-    task->send_to       = MAX_TASK;
-    task->recv_from     = MAX_TASK;
-    task->has_intr_msg  = 0;
+    task->send_to        = MAX_TASK;
+    task->recv_from      = MAX_TASK;
+    task->has_intr_msg   = 0;
+    init_spinlock(&task->send_lock);
     list_init(&task->sender_list);
     return task;
 }

@@ -53,6 +53,13 @@ static __inline__ bool is_bsp()
     return rdmsr(IA32_APIC_BASE) & IA32_APIC_BASE_BSP;
 }
 
+static __inline__ uint32_t apic_id()
+{
+    uint32_t a,b,c,d;
+    cpuid(1,0,&a,&b,&c,&d);
+    return (b >> 24) & 0xff;
+}
+
 PUBLIC void smp_start();
 
 extern uint8_t AP_BOOT_BASE[];

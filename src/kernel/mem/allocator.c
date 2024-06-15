@@ -3,12 +3,14 @@
 #include <lib/list.h>
 #include <intr.h>
 #include <std/string.h>
+#include <device/spinlock.h>
 
 typedef struct
 {
-    size_t   block_size;
-    uint32_t total_free;
-    list_t   free_block_list;
+    size_t     block_size;
+    uint32_t   total_free;
+    list_t     free_block_list;
+    spinlock_t lock;
 } mem_group_t;
 
 typedef struct
@@ -31,6 +33,7 @@ PUBLIC void mem_alloctor_init()
         mem_groups[i].block_size            = block_size;
         mem_groups[i].total_free            = 0;
         list_init(&mem_groups[i].free_block_list);
+        init_spinlock(&mem_groups[i].lock);
         block_size *= 2;
     }
     return;
@@ -50,19 +53,19 @@ PRIVATE mem_cache_t* block2cache(mem_block_t *b)
 
 PUBLIC void* pmalloc(size_t size)
 {
-    intr_status_t intr_status = intr_disable();
+
     int i;
     mem_cache_t *c;
     mem_block_t *b;
     if (size > MAX_ALLOCATE_MEMORY_SIZE)
     {
-        intr_set_status(intr_status);
         return NULL;
     }
     for (i = 0;i < NUMBER_OF_MEMORY_BLOCK_TYPES;i++)
     {
         if (size <= mem_groups[i].block_size)
         {
+            spinlock_lock(&mem_groups[i].lock);
             break;
         }
     }
@@ -71,7 +74,7 @@ PUBLIC void* pmalloc(size_t size)
         c = KADDR_P2V(alloc_physical_page(1));
         if (c == NULL)
         {
-            intr_set_status(intr_status);
+            spinlock_unlock(&mem_groups[i].lock);
             return NULL;
         }
         memset(c,0,PG_SIZE);
@@ -82,20 +85,18 @@ PUBLIC void* pmalloc(size_t size)
         c->cnt              = c->number_of_blocks;
         mem_groups[i].total_free += c->cnt;
         size_t block_index;
-        intr_status_t intr_status = intr_disable();
         for (block_index = 0;block_index < c->cnt;block_index++)
         {
             b = cache2block(c,block_index);
             list_append(&c->group->free_block_list,b);
         }
-        intr_set_status(intr_status);
     }
     b = list_pop(&mem_groups[i].free_block_list);
     memset(b,0,mem_groups[i].block_size);
     c = block2cache(b);
     c->cnt--;
     mem_groups[i].total_free--;
-    intr_set_status(intr_status);
+    spinlock_unlock(&mem_groups[i].lock);
     return (void*)KADDR_V2P(b);
 }
 
@@ -105,11 +106,11 @@ PUBLIC void pfree(void *addr)
     {
         return;
     }
-    intr_status_t intr_status = intr_disable();
     mem_cache_t *c;
     mem_block_t *b;
     b = KADDR_P2V(addr);
     c = block2cache(b);
+    spinlock_lock(&c->group->lock);
     list_append(&c->group->free_block_list,b);
     c->cnt++;
     if (c->cnt == c->number_of_blocks && c->group->total_free >= c->number_of_blocks * 3 / 2)
@@ -122,6 +123,6 @@ PUBLIC void pfree(void *addr)
         }
         free_physical_page(KADDR_V2P(c),1);
     }
-    intr_set_status(intr_status);
+    spinlock_lock(&c->group->lock);
     return;
 }

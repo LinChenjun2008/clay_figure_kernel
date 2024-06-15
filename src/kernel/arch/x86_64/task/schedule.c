@@ -20,6 +20,10 @@ PRIVATE void switch_to(task_context_t **cur,task_context_t **next)
 PUBLIC void schedule()
 {
     task_struct_t *cur_task = running_task();
+    if (cur_task->spinlock_count > 0)
+    {
+        return;
+    }
     if (cur_task->status == TASK_RUNNING)
     {
         list_append(&task_level[cur_task->level],&cur_task->general_tag);
