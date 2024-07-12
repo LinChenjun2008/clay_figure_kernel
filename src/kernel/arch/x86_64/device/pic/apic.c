@@ -15,6 +15,8 @@
  0xfee000a0   | 0x80a       | PPR                | RO
  0xfee000b0   | 0x80b       | EOI                | WO
  0xfee000f0   | 0x80f       | SVR                | RW
+ 0xfee00300   | 0x830       | ICR (bit 31 :  0)  | RW
+ 0xfee00310   | 0x830       | ICR (bit 63 : 32)  | RW
  0xfee00350   | 0x835       | LVT LINT0          | RW
  0xfee00360   | 0x836       | LVT LINT1          | RW
  0xfee00370   | 0x837       | LVT Error          | RW
@@ -83,99 +85,69 @@ PUBLIC uint32_t local_apic_read(uint16_t index)
     io_mfence();
 }
 
-PRIVATE void local_apic_init()
+PRIVATE void xapic_init()
+{
+    // enable SVR[8]
+    pr_log("\1enable SVR[8].\n");
+    uint32_t svr = local_apic_read(0x0f0);
+    svr |= 1 << 8;
+    if (local_apic_read(0x030) >> 24 & 1)
+    {
+        pr_log("\1enable SVR[12]\n");
+        svr |= 1 << 12;
+    }
+    local_apic_write(0x0f0,svr);
+
+    // Mask all LVT
+    pr_log("\1Mask all LVT.\n");
+    local_apic_write(0x2f0,0x10000);
+    local_apic_write(0x320,0x10000);
+    local_apic_write(0x330,0x10000);
+    local_apic_write(0x340,0x10000);
+    local_apic_write(0x350,0x10000);
+    local_apic_write(0x360,0x10000);
+    local_apic_write(0x370,0x10000);
+}
+
+PRIVATE void x2apic_init()
+{
+    // enable SVR[8]
+    uint32_t svr = rdmsr(0x80f);
+    svr |= 1 << 8;
+    if (rdmsr(0x803) >> 24 & 1)
+    {
+        svr |= 1 << 12;
+    }
+    wrmsr(0x80f,svr);
+
+    // Mask all LVT
+    wrmsr(0x82f,0x10000);
+    wrmsr(0x832,0x10000);
+    wrmsr(0x833,0x10000);
+    wrmsr(0x834,0x10000);
+    wrmsr(0x835,0x10000);
+    wrmsr(0x836,0x10000);
+    wrmsr(0x837,0x10000);
+}
+
+PUBLIC void local_apic_init()
 {
     uint32_t a,b,c,d;
     cpuid(1,0,&a,&b,&c,&d);
-
-    if (c & (1 << 21))
+    uint64_t ia32_apic_base = rdmsr(IA32_APIC_BASE);
+    if ((c & (1 << 21)) && (ia32_apic_base & 0x400))
     {
-        pr_log("\2HW Suooprt x2APIC\n");
-        // enable SVR[8]
-        pr_log("\1enable SVR[8].\n");
-        uint32_t svr = rdmsr(0x80f);
-        svr |= 1 << 8;
-        if (rdmsr(0x803) >> 24 & 1)
-        {
-            pr_log("\1enable SVR[12]\n");
-            svr |= 1 << 12;
-        }
-        wrmsr(0x80f,svr);
-
-        // Mask all LVT
-        pr_log("\1Mask all LVT.\n");
-        wrmsr(0x82f,0x10000);
-        wrmsr(0x832,0x10000);
-        wrmsr(0x833,0x10000);
-        wrmsr(0x834,0x10000);
-        wrmsr(0x835,0x10000);
-        wrmsr(0x836,0x10000);
-        wrmsr(0x837,0x10000);
+        x2apic_init();
     }
     else
     {
-        pr_log("\3HW no Suooprt x2APIC\n");
-        if (d & (1 << 9))
+        if ((d & (1 << 9)) && (ia32_apic_base & 0x800))
         {
-            pr_log("\2HW Suooprt APIC & xAPIC\n");
-            // enable SVR[8]
-            pr_log("\1enable SVR[8].\n");
-            uint32_t svr = local_apic_read(0x0f0);
-            svr |= 1 << 8;
-            if (local_apic_read(0x030) >> 24 & 1)
-            {
-                pr_log("\1enable SVR[12]\n");
-                svr |= 1 << 12;
-            }
-            local_apic_write(0x0f0,svr);
-
-            // Mask all LVT
-            pr_log("\1Mask all LVT.\n");
-            local_apic_write(0x2f0,0x10000);
-            local_apic_write(0x320,0x10000);
-            local_apic_write(0x330,0x10000);
-            local_apic_write(0x340,0x10000);
-            local_apic_write(0x350,0x10000);
-            local_apic_write(0x360,0x10000);
-            local_apic_write(0x370,0x10000);
-        }
-        else
-        {
-            pr_log("\3HW no Suooprt APIC & xAPIC\n");
+            xapic_init();
         }
     }
-
-    uint64_t ia32_apic_base = rdmsr(IA32_APIC_BASE);
-    if (ia32_apic_base & 0x800)
-    {
-        pr_log("\1APIC & xAPIC enabled\n");
-    }
-    if (ia32_apic_base & 0x400)
-    {
-        pr_log("\1x2APIC enabled\n");
-    }
-
-
-    pr_log("\1APIC ID: %x\n",local_apic_read(0x020));
-    pr_log("\1APIC version: %x\n",local_apic_read(0x030) & 0xff);
-
-    if ((local_apic_read(0x030) & 0xff) < 0x10)
-    {
-        pr_log("\1 82489DX discrete APIC\n");
-    }
-    if ((local_apic_read(0x030) & 0xff) >= 0x10 && (local_apic_read(0x030) & 0xff) <= 0x15)
-    {
-        pr_log("\1 Integrated APIC\n");
-    }
-    pr_log("\1APIC Max LVT Entry: %x\n",((local_apic_read(0x030) >> 16) & 0xff) + 1);
-    pr_log("\1Suppress EOI Broadcast: %s\n",(local_apic_read(0x030) >> 24) & 1 ? "Yes" : "No");
-
-    pr_log("\1APIC LVT TPR: %x\n",local_apic_read(0x080));
-    pr_log("\1APIC LVT PPR: %x\n",local_apic_read(0x0a0));
-
     return;
 }
-
 
 // PRIVATE uint64_t ioapic_rte_read(uint8_t index)
 // {
@@ -211,10 +183,6 @@ PRIVATE void ioapic_rte_write(uint8_t index,uint64_t value)
 
 PUBLIC void ioapic_enable(uint64_t pin,uint64_t vector)
 {
-    // uint64_t value = 0;
-    // value = ioapic_rte_read(pin * 2 + 0x10);
-    // value = value & (~0x100ffUL);
-    // ioapic_rte_write(pin * 2 + 0x10,value | vector);
     ioapic_rte_write(pin * 2 + 0x10,vector & 0xff);
     return;
 }

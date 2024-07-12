@@ -2,6 +2,7 @@
 #include <io.h>
 #include <intr.h>
 #include <device/pic.h>
+#include <device/cpu.h>
 #include <task/task.h>
 #include <kernel/syscall.h>
 
@@ -15,6 +16,20 @@ PRIVATE void irq_timer_handler()
     eoi(0x20);
     inform_intr(TICK);
     global_ticks++;
+    // send IPI
+    uint64_t icr;
+    icr = make_icr
+    (
+        0x80,
+        ICR_DELIVER_MODE_FIXED,
+        ICR_DEST_MODE_PHY,
+        ICR_DELIVER_STATUS_IDLE,
+        ICR_LEVEL_DE_ASSEST,
+        ICR_TRIGGER_EDGE,
+        ICR_ALL_EXCLUDE_SELF,
+        0
+    );
+    send_IPI(icr);
     task_struct_t *cur_task = running_task();
     if (cur_task == NULL)
     {

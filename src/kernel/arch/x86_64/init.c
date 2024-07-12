@@ -11,6 +11,8 @@
 #include <kernel/syscall.h>
 #include <service.h>
 
+#include <std/stdio.h>
+
 PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access)
 {
     segmdesc_t desc;
@@ -85,7 +87,6 @@ PUBLIC void init_all()
     mem_alloctor_init();
 
     detect_cores();
-    smp_start();
 
     pic_init();
     pit_init();
@@ -94,6 +95,7 @@ PUBLIC void init_all()
     service_init();
 
     // xhci_init();
+    smp_start();
     intr_enable();
 
     extern uint64_t global_ticks;
@@ -109,6 +111,7 @@ PUBLIC void init_all()
     return;
 }
 
+extern taskmgr_t tm;
 PUBLIC void ap_init_all()
 {
     intr_disable();
@@ -116,6 +119,21 @@ PUBLIC void ap_init_all()
     load_gdt();
     load_tss(apic_id());
     ap_intr_init();
+    local_apic_init();
+    pic_init();
+    char name[16];
+    sprintf(name,"idle(%d)",apic_id());
+    task_struct_t *main_task = pid2task(task_alloc());
+    uintptr_t kstack_base =   (*(uint64_t*)KADDR_P2V(AP_STACK_BASE_PTR))
+                            + (apic_id() - 1) * KERNEL_STACK_SIZE;
+    kstack_base = (uintptr_t)KADDR_P2V(kstack_base);
+    init_task_struct(main_task,
+                    name,
+                    DEFAULT_PRIORITY,
+                    kstack_base,
+                    KERNEL_STACK_SIZE);
+    list_append(&tm.task_list[apic_id()],&main_task->general_tag);
+
     syscall_init();
     intr_enable();
     return;

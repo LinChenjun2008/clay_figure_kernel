@@ -60,7 +60,19 @@ static __inline__ uint32_t apic_id()
     return (b >> 24) & 0xff;
 }
 
+PUBLIC uint64_t make_icr
+(
+    uint8_t  vector,
+    uint8_t  deliver_mode,
+    uint8_t  dest_mode,
+    uint8_t  deliver_status,
+    uint8_t  level,
+    uint8_t  trigger,
+    uint8_t  des_shorthand,
+    uint32_t destination
+);
 PUBLIC void smp_start();
+PUBLIC void send_IPI(uint64_t icr);
 
 extern uint8_t AP_BOOT_BASE[];
 extern uint8_t AP_BOOT_END[];

@@ -123,11 +123,13 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
             running_task()->recv_from = MAX_TASK;
             return SYSCALL_SRC_NOT_EXIST;
         }
+        spinlock_lock(&running_task()->send_lock);
         while (!list_find(&running_task()->sender_list,&pid2task(src)->general_tag))
         {
+            spinlock_unlock(&running_task()->send_lock);
             task_block(TASK_RECEIVING);
+            spinlock_lock(&running_task()->send_lock);
         }
-        spinlock_lock(&running_task()->send_lock);
         list_remove(&pid2task(src)->general_tag);
         spinlock_unlock(&running_task()->send_lock);
     }

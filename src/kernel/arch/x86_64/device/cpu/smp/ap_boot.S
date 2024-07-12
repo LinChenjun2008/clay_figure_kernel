@@ -92,6 +92,8 @@ AP_CODE64_BASE:
     shlq $16,%rbx
     movq $AP_STACK_BASE_PTR,%rax
     addq (%rax),%rbx
+    movq $0xffff800000000000,%rax
+    addq %rax,%rbx
     movq %rbx,%rsp
 
     movq $0xffff800000100000,%rax

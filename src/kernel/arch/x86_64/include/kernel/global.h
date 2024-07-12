@@ -8,6 +8,7 @@
 #define __TIMER_8254__
 
 #define DEFAULT_PRIORITY 3
+#define SERVICE_PRIORITY 31
 
 #define TASK_LEVEL        3
 #define TASK_LEVEL_HIGH   0

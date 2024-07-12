@@ -47,7 +47,6 @@ typedef struct
     char                   name[32];
     volatile task_status_t status;
     uint64_t               spinlock_count;
-    uint64_t               level;
     uint64_t               priority;
     uint64_t               ticks;
     uint64_t               elapsed_ticks;
@@ -65,6 +64,13 @@ typedef struct
     list_t                 sender_list;
 } task_struct_t;
 
+typedef struct
+{
+    task_struct_t task_table[MAX_TASK];
+    list_t        task_list[NR_CPUS];
+    spinlock_t    task_lock;
+} taskmgr_t;
+
 PUBLIC task_struct_t* pid2task(pid_t pid);
 PUBLIC bool task_exist(pid_t pid);
 PUBLIC task_struct_t* running_task();
@@ -76,7 +82,6 @@ PUBLIC task_struct_t* init_task_struct
 (
     task_struct_t* task,
     char* name,
-    uint64_t level,
     uint64_t priority,
     uintptr_t kstack_base,
     size_t kstack_size
@@ -85,7 +90,6 @@ PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg);
 PUBLIC task_struct_t* task_start
 (
     char* name,
-    uint64_t level,
     uint64_t priority,
     size_t kstack_size,
     void* func,
@@ -107,7 +111,6 @@ PUBLIC void prog_activate(task_struct_t *task);
 PUBLIC task_struct_t *prog_execute
 (
     char *name,
-    uint64_t level,
     uint64_t priority,
     size_t kstack_size,
     void *prog
