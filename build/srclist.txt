@@ -29,6 +29,7 @@ $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/cpu/smp/spinlock.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/timer/timer.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pci/pci.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/usb/hci/xhci.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/keyboard/keyboard.c \
  \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/tss.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/task.c \
@@ -49,6 +50,7 @@ $(KERNEL_SRC_PATH)/mem/allocator.c \
 $(KERNEL_SRC_PATH)/lib/alloc_table.c \
 $(KERNEL_SRC_PATH)/lib/bitmap.c \
 $(KERNEL_SRC_PATH)/lib/list.c \
+$(KERNEL_SRC_PATH)/lib/fifo.c \
 $(KERNEL_SRC_PATH)/lib/stdio.c \
 $(KERNEL_SRC_PATH)/graphic/print.c \
 $(KERNEL_SRC_PATH)/graphic/character.c \

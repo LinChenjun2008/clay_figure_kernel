@@ -19,7 +19,7 @@ PRIVATE void mm_allocate_page(message_t *msg)
     }
 
     vaddr_start = allocate_units(&src->vaddr_table,msg->m1.i1);
-    if ((int64_t)vaddr_start == -1)
+    if (ERROR((int64_t)vaddr_start))
     {
         msg->m2.p1 = NULL;
         return;

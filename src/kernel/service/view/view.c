@@ -53,7 +53,6 @@ PUBLIC void view_main()
     gi.vram  = msg.m3.p1;
     gi.xsize = msg.m3.i1;
     gi.ysize = msg.m3.i2;
-    // pr_log("\2 view init.vram %p,xsize %d,ysize %d\n",gi.vram,gi.xsize,gi.ysize);
     while(1)
     {
         send_recv(NR_RECV,RECV_FROM_ANY,&msg);

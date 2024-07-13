@@ -6,6 +6,7 @@
 #include <device/timer.h>
 #include <device/pci.h>
 #include <device/usb/hci/xhci.h>
+#include <device/keyboard.h>
 #include <mem/mem.h>
 #include <task/task.h>
 #include <kernel/syscall.h>
@@ -42,10 +43,10 @@ PRIVATE void load_gdt()
         "movw %%ax,%%ss \n\t"
 
         "pushq %[SELECTOR_CODE64] \n\t"
-        "leaq .next(%%rip),%%rax \n\t"
+        "leaq %=f(%%rip),%%rax \n\t"
         "pushq %%rax \n\t"
-        "lretq \n\t"// == jmp SELECTOR_CODE64:.next
-        ".next: \n\t"
+        "lretq \n\t"
+        "%=: \n\t"
         :
         :[gdt_ptr]"m"(gdt_ptr),[SELECTOR_CODE64]"i"(SELECTOR_CODE64_K),
          [SELECTOR_DATA64]"ax"(SELECTOR_DATA64_K)
@@ -87,15 +88,16 @@ PUBLIC void init_all()
     mem_alloctor_init();
 
     detect_cores();
+    smp_start();
 
     pic_init();
     pit_init();
     pci_scan_all_bus();
+    keyboard_init();
     syscall_init();
     service_init();
 
-    // xhci_init();
-    smp_start();
+    xhci_init();
     intr_enable();
 
     extern uint64_t global_ticks;
@@ -118,21 +120,9 @@ PUBLIC void ap_init_all()
     init_tss(apic_id());
     load_gdt();
     load_tss(apic_id());
+
     ap_intr_init();
     local_apic_init();
-    char name[16];
-    sprintf(name,"idle(%d)",apic_id());
-    task_struct_t *main_task = pid2task(task_alloc());
-    uintptr_t kstack_base =   (*(uint64_t*)KADDR_P2V(AP_STACK_BASE_PTR))
-                            + (apic_id() - 1) * KERNEL_STACK_SIZE;
-    kstack_base = (uintptr_t)KADDR_P2V(kstack_base);
-    init_task_struct(main_task,
-                    name,
-                    DEFAULT_PRIORITY,
-                    kstack_base,
-                    KERNEL_STACK_SIZE);
-    list_append(&tm.task_list[apic_id()],&main_task->general_tag);
-
     syscall_init();
     intr_enable();
     return;

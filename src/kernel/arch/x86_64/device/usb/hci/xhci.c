@@ -379,6 +379,7 @@ PUBLIC void xhci_init()
     xhci.opt_regs->USBCMD = usbcmd;
 
     xhci_run();
+
     pr_log("\1xHCI init done.\n");
     return;
 }

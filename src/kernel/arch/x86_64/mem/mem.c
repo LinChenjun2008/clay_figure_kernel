@@ -164,17 +164,20 @@ PUBLIC void* alloc_physical_page(uint64_t number_of_pages)
     }
     spinlock_lock(&mem.lock);
     signed int index = bitmap_alloc(&mem.page_bitmap,number_of_pages);
-    uintptr_t paddr = 0;
-    if (index != -1)
+    if (ERROR(index))
     {
-        uint64_t i;
-        for (i = index;i < index + number_of_pages;i++)
-        {
-            bitmap_set(&mem.page_bitmap,i,1);
-        }
-        paddr = (0UL + (uintptr_t)index * PG_SIZE);
-        memset(KADDR_P2V(paddr),0,number_of_pages * PG_SIZE);
+        return NULL;
     }
+    uintptr_t paddr = 0;
+
+    uint64_t i;
+    for (i = index;i < index + number_of_pages;i++)
+    {
+        bitmap_set(&mem.page_bitmap,i,1);
+    }
+    paddr = (0UL + (uintptr_t)index * PG_SIZE);
+    memset(KADDR_P2V(paddr),0,number_of_pages * PG_SIZE);
+
     spinlock_unlock(&mem.lock);
     return (void*)paddr;
 }

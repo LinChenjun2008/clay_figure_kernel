@@ -25,7 +25,7 @@ PUBLIC int32_t bitmap_alloc(bitmap_t *btmp,int32_t cnt)
     }
     if (byte_index >= btmp->btmp_bytes_len)
     {
-        return -1;
+        return K_ERROR;
     }
     int32_t bit_index;
     for (bit_index = byte_index * 8;bit_index < btmp->btmp_bytes_len;bit_index++)
@@ -44,7 +44,7 @@ PUBLIC int32_t bitmap_alloc(bitmap_t *btmp,int32_t cnt)
         }
         bit_index += free_bits;
     }
-    return -1;
+    return K_ERROR;
 }
 
 PUBLIC void bitmap_set(bitmap_t *btmp,int32_t bit_index,uint8_t value)
