@@ -23,7 +23,7 @@ PRIVATE void view_fill(message_t *msg)
     uint32_t *buf = allocate_page(msg->m3.l1 / PG_SIZE + 1);
     if (buf == NULL)
     {
-        pr_log("\3 can not alloc buffer.\n");
+        // pr_log("\3 can not alloc buffer.\n");
         return;
     }
 
@@ -53,7 +53,7 @@ PUBLIC void view_main()
     gi.vram  = msg.m3.p1;
     gi.xsize = msg.m3.i1;
     gi.ysize = msg.m3.i2;
-    pr_log("\2 view init.vram %p,xsize %d,ysize %d\n",gi.vram,gi.xsize,gi.ysize);
+    // pr_log("\2 view init.vram %p,xsize %d,ysize %d\n",gi.vram,gi.xsize,gi.ysize);
     while(1)
     {
         send_recv(NR_RECV,RECV_FROM_ANY,&msg);

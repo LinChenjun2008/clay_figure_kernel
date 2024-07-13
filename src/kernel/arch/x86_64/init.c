@@ -120,7 +120,6 @@ PUBLIC void ap_init_all()
     load_tss(apic_id());
     ap_intr_init();
     local_apic_init();
-    pic_init();
     char name[16];
     sprintf(name,"idle(%d)",apic_id());
     task_struct_t *main_task = pid2task(task_alloc());

@@ -156,6 +156,7 @@ PUBLIC task_struct_t* init_task_struct
     task->ticks          = 0;
     task->elapsed_ticks  = 0;
 
+    task->cpu_id         = apic_id();
     task->page_dir       = NULL;
 
     task->send_to        = MAX_TASK;
@@ -207,7 +208,10 @@ PUBLIC task_struct_t* task_start
     task_struct_t *task = pid2task(pid);
     init_task_struct(task,name,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
     create_task_struct(task,func,arg);
+
+    spinlock_lock(&tm.task_lock);
     list_append(&tm.task_list[apic_id()],&task->general_tag);
+    spinlock_unlock(&tm.task_lock);
     return task;
 }
 
@@ -220,7 +224,9 @@ PRIVATE void make_main_task(void)
                     DEFAULT_PRIORITY,
                     (uintptr_t)KADDR_P2V(KERNEL_STACK_BASE),
                     KERNEL_STACK_SIZE);
+    spinlock_lock(&tm.task_lock);
     list_append(&tm.task_list[apic_id()],&main_task->general_tag);
+    spinlock_unlock(&tm.task_lock);
     return;
 }
 

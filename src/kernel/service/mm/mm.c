@@ -123,7 +123,6 @@ PUBLIC void mm_main()
                 mm_read_prog_addr(&msg);
                 sys_send_recv(NR_SEND,msg.src,&msg);
                 break;
-
             default:
                 break;
         }

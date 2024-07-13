@@ -16,12 +16,10 @@ PUBLIC void pic_init()
 {
     if (support_apic())
     {
-        pr_log("\1HW support APIC.Now init APIC.\n");
         apic_init();
     }
     else
     {
-        pr_log("\3HW NO support APIC.Now init 8259a.\n");
         init_8259a();
     }
     return;

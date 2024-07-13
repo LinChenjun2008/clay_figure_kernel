@@ -34,7 +34,6 @@ typedef struct
 
 typedef struct
 {
-    // stack in range [stack_base,stack_base + stack_size]
     task_context_t        *context;
     uintptr_t              kstack_base;
     size_t                 kstack_size;
@@ -53,6 +52,7 @@ typedef struct
 
     list_node_t            general_tag;
 
+    uint64_t               cpu_id;
     uint64_t              *page_dir;
     allocate_table_t       vaddr_table; // available when page_dir == NULL;
 

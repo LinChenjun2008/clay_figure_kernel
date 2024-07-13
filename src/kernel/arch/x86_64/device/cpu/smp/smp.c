@@ -8,6 +8,7 @@
 #include <task/task.h>
 
 extern apic_t apic;
+extern taskmgr_t tm;
 
 PUBLIC uint64_t make_icr
 (
@@ -41,7 +42,7 @@ PRIVATE void ipi_timer_handler()
     if (cur_task == NULL)
     {
         pr_log("\3 cur_task == NULL.(%d)",apic_id());
-        while(1);
+        return;
     }
     cur_task->elapsed_ticks++;
     if (cur_task->ticks == 0)
@@ -70,6 +71,27 @@ PUBLIC void smp_start()
         return;
     }
     *(uintptr_t*)AP_STACK_BASE_PTR = (uintptr_t)apu_stack_base;
+
+    int i;
+    for (i = 1;i < apic.number_of_cores;i++)
+    {
+        char name[16];
+        sprintf(name,"idle(%d)",i);
+        task_struct_t *main_task   = pid2task(task_alloc());
+        uintptr_t      kstack_base =  (uintptr_t)apu_stack_base
+                                    + (i - 1) * KERNEL_STACK_SIZE;
+        kstack_base = (uintptr_t)KADDR_P2V(kstack_base);
+        init_task_struct(main_task,
+                        name,
+                        DEFAULT_PRIORITY,
+                        kstack_base,
+                        KERNEL_STACK_SIZE);
+
+        spinlock_lock(&tm.task_lock);
+        list_append(&tm.task_list[i],&main_task->general_tag);
+        spinlock_unlock(&tm.task_lock);
+
+    }
 
     // register IPI
     register_handle(0x80,ipi_timer_handler);

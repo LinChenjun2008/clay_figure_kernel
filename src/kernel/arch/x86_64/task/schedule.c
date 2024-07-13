@@ -27,22 +27,24 @@ PUBLIC void schedule()
     }
     if (cur_task->status == TASK_RUNNING)
     {
+        spinlock_lock(&tm.task_lock);
         list_append(&tm.task_list[apic_id()],&cur_task->general_tag);
+        spinlock_unlock(&tm.task_lock);
         cur_task->ticks = cur_task->priority;
         cur_task->status = TASK_READY;
     }
     task_struct_t *next = NULL;
     list_node_t *next_task_tag = NULL;
-    // if (list_empty(&tm.task_list[apic_id()]))
-    // {
-    //     break;
-    // }
+
+    spinlock_lock(&tm.task_lock);
     next_task_tag = list_pop(&tm.task_list[apic_id()]);
+    spinlock_unlock(&tm.task_lock);
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
     next->status = TASK_RUNNING;
 
     prog_activate(next);
     // fpu_set(cur_task,next);
+    next->cpu_id = apic_id();
     switch_to(&cur_task->context,&next->context);
     return;
 }
@@ -67,7 +69,9 @@ PUBLIC void task_unblock(pid_t pid)
     intr_status_t intr_status = intr_disable();
     if (task->status != TASK_READY)
     {
-        list_push(&tm.task_list[apic_id()],&task->general_tag);
+        spinlock_lock(&tm.task_lock);
+        list_push(&tm.task_list[task->cpu_id],&task->general_tag);
+        spinlock_unlock(&tm.task_lock);
         task->status = TASK_READY;
     };
     intr_set_status(intr_status);

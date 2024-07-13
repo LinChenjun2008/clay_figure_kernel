@@ -65,11 +65,6 @@ PUBLIC void detect_cores()
         }
     }
     pr_log("\1 cores: %d, local apic addr %p\n",apic.number_of_cores,apic.local_apic_address);
-    int i;
-    for (i = 0;i < apic.number_of_cores;i++)
-    {
-        pr_log("\2 CPU[%d]: lapic id: %x\n",i,apic.lapic_id[i]);
-    }
     return;
 }
 
@@ -88,18 +83,15 @@ PUBLIC uint32_t local_apic_read(uint16_t index)
 PRIVATE void xapic_init()
 {
     // enable SVR[8]
-    pr_log("\1enable SVR[8].\n");
     uint32_t svr = local_apic_read(0x0f0);
     svr |= 1 << 8;
     if (local_apic_read(0x030) >> 24 & 1)
     {
-        pr_log("\1enable SVR[12]\n");
         svr |= 1 << 12;
     }
     local_apic_write(0x0f0,svr);
 
     // Mask all LVT
-    pr_log("\1Mask all LVT.\n");
     local_apic_write(0x2f0,0x10000);
     local_apic_write(0x320,0x10000);
     local_apic_write(0x330,0x10000);

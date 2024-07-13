@@ -154,6 +154,8 @@ PUBLIC task_struct_t *prog_execute
         pfree(task->page_dir);
         return NULL;
     }
+    spinlock_lock(&tm.task_lock);
     list_append(&tm.task_list[apic_id()],&(task->general_tag));
+    spinlock_unlock(&tm.task_lock);
     return task;
 }
