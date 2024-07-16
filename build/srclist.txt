@@ -44,11 +44,13 @@ $(KERNEL_SRC_PATH)/service/service.c \
 $(KERNEL_SRC_PATH)/service/tick/tick.c \
 $(KERNEL_SRC_PATH)/service/mm/mm.c \
 $(KERNEL_SRC_PATH)/service/view/view.c \
+$(KERNEL_SRC_PATH)/service/usb/usb.c \
  \
 $(KERNEL_SRC_PATH)/mem/allocator.c \
 $(KERNEL_SRC_PATH)/lib/alloc_table.c \
 $(KERNEL_SRC_PATH)/lib/bitmap.c \
 $(KERNEL_SRC_PATH)/lib/list.c \
+$(KERNEL_SRC_PATH)/lib/fifo.c \
 $(KERNEL_SRC_PATH)/lib/stdio.c \
 $(KERNEL_SRC_PATH)/graphic/print.c \
 $(KERNEL_SRC_PATH)/graphic/character.c \

@@ -28,7 +28,7 @@ $(TARGET_BOOTLOADER): $(BOOTLOADER_SRC)
 %.o: %.S
 	@$(ECHO) compiling $*.S
 	@"$(X86_64-ELF-GCC)" -E $(KERNEL_FLAGS) $*.S > $*.tmp.S
-	@"$(X86_64-ELF-AS)" --64 -o $*.o $*.tmp.S
+	@"$(X86_64-ELF-AS)" --64 -D -o $*.o $*.tmp.S
 	@"$(RM)" $*.tmp.S
 
 $(TARGET_KERNEL): $(TMP_KERNEL_TARGET)

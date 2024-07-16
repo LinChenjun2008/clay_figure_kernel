@@ -64,7 +64,7 @@ PUBLIC void smp_start()
     memcpy((void*)KADDR_P2V(0x7c000),AP_BOOT_BASE,ap_boot_size);
 
     // allocate stack for apu
-    void *apu_stack_base = alloc_physical_page(((apic.number_of_cores - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1);
+    void *apu_stack_base = alloc_physical_page(((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1);
     if (apu_stack_base == NULL)
     {
         pr_log("\3 fatal: can not alloc memory for apu. \n");
@@ -73,7 +73,7 @@ PUBLIC void smp_start()
     *(uintptr_t*)AP_STACK_BASE_PTR = (uintptr_t)apu_stack_base;
 
     int i;
-    for (i = 1;i < apic.number_of_cores;i++)
+    for (i = 1;i < NR_CPUS;i++)
     {
         char name[16];
         sprintf(name,"idle(%d)",i);

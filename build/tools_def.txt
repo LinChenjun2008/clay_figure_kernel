@@ -45,4 +45,5 @@ QEMU_FLAGS :=  -m 128M -bios $(OVMF) \
  -no-shutdown \
  -chardev stdio,mux=on,id=com1 \
  -serial chardev:com1 \
- -d cpu_reset
+
+# -d cpu_reset

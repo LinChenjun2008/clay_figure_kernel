@@ -3,11 +3,11 @@
 
 typedef struct _list_node_t list_node_t;
 
-#define OFFSET(CONTAINER_TYPE, MEMBER_NAME) \
+#define _OFFSET(CONTAINER_TYPE, MEMBER_NAME) \
     (uint64_t)(&((CONTAINER_TYPE*)0)->MEMBER_NAME)
 
 #define CONTAINER_OF(CONTAINER_TYPE,MEMBER_NAME,MEMBER_PTR) \
-    ((CONTAINER_TYPE*)((uintptr_t)MEMBER_PTR - OFFSET(CONTAINER_TYPE, MEMBER_NAME)))
+    ((CONTAINER_TYPE*)((uintptr_t)MEMBER_PTR - _OFFSET(CONTAINER_TYPE, MEMBER_NAME)))
 
 struct _list_node_t
 {

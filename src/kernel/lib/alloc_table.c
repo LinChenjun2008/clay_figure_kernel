@@ -34,7 +34,7 @@ PUBLIC uint64_t allocate_units(allocate_table_t *table,uint64_t number_of_units)
             return index;
         }
     }
-    return -1;
+    return K_ERROR;
 }
 
 PUBLIC void free_units(allocate_table_t *table,uint64_t index,
