@@ -90,7 +90,6 @@ static inline void pr_log(const char *log,...)
     va_start(ap,log);
     serial_pr_log(log,ap);
     #endif
-
     return;
 }
 

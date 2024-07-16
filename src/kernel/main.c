@@ -23,8 +23,8 @@ void ktask()
     uint32_t *buf = allocate_page(xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1);
     while(1)
     {
-        fill(buf,xsize * ysize * sizeof(uint32_t),xsize,ysize,0,0);
-        color ++;
+        fill(buf,xsize * ysize * sizeof(uint32_t),xsize,ysize,apic_id() * 20,0);
+        color += 100;
         uint32_t x,y;
         for(y = 0;y < ysize;y++)
         {
@@ -41,22 +41,23 @@ void kernel_main()
     pr_log("\1Kernel initializing.\n");
     init_all();
     pr_log("\1Kernel initializing done.\n");
-    char s[16];
+    char s[64];
     cpu_name(s);
     pr_log("\1 CPU: %s.\n",s);
-    pr_log("\2 AP_BOOT_BASE: %p, end %p \n",AP_BOOT_BASE,AP_BOOT_END);
-    prog_execute("k task",TASK_LEVEL_NORMAL,DEFAULT_PRIORITY,4096,ktask);
+    prog_execute("k task",DEFAULT_PRIORITY,4096,ktask);
+
     while(1)
     {
-        __asm__ ("hlt");
+        __asm__ ("sti\n\t""hlt");
     };
 }
 
 void ap_kernel_main()
 {
     ap_init_all();
+    prog_execute("k task2",DEFAULT_PRIORITY,4096,ktask);
     while(1)
     {
-        __asm__ ("hlt");
+        __asm__ ("sti\n\t""hlt");
     };
 }

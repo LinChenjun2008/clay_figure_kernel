@@ -70,6 +70,7 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
         return SYSCALL_DEADLOCK;
     }
     memcpy(&running_task()->msg,msg,sizeof(message_t));
+    spinlock_lock(&pid2task(dest)->send_lock);
     list_append(&pid2task(dest)->sender_list,&running_task()->general_tag);
     if (pid2task(dest)->status == TASK_RECEIVING)
     {
@@ -79,6 +80,7 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
             task_unblock(dest);
         }
     }
+    spinlock_unlock(&pid2task(dest)->send_lock);
     task_block(TASK_SENDING);
     running_task()->send_to = MAX_TASK;
     return SYSCALL_SUCCESS;
@@ -105,7 +107,9 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
             running_task()->has_intr_msg = 0;
             return SYSCALL_SUCCESS;
         }
+        spinlock_lock(&running_task()->send_lock);
         src = CONTAINER_OF(task_struct_t,general_tag,list_pop(&running_task()->sender_list))->pid;
+        spinlock_unlock(&running_task()->send_lock);
     }
     else
     {
@@ -119,11 +123,15 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
             running_task()->recv_from = MAX_TASK;
             return SYSCALL_SRC_NOT_EXIST;
         }
+        spinlock_lock(&running_task()->send_lock);
         while (!list_find(&running_task()->sender_list,&pid2task(src)->general_tag))
         {
+            spinlock_unlock(&running_task()->send_lock);
             task_block(TASK_RECEIVING);
+            spinlock_lock(&running_task()->send_lock);
         }
         list_remove(&pid2task(src)->general_tag);
+        spinlock_unlock(&running_task()->send_lock);
     }
     memcpy(msg,&pid2task(src)->msg,sizeof(message_t));
     pid2task(src)->send_to = MAX_TASK;

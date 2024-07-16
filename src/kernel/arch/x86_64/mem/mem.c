@@ -3,6 +3,7 @@
 #include <std/string.h>
 #include <intr.h>
 #include <mem/mem.h>
+#include <device/spinlock.h>
 
 #include <log.h>
 
@@ -44,7 +45,12 @@ typedef struct
     uint64_t  Attribute;
 } __attribute__((aligned(16))) EFI_MEMORY_DESCRIPTOR;
 
-PRIVATE bitmap_t page_bitmap;
+struct
+{
+    bitmap_t   page_bitmap;
+    spinlock_t lock;
+} mem;
+
 PRIVATE uint8_t  page_bitmap_map[PAGE_BITMAP_BYTES_LEN];
 
 PRIVATE size_t page_size_round_up(uintptr_t page_addr)
@@ -95,9 +101,10 @@ PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
 
 PUBLIC void mem_init()
 {
-    page_bitmap.map = page_bitmap_map;
-    page_bitmap.btmp_bytes_len = PAGE_BITMAP_BYTES_LEN;
-    init_bitmap(&page_bitmap);
+    mem.page_bitmap.map = page_bitmap_map;
+    mem.page_bitmap.btmp_bytes_len = PAGE_BITMAP_BYTES_LEN;
+    init_bitmap(&mem.page_bitmap);
+    init_spinlock(&mem.lock);
     int number_of_memory_desct;
     number_of_memory_desct = g_boot_info->memory_map.map_size
                            / g_boot_info->memory_map.descriptor_size;
@@ -121,7 +128,7 @@ PUBLIC void mem_init()
             uint64_t j;
             for(j = start;j < end;j++)
             {
-                bitmap_set(&page_bitmap,j,1);
+                bitmap_set(&mem.page_bitmap,j,1);
             }
         }
         else
@@ -136,12 +143,12 @@ PUBLIC void mem_init()
     }
     if (max_address / PG_SIZE < PAGE_BITMAP_BYTES_LEN)
     {
-        page_bitmap.btmp_bytes_len = max_address / PG_SIZE;
+        mem.page_bitmap.btmp_bytes_len = max_address / PG_SIZE;
     }
     // 剔除被占用的内存(0 - 6M)
     for (i = 0;i < 3;i++)
     {
-        bitmap_set(&page_bitmap,i,1);
+        bitmap_set(&mem.page_bitmap,i,1);
     }
     pr_log("\1Memory: total: %d MB ( %d GB ),free: %d MB (%d GB)\n",
             mem_size >> 20,mem_size >> 30,
@@ -155,20 +162,23 @@ PUBLIC void* alloc_physical_page(uint64_t number_of_pages)
     {
         return NULL;
     }
-    intr_status_t intr_status = intr_disable();
-    signed int index = bitmap_alloc(&page_bitmap,number_of_pages);
-    uintptr_t paddr = 0;
-    if (index != -1)
+    spinlock_lock(&mem.lock);
+    signed int index = bitmap_alloc(&mem.page_bitmap,number_of_pages);
+    if (ERROR(index))
     {
-        uint64_t i;
-        for (i = index;i < index + number_of_pages;i++)
-        {
-            bitmap_set(&page_bitmap,i,1);
-        }
-        paddr = (0UL + (uintptr_t)index * PG_SIZE);
-        memset(KADDR_P2V(paddr),0,number_of_pages * PG_SIZE);
+        return NULL;
     }
-    intr_set_status(intr_status);
+    uintptr_t paddr = 0;
+
+    uint64_t i;
+    for (i = index;i < index + number_of_pages;i++)
+    {
+        bitmap_set(&mem.page_bitmap,i,1);
+    }
+    paddr = (0UL + (uintptr_t)index * PG_SIZE);
+    memset(KADDR_P2V(paddr),0,number_of_pages * PG_SIZE);
+
+    spinlock_unlock(&mem.lock);
     return (void*)paddr;
 }
 
@@ -182,14 +192,14 @@ PUBLIC void free_physical_page(void *addr,uint64_t number_of_pages)
     {
         return;
     }
-    intr_status_t intr_status = intr_disable();
+    spinlock_lock(&mem.lock);
     uintptr_t i;
     for (i = (uintptr_t)addr / PG_SIZE;
          i < (uintptr_t)addr / PG_SIZE + number_of_pages;i++)
     {
-        bitmap_set(&page_bitmap,i,0);
+        bitmap_set(&mem.page_bitmap,i,0);
     }
-    intr_set_status(intr_status);
+    spinlock_unlock(&mem.lock);
     return;
 }
 

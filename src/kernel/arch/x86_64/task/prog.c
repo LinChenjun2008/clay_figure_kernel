@@ -2,11 +2,12 @@
 #include <task/task.h>
 #include <mem/mem.h>
 #include <intr.h>
+#include <device/cpu.h>
 #include <std/string.h>
 
 #include <log.h>
 
-extern list_t task_level[TASK_LEVEL];
+extern taskmgr_t tm;
 
 PRIVATE void start_process(void *process)
 {
@@ -82,11 +83,12 @@ PUBLIC void prog_activate(task_struct_t *task)
 
 PRIVATE uint64_t *create_page_dir(void)
 {
-    uint64_t *pgdir_v = KADDR_P2V(pmalloc(PT_SIZE));
+    uint64_t *pgdir_v = pmalloc(PT_SIZE);
     if (pgdir_v == NULL)
     {
         return NULL;
     }
+    pgdir_v = KADDR_P2V(pgdir_v);
     memset(pgdir_v,0,PT_SIZE);
     memcpy(pgdir_v + 0x100,(uint64_t*)KADDR_P2V(KERNEL_PAGE_DIR_TABLE_POS)
                             + 0x100,2048);
@@ -114,7 +116,6 @@ PRIVATE int user_vaddr_table_init(task_struct_t *task)
 PUBLIC task_struct_t *prog_execute
 (
     char *name,
-    uint64_t level,
     uint64_t priority,
     size_t kstack_size,
     void *prog
@@ -136,7 +137,7 @@ PUBLIC task_struct_t *prog_execute
         return NULL;
     }
     task_struct_t *task = pid2task(pid);
-    init_task_struct(task,name,level,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
+    init_task_struct(task,name,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
     create_task_struct(task,start_process,(uint64_t)prog);
     task->page_dir = create_page_dir();
     if (task->page_dir == NULL)
@@ -153,6 +154,8 @@ PUBLIC task_struct_t *prog_execute
         pfree(task->page_dir);
         return NULL;
     }
-    list_append(&task_level[level],&(task->general_tag));
+    spinlock_lock(&tm.task_lock);
+    list_append(&tm.task_list[apic_id()],&(task->general_tag));
+    spinlock_unlock(&tm.task_lock);
     return task;
 }

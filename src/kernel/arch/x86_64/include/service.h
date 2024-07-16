@@ -39,6 +39,8 @@ enum
      * @return Error code (m1.i1), 0x80000000 if success.
     */
     MM_READ_PROG_ADDR,
+
+    MM_START_PROG,
 };
 
 enum

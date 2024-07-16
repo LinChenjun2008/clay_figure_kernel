@@ -1,8 +1,9 @@
 #include <kernel/global.h>
 #include <task/task.h>
+#include <device/cpu.h>
 #include <intr.h>
 
-extern list_t task_level[TASK_LEVEL];
+extern taskmgr_t tm;
 
 PRIVATE void switch_to(task_context_t **cur,task_context_t **next)
 {
@@ -20,28 +21,30 @@ PRIVATE void switch_to(task_context_t **cur,task_context_t **next)
 PUBLIC void schedule()
 {
     task_struct_t *cur_task = running_task();
+    if (cur_task->spinlock_count > 0)
+    {
+        return;
+    }
     if (cur_task->status == TASK_RUNNING)
     {
-        list_append(&task_level[cur_task->level],&cur_task->general_tag);
+        spinlock_lock(&tm.task_lock);
+        list_append(&tm.task_list[apic_id()],&cur_task->general_tag);
+        spinlock_unlock(&tm.task_lock);
         cur_task->ticks = cur_task->priority;
         cur_task->status = TASK_READY;
     }
     task_struct_t *next = NULL;
     list_node_t *next_task_tag = NULL;
-    int i;
-    for (i = 0;i < TASK_LEVEL;i++)
-    {
-        if (!list_empty(&task_level[i]))
-        {
-            break;
-        }
-    }
-    next_task_tag = list_pop(&task_level[i]);
+
+    spinlock_lock(&tm.task_lock);
+    next_task_tag = list_pop(&tm.task_list[apic_id()]);
+    spinlock_unlock(&tm.task_lock);
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
     next->status = TASK_RUNNING;
 
     prog_activate(next);
     // fpu_set(cur_task,next);
+    next->cpu_id = apic_id();
     switch_to(&cur_task->context,&next->context);
     return;
 }
@@ -66,43 +69,11 @@ PUBLIC void task_unblock(pid_t pid)
     intr_status_t intr_status = intr_disable();
     if (task->status != TASK_READY)
     {
-        list_push(&task_level[task->level],&task->general_tag);
+        spinlock_lock(&tm.task_lock);
+        list_push(&tm.task_list[task->cpu_id],&task->general_tag);
+        spinlock_unlock(&tm.task_lock);
         task->status = TASK_READY;
     };
     intr_set_status(intr_status);
     return;
 }
-
-// __asm__
-// (
-//     "asm_switch_to: \n\t"
-//     /***    next     *** rsp + 8*10 */
-//     /***     cur     *** rsp + 8* 9 */
-//     /*** return addr *** rsp + 8* 8 */
-//     "pushq %rsi \n\t"
-//     "pushq %rdi \n\t"
-//     "pushq %rbx \n\t"
-//     "pushq %rbp \n\t"
-
-//     "pushq %r12 \n\t"
-//     "pushq %r13 \n\t"
-//     "pushq %r14 \n\t"
-//     "pushq %r15 \n\t"
-
-//     /* 栈切换 */
-//     "movq 72(%rsp),%rax \n\t"
-//     "movq %rsp,(%rax) \n\t"
-//     "movq 80(%rsp),%rax \n\t"
-//     "movq (%rax),%rsp \n\t"
-
-//     "popq %r15 \n\t"
-//     "popq %r14 \n\t"
-//     "popq %r13 \n\t"
-//     "popq %r12 \n\t"
-
-//     "popq %rbp \n\t"
-//     "popq %rbx \n\t"
-//     "popq %rdi \n\t"
-//     "popq %rsi \n\t"
-//     "retq \n\t"
-// );

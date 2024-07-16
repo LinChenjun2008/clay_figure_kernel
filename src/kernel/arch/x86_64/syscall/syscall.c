@@ -7,22 +7,6 @@
 
 #include <log.h>
 
-// PUBLIC void syscall(uint32_t nr,pid_t src_dest,void *msg)
-// {
-//     __asm__ __volatile__
-//     (
-//         "movq %0,%%rdi \n\t"
-//         "movq %1,%%rsi \n\t"
-//         "movq %2,%%rdx \n\t"
-
-//         "pushq %%r10 \n\t"
-//         "movq %%rcx,%%r10 \n\t" // save rcx in r10
-//         "syscall \n\t"
-//         "popq %%r10 \n\t"
-//     :
-//     :"r"((wordsize_t)nr),"r"((wordsize_t)src_dest),"r"((wordsize_t)msg)
-//     );
-// }
 
 PUBLIC syscall_status_t ASMLINKAGE sys_send_recv(uint32_t nr,pid_t src_dest,message_t *msg)
 {
@@ -71,6 +55,6 @@ PUBLIC void syscall_init()
     wrmsr(IA32_LSTAR,(uint64_t)syscall_entry);
     // IA32_STAR[63:48] + 16 = user CS,IA32_STAR[63:48] + 8 = user SS
     wrmsr(IA32_STAR,(uint64_t)SELECTOR_CODE64_K << 32 | (uint64_t)(SELECTOR_CODE64_U - 16) << 48);
-    wrmsr(IA32_FMASK,EFLAGS_IF);
+    wrmsr(IA32_FMASK,EFLAGS_IF_1);
     return;
 }

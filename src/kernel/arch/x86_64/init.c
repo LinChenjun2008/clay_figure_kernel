@@ -6,10 +6,13 @@
 #include <device/timer.h>
 #include <device/pci.h>
 #include <device/usb/hci/xhci.h>
+#include <device/keyboard.h>
 #include <mem/mem.h>
 #include <task/task.h>
 #include <kernel/syscall.h>
 #include <service.h>
+
+#include <std/stdio.h>
 
 PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access)
 {
@@ -40,10 +43,10 @@ PRIVATE void load_gdt()
         "movw %%ax,%%ss \n\t"
 
         "pushq %[SELECTOR_CODE64] \n\t"
-        "leaq .next(%%rip),%%rax \n\t"
+        "leaq %=f(%%rip),%%rax \n\t"
         "pushq %%rax \n\t"
-        "lretq \n\t"// == jmp SELECTOR_CODE64:.next
-        ".next: \n\t"
+        "lretq \n\t"
+        "%=: \n\t"
         :
         :[gdt_ptr]"m"(gdt_ptr),[SELECTOR_CODE64]"i"(SELECTOR_CODE64_K),
          [SELECTOR_DATA64]"ax"(SELECTOR_DATA64_K)
@@ -67,29 +70,6 @@ PRIVATE void init_desctrib()
     init_tss(0);
     load_gdt();
     load_tss(0);
-    // uint128_t gdt_ptr = (((uint128_t)0
-    //                     + ((uint128_t)((uint64_t)gdt_table))) << 16)
-    //                     | (sizeof(gdt_table) - 1);
-    // __asm__ __volatile__
-    // (
-    //     "lgdtq %[gdt_ptr] \n\t"
-    //     "movw %%ax,%%ds \n\t"
-    //     "movw %%ax,%%es \n\t"
-    //     "movw %%ax,%%fs \n\t"
-    //     "movw %%ax,%%gs \n\t"
-    //     "movw %%ax,%%ss \n\t"
-
-    //     "pushq %[SELECTOR_CODE64] \n\t"
-    //     "leaq .next(%%rip),%%rax \n\t"
-    //     "pushq %%rax \n\t"
-    //     "lretq \n\t"// == jmp SELECTOR_CODE64:.next
-    //     ".next: \n\t"
-    //     "ltr %w[TSS] \n\t"
-    //     :
-    //     :[gdt_ptr]"m"(gdt_ptr),[SELECTOR_CODE64]"i"(SELECTOR_CODE64_K),
-    //      [SELECTOR_DATA64]"ax"(SELECTOR_DATA64_K),[TSS]"r"(SELECTOR_TSS(0))
-    //     :"memory"
-    // );
 }
 
 /**
@@ -102,6 +82,8 @@ PUBLIC void init_all()
     init_desctrib();
     intr_init();
 
+    task_init();
+
     mem_init();
     mem_alloctor_init();
 
@@ -111,11 +93,11 @@ PUBLIC void init_all()
     pic_init();
     pit_init();
     pci_scan_all_bus();
-    task_init();
+    keyboard_init();
     syscall_init();
     service_init();
 
-    // xhci_init();
+    xhci_init();
     intr_enable();
 
     extern uint64_t global_ticks;
@@ -131,38 +113,17 @@ PUBLIC void init_all()
     return;
 }
 
+extern taskmgr_t tm;
 PUBLIC void ap_init_all()
 {
-    // intr_disable();
-    uint32_t a,b,c,d;
-    cpuid(1,0,&a,&b,&c,&d);
-    b >>= 24;
-    init_tss(b);
+    intr_disable();
+    init_tss(apic_id());
     load_gdt();
-    load_tss(b);
-    ap_intr_init();
-    // uint128_t gdt_ptr = (((uint128_t)0
-    //                     + ((uint128_t)((uint64_t)gdt_table))) << 16)
-    //                     | (sizeof(gdt_table) - 1);
-    // __asm__ __volatile__
-    // (
-    //     "lgdtq %[gdt_ptr] \n\t"
-    //     "movw %%ax,%%ds \n\t"
-    //     "movw %%ax,%%es \n\t"
-    //     "movw %%ax,%%fs \n\t"
-    //     "movw %%ax,%%gs \n\t"
-    //     "movw %%ax,%%ss \n\t"
+    load_tss(apic_id());
 
-    //     "pushq %[SELECTOR_CODE64] \n\t"
-    //     "leaq .next1(%%rip),%%rax \n\t"
-    //     "pushq %%rax \n\t"
-    //     "lretq \n\t"// == jmp SELECTOR_CODE64:.next
-    //     ".next1: \n\t"
-    //     "ltr %w[TSS] \n\t"
-    //     :
-    //     :[gdt_ptr]"m"(gdt_ptr),[SELECTOR_CODE64]"i"(SELECTOR_CODE64_K),
-    //      [SELECTOR_DATA64]"ax"(SELECTOR_DATA64_K),[TSS]"r"(SELECTOR_TSS(b))
-    //     :"memory"
-    // );
+    ap_intr_init();
+    local_apic_init();
+    syscall_init();
+    intr_enable();
     return;
 }

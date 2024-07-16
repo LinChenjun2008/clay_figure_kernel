@@ -16,12 +16,10 @@ PUBLIC void pic_init()
 {
     if (support_apic())
     {
-        pr_log("\1HW support APIC.Now init APIC.\n");
         apic_init();
     }
     else
     {
-        pr_log("\3HW NO support APIC.Now init 8259a.\n");
         init_8259a();
     }
     return;
@@ -33,19 +31,7 @@ PUBLIC void eoi(uint8_t irq)
     #if !__DISABLE_APIC__
     if (support_apic())
     {
-
-        uint32_t a,b,c,d;
-        cpuid(1,0,&a,&b,&c,&d);
-
-        if (c & (1 << 21))
-        {
-            wrmsr(0x80b,0);
-        }
-        else
-        {
-            local_apic_write(0x0b0,0);
-        }
-
+        local_apic_write(0x0b0,0);
     }
     else
     #endif

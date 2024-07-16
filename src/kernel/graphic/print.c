@@ -2,6 +2,8 @@
 #include <std/stdarg.h>
 #include <std/stdio.h>
 
+#include <device/spinlock.h>
+
 extern PUBLIC uint8_t ascii_character[][16];
 
 typedef struct
@@ -13,7 +15,7 @@ typedef struct
 #define X_START 10U
 #define Y_START 10U
 
-position_t pos = {X_START,Y_START};
+PRIVATE position_t pos = {X_START,Y_START};
 
 PUBLIC void basic_put_char(char c,uint32_t col)
 {

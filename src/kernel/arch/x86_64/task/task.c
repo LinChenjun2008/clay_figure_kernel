@@ -2,13 +2,13 @@
 #include <task/task.h>
 #include <mem/mem.h>
 #include <intr.h>
+#include <device/cpu.h>
+#include <device/spinlock.h>
 #include <std/string.h>
 
 #include <log.h>
 
-PRIVATE task_struct_t task_table[MAX_TASK];
-
-PUBLIC list_t task_level[TASK_LEVEL];
+PUBLIC taskmgr_t tm;
 
 PRIVATE void kernel_task(void)
 {
@@ -33,14 +33,14 @@ PUBLIC task_struct_t* pid2task(pid_t pid)
 {
     if (pid <= MAX_TASK)
     {
-        return &task_table[pid];
+        return &tm.task_table[pid];
     }
     return NULL;
 }
 
 PUBLIC bool task_exist(pid_t pid)
 {
-    return pid <= MAX_TASK ? task_table[pid].status != TASK_NO_TASK : 0;
+    return pid <= MAX_TASK ? tm.task_table[pid].status != TASK_NO_TASK : 0;
 }
 
 // running_task() can only be called in ring 0
@@ -52,15 +52,15 @@ PUBLIC task_struct_t* running_task()
     int i;
     for (i = 0;i < MAX_TASK;i++)
     {
-        if (task_table[i].status == TASK_NO_TASK)
+        if (tm.task_table[i].status == TASK_NO_TASK)
         {
             continue;
         }
-        if (rsp >= task_table[i].kstack_base
-            && rsp <= task_table[i].kstack_base + task_table[i].kstack_size)
+        if (rsp >= tm.task_table[i].kstack_base
+            && rsp <= tm.task_table[i].kstack_base + tm.task_table[i].kstack_size)
         {
             intr_set_status(intr_status);
-            return &task_table[i];
+            return &tm.task_table[i];
         }
     }
     intr_set_status(intr_status);
@@ -78,14 +78,14 @@ PUBLIC task_struct_t* running_prog()
     int i;
     for (i = 0;i < MAX_TASK;i++)
     {
-        if (task_table[i].status == TASK_NO_TASK)
+        if (tm.task_table[i].status == TASK_NO_TASK)
         {
             continue;
         }
-        if (rsp >= task_table[i].ustack_base
-            && rsp <= task_table[i].ustack_base + task_table[i].ustack_size)
+        if (rsp >= tm.task_table[i].ustack_base
+            && rsp <= tm.task_table[i].ustack_base + tm.task_table[i].ustack_size)
         {
-            return &task_table[i];
+            return &tm.task_table[i];
         }
     }
     return NULL;
@@ -99,15 +99,18 @@ PUBLIC uintptr_t get_running_prog_kstack()
 
 PUBLIC pid_t task_alloc()
 {
+    spinlock_lock(&tm.task_lock);
     pid_t i;
     for (i = 0;i < MAX_TASK;i++)
     {
-        if (task_table[i].status == TASK_NO_TASK)
+        if (tm.task_table[i].status == TASK_NO_TASK)
         {
-            task_table[i].status = TASK_USING;
+            tm.task_table[i].status = TASK_USING;
+            spinlock_unlock(&tm.task_lock);
             return i;
         }
     }
+    spinlock_unlock(&tm.task_lock);
     return MAX_TASK;
 }
 
@@ -115,7 +118,9 @@ PUBLIC void task_free(pid_t pid)
 {
     if (pid < MAX_TASK)
     {
-        task_table[pid].status = TASK_NO_TASK;
+        spinlock_lock(&tm.task_lock);
+        tm.task_table[pid].status = TASK_NO_TASK;
+        spinlock_unlock(&tm.task_lock);
     }
     return;
 }
@@ -124,7 +129,6 @@ PUBLIC task_struct_t* init_task_struct
 (
     task_struct_t* task,
     char* name,
-    uint64_t level,
     uint64_t priority,
     uintptr_t kstack_base,
     size_t kstack_size
@@ -139,25 +143,26 @@ PUBLIC task_struct_t* init_task_struct
     task->ustack_base = 0;
     task->ustack_size = 0;
 
-    task->pid         = ((uintptr_t)task - (uintptr_t)task_table) / sizeof(*task);
+    task->pid         = ((uintptr_t)task - (uintptr_t)tm.task_table) / sizeof(*task);
 
     if (strlen(name) > 31)
     {
         name[31] = 0;
     }
     strcpy(task->name,name);
-    task->status        = TASK_READY;
+    task->status         = TASK_READY;
+    task->spinlock_count = 0;
+    task->priority       = priority;
+    task->ticks          = 0;
+    task->elapsed_ticks  = 0;
 
-    task->level         = level;
-    task->priority      = priority;
-    task->ticks         = 0;
-    task->elapsed_ticks = 0;
+    task->cpu_id         = apic_id();
+    task->page_dir       = NULL;
 
-    task->page_dir      = NULL;
-
-    task->send_to       = MAX_TASK;
-    task->recv_from     = MAX_TASK;
-    task->has_intr_msg  = 0;
+    task->send_to        = MAX_TASK;
+    task->recv_from      = MAX_TASK;
+    task->has_intr_msg   = 0;
+    init_spinlock(&task->send_lock);
     list_init(&task->sender_list);
     return task;
 }
@@ -178,7 +183,6 @@ PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg)
 PUBLIC task_struct_t* task_start
 (
     char* name,
-    uint64_t level,
     uint64_t priority,
     size_t kstack_size,
     void* func,
@@ -202,37 +206,43 @@ PUBLIC task_struct_t* task_start
         return NULL;
     }
     task_struct_t *task = pid2task(pid);
-    init_task_struct(task,name,level,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
+    init_task_struct(task,name,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
     create_task_struct(task,func,arg);
-    list_append(&task_level[level],&task->general_tag);
+
+    spinlock_lock(&tm.task_lock);
+    list_append(&tm.task_list[apic_id()],&task->general_tag);
+    spinlock_unlock(&tm.task_lock);
     return task;
 }
 
 PRIVATE void make_main_task(void)
 {
-    task_struct_t *main_task = pid2task(task_alloc());
+    tm.task_table[0].status = TASK_USING;
+    task_struct_t *main_task = pid2task(0);
     init_task_struct(main_task,
                     "Main task",
-                    TASK_LEVEL_LOW,
                     DEFAULT_PRIORITY,
                     (uintptr_t)KADDR_P2V(KERNEL_STACK_BASE),
                     KERNEL_STACK_SIZE);
-    list_append(&task_level[TASK_LEVEL_LOW],&main_task->general_tag);
+    spinlock_lock(&tm.task_lock);
+    list_append(&tm.task_list[apic_id()],&main_task->general_tag);
+    spinlock_unlock(&tm.task_lock);
     return;
 }
 
 PUBLIC void task_init()
 {
-    memset(task_table,0,sizeof(task_table[0]) * MAX_TASK);
+    memset(tm.task_table,0,sizeof(tm.task_table[0]) * MAX_TASK);
     pid_t i;
     for (i = 0;i < MAX_TASK;i++)
     {
-        task_table[i].status = TASK_NO_TASK;
+        tm.task_table[i].status = TASK_NO_TASK;
     }
-    for (i = 0;i < TASK_LEVEL;i++)
+    for (i = 0;i < NR_CPUS;i++)
     {
-        list_init(&task_level[i]);
+        list_init(&tm.task_list[i]);
     }
+    init_spinlock(&tm.task_lock);
     make_main_task();
     return;
 }

@@ -53,7 +53,26 @@ static __inline__ bool is_bsp()
     return rdmsr(IA32_APIC_BASE) & IA32_APIC_BASE_BSP;
 }
 
+static __inline__ uint32_t apic_id()
+{
+    uint32_t a,b,c,d;
+    cpuid(1,0,&a,&b,&c,&d);
+    return (b >> 24) & 0xff;
+}
+
+PUBLIC uint64_t make_icr
+(
+    uint8_t  vector,
+    uint8_t  deliver_mode,
+    uint8_t  dest_mode,
+    uint8_t  deliver_status,
+    uint8_t  level,
+    uint8_t  trigger,
+    uint8_t  des_shorthand,
+    uint32_t destination
+);
 PUBLIC void smp_start();
+PUBLIC void send_IPI(uint64_t icr);
 
 extern uint8_t AP_BOOT_BASE[];
 extern uint8_t AP_BOOT_END[];

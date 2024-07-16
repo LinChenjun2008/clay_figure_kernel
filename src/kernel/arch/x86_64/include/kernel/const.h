@@ -109,12 +109,32 @@
 #define IA32_LSTAR  0xc0000082
 #define IA32_FMASK  0xc0000084
 
+#define NR_CPUS 256
+
 #define AP_STACK_BASE_PTR 0x1000
 
-#define ICR_DELIVER_MODE_INIT (0x05 <<  8)
-#define ICR_DEST_MODE_PHY     (   0 << 11)
-#define ICR_TRIGGER_EDGE      (   0 << 15)
-#define ICR_ALL_EXCLUDE_SELF  (   3 << 18)
+#define ICR_DELIVER_MODE_FIXED          0
+#define ICR_DELIVER_MODE_SMI            2
+#define ICR_DELIVER_MODE_NMI            4
+#define ICR_DELIVER_MODE_INIT           5
+#define ICR_DELIVER_MODE_START_UP       6
+
+#define ICR_DEST_MODE_PHY               0
+#define ICR_DEST_MODE_LOGIC             1
+
+#define ICR_LEVEL_DE_ASSEST             0
+#define ICR_LEVEL_ASSERT                1
+
+#define ICR_TRIGGER_EDGE                0
+#define ICR_TRIGGER_LEVEL               1
+
+#define ICR_DELIVER_STATUS_IDLE         0
+#define ICR_DELIVER_STATUS_SEND_PENDING 1
+
+#define ICR_NO_SHORTHAND                0
+#define ICR_SELF                        1
+#define ICR_ALL_INCLUDE_SELF            2
+#define ICR_ALL_EXCLUDE_SELF            3
 
 #define EFLAGS_IF     (1 << 9)
 
