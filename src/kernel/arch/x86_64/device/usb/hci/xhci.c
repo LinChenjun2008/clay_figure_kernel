@@ -214,6 +214,7 @@ PUBLIC void xhci_init()
 
     addr_t xhci_mmio_base = pci_dev_read_bar(device,0);
     pr_log("\1 xhci mmio base: %p\n",xhci_mmio_base);
+
     page_map((uint64_t*)KERNEL_PAGE_DIR_TABLE_POS,(void*)xhci_mmio_base,(void*)KADDR_P2V(xhci_mmio_base));
     xhci_mmio_base      = (addr_t)KADDR_P2V(xhci_mmio_base);
     uint8_t cap_length  = *(uint8_t*)xhci_mmio_base & 0xff;
@@ -234,7 +235,6 @@ PUBLIC void xhci_init()
         pr_log("\3 Unsupported HCI version.\n");
         return;
     }
-
     uint32_t hccparams = xhci_read_cap_reg32(XHCI_CAP_REG_HCCPARAMS);
     pr_log("\1 HCCPARAMS: %08x\n",hccparams);
     if (hccparams == 0xffffffff)
@@ -247,7 +247,6 @@ PUBLIC void xhci_init()
     {
         switch_to_xhci(device);
     }
-
     // halt xHCI
     xhci_halt();
 
@@ -273,7 +272,6 @@ PUBLIC void xhci_init()
         pr_log("\3 xHCI was assigned an invalid IRQ.\n");
         // return;
     }
-
     // configure and enable MSI
     // configure_msi(device,1,0,interrupt_line,0);
     uint32_t status = pci_dev_configure_msi(device,IRQ_XHCI,1);
@@ -312,5 +310,6 @@ PUBLIC uint32_t xhci_read_run_reg32(uint32_t reg)
 PUBLIC void xhci_write_run_reg32(uint32_t reg,uint32_t val)
 {
     *(volatile uint32_t*)(xhci.run_regs + reg) = val;
+
     return;
 }

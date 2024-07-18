@@ -14,7 +14,6 @@ PUBLIC void usb_main()
 {
     memset(arr,0xff,256);
     pr_log("\1 USB Service Start.\n");
-
     while (1)
     {
         // // intr_reg_set_t *queue_pointer = (intr_reg_set_t*)(xhci.intr_reg_sets->ERDP & ~0xf);
