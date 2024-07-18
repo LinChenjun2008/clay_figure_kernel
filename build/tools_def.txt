@@ -41,6 +41,7 @@ QEMU_FLAGS :=  -m 128M -bios $(OVMF) \
  -smp 4,cores=4,threads=1,sockets=1 \
  -drive file=fat:rw:$(ESP_PATH),index=0,format=vvfat -net none \
  -device nec-usb-xhci,id=xhci \
+ -device usb-kbd \
  -device usb-mouse \
  -no-shutdown \
  -chardev stdio,mux=on,id=com1 \

@@ -102,6 +102,8 @@ INTR_HANDLER(asm_intr0x2d_handler,0x2d, pushq $0) // fpu浮点单元异常
 INTR_HANDLER(asm_intr0x2e_handler,0x2e, pushq $0) // 硬盘
 INTR_HANDLER(asm_intr0x2f_handler,0x2f, pushq $0) // 保留
 
+INTR_HANDLER(asm_intr0x30_handler,IRQ_XHCI,pushq $0)
+
 INTR_HANDLER(asm_intr0x80_handler,0x80, pushq $0) // IPI
 #endif
 

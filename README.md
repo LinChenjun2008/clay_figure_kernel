@@ -78,9 +78,11 @@ make run
 
 # 参考资料
 * 郑刚.操作系统真相还原.北京:人民邮电出版社,2016.
-* 川和秀实.30天自制操作系统.周自恒,李黎明,曾祥江,张文旭 译.北京:人民邮电出版社,2012.
+* 川和秀実.30天自制操作系统.周自恒,李黎明,曾祥江,张文旭 译.北京:人民邮电出版社,2012.
 * 于渊.Orange'S: 一个操作系统的实现.北京:电子工业出版社,2009.
+* UEFI Spec 2.9
 * 大神 祐真.[フルスクラッチで作る!UEFIベアメタルプログラミング](https://kagurazakakotori.github.io/ubmp-cn/).神楽坂琴梨 译.
 * [osdev](https://wiki.osdev.org)
 * [GuideOS](https://github.com/Codetector1374/GuideOS)
 * eXtensible Host Controller Interface for Universal Serial Bus
+* [Haiku](https://github.com/haiku/haiku)
