@@ -30,7 +30,6 @@ $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/timer/timer.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pci/pci.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pci/pci_msi.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/usb/hci/xhci.c \
-$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/keyboard/keyboard.c \
  \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/tss.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/task.c \

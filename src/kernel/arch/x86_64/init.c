@@ -6,7 +6,6 @@
 #include <device/timer.h>
 #include <device/pci.h>
 #include <device/usb/hci/xhci.h>
-#include <device/keyboard.h>
 #include <mem/mem.h>
 #include <task/task.h>
 #include <kernel/syscall.h>
