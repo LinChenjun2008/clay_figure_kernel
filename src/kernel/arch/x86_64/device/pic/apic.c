@@ -193,6 +193,7 @@ PRIVATE void ioapic_init()
         ioapic_rte_write(i,0x10000);
     }
     ioapic_enable(2,0x20);
+    ioapic_enable(1,0x21);
     return;
 }
 
