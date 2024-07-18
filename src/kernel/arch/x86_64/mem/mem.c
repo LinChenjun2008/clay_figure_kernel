@@ -39,8 +39,8 @@ typedef enum
 typedef struct
 {
     uint32_t  Type;
-    uintptr_t PhysicalStart;
-    uintptr_t VirtualStart;
+    phy_addr_t PhysicalStart;
+    addr_t VirtualStart;
     uint64_t  NumberOfPages;
     uint64_t  Attribute;
 } __attribute__((aligned(16))) EFI_MEMORY_DESCRIPTOR;
@@ -53,12 +53,12 @@ struct
 
 PRIVATE uint8_t  page_bitmap_map[PAGE_BITMAP_BYTES_LEN];
 
-PRIVATE size_t page_size_round_up(uintptr_t page_addr)
+PRIVATE size_t page_size_round_up(addr_t page_addr)
 {
     return DIV_ROUND_UP(page_addr,PG_SIZE);
 }
 
-PRIVATE size_t page_size_round_down(uintptr_t page_addr)
+PRIVATE size_t page_size_round_down(addr_t page_addr)
 {
     return page_addr / PG_SIZE;
 }
@@ -108,19 +108,19 @@ PUBLIC void mem_init()
     int number_of_memory_desct;
     number_of_memory_desct = g_boot_info->memory_map.map_size
                            / g_boot_info->memory_map.descriptor_size;
-    uintptr_t total_free  = 0;
+    size_t    total_free  = 0;
     size_t    mem_size    = 0;
-    uintptr_t max_address = 0;
+    addr_t    max_address = 0;
     int i;
     for (i = 0;i < number_of_memory_desct;i++)
     {
         EFI_MEMORY_DESCRIPTOR *efi_memory_desc =
                           (EFI_MEMORY_DESCRIPTOR*)g_boot_info->memory_map.buffer;
-        uintptr_t start = efi_memory_desc[i].PhysicalStart;
-        uintptr_t end   = start + (efi_memory_desc[i].NumberOfPages << 12);
-        max_address     = efi_memory_desc[i].PhysicalStart
+        phy_addr_t start = efi_memory_desc[i].PhysicalStart;
+        phy_addr_t end   = start + (efi_memory_desc[i].NumberOfPages << 12);
+        max_address      = efi_memory_desc[i].PhysicalStart
                           + (efi_memory_desc[i].NumberOfPages << 12);
-        mem_size       += efi_memory_desc[i].NumberOfPages << 12;
+        mem_size        += efi_memory_desc[i].NumberOfPages << 12;
         if (memory_type(efi_memory_desc[i].Type) != FREE_MEMORY)
         {
             start = page_size_round_down(start);
@@ -150,7 +150,7 @@ PUBLIC void mem_init()
     {
         bitmap_set(&mem.page_bitmap,i,1);
     }
-    pr_log("\1Memory: total: %d MB ( %d GB ),free: %d MB (%d GB)\n",
+    pr_log("\1 Memory: total: %d MB ( %d GB ),free: %d MB (%d GB)\n",
             mem_size >> 20,mem_size >> 30,
             total_free >> 20,total_free >> 30);
     return;
@@ -163,19 +163,19 @@ PUBLIC void* alloc_physical_page(uint64_t number_of_pages)
         return NULL;
     }
     spinlock_lock(&mem.lock);
-    signed int index = bitmap_alloc(&mem.page_bitmap,number_of_pages);
+    uint32_t index = bitmap_alloc(&mem.page_bitmap,number_of_pages);
     if (ERROR(index))
     {
         return NULL;
     }
-    uintptr_t paddr = 0;
+    phy_addr_t paddr = 0;
 
     uint64_t i;
     for (i = index;i < index + number_of_pages;i++)
     {
         bitmap_set(&mem.page_bitmap,i,1);
     }
-    paddr = (0UL + (uintptr_t)index * PG_SIZE);
+    paddr = (0UL + (phy_addr_t)index * PG_SIZE);
     memset(KADDR_P2V(paddr),0,number_of_pages * PG_SIZE);
 
     spinlock_unlock(&mem.lock);
@@ -188,14 +188,14 @@ PUBLIC void free_physical_page(void *addr,uint64_t number_of_pages)
     {
         return;
     }
-    if (addr == NULL || ((((uintptr_t)addr) & 0x1fffff) != 0))
+    if (addr == NULL || ((((phy_addr_t)addr) & 0x1fffff) != 0))
     {
         return;
     }
     spinlock_lock(&mem.lock);
-    uintptr_t i;
-    for (i = (uintptr_t)addr / PG_SIZE;
-         i < (uintptr_t)addr / PG_SIZE + number_of_pages;i++)
+    phy_addr_t i;
+    for (i = (phy_addr_t)addr / PG_SIZE;
+         i < (phy_addr_t)addr / PG_SIZE + number_of_pages;i++)
     {
         bitmap_set(&mem.page_bitmap,i,0);
     }
@@ -254,8 +254,8 @@ PUBLIC void* to_physical_address(void *pml4t,void *vaddr)
 
 PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
 {
-    paddr = (void*)((uintptr_t)paddr & ~(PG_SIZE - 1));
-    vaddr = (void*)((uintptr_t)vaddr & ~(PG_SIZE - 1));
+    paddr = (void*)((phy_addr_t)paddr & ~(PG_SIZE - 1));
+    vaddr = (void*)(    (addr_t)vaddr & ~(PG_SIZE - 1));
     uint64_t *v_pml4t,*v_pml4e;
     uint64_t *v_pdpt,*pdpt,*v_pdpte,*pdpte;
     uint64_t *v_pdt,*pdt,*v_pde,*pde;
@@ -294,7 +294,7 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
 
 PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
 {
-    vaddr = (void*)((uintptr_t)vaddr & ~(PG_SIZE - 1));
+    vaddr = (void*)((addr_t)vaddr & ~(PG_SIZE - 1));
     uint64_t *v_pml4t,*v_pml4e;
     uint64_t *pdpt,*v_pdpte,*pdpte;
     uint64_t *pdt,*v_pde,*pde;
@@ -302,7 +302,7 @@ PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
     v_pml4e = v_pml4t + ADDR_PML4T_INDEX(vaddr);
     if (!(*v_pml4e & PG_P))
     {
-        pr_log("\3vaddr pml4e not exist: %p\n",vaddr);
+        pr_log("\3 vaddr pml4e not exist: %p\n",vaddr);
         return;
     }
     pdpt = (uint64_t*)(*v_pml4e & (~0xfff));
@@ -310,7 +310,7 @@ PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
     v_pdpte = KADDR_P2V(pdpte);
     if (!(*v_pdpte & PG_P))
     {
-        pr_log("\3vaddr pdpte not exist: %p\n",vaddr);
+        pr_log("\3 vaddr pdpte not exist: %p\n",vaddr);
         return;
     }
     pdt = (uint64_t*)(*v_pdpte & (~0xfff));
@@ -318,7 +318,7 @@ PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
     v_pde = KADDR_P2V(pde);
     if (!(*v_pde & PG_P))
     {
-        pr_log("\3vaddr pde not exist: %p\n",vaddr);
+        pr_log("\3 vaddr pde not exist: %p\n",vaddr);
         return;
     }
     *v_pde &= ~PG_P;

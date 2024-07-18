@@ -156,7 +156,7 @@ PUBLIC int vsprintf(char* buf,const char* fmt,va_list ap)
             s = digits;
             digits[0] = '0';
             digits[1] = 'x';
-            utoa((uintptr_t)va_arg(ap,uintptr_t),digits+2,16);
+            utoa((addr_t)va_arg(ap,addr_t),digits+2,16);
             break;
         case 's': /* %s */
             s = va_arg(ap,char*);

@@ -13,7 +13,7 @@ PRIVATE void start_process(void *process)
 {
     void *func = process;
     task_struct_t *cur = running_task();
-    uintptr_t kstack = (uintptr_t)cur->context;
+    addr_t kstack = (addr_t)cur->context;
     kstack += sizeof(task_context_t);
     intr_stack_t *proc_stack = (intr_stack_t*)kstack;
 
@@ -45,7 +45,7 @@ PRIVATE void start_process(void *process)
     cur->context = (task_context_t*)kstack;
     // 分配用户态下的栈
     void *ustack     = alloc_physical_page(1);
-    cur->ustack_base = (uintptr_t)ustack;
+    cur->ustack_base = (addr_t)ustack;
     cur->ustack_size = PG_SIZE;
     page_map(cur->page_dir,ustack,(void*)USER_STACK_VADDR_BASE);
     proc_stack->rsp = USER_STACK_VADDR_BASE + PG_SIZE;
@@ -137,7 +137,7 @@ PUBLIC task_struct_t *prog_execute
         return NULL;
     }
     task_struct_t *task = pid2task(pid);
-    init_task_struct(task,name,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
+    init_task_struct(task,name,priority,(addr_t)KADDR_P2V(kstack_base),kstack_size);
     create_task_struct(task,start_process,(uint64_t)prog);
     task->page_dir = create_page_dir();
     if (task->page_dir == NULL)

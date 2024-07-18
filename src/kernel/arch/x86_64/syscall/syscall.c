@@ -38,7 +38,7 @@ PUBLIC syscall_status_t ASMLINKAGE sys_send_recv(uint32_t nr,pid_t src_dest,mess
     }
     if (res != SYSCALL_SUCCESS)
     {
-        pr_log("\3syscall error: %x\n",res);
+        pr_log("\3 syscall error: %x\n",res);
     }
     intr_set_status(intr_status);
     return res;

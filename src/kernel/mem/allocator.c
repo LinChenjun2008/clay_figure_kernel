@@ -41,14 +41,14 @@ PUBLIC void mem_alloctor_init()
 
 PRIVATE mem_block_t* cache2block(mem_cache_t *c,int idx)
 {
-    uintptr_t addr = (uintptr_t)c + sizeof(*c) + (PG_SIZE - sizeof(*c))
+    addr_t addr = (addr_t)c + sizeof(*c) + (PG_SIZE - sizeof(*c))
                     % c->group->block_size;
     return ((mem_block_t*)(addr + (idx * (c->group->block_size))));
 }
 
 PRIVATE mem_cache_t* block2cache(mem_block_t *b)
 {
-    return ((mem_cache_t*)((uintptr_t)b & 0xffffffffffe00000));
+    return ((mem_cache_t*)((addr_t)b & 0xffffffffffe00000));
 }
 
 PUBLIC void* pmalloc(size_t size)

@@ -109,7 +109,7 @@ PUBLIC void init_all()
     msg.m3.i2 = g_boot_info->graph_info.vertical_resolution;
     sys_send_recv(NR_SEND,VIEW,&msg);
 
-    task_start("USB",SERVICE_PRIORITY,4096,usb_main,0);
+    // task_start("USB",SERVICE_PRIORITY,4096,usb_main,0);
     return;
 }
 

@@ -207,10 +207,10 @@ PUBLIC void apic_init()
     io_out8(0x22,0x70);
     io_out8(0x23,0x01);
 
-    pr_log("\1init local apic.\n");
+    pr_log("\1 init local apic.\n");
     local_apic_init();
-    pr_log("\1init ioapic.\n");
+    pr_log("\1 init ioapic.\n");
     ioapic_init();
-    pr_log("\1init ioapic done.\n");
+    pr_log("\1 init ioapic done.\n");
     return;
 }

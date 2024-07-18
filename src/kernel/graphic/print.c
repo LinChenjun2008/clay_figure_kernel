@@ -15,6 +15,9 @@ typedef struct
 #define X_START 10U
 #define Y_START 10U
 
+#define CHAR_X_SIZE (8  + 1)
+#define CHAR_Y_SIZE (16 + 1)
+
 PRIVATE position_t pos = {X_START,Y_START};
 
 PUBLIC void basic_put_char(char c,uint32_t col)
@@ -55,14 +58,14 @@ PUBLIC void basic_print(uint32_t col,const char *str,...)
     char *s = msg;
     while(*s)
     {
-        if (*s == '\n' || pos.x >= g_boot_info->graph_info.horizontal_resolution - 8)
+        if (*s == '\n' || pos.x >= g_boot_info->graph_info.horizontal_resolution - CHAR_X_SIZE)
         {
             pos.x = X_START;
-            pos.y += 16;
-            pos.y > g_boot_info->graph_info.vertical_resolution - 16 ? pos.y = Y_START : 0;
+            pos.y += CHAR_Y_SIZE;
+            pos.y > g_boot_info->graph_info.vertical_resolution - CHAR_Y_SIZE ? pos.y = Y_START : 0;
             s++;
             int i;
-            for (i = 0;i < 16;i++)
+            for (i = 0;i < CHAR_Y_SIZE;i++)
             {
                 uint32_t *pixel = \
                     (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
@@ -74,16 +77,16 @@ PUBLIC void basic_print(uint32_t col,const char *str,...)
         }
         if (*s == '\b')
         {
-            pos.x -= 8;
+            pos.x -= CHAR_X_SIZE;
             if (pos.x < X_START)
             {
                 pos.x = X_START;
-                pos.y -= 16;
+                pos.y -= CHAR_Y_SIZE;
             }
             pos.y < Y_START ? pos.y = Y_START : 0;
         }
         basic_put_char(*s++,col);
-        pos.x += 8;
+        pos.x += CHAR_X_SIZE;
     }
     return;
 }

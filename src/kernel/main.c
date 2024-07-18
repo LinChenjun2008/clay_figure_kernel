@@ -38,13 +38,13 @@ void ktask()
 
 void kernel_main()
 {
-    pr_log("\1Kernel initializing.\n");
+    pr_log("\1 Kernel initializing.\n");
     init_all();
-    pr_log("\1Kernel initializing done.\n");
+    pr_log("\1 Kernel initializing done.\n");
     char s[64];
     cpu_name(s);
     pr_log("\1 CPU: %s.\n",s);
-    // prog_execute("k task",DEFAULT_PRIORITY,4096,ktask);
+    prog_execute("k task",DEFAULT_PRIORITY,4096,ktask);
 
     while(1)
     {
@@ -55,7 +55,7 @@ void kernel_main()
 void ap_kernel_main()
 {
     ap_init_all();
-    // prog_execute("k task2",DEFAULT_PRIORITY,4096,ktask);
+    prog_execute("k task2",DEFAULT_PRIORITY,4096,ktask);
     while(1)
     {
         __asm__ ("sti\n\t""hlt");
