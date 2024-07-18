@@ -7,13 +7,13 @@ typedef unsigned short         uint16_t;
 typedef unsigned int           uint32_t;
 typedef unsigned long long int uint64_t;
 
-typedef unsigned long long int uintptr_t;
+typedef unsigned long long int addr_t;
 #endif
 
 #pragma pack(1)
 typedef struct
 {
-    uintptr_t frame_buffer_base;
+    addr_t frame_buffer_base;
     uint32_t  horizontal_resolution;
     uint32_t  vertical_resolution;
 } graph_info_t;
@@ -29,7 +29,7 @@ typedef struct
 
 typedef struct
 {
-    uintptr_t base_address;
+    addr_t base_address;
     uint64_t  size;
     uint32_t  flag;
 } file_info_t;

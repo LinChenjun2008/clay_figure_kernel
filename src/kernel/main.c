@@ -38,9 +38,9 @@ void ktask()
 
 void kernel_main()
 {
-    pr_log("\1Kernel initializing.\n");
+    pr_log("\1 Kernel initializing.\n");
     init_all();
-    pr_log("\1Kernel initializing done.\n");
+    pr_log("\1 Kernel initializing done.\n");
     char s[64];
     cpu_name(s);
     pr_log("\1 CPU: %s.\n",s);

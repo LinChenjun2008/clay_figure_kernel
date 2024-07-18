@@ -1,5 +1,6 @@
 #include <kernel/global.h>
 #include <device/pci.h>
+#include <device/usb/hci/xhci.h>
 #include <mem/mem.h>
 #include <io.h>
 #include <device/pic.h>
@@ -10,136 +11,8 @@
 extern apic_t apic_struct;
 
 extern uint64_t volatile global_ticks;
-// HCSPARAMS1
-#define MAX_SLOTS 0x000000ff
 
-// RTSOFF
-#define OFFSET    0xffffffe0
-
-// USBCMD
-#define RUN_STOP (1 <<  0)
-#define HCRST    (1 <<  1)
-#define INTE     (1 <<  2)
-#define HSEE     (1 <<  3)
-
-#define EWE      (1 << 10)
-
-// USBSTS
-#define HCH      (1 <<  0)
-
-#define CNR      (1 << 11)
-
-// CRCR
-#define RCS      (1ULL <<  0)
-#define CS       (1ULL <<  1)
-#define CA       (1ULL <<  2)
-#define CRP      (~0x3fULL)
-
-#pragma pack(1)
-
-typedef struct
-{
-   volatile uint8_t  CAPLENGTH;
-   volatile uint8_t  Rsvd;
-   volatile uint16_t HCIVERSION;
-   volatile uint32_t HCSPARAMS1;
-   volatile uint32_t HCSPARAMS2;
-   volatile uint32_t HCSPARAMS3;
-   volatile uint32_t HCCPARAMS1;
-   volatile uint32_t DBOFF;
-   volatile uint32_t RTSOFF;
-   volatile uint32_t HCCPARAMS2;
-    // (CAPLENGTH - 0x20) -- Rsvd
-} xhci_cap_regs_t;
-
-typedef struct
-{
-   volatile uint32_t USBCMD;
-   volatile uint32_t USBSTS;
-   volatile uint32_t PAGESIZE;
-   volatile uint32_t RsvdZ_1[2];
-   volatile uint32_t DNCTRL;
-   volatile uint64_t CRCR;
-   volatile uint32_t RsvdZ_2[4];
-   volatile uint64_t DCBAAP;
-   volatile uint32_t CONFIG;
-} xhci_opt_regs_t;
-
-typedef struct
-{
-    uint32_t data[4];
-    uint32_t RsvdO[4];
-} slot_context_t;
-
-typedef struct
-{
-    uint32_t data[5];
-    uint32_t RsvdO[3];
-} endpoint_context_t;
-
-typedef struct
-{
-    uint32_t IMAN;
-    uint32_t IMOD;
-    uint32_t ERSTSZ;
-    uint32_t reserved;
-    uint64_t ERSTBA;
-    uint64_t ERDP;
-} intr_reg_set_t;
-
-typedef struct
-{
-    slot_context_t     slot_ctx;
-    endpoint_context_t endpoint_ctx[31];
-} xhci_dev_context_t;
-
-typedef struct
-{
-    uint32_t data[4];
-} trb_t;
-
-typedef struct
-{
-    trb_t  *trb;
-    size_t  trb_size;
-    uint8_t cycle_bit;
-    size_t  write_index;
-} ring_t;
-
-typedef struct
-{
-    uint64_t rsba; // low 6 bit reserved.
-    uint32_t data[2];
-} erst_t;
-
-typedef struct
-{
-    trb_t          *trb;
-    size_t          trb_size;
-    uint8_t         cycle_bit;
-    erst_t         *erst;
-    intr_reg_set_t *intr_reg_sets;
-} event_ring_t;
-
-#pragma pack()
-
-typedef struct
-{
-    void                *mmio_base;
-    xhci_cap_regs_t     *cap_regs;
-    xhci_opt_regs_t     *opt_regs;
-    uint8_t              max_ports;
-    uint8_t              max_slots;
-    xhci_dev_context_t **dev_cxt;
-    intr_reg_set_t      *intr_reg_sets;
-    size_t               intr_reg_sets_size;
-
-    ring_t               cr;
-    event_ring_t         er;
-
-} xhci_t;
-
-PRIVATE xhci_t xhci;
+PUBLIC xhci_t xhci;
 
 PRIVATE void switch_to_xhci(pci_device_t *xhci_dev)
 {
@@ -170,10 +43,15 @@ PRIVATE void xhci_reset()
     intr_status_t intr_status = intr_enable();
     pr_log("\1xHCI reseting,wait 1ms.\n");
     uint64_t old_ticks = global_ticks;
-    while(global_ticks < old_ticks + 1);
+    while(global_ticks < old_ticks + 10);
     intr_set_status(intr_status);
 
     while (xhci.opt_regs->USBCMD & HCRST);
+
+    // After Chip Hardware Reset5 wait until the Controller Not Ready
+    // (CNR) flag in the USBSTS is ‘0’ before writing any xHC Operational
+    // or Runtime registers.
+
     while (xhci.opt_regs->USBSTS & CNR);
 
     return;
@@ -203,6 +81,9 @@ PUBLIC void xhci_init()
     // Config MSI
     configure_msi(device,1 /* Level*/,0 /* Fixed*/,IRQ_XHCI,0);
 
+    // eXtensible Host Controller Interface for Universal Serial Bus
+    // 4.2 :
+    // Initialize the system I/O memory maps, if supported
     uintptr_t xhci_mmio_base = pci_dev_read_bar(device,0);
     pr_log("\1xhci mmio base: %p\n",xhci_mmio_base);
     page_map((uint64_t*)KERNEL_PAGE_DIR_TABLE_POS,(void*)xhci_mmio_base,(void*)KADDR_P2V(xhci_mmio_base));
@@ -250,9 +131,20 @@ PUBLIC void xhci_init()
     xhci.opt_regs->USBCMD = usbcmd;
     while (!(xhci.opt_regs->USBSTS & HCH));
 
+    pr_log("\1 reset xHCI.\n");
     xhci_reset();
+    pr_log("\1 reset xHCI done.\n");
 
-    // Set "Number of Device Slots Enabled" field in CONFIG
+    pr_log("\1USBCMD: 0x%x\n",xhci.opt_regs->USBCMD);
+    pr_log("\1USBSTS: 0x%x\n",xhci.opt_regs->USBSTS);
+    pr_log("\1Max Slots: %d\n",xhci.max_slots);
+
+
+    // eXtensible Host Controller Interface for Universal Serial Bus
+    // 4.2 :
+    // Program the Max Device Slots Enabled (MaxSlotsEn) field in
+    // the CONFIG register to enable the device slots
+    // that system software is going to use.
     uint32_t config = xhci.opt_regs->CONFIG;
     config &= ~0xff;
     config |= xhci.max_slots;
@@ -274,7 +166,7 @@ PUBLIC void xhci_init()
 
     uint32_t hcsparams2 = xhci.cap_regs->HCSPARAMS2;
     uint16_t max_scratchpad_buffers = ((hcsparams2 >> 27) & 0x1f) | (((hcsparams2 >> 21) & 0x1f) << 5);
-    pr_log("\2max_max_scratchpad_buffers: %d\n",max_scratchpad_buffers);
+    pr_log("\2max_scratchpad_buffers: %d\n",max_scratchpad_buffers);
     if (max_scratchpad_buffers > 0)
     {
         void *buf = pmalloc(max_scratchpad_buffers * sizeof(void*));
@@ -299,6 +191,12 @@ PUBLIC void xhci_init()
         xhci.dev_cxt[0] = (xhci_dev_context_t*)scratchpad_buf_arr;
         pr_log("\2xhci.dev_cxt[0] = %p\n",xhci.dev_cxt[0]);
     }
+
+    // eXtensible Host Controller Interface for Universal Serial Bus
+    // 4.2 :
+    // Program the Device Context Base Address Array Pointer (DCBAAP) register
+    // with a 64-bit address pointing to where the Device Context Base Address
+    // Array is located.
     xhci.opt_regs->DCBAAP = (uint64_t)xhci.dev_cxt & 0x3f;
 
     xhci.intr_reg_sets = (intr_reg_set_t*)((uintptr_t)xhci.mmio_base + (xhci.cap_regs->RTSOFF & OFFSET) + 0x20);
@@ -319,7 +217,10 @@ PUBLIC void xhci_init()
     xhci.cr.trb = (trb_t*)KADDR_P2V(buffer);
     memset(xhci.cr.trb,0,xhci.cr.trb_size);
 
-    // regist command ring
+    // eXtensible Host Controller Interface for Universal Serial Bus
+    // 4.2 :
+    // Define the Command Ring Dequeue Pointer by programming the Command Ring Control Register
+    // with a 64-bit address pointing to the starting address of the first TRB of the Command Ring.
     uint64_t crcr = xhci.opt_regs->CRCR;
     crcr |= RCS;
     crcr &= ~CS;
@@ -327,7 +228,7 @@ PUBLIC void xhci_init()
     crcr |= (uint64_t)xhci.cr.trb | CRP;
     xhci.opt_regs->CRCR = crcr;
 
-    // init event ring
+    // Allocate and initialize the Event Ring Segment(s).
     xhci.er.cycle_bit   = 1;
     xhci.er.trb_size    = 32 * sizeof(*xhci.cr.trb);
     xhci.er.intr_reg_sets = primary_intr;
@@ -340,7 +241,7 @@ PUBLIC void xhci_init()
     xhci.er.trb = (trb_t*)KADDR_P2V(buffer);
     memset(xhci.er.trb,0,xhci.er.trb_size);
 
-    buffer = pmalloc(sizeof(*xhci.er.erst));
+    buffer = pmalloc(64 /* sizeof(*xhci.er.erst) */); // 64-bit align
     if (buffer == NULL)
     {
         pr_log("\3 Can not alloc memory for xhci.er.erst.\n");
@@ -381,5 +282,7 @@ PUBLIC void xhci_init()
     xhci_run();
 
     pr_log("\1xHCI init done.\n");
+    pr_log("\1USBCMD: 0x%x\n",xhci.opt_regs->USBCMD);
+    pr_log("\1USBSTS: 0x%x\n",xhci.opt_regs->USBSTS);
     return;
 }

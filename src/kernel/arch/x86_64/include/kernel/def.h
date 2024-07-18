@@ -24,13 +24,13 @@ typedef int bool;
 
 #define KERNEL_VMA_BASE           0xffff800000000000
 
-#define KADDR_P2V(ADDR) ((void*)((uintptr_t)(ADDR) + KERNEL_VMA_BASE))
-#define KADDR_V2P(ADDR) ((void*)((uintptr_t)(ADDR) - KERNEL_VMA_BASE))
+#define KADDR_P2V(ADDR) ((void*)((addr_t)(ADDR) + KERNEL_VMA_BASE))
+#define KADDR_V2P(ADDR) ((void*)((addr_t)(ADDR) - KERNEL_VMA_BASE))
 
-#define ADDR_PML4T_INDEX(ADDR) ((((uintptr_t)(ADDR)) >> 39) & 0x1ff)
-#define ADDR_PDPT_INDEX(ADDR)  ((((uintptr_t)(ADDR)) >> 30) & 0x1ff)
-#define ADDR_PDT_INDEX(ADDR)   ((((uintptr_t)(ADDR)) >> 21) & 0x1ff)
-#define ADDR_OFFSET(ADDR)      ((((uintptr_t)(ADDR)) & 0x1fffff))
+#define ADDR_PML4T_INDEX(ADDR) ((((addr_t)(ADDR)) >> 39) & 0x1ff)
+#define ADDR_PDPT_INDEX(ADDR)  ((((addr_t)(ADDR)) >> 30) & 0x1ff)
+#define ADDR_PDT_INDEX(ADDR)   ((((addr_t)(ADDR)) >> 21) & 0x1ff)
+#define ADDR_OFFSET(ADDR)      ((((addr_t)(ADDR)) & 0x1fffff))
 
 #define ASMLINKAGE __attribute__((sysv_abi))
 
@@ -53,6 +53,9 @@ typedef unsigned __int128      uint128_t;
 typedef unsigned long long int uintptr_t;
 typedef unsigned long long int wordsize_t;
 typedef unsigned long long int size_t;
+
+typedef unsigned long long int phy_addr_t;
+typedef unsigned long long int addr_t;
 
 typedef uint32_t pid_t;
 

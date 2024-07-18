@@ -45,16 +45,35 @@ PRIVATE void set_gatedesc(gate_desc_t *gd,void *func,int selector,int ar)
 PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
 {
     pr_log("\n");
-    pr_log("\3INTR : 0x%x ( %s )\n",nr,nr < 20 ? intr_name[nr] : "Other Intr");
+    pr_log("\3 INTR : 0x%x ( %s )\n",nr,nr < 20 ? intr_name[nr] : "Other Intr");
     uint64_t cr2,cr3;
     __asm__ __volatile__
     (
         "movq %%cr2,%0\n\t""movq %%cr3,%1\n\t":"=r"(cr2),"=r"(cr3)::
     );
     pr_log("CS:RIP %04x:%016x\n"
-           "ERROR CODE: %016x\n"
+           "ERROR CODE: %016x "
         ,stack->cs,stack->rip,
         stack->error_code);
+    if (stack->error_code != 0)
+    {
+        pr_log("(");
+        if (stack->error_code & (1 << 2))
+        {
+            pr_log(" TI");
+        }
+        if (stack->error_code & (1 << 1))
+        {
+            pr_log(" IDT");
+        }
+        if (stack->error_code & (1 << 0))
+        {
+            pr_log(" EXT");
+        }
+        pr_log(" ) ");
+        pr_log("Selector: %04x",stack->error_code & 0xfff8);
+    }
+    pr_log("\n");
     pr_log("CR2 - %016x, CR3 - %016x\n",cr2,cr3);
     pr_log("DS  - %016x, ES  - %016x, FS  - %016x, GS  - %016x\n",
             stack->ds,stack->es,stack->fs,stack->gs);

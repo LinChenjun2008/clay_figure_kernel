@@ -35,10 +35,10 @@ typedef struct
 typedef struct
 {
     task_context_t        *context;
-    uintptr_t              kstack_base;
+    addr_t                 kstack_base;
     size_t                 kstack_size;
 
-    uintptr_t              ustack_base;
+    addr_t                 ustack_base;
     size_t                 ustack_size;
 
     pid_t                  pid;
@@ -75,7 +75,7 @@ PUBLIC task_struct_t* pid2task(pid_t pid);
 PUBLIC bool task_exist(pid_t pid);
 PUBLIC task_struct_t* running_task();
 PUBLIC task_struct_t* running_prog();
-PUBLIC uintptr_t get_running_prog_kstack();
+PUBLIC addr_t get_running_prog_kstack();
 PUBLIC pid_t task_alloc();
 PUBLIC void task_free(pid_t pid);
 PUBLIC task_struct_t* init_task_struct
@@ -83,7 +83,7 @@ PUBLIC task_struct_t* init_task_struct
     task_struct_t* task,
     char* name,
     uint64_t priority,
-    uintptr_t kstack_base,
+    addr_t kstack_base,
     size_t kstack_size
 );
 PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg);

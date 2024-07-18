@@ -72,6 +72,7 @@ PRIVATE void init_desctrib()
     load_tss(0);
 }
 
+PUBLIC void usb_main();
 /**
  * @brief 初始化所有内容
 */
@@ -93,7 +94,6 @@ PUBLIC void init_all()
     pic_init();
     pit_init();
     pci_scan_all_bus();
-    keyboard_init();
     syscall_init();
     service_init();
 
@@ -110,6 +110,7 @@ PUBLIC void init_all()
     msg.m3.i2 = g_boot_info->graph_info.vertical_resolution;
     sys_send_recv(NR_SEND,VIEW,&msg);
 
+    // task_start("USB",SERVICE_PRIORITY,4096,usb_main,0);
     return;
 }
 

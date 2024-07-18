@@ -12,7 +12,7 @@ PUBLIC taskmgr_t tm;
 
 PRIVATE void kernel_task(void)
 {
-    uintptr_t  func;
+    addr_t  func;
     wordsize_t arg;
     __asm__ __volatile__
     (
@@ -91,7 +91,7 @@ PUBLIC task_struct_t* running_prog()
     return NULL;
 }
 
-PUBLIC uintptr_t get_running_prog_kstack()
+PUBLIC addr_t get_running_prog_kstack()
 {
     task_struct_t *cur = running_prog();
     return cur->kstack_base + cur->kstack_size;
@@ -130,12 +130,12 @@ PUBLIC task_struct_t* init_task_struct
     task_struct_t* task,
     char* name,
     uint64_t priority,
-    uintptr_t kstack_base,
+    addr_t kstack_base,
     size_t kstack_size
 )
 {
     memset(task,0,sizeof(*task));
-    uintptr_t kstack  = kstack_base + kstack_size;
+    addr_t kstack      = kstack_base + kstack_size;
     task->context     = (task_context_t*)kstack;
     task->kstack_base = kstack_base;
     task->kstack_size = kstack_size;
@@ -143,7 +143,7 @@ PUBLIC task_struct_t* init_task_struct
     task->ustack_base = 0;
     task->ustack_size = 0;
 
-    task->pid         = ((uintptr_t)task - (uintptr_t)tm.task_table) / sizeof(*task);
+    task->pid         = ((addr_t)task - (addr_t)tm.task_table) / sizeof(*task);
 
     if (strlen(name) > 31)
     {
@@ -169,10 +169,10 @@ PUBLIC task_struct_t* init_task_struct
 
 PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg)
 {
-    uintptr_t kstack = (uintptr_t)task->context;
+    addr_t kstack = (addr_t)task->context;
     kstack -= sizeof(intr_stack_t);
-    kstack -= sizeof(uintptr_t);
-    *(uintptr_t*)kstack = (uintptr_t)kernel_task;
+    kstack -= sizeof(addr_t);
+    *(addr_t*)kstack = (addr_t)kernel_task;
     kstack -= sizeof(task_context_t);
     task->context = (task_context_t*)kstack;
     task_context_t *context =task->context;
@@ -206,7 +206,7 @@ PUBLIC task_struct_t* task_start
         return NULL;
     }
     task_struct_t *task = pid2task(pid);
-    init_task_struct(task,name,priority,(uintptr_t)KADDR_P2V(kstack_base),kstack_size);
+    init_task_struct(task,name,priority,(addr_t)KADDR_P2V(kstack_base),kstack_size);
     create_task_struct(task,func,arg);
 
     spinlock_lock(&tm.task_lock);
@@ -222,7 +222,7 @@ PRIVATE void make_main_task(void)
     init_task_struct(main_task,
                     "Main task",
                     DEFAULT_PRIORITY,
-                    (uintptr_t)KADDR_P2V(KERNEL_STACK_BASE),
+                    (addr_t)KADDR_P2V(KERNEL_STACK_BASE),
                     KERNEL_STACK_SIZE);
     spinlock_lock(&tm.task_lock);
     list_append(&tm.task_list[apic_id()],&main_task->general_tag);

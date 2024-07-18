@@ -60,27 +60,27 @@ PRIVATE void ipi_timer_handler()
 PUBLIC void smp_start()
 {
     // copy ap_boot
-    size_t ap_boot_size = (uintptr_t)AP_BOOT_END - (uintptr_t)AP_BOOT_BASE;
+    size_t ap_boot_size = (addr_t)AP_BOOT_END - (addr_t)AP_BOOT_BASE;
     memcpy((void*)KADDR_P2V(0x7c000),AP_BOOT_BASE,ap_boot_size);
 
     // allocate stack for apu
-    void *apu_stack_base = alloc_physical_page(((apic.number_of_cores - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1);
+    void *apu_stack_base = alloc_physical_page(((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1);
     if (apu_stack_base == NULL)
     {
         pr_log("\3 fatal: can not alloc memory for apu. \n");
         return;
     }
-    *(uintptr_t*)AP_STACK_BASE_PTR = (uintptr_t)apu_stack_base;
+    *(phy_addr_t*)AP_STACK_BASE_PTR = (phy_addr_t)apu_stack_base;
 
     int i;
-    for (i = 1;i < apic.number_of_cores;i++)
+    for (i = 1;i < NR_CPUS;i++)
     {
         char name[16];
         sprintf(name,"idle(%d)",i);
         task_struct_t *main_task   = pid2task(task_alloc());
-        uintptr_t      kstack_base =  (uintptr_t)apu_stack_base
-                                    + (i - 1) * KERNEL_STACK_SIZE;
-        kstack_base = (uintptr_t)KADDR_P2V(kstack_base);
+        addr_t         kstack_base;
+        kstack_base = (addr_t)
+                      KADDR_P2V(apu_stack_base + (i - 1) * KERNEL_STACK_SIZE);
         init_task_struct(main_task,
                         name,
                         DEFAULT_PRIORITY,
