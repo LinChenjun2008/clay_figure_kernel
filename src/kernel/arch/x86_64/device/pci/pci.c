@@ -5,8 +5,6 @@
 
 #include <log.h>
 
-extern apic_t apic;
-
 PRIVATE pci_device_t pci_devices[256];
 PRIVATE uint8_t number_of_pci_device;
 
@@ -70,9 +68,19 @@ PRIVATE uint8_t pci_read_header_type(uint8_t bus, uint8_t dev, uint8_t func)
     return (uint8_t)((pci_config_read(bus,dev,func,0x0c) >> 16) & 0xff);
 }
 
+PUBLIC uint8_t pci_dev_read_header_type(pci_device_t *dev)
+{
+    return pci_read_header_type(dev->bus,dev->device,dev->func);
+}
+
 PRIVATE uint16_t pci_read_vendor_id(uint8_t bus, uint8_t dev, uint8_t func)
 {
     return (uint16_t)(pci_config_read(bus,dev,func,0x00) & 0xffff);
+}
+
+PUBLIC uint16_t pci_dev_read_vendor_id(pci_device_t *dev)
+{
+    return pci_read_vendor_id(dev->bus,dev->device,dev->func);
 }
 
 PRIVATE uint32_t pci_read_class_code(uint8_t bus, uint8_t dev, uint8_t func)
@@ -80,9 +88,19 @@ PRIVATE uint32_t pci_read_class_code(uint8_t bus, uint8_t dev, uint8_t func)
     return pci_config_read(bus,dev,func,0x08);
 }
 
+PUBLIC uint32_t pci_dev_read_class_code(pci_device_t *dev)
+{
+    return pci_read_class_code(dev->bus,dev->device,dev->func);
+}
+
 PRIVATE uint8_t pci_read_base_class_code(uint8_t bus, uint8_t dev, uint8_t func)
 {
     return (uint8_t)((pci_read_class_code(bus,dev,func) >> 24) & 0xff);
+}
+
+PUBLIC uint8_t pci_dev_read_base_class_code(pci_device_t *dev)
+{
+    return pci_read_base_class_code(dev->bus,dev->device,dev->func);
 }
 
 PRIVATE uint8_t pci_read_sub_class_code(uint8_t bus, uint8_t dev, uint8_t func)
@@ -90,9 +108,19 @@ PRIVATE uint8_t pci_read_sub_class_code(uint8_t bus, uint8_t dev, uint8_t func)
     return (uint8_t)((pci_read_class_code(bus,dev,func) >> 16) & 0xff);
 }
 
+PUBLIC uint8_t pci_dev_read_sub_class_code(pci_device_t *dev)
+{
+    return pci_read_sub_class_code(dev->bus,dev->device,dev->func);
+}
+
 PRIVATE uint8_t pci_read_secondary_bus_number(uint8_t bus, uint8_t dev, uint8_t func)
 {
     return (uint8_t)((pci_config_read(bus,dev,func,0x18) >> 8) & 0xff);
+}
+
+PUBLIC uint8_t pci_dev_read_secondary_bus_number(pci_device_t *dev)
+{
+    return pci_read_secondary_bus_number(dev->bus,dev->device,dev->func);
 }
 
 PUBLIC uint64_t pci_dev_read_bar(pci_device_t *dev,uint8_t bar_index)
@@ -143,7 +171,8 @@ PRIVATE void scan_func(uint8_t bus,uint8_t dev,uint8_t func)
 
     uint8_t header_type = pci_read_header_type(bus,dev,func);
     uint32_t class_code = pci_read_class_code(bus,dev,func);
-    pci_device_t device = {bus,dev,func,header_type,class_code};
+    pci_device_t device = {bus,dev,func,header_type,class_code,{0,0,0,0,0,0,0,0}};
+    pci_dev_read_msi_info(&device);
     add_device(&device);
 
     if (base_class == 0x06 && sub_class == 0x04) // PCI to PCI bridge
@@ -222,81 +251,4 @@ PUBLIC pci_device_t* pci_dev_match(uint8_t base_class,uint8_t sub_class,uint8_t 
         }
     }
     return NULL;
-}
-
-PUBLIC void configure_msi
-(
-    pci_device_t *dev,
-    uint8_t trigger_mode,
-    uint32_t delivery_mode,
-    uint8_t vector,
-    uint8_t num_vector_exponent
-)
-{
-    uint32_t msg_addr = apic.local_apic_address | apic.lapic_id[0] << 12;
-    uint32_t msg_data = delivery_mode << 8 | vector;
-    if (trigger_mode == 1)
-    {
-        msg_data |= 0xc00;
-    }
-    uint8_t cap_addr = pci_dev_config_read(dev,0x34) & 0xffu;
-    uint8_t msi_cap_addr = 0;
-    uint8_t msix_cap_addr = 0;
-    while (cap_addr != 0)
-    {
-        uint32_t header = pci_dev_config_read(dev, cap_addr);
-        if ((header & 0xff) == 5)
-        {
-            msi_cap_addr = cap_addr;
-        }
-        else if ((header & 0xff) == 17)
-        {
-            msix_cap_addr = cap_addr;
-        }
-        cap_addr = (header & 0xff00) >> 8;
-    }
-
-    if (msi_cap_addr)
-    {
-        uint32_t msi_cap = pci_dev_config_read(dev,msi_cap_addr);
-        if (((msi_cap >> 16) & 0b0111) /* multi msg capable */ <= num_vector_exponent)
-        {
-            // multi msg enable = multi msg capable
-            msi_cap &= 0x00700000;
-            msi_cap |= (msi_cap & 0x000e0000) << 3;
-        }
-        else
-        {
-            msi_cap &= 0x00700000;
-            msi_cap |= num_vector_exponent << 20;
-        }
-        // msi enable
-        msi_cap |= (1 << 16);
-
-        // write
-        pci_dev_config_write(dev,msi_cap_addr,msi_cap);
-        pci_dev_config_write(dev,msi_cap_addr + 4,msg_addr);
-
-        uint8_t msg_data_addr = msi_cap_addr + 8;
-        if (msi_cap & (1 << 23)) // 64 bit
-        {
-            pci_dev_config_write(dev,msi_cap_addr + 8,0);
-            msg_data_addr = msi_cap_addr + 12;
-        }
-        pci_dev_config_write(dev,msg_data_addr,msg_data);
-
-        if (msi_cap & (1 << 24)) // per-vector masking
-        {
-            // msi mask bits
-            pci_dev_config_write(dev,msg_data_addr + 4,pci_dev_config_read(dev,msi_cap_addr + 0x10));
-            // msi pending bits
-            pci_dev_config_write(dev,msg_data_addr + 4,pci_dev_config_read(dev,msi_cap_addr + 0x14));
-        }
-        pr_log("\1Congiure MSI done.\n");
-        return;
-    }
-    else if (msix_cap_addr)
-    {
-        pr_log("\3MSI-X not implemented.\n");
-    }
 }
