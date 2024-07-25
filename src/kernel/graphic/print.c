@@ -6,6 +6,8 @@
 
 extern PUBLIC uint8_t ascii_character[][16];
 
+PUBLIC volatile uint32_t global_log_cnt;
+
 typedef struct
 {
     uint32_t x;

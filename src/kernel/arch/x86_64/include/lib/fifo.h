@@ -19,9 +19,9 @@ typedef struct
 } fifo_t;
 
 PUBLIC void init_fifo(fifo_t *fifo,void* buf,int type,int size);
-PUBLIC int fifo_put(fifo_t *fifo,void* data);
+PUBLIC status_t fifo_put(IN(fifo_t *fifo,void* data));
 
-PUBLIC int fifo_get(fifo_t *fifo,void* data);
+PUBLIC status_t fifo_get(IN(fifo_t *fifo),OUT(void* data));
 PUBLIC bool fifo_empty(fifo_t *fifo);
 PUBLIC bool fifo_fill(fifo_t *fifo);
 

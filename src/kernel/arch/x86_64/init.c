@@ -5,7 +5,7 @@
 #include <device/cpu.h>
 #include <device/timer.h>
 #include <device/pci.h>
-#include <device/usb/hci/xhci.h>
+#include <device/usb/xhci.h>
 #include <mem/mem.h>
 #include <task/task.h>
 #include <kernel/syscall.h>
@@ -71,18 +71,22 @@ PRIVATE void init_desctrib()
     load_tss(0);
 }
 
-PUBLIC void usb_main();
+PRIVATE spinlock_t schedule_lock;
+
 /**
  * @brief 初始化所有内容
 */
 PUBLIC void init_all()
 {
+    init_spinlock(&schedule_lock);
     intr_disable();
 
     init_desctrib();
     intr_init();
 
     task_init();
+
+    spinlock_lock(&schedule_lock); // can not schedule.
 
     mem_init();
     mem_alloctor_init();
@@ -96,8 +100,8 @@ PUBLIC void init_all()
     syscall_init();
     service_init();
 
-    xhci_init();
     intr_enable();
+    spinlock_unlock(&schedule_lock);
 
     extern uint64_t global_ticks;
     uint64_t ticks = global_ticks;
@@ -108,8 +112,6 @@ PUBLIC void init_all()
     msg.m3.i1 = g_boot_info->graph_info.horizontal_resolution;
     msg.m3.i2 = g_boot_info->graph_info.vertical_resolution;
     sys_send_recv(NR_SEND,VIEW,&msg);
-
-    // task_start("USB",SERVICE_PRIORITY,4096,usb_main,0);
     return;
 }
 

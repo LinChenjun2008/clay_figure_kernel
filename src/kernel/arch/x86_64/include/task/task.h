@@ -76,7 +76,7 @@ PUBLIC bool task_exist(pid_t pid);
 PUBLIC task_struct_t* running_task();
 PUBLIC task_struct_t* running_prog();
 PUBLIC addr_t get_running_prog_kstack();
-PUBLIC pid_t task_alloc();
+PUBLIC status_t task_alloc(OUT(pid_t *pid));
 PUBLIC void task_free(pid_t pid);
 PUBLIC task_struct_t* init_task_struct
 (

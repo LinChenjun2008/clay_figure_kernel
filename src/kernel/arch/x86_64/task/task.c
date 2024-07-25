@@ -97,7 +97,7 @@ PUBLIC addr_t get_running_prog_kstack()
     return cur->kstack_base + cur->kstack_size;
 }
 
-PUBLIC pid_t task_alloc()
+PUBLIC status_t task_alloc(OUT(pid_t *pid))
 {
     spinlock_lock(&tm.task_lock);
     pid_t i;
@@ -107,11 +107,12 @@ PUBLIC pid_t task_alloc()
         {
             tm.task_table[i].status = TASK_USING;
             spinlock_unlock(&tm.task_lock);
-            return i;
+            *pid = i;
+            return K_SUCCESS;
         }
     }
     spinlock_unlock(&tm.task_lock);
-    return MAX_TASK;
+    return K_ERROR;
 }
 
 PUBLIC void task_free(pid_t pid)
@@ -194,13 +195,16 @@ PUBLIC task_struct_t* task_start
     {
         return NULL;
     }
-    pid_t pid = task_alloc();
-    if (pid == MAX_TASK)
+    status_t status;
+    pid_t pid;
+    status = task_alloc(OUT(&pid));
+    if (ERROR(status))
     {
         return NULL;
     }
-    void *kstack_base = pmalloc(kstack_size);
-    if (kstack_base == NULL)
+    void *kstack_base;
+    status = pmalloc(IN(kstack_size),OUT(&kstack_base));
+    if (ERROR(status))
     {
         task_free(pid);
         return NULL;

@@ -59,6 +59,7 @@ typedef unsigned long long int addr_t;
 
 typedef uint32_t pid_t;
 
+typedef uint32_t status_t;
 typedef uint32_t syscall_status_t;
 
 typedef struct

@@ -9,7 +9,7 @@ typedef struct
 
 PUBLIC void init_bitmap(bitmap_t *btmp);
 PUBLIC bool bitmap_scan_test(bitmap_t *btmp,int32_t bit_index);
-PUBLIC int32_t bitmap_alloc(bitmap_t *btmp,int32_t cnt);
+PUBLIC status_t bitmap_alloc(IN(bitmap_t *btmp,int32_t cnt),OUT(uint32_t *index));
 PUBLIC void bitmap_set(bitmap_t *btmp,int32_t bit_index,uint8_t value);
 
 #endif

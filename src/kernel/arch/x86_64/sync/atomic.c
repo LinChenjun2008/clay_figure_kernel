@@ -1,7 +1,7 @@
 #include <kernel/global.h>
 #include <sync/atomic.h>
 
-PUBLIC void atomic_add(atomic_t *atom,uint64_t value)
+PUBLIC void atomic_add(IN(atomic_t *atom,uint64_t value))
 {
     __asm__ __volatile__ ("lock addq %1,%0":"=m"(atom->value):"r"(value):"memory");
     return;

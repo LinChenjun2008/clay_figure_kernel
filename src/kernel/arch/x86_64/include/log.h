@@ -54,6 +54,7 @@ static inline void serial_pr_log(const char *log,va_list ap)
 }
 #undef IS_TRANSMIT_EMPTY
 
+extern volatile uint32_t global_log_cnt;
 static inline void pr_log(const char *log,...)
 {
     char msg[256];
@@ -79,6 +80,8 @@ static inline void pr_log(const char *log,...)
         {
             basic_print(0x00ff0000,buf);
         }
+        basic_print(0x00ffffff,"[%8d]",global_log_cnt);
+        __asm__ __volatile__("lock incq %0":"=m"(global_log_cnt)::"memory");
     }
     va_list ap;
     va_start(ap,log);

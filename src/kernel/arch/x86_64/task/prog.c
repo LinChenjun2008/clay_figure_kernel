@@ -44,10 +44,15 @@ PRIVATE void start_process(void *process)
 
     cur->context = (task_context_t*)kstack;
     // 分配用户态下的栈
-    void *ustack     = alloc_physical_page(1);
-    cur->ustack_base = (addr_t)ustack;
+    addr_t ustack;
+    status_t status = alloc_physical_page(IN(1),OUT(&ustack));
+    if (ERROR(status))
+    {
+        pr_log("\3 Alloc User Stack error.");
+    }
+    cur->ustack_base = ustack;
     cur->ustack_size = PG_SIZE;
-    page_map(cur->page_dir,ustack,(void*)USER_STACK_VADDR_BASE);
+    page_map(cur->page_dir,(void*)ustack,(void*)USER_STACK_VADDR_BASE);
     proc_stack->rsp = USER_STACK_VADDR_BASE + PG_SIZE;
     proc_stack->ss = SELECTOR_DATA64_U;
     __asm__ __volatile__
@@ -83,8 +88,9 @@ PUBLIC void prog_activate(task_struct_t *task)
 
 PRIVATE uint64_t *create_page_dir(void)
 {
-    uint64_t *pgdir_v = pmalloc(PT_SIZE);
-    if (pgdir_v == NULL)
+    uint64_t *pgdir_v;
+    status_t status = pmalloc(IN(PT_SIZE),OUT(&pgdir_v));
+    if (ERROR(status))
     {
         return NULL;
     }
@@ -99,8 +105,9 @@ PRIVATE int user_vaddr_table_init(task_struct_t *task)
 {
     size_t entry_size          = sizeof(*task->vaddr_table.entries);
     uint64_t number_of_entries = 1024;
-    void *p = pmalloc(entry_size * number_of_entries);
-    if (p == NULL)
+    void *p;
+    status_t status = pmalloc(IN(entry_size * number_of_entries),OUT(&p));
+    if (ERROR(status))
     {
         return 0;
     }
@@ -125,13 +132,16 @@ PUBLIC task_struct_t *prog_execute
     {
         return NULL;
     }
-    pid_t pid = task_alloc();
-    if (pid == MAX_TASK)
+    status_t status;
+    pid_t pid;
+    status = task_alloc(OUT(&pid));
+    if (ERROR(status))
     {
         return NULL;
     }
-    void *kstack_base = pmalloc(kstack_size);
-    if (kstack_base == NULL)
+    void *kstack_base;
+    status = pmalloc(IN(kstack_size),OUT(&kstack_base));
+    if (ERROR(status))
     {
         task_free(pid);
         return NULL;
