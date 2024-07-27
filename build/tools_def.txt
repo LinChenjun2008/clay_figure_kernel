@@ -32,19 +32,24 @@ KERNEL_FLAGS     := -I$(KERNEL_ARCH_INCLUDE_PATH) -I$(SRC_PATH) -I$(KERNEL_INCLU
  -finput-charset=UTF-8 -fexec-charset=UTF-8 \
  -fno-builtin -fno-strict-aliasing -ffreestanding \
  -fstrength-reduce -falign-loops -falign-jumps \
- -fwrapv \
+ -fno-pic \
  -mno-red-zone -m64 -mcmodel=large -march=x86-64 \
  -O0 \
  -g3 -gdwarf-2 -gstrict-dwarf
 
-QEMU_FLAGS :=  -m 128M -bios $(OVMF) \
- -smp 4,cores=4,threads=1,sockets=1 \
+# -fwrapv
+
+QEMU_FLAGS := -m 128M -bios $(OVMF) \
+ -smp $(SMP_CORES),cores=$(SMP_CORES),threads=1,sockets=1 \
  -drive file=fat:rw:$(ESP_PATH),index=0,format=vvfat -net none \
+ -usb \
  -device nec-usb-xhci,id=xhci \
  -device usb-kbd \
  -device usb-mouse \
  -no-shutdown \
- -chardev stdio,mux=on,id=com1 \
- -serial chardev:com1 \
+ -monitor stdio \
 
+# -device qemu-xhci,id=xhci
 # -d cpu_reset
+# -chardev stdio,mux=on,id=com1 \
+ -serial chardev:com1 \
