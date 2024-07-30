@@ -8,7 +8,7 @@
 # 编译工具
 在Linux上，你可以使用下方的命令安装所需程序：
 ```sh
-sudo apt-get install gcc g++ gcc-mingw-w64-x86_64 qemu-system-x86 ovmf
+sudo apt-get install gcc g++ gcc-mingw-w64-x86-64 qemu-system-x86 ovmf
 ```
 在windows上，从以下网站下载所需的工具:
 

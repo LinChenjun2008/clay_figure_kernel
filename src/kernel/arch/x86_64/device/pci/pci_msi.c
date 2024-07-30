@@ -111,7 +111,7 @@ PUBLIC void configure_msi
     }
 }
 
-PUBLIC uint32_t pci_dev_configure_msi(pci_device_t *dev,uint32_t irq,uint32_t count)
+PUBLIC status_t pci_dev_configure_msi(pci_device_t *dev,uint32_t irq,uint32_t count)
 {
     if (!dev->msi.msi_capable)
     {
@@ -150,13 +150,13 @@ PUBLIC uint32_t pci_dev_configure_msi(pci_device_t *dev,uint32_t irq,uint32_t co
     return K_SUCCESS;
 }
 
-PUBLIC void pci_dev_enable_msi(pci_device_t *dev)
+PUBLIC status_t pci_dev_enable_msi(pci_device_t *dev)
 {
     pci_msi_struct_t *msi = &dev->msi;
     if (msi->configured_count == 0)
     {
         pr_log("\3 No MSI configured.\n");
-        return;
+        return K_ERROR;
     }
     uint32_t pci_command = pci_dev_config_read(dev,0x04);
     pci_command |= 1 << 10; // interrupt disable
@@ -166,5 +166,5 @@ PUBLIC void pci_dev_enable_msi(pci_device_t *dev)
     pci_dev_config_write(dev,msi->cap_addr + 0x00,msi->msg_ctrl << 16);
 
     pr_log("\2 MSI Enable: %s.\n",(pci_dev_config_read(dev,msi->cap_addr) >> 16) & 1 ? "Enabled" : "Failed");
-    return;
+    return K_SUCCESS;
 }

@@ -11,15 +11,23 @@ PUBLIC void allocate_table_init(allocate_table_t *table,
     return;
 }
 
-PUBLIC uint64_t allocate_units(allocate_table_t *table,uint64_t number_of_units)
+PUBLIC status_t allocate_units
+(
+    IN(allocate_table_t *table,uint64_t number_of_units),
+    OUT(uint64_t *index)
+)
 {
+    if (index == NULL)
+    {
+        return K_ERROR;
+    }
     uint64_t i;
-    uint64_t index;
+    uint64_t j;
     for (i = 0;i < table->number_of_entries;i++)
     {
         if (table->entries[i].number_of_units >= number_of_units)
         {
-            index = table->entries[i].index;
+            j = table->entries[i].index;
             table->entries[i].index += number_of_units;
             table->entries[i].number_of_units -= number_of_units;
             if (table->entries[i].number_of_units == 0)
@@ -31,7 +39,8 @@ PUBLIC uint64_t allocate_units(allocate_table_t *table,uint64_t number_of_units)
                     i++;
                 }
             }
-            return index;
+            *index = j;
+            return K_SUCCESS;
         }
     }
     return K_ERROR;

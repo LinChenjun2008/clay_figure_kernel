@@ -1,11 +1,11 @@
 #include <kernel/global.h>
 #include <device/pci.h>
-#include <device/usb/hci/xhci.h>
+#include <device/usb/xhci.h>
 #include <mem/mem.h>
 #include <io.h>
 #include <device/pic.h>
 #include <intr.h>
-
+#include <kernel/syscall.h>
 #include <lib/list.h>
 
 #include <log.h>
@@ -52,7 +52,7 @@ PRIVATE void xhci_reset()
     xhci_write_opt_reg32(XHCI_OPT_REG_USBCMD,usbcmd);
     // Wait 1ms
     intr_status_t intr_status = intr_enable();
-    pr_log("\1 xHCI reseting,wait 1ms.\n");
+    pr_log("\1 xHCI resetting,wait 1ms.\n");
     uint64_t old_ticks = global_ticks;
     while(global_ticks < old_ticks + 10);
     intr_set_status(intr_status);
@@ -72,7 +72,7 @@ PRIVATE void xhci_start()
     }
     xhci_write_opt_reg32(XHCI_OPT_REG_CONFIG,xhci.max_slots);
     uint32_t hcsparam2 = xhci_read_cap_reg32(XHCI_CAP_REG_HCSPARAM2);
-    xhci.scrath_chapad_count = HCSP2_MAX_SC_BUF(hcsparam2);
+    xhci.scrath_chapad_count = GET_HCSP2_MAX_SC_BUF(hcsparam2);
     if (xhci.scrath_chapad_count > XHCI_MAX_SCRATCHPADS)
     {
         pr_log("\3 invalid number of scrath chapad: %d.\n",xhci.scrath_chapad_count);
@@ -82,8 +82,9 @@ PRIVATE void xhci_start()
     xhci_write_opt_reg32(XHCI_OPT_REG_DNCTRL,0);
 
     uint8_t* buf;
-    buf = pmalloc(sizeof(*xhci.dev_cxt_arr));
-    if (buf == NULL)
+    status_t status;
+    status = pmalloc(IN(sizeof(*xhci.dev_cxt_arr)),OUT(&buf));
+    if (ERROR(status))
     {
         pr_log("\3 Can not alloc addr for DCBA.\n");
         return;
@@ -95,8 +96,9 @@ PRIVATE void xhci_start()
     uint32_t i;
     for (i = 0;i < xhci.scrath_chapad_count;i++)
     {
-        void *buf_arr = pmalloc(4096);
-        if (buf_arr == NULL)
+        void *buf_arr;
+        status = pmalloc(IN(4096),OUT(&buf_arr));
+        if (ERROR(status))
         {
             pr_log("\3 Can not alloc memory for scratchpad_buf_arr[%d].\n",i);
             return;
@@ -110,11 +112,12 @@ PRIVATE void xhci_start()
     xhci_write_opt_reg32(XHCI_OPT_REG_DCBAPP_HI,(phy_addr_t)buf >> 32);
 
     // Event Ring
-    buf = pmalloc(sizeof(*xhci.erst)
+    status = pmalloc(IN(sizeof(*xhci.erst)
                   + (XHCI_MAX_COMMANDS + XHCI_MAX_EVENTS)
-                  * sizeof(xhci_trb_t));
+                  * sizeof(xhci_trb_t)),
+                  OUT(&buf));
 
-    if (buf == NULL)
+    if (ERROR(status))
     {
         pr_log("\3 Can not alloc addr for DCBA.\n");
         return;
@@ -188,15 +191,15 @@ PRIVATE void xhci_start()
     return;
 }
 
-PRIVATE void intr_xHCI_handler(intr_stack_t *stack)
+extern apic_t apic;
+PRIVATE void intr_xHCI_handler()
 {
     eoi(IRQ_XHCI);
-    (void)stack;
-    pr_log("\2 xHCI interrupt.\n");
+    inform_intr(USB_SRV);
     return;
 }
 
-PUBLIC void xhci_init()
+PUBLIC status_t xhci_init()
 {
     register_handle(IRQ_XHCI,intr_xHCI_handler);
 
@@ -208,7 +211,7 @@ PUBLIC void xhci_init()
     if (device == NULL)
     {
         pr_log("\3xhci_dev not found.\n");
-        return;
+        return K_ERROR;
     }
     pr_log("\1 xhci_dev vendor ID: %04x.\n",pci_dev_config_read(device,0) & 0xffff);
 
@@ -219,29 +222,36 @@ PUBLIC void xhci_init()
     xhci_mmio_base      = (addr_t)KADDR_P2V(xhci_mmio_base);
     uint8_t cap_length  = *(uint8_t*)xhci_mmio_base & 0xff;
 
-    xhci.mmio_base = (void*)xhci_mmio_base;
-    xhci.cap_regs  = (uint8_t*)xhci_mmio_base;
-    xhci.opt_regs  = xhci.cap_regs + cap_length;
-    xhci.run_regs  = xhci.cap_regs + xhci_read_cap_reg32(XHCI_CAP_REG_RSTOFF);
-    xhci.max_ports = HCSP1_MAX_PORTS(xhci_read_cap_reg32(XHCI_CAP_REG_HCSPARAM1));
-    xhci.max_slots = HCSP1_MAX_SLOTS(xhci_read_cap_reg32(XHCI_CAP_REG_HCSPARAM1));
+    xhci.mmio_base     = (void*)xhci_mmio_base;
+    xhci.cap_regs      = (uint8_t*)xhci_mmio_base;
+    xhci.opt_regs      = xhci.cap_regs + cap_length;
+    xhci.run_regs      = xhci.cap_regs + xhci_read_cap_reg32(XHCI_CAP_REG_RSTOFF);
+    xhci.doorbell_regs = xhci.cap_regs + (xhci_read_cap_reg32(XHCI_CAP_REG_DBOFF) & 3);
+
+    xhci.max_ports = GET_HCSP1_MAX_PORTS(xhci_read_cap_reg32(XHCI_CAP_REG_HCSPARAM1));
+    xhci.max_slots = GET_HCSP1_MAX_SLOTS(xhci_read_cap_reg32(XHCI_CAP_REG_HCSPARAM1));
 
     xhci.msi_vector = IRQ_XHCI;
+
+    xhci.event_cycle_bit   = 1;
+    xhci.command_cycle_bit = 1;
+    xhci.event_index       = 0;
+    xhci.command_index     = 0;
 
     uint16_t hci_ver = HCIVERSION(xhci_read_cap_reg32(XHCI_CAP_REG_HCIVERSION));
     pr_log("\1 interface version: %04x\n",hci_ver);
     if (hci_ver < 0x0090 || hci_ver > 0x0120)
     {
         pr_log("\3 Unsupported HCI version.\n");
-        return;
+        return K_ERROR;
     }
     uint32_t hccparams = xhci_read_cap_reg32(XHCI_CAP_REG_HCCPARAMS);
     pr_log("\1 HCCPARAMS: %08x\n",hccparams);
     if (hccparams == 0xffffffff)
     {
-        return;
+        return K_ERROR;
     }
-    xhci.cxt_size = HCCP_CSZ(hccparams) == 1 ? 64 : 32;
+    xhci.cxt_size = GET_HCCP_CSZ(hccparams) == 1 ? 64 : 32;
 
     if ((pci_dev_config_read(device,0) & 0xffff) == 0x8086)
     {
@@ -278,12 +288,13 @@ PUBLIC void xhci_init()
     if (ERROR(status))
     {
         pr_log("\3 xHCI: can not configure MSI.\n");
-        return;
+        // return;
     }
     pci_dev_enable_msi(device);
     pr_log("\1 xHCI init done.\n");
     pr_usbsts();
     xhci_start();
+    return K_SUCCESS;
 }
 
 PUBLIC uint32_t xhci_read_cap_reg32(uint32_t reg)
@@ -312,4 +323,78 @@ PUBLIC void xhci_write_run_reg32(uint32_t reg,uint32_t val)
     *(volatile uint32_t*)(xhci.run_regs + reg) = val;
 
     return;
+}
+
+PUBLIC uint32_t xhci_read_doorbell_reg32(uint32_t reg)
+{
+    return *(volatile uint32_t*)(xhci.doorbell_regs + reg);
+}
+
+PUBLIC void xhci_write_doorbell_reg32(uint32_t reg,uint32_t val)
+{
+    *(volatile uint32_t*)(xhci.doorbell_regs + reg) = val;
+}
+
+PRIVATE void queue_command(xhci_trb_t *trb)
+{
+    uint8_t i,j;
+    uint32_t temp;
+    i = xhci.command_index;
+    j = xhci.command_cycle_bit;
+    xhci.command_ring[i].addr   = trb->addr;
+    xhci.command_ring[i].status = trb->status;
+
+    temp = trb->flags;
+
+    j ? (temp |= TRB_3_CYCLE_BIT) : (temp &= TRB_3_CYCLE_BIT);
+    temp &= ~TRB_3_TC_BIT;
+    xhci.command_ring[i].flags = temp;
+
+    xhci.command_addr =  xhci.erst->rs_addr
+                       + (XHCI_MAX_EVENTS + i) *sizeof(xhci_trb_t);
+
+    i++;
+    if (i == XHCI_MAX_COMMANDS - 1)
+    {
+        temp = TRB_3_TYPE(TRB_TYPE_LINK) | TRB_3_TC_BIT;
+        if (j) {temp |= TRB_3_CYCLE_BIT;}
+        xhci.command_ring[i].flags = temp;
+        i = 0;
+        j ^= 1;
+    }
+    xhci.command_index     = i;
+    xhci.command_cycle_bit = j;
+    return;
+}
+
+PRIVATE void xhci_ring(uint8_t slot,uint8_t endpoint)
+{
+    xhci_write_doorbell_reg32
+    (
+        XHCI_DOORBELL(slot),
+        XHCI_DOORBELL_TARGET(endpoint) | XHCI_DOORBELL_STREAMID(0)
+    );
+    xhci_read_doorbell_reg32(XHCI_DOORBELL(slot));
+    return;
+
+}
+
+PUBLIC status_t xhci_do_command(xhci_trb_t *trb)
+{
+    queue_command(trb);
+    xhci_ring(0,0);
+
+    pr_log("\2 wait command.\n");
+    // while(!xhci.command_completion);
+    xhci.command_completion = FALSE;
+    pr_log("\3 xHCI command done.\n");
+    uint32_t completion_code = GET_TRB_2_COMP_CODE(xhci.command_result[0]);
+    if (completion_code != COMP_SUCCESS)
+    {
+        pr_log("\3 xHCI command error.\n");
+        return K_ERROR;
+    }
+    trb->status = xhci.command_result[0];
+    trb->flags  = xhci.command_result[1];
+    return K_SUCCESS;
 }

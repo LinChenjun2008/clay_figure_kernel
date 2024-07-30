@@ -48,35 +48,39 @@ PRIVATE mem_block_t* cache2block(mem_cache_t *c,int idx)
 
 PRIVATE mem_cache_t* block2cache(mem_block_t *b)
 {
-    return ((mem_cache_t*)((addr_t)b & 0xffffffffffe00000));
+    return ((mem_cache_t*)((uintptr_t)b & 0xffffffffffe00000));
 }
 
-PUBLIC void* pmalloc(size_t size)
+PUBLIC status_t pmalloc(IN(size_t size),OUT(void *addr))
 {
-
+    if (addr == NULL)
+    {
+        return K_ERROR;
+    }
     int i;
     mem_cache_t *c;
     mem_block_t *b;
     if (size > MAX_ALLOCATE_MEMORY_SIZE)
     {
-        return NULL;
+        return K_ERROR;
     }
     for (i = 0;i < NUMBER_OF_MEMORY_BLOCK_TYPES;i++)
     {
         if (size <= mem_groups[i].block_size)
         {
-            spinlock_lock(&mem_groups[i].lock);
             break;
         }
     }
+    spinlock_lock(&mem_groups[i].lock);
     if (list_empty(&mem_groups[i].free_block_list))
     {
-        c = KADDR_P2V(alloc_physical_page(1));
-        if (c == NULL)
+        status_t status = alloc_physical_page(IN(1),OUT(&c));
+        if (ERROR(status))
         {
             spinlock_unlock(&mem_groups[i].lock);
-            return NULL;
+            return K_ERROR;
         }
+        c = KADDR_P2V(c);
         memset(c,0,PG_SIZE);
         c->group            = &mem_groups[i];
         c->number_of_blocks = (PG_SIZE - sizeof(*c)
@@ -97,7 +101,8 @@ PUBLIC void* pmalloc(size_t size)
     c->cnt--;
     mem_groups[i].total_free--;
     spinlock_unlock(&mem_groups[i].lock);
-    return (void*)KADDR_V2P(b);
+    *(phy_addr_t*)addr = (phy_addr_t)KADDR_V2P(b);
+    return K_SUCCESS;
 }
 
 PUBLIC void pfree(void *addr)

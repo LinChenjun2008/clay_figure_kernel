@@ -51,7 +51,7 @@ PUBLIC void configure_msi
     uint8_t num_vector_exponent
 );
 
-PUBLIC uint32_t pci_dev_configure_msi(pci_device_t *dev,uint32_t irq,uint32_t count);
-PUBLIC void pci_dev_enable_msi(pci_device_t *dev);
+PUBLIC status_t pci_dev_configure_msi(pci_device_t *dev,uint32_t irq,uint32_t count);
+PUBLIC status_t pci_dev_enable_msi(pci_device_t *dev);
 
 #endif

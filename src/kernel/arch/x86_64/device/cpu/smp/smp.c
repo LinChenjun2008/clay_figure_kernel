@@ -57,18 +57,22 @@ PRIVATE void ipi_timer_handler()
 }
 
 
-PUBLIC void smp_start()
+PUBLIC status_t smp_start()
 {
     // copy ap_boot
     size_t ap_boot_size = (addr_t)AP_BOOT_END - (addr_t)AP_BOOT_BASE;
     memcpy((void*)KADDR_P2V(0x7c000),AP_BOOT_BASE,ap_boot_size);
 
     // allocate stack for apu
-    void *apu_stack_base = alloc_physical_page(((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1);
-    if (apu_stack_base == NULL)
+    status_t status;
+    void *apu_stack_base;
+    status = alloc_physical_page
+                        (IN(((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1),
+                         OUT(&apu_stack_base));
+    if (ERROR(status))
     {
         pr_log("\3 fatal: can not alloc memory for apu. \n");
-        return;
+        return K_ERROR;
     }
     *(phy_addr_t*)AP_STACK_BASE_PTR = (phy_addr_t)apu_stack_base;
 
@@ -77,7 +81,15 @@ PUBLIC void smp_start()
     {
         char name[16];
         sprintf(name,"idle(%d)",i);
-        task_struct_t *main_task   = pid2task(task_alloc());
+        pid_t ap_main_pid;
+        status = task_alloc(OUT(&ap_main_pid));
+        if (ERROR(status))
+        {
+            pr_log("\3 Alloc task for AP error.\n");
+            free_physical_page(apu_stack_base,((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1);
+            return K_ERROR;
+        }
+        task_struct_t *main_task   = pid2task(ap_main_pid);
         addr_t         kstack_base;
         kstack_base = (addr_t)
                       KADDR_P2V(apu_stack_base + (i - 1) * KERNEL_STACK_SIZE);
@@ -95,8 +107,6 @@ PUBLIC void smp_start()
 
     // register IPI
     register_handle(0x80,ipi_timer_handler);
-
-    pr_log("\2 Init IPI \n");
 
     // init IPI
     uint64_t icr = make_icr
@@ -123,11 +133,10 @@ PUBLIC void smp_start()
         ICR_ALL_EXCLUDE_SELF,
         0
     );
-    pr_log("\2 Start-up IPI \n");
     send_IPI(icr);
     send_IPI(icr);
-    pr_log("\2 Start-up IPI done. \n");
 
+    return K_SUCCESS;
 }
 
 PUBLIC void send_IPI(uint64_t icr)

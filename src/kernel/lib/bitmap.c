@@ -15,8 +15,12 @@ PUBLIC bool bitmap_scan_test(bitmap_t *btmp,int32_t bit_index)
     return btmp->map[byte_index] & (1 << bit_odd);
 }
 
-PUBLIC int32_t bitmap_alloc(bitmap_t *btmp,int32_t cnt)
+PUBLIC status_t bitmap_alloc(IN(bitmap_t *btmp,int32_t cnt),OUT(uint32_t *index))
 {
+    if (index == NULL)
+    {
+        return K_ERROR;
+    }
     int32_t byte_index = 0;
     while ((byte_index < btmp->btmp_bytes_len)
         && (btmp->map[byte_index] == 0xff))
@@ -40,7 +44,8 @@ PUBLIC int32_t bitmap_alloc(bitmap_t *btmp,int32_t cnt)
         }
         if (free_bits == cnt)
         {
-            return bit_index;
+            *index = bit_index;
+            return K_SUCCESS;
         }
         bit_index += free_bits;
     }

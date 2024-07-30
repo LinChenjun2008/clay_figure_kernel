@@ -15,9 +15,12 @@
 #define TASK_LEVEL_NORMAL 1
 #define TASK_LEVEL_LOW    2
 
-#define ERROR(x) ((x) == K_ERROR)
-#define K_ERROR          -1U
-#define K_SUCCESS         0
+#define IN(x...) x
+#define OUT(x...) x
+
+#define ERROR(x) ((x) != K_SUCCESS)
+#define K_ERROR          0xc0000000
+#define K_SUCCESS        0x80000000
 
 #include <kernel/def.h>
 #include <kernel/const.h>

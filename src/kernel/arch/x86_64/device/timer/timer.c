@@ -9,7 +9,7 @@
 
 #include <log.h>
 
-PUBLIC uint64_t global_ticks;
+PUBLIC volatile uint64_t global_ticks;
 
 PRIVATE void irq_timer_handler()
 {

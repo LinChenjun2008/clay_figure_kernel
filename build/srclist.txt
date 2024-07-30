@@ -29,13 +29,15 @@ $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/cpu/smp/spinlock.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/timer/timer.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pci/pci.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pci/pci_msi.c \
-$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/usb/hci/xhci.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/usb/xhci/xhci.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/usb/service/usb.c \
  \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/tss.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/task.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/schedule.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/asm_schedule.S \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/prog.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/sync/atomic.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/mem/mem.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/syscall.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/asm_syscall.S \
@@ -43,11 +45,11 @@ $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/ipc.c \
  \
 $(KERNEL_SRC_PATH)/service/service.c \
 $(KERNEL_SRC_PATH)/service/tick/tick.c \
-$(KERNEL_SRC_PATH)/service/mm/mm.c \
 $(KERNEL_SRC_PATH)/service/view/view.c \
-$(KERNEL_SRC_PATH)/service/usb/usb.c \
  \
 $(KERNEL_SRC_PATH)/mem/allocator.c \
+$(KERNEL_SRC_PATH)/mem/service/mm.c \
+$(KERNEL_SRC_PATH)/sync/semaphore.c \
 $(KERNEL_SRC_PATH)/lib/alloc_table.c \
 $(KERNEL_SRC_PATH)/lib/bitmap.c \
 $(KERNEL_SRC_PATH)/lib/list.c \

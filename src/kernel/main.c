@@ -13,7 +13,7 @@
 
 boot_info_t *g_boot_info = (boot_info_t*)0xffff800000310000;
 
-extern uint64_t global_ticks;
+extern volatile uint64_t global_ticks;
 
 void ktask()
 {
@@ -38,6 +38,7 @@ void ktask()
 
 void kernel_main()
 {
+    global_log_cnt = 0;
     pr_log("\1 Kernel initializing.\n");
     init_all();
     pr_log("\1 Kernel initializing done.\n");

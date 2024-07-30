@@ -17,7 +17,12 @@ typedef struct
 PUBLIC void allocate_table_init(allocate_table_t *table,
                                 allocate_table_entry_t *entries,
                                 uint64_t number_of_entries);
-PUBLIC uint64_t allocate_units(allocate_table_t *table,uint64_t number_of_units);
+PUBLIC status_t allocate_units
+(
+    IN(allocate_table_t *table,uint64_t number_of_units),
+    OUT(uint64_t *index)
+);
+
 PUBLIC void free_units(allocate_table_t *table,uint64_t index,
                        uint64_t number_of_units);
 PUBLIC uint64_t total_free_units(allocate_table_t *table);

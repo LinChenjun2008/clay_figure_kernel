@@ -25,9 +25,9 @@ PUBLIC void usb_main();
 
 PUBLIC void service_init()
 {
-    service_pid_table[TICK - SERVICE_ID_BASE] = prog_execute("TICK",SERVICE_PRIORITY,4096,tick_main)->pid;
-    service_pid_table[MM   - SERVICE_ID_BASE] =   task_start(  "MM",SERVICE_PRIORITY,4096,mm_main,0)->pid;
-    service_pid_table[VIEW - SERVICE_ID_BASE] = prog_execute("VIEW",SERVICE_PRIORITY,4096,view_main)->pid;
-
+    service_pid_table[TICK    - SERVICE_ID_BASE] = prog_execute(       "TICK",SERVICE_PRIORITY,4096,tick_main)->pid;
+    service_pid_table[MM      - SERVICE_ID_BASE] =   task_start(         "MM",SERVICE_PRIORITY,4096,mm_main,0)->pid;
+    service_pid_table[VIEW    - SERVICE_ID_BASE] = prog_execute(       "VIEW",SERVICE_PRIORITY,4096,view_main)->pid;
+    service_pid_table[USB_SRV - SERVICE_ID_BASE] =   task_start("USB service",SERVICE_PRIORITY,4096,usb_main,0)->pid;
     return;
 }

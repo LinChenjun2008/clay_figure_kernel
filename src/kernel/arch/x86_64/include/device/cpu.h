@@ -71,7 +71,7 @@ PUBLIC uint64_t make_icr
     uint8_t  des_shorthand,
     uint32_t destination
 );
-PUBLIC void smp_start();
+PUBLIC status_t smp_start();
 PUBLIC void send_IPI(uint64_t icr);
 
 extern uint8_t AP_BOOT_BASE[];

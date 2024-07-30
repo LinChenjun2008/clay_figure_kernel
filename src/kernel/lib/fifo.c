@@ -27,8 +27,12 @@ PUBLIC void init_fifo(fifo_t *fifo,void *buf,int type,int size)
 }
 
 
-PUBLIC int fifo_put(fifo_t *fifo,void* data)
+PUBLIC status_t fifo_put(IN(fifo_t *fifo,void* data))
 {
+    if (data == NULL)
+    {
+        return K_ERROR;
+    }
     intr_status_t intr_status = intr_disable();
 
     if (fifo->free == 0) /* 没有空余 */
@@ -56,8 +60,12 @@ PUBLIC int fifo_put(fifo_t *fifo,void* data)
     return K_SUCCESS;
 }
 
-PUBLIC int fifo_get(fifo_t *fifo,void* data)
+PUBLIC status_t fifo_get(IN(fifo_t *fifo),OUT(void* data))
 {
+    if (data == NULL)
+    {
+        return K_ERROR;
+    }
     intr_status_t intr_status = intr_disable();
     if (fifo->free == fifo->size) /* 缓冲区是空的 */
     {
