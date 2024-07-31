@@ -1,12 +1,75 @@
 #include <kernel/global.h>
 #include <kernel/syscall.h>
 #include <service.h>
+#include <ulib.h>
 
-PRIVATE uint64_t tick = 0;
+#include <log.h>
+#include <task/task.h>
+
+#define MAX_TIMERS 512
+
+#define TIMER_UNUSED       0
+#define TIMER_WAIT_TIMEOUT 1
+
+typedef struct
+{
+    uint64_t timeout;
+    uint32_t flag;
+    pid_t    holder;
+} timer_t;
+
+typedef struct
+{
+    uint64_t ticks;
+    uint64_t using_timers;
+    timer_t  timers[MAX_TIMERS];
+} timer_manager_t;
+
+PRIVATE timer_manager_t time_manager;
+
+PRIVATE status_t add_timer(message_t *msg)
+{
+    int i;
+    for (i = 0;i < MAX_TIMERS;i++)
+    {
+        if (time_manager.timers[i].flag == TIMER_UNUSED)
+        {
+            time_manager.using_timers++;
+            time_manager.timers[i].timeout = time_manager.ticks + msg->m3.l1;
+            time_manager.timers[i].flag    = TIMER_WAIT_TIMEOUT;
+            time_manager.timers[i].holder  = msg->src;
+            pr_log("timer set:%d,timeout: %d, holder: %d.\n",i,msg->m3.l1,msg->src);
+            return K_SUCCESS;
+        }
+    }
+    return K_ERROR;
+}
+
+PRIVATE void wake_up()
+{
+    int i;
+    for (i = 0;i < MAX_TIMERS;i++)
+    {
+        if (time_manager.timers[i].flag != TIMER_UNUSED && time_manager.ticks >= time_manager.timers[i].timeout)
+        {
+            message_t msg;
+            msg.m3.l1 = 0;
+            send_recv(NR_SEND,time_manager.timers[i].holder,&msg);
+            time_manager.using_timers--;
+            time_manager.timers[i].flag = TIMER_UNUSED;
+        }
+    }
+}
 
 PUBLIC void tick_main()
 {
-    tick = 0;
+    time_manager.ticks        = 0;
+    time_manager.using_timers = 0;
+    int i;
+    for (i = 0;i < MAX_TIMERS;i++)
+    {
+        time_manager.timers[i].flag = TIMER_UNUSED;
+    }
     message_t msg;
     while(1)
     {
@@ -14,11 +77,15 @@ PUBLIC void tick_main()
         switch (msg.type)
         {
             case RECV_FROM_INT:
-                tick += msg.m1.i1;
+                time_manager.ticks += msg.m1.i1;
+                wake_up();
                 break;
             case TICK_GET_TICKS:
-                msg.m3.l1 = tick;
+                msg.m3.l1 = time_manager.ticks;
                 send_recv(NR_SEND,msg.src,&msg);
+                break;
+            case TICK_SLEEP:
+                add_timer(&msg);
                 break;
             default:
                 break;
