@@ -21,7 +21,7 @@ typedef struct
     list_node_t tail;
 } list_t;
 
-typedef bool (func) (list_node_t * ,wordsize_t arg);
+typedef bool (func) (list_node_t *,uint64_t);
 
 PUBLIC void list_init(list_t *list);
 PUBLIC void list_in(list_node_t *node,list_node_t *in_before);

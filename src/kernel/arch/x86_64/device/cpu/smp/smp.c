@@ -38,21 +38,7 @@ PUBLIC uint64_t make_icr
 PRIVATE void ipi_timer_handler()
 {
     eoi(0x80);
-    task_struct_t *cur_task = running_task();
-    if (cur_task == NULL)
-    {
-        pr_log("\3 cur_task == NULL.(%d)",apic_id());
-        return;
-    }
-    cur_task->elapsed_ticks++;
-    if (cur_task->ticks == 0)
-    {
-        schedule();
-    }
-    else
-    {
-        cur_task->ticks--;
-    }
+    do_schedule();
     return;
 }
 

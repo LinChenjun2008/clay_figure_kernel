@@ -37,13 +37,13 @@ PUBLIC void prog_exit()
 
 PRIVATE void start_process(void *process)
 {
-    intr_status_t intr_status = intr_disable();
+    // intr_status_t intr_status = intr_disable();
     void *func = process;
     task_struct_t *cur = running_task();
     addr_t kstack = (addr_t)cur->context;
     kstack += sizeof(task_context_t);
     intr_stack_t *proc_stack = (intr_stack_t*)kstack;
-
+    memset(proc_stack,0,sizeof(*proc_stack));
     proc_stack->r15 = 0;
     proc_stack->r14 = 0;
     proc_stack->r13 = 0;
@@ -89,7 +89,7 @@ PRIVATE void start_process(void *process)
     proc_stack->rsp = USER_STACK_VADDR_BASE + PG_SIZE;
 
     proc_stack->ss = SELECTOR_DATA64_U;
-    intr_set_status(intr_status);
+    // intr_set_status(intr_status);
     __asm__ __volatile__
     (
         "movq %0, %%rsp\n\t"

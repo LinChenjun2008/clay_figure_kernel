@@ -160,8 +160,8 @@ PUBLIC task_struct_t* init_task_struct
     task->status         = TASK_READY;
     task->spinlock_count = 0;
     task->priority       = priority;
-    task->ticks          = 0;
-    task->elapsed_ticks  = 0;
+    task->jiffies        = 0;
+    task->vrun_time      = running_task()->vrun_time;
 
     task->cpu_id         = apic_id();
     task->page_dir       = NULL;
@@ -227,7 +227,7 @@ PUBLIC task_struct_t* task_start
 
 PRIVATE void make_main_task(void)
 {
-    tm.task_table[0].status = TASK_USING;
+    tm.task_table[0].status  = TASK_USING;
     task_struct_t *main_task = pid2task(0);
     init_task_struct(main_task,
                     "Main task",

@@ -43,6 +43,8 @@ PUBLIC void list_remove(list_node_t *node)
     intr_status_t intr_status = intr_disable();
     node->prev->next = node->next;
     node->next->prev = node->prev;
+    node->next = NULL;
+    node->prev = NULL;
     intr_set_status(intr_status);
     return;
 }

@@ -48,8 +48,8 @@ typedef struct
     volatile task_status_t status;
     uint64_t               spinlock_count;
     uint64_t               priority;
-    uint64_t               ticks;
-    uint64_t               elapsed_ticks;
+    uint64_t               jiffies;
+    uint64_t               vrun_time;
 
     list_node_t            general_tag;
 
@@ -100,6 +100,7 @@ PUBLIC task_struct_t* task_start
 PUBLIC void task_init();
 
 /// schedule.c
+PUBLIC void do_schedule();
 PUBLIC void schedule();
 PUBLIC void task_block(task_status_t status);
 PUBLIC void task_unblock(pid_t pid);

@@ -7,8 +7,8 @@
 // #define __TIMER_HPET__
 #define __TIMER_8254__
 
-#define DEFAULT_PRIORITY 1
-#define SERVICE_PRIORITY 3
+#define DEFAULT_PRIORITY 3
+#define SERVICE_PRIORITY 1
 
 #define IN(x...) x
 #define OUT(x...) x
