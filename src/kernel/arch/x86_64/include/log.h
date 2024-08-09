@@ -82,6 +82,7 @@ static inline void pr_log(const char *log,...)
         }
         basic_print(0x00ffffff,"[%8d]",global_log_cnt);
         __asm__ __volatile__("lock incq %0":"=m"(global_log_cnt)::"memory");
+        log = log + 1;
     }
     va_list ap;
     va_start(ap,log);

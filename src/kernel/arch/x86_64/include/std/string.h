@@ -50,7 +50,7 @@ static __inline__ int32_t strcmp(const char *str1__,const char *str2__)
 
 static __inline__ int32_t strncmp(const char *str1__,const char *str2__,size_t n)
 {
-    while (--n && *str1__++ == *str2__++)
+    while (--n && *str1__++ == *str2__++);
     return (*str1__ < *str2__ ? -1 : *str1__ > *str2__);
 }
 

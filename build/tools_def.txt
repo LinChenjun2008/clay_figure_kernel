@@ -32,12 +32,10 @@ KERNEL_FLAGS     := -I$(KERNEL_ARCH_INCLUDE_PATH) -I$(SRC_PATH) -I$(KERNEL_INCLU
  -finput-charset=UTF-8 -fexec-charset=UTF-8 \
  -fno-builtin -fno-strict-aliasing -ffreestanding \
  -fstrength-reduce -falign-loops -falign-jumps \
- -fno-pic \
+ -fno-pic -fwrapv\
  -mno-red-zone -m64 -mcmodel=large -march=x86-64 \
  -O0 \
  -g3 -gdwarf-2 -gstrict-dwarf
-
-# -fwrapv
 
 QEMU_FLAGS := -m 128M -bios $(OVMF) \
  -smp $(SMP_CORES),cores=$(SMP_CORES),threads=1,sockets=1 \

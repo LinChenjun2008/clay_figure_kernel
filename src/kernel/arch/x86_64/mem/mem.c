@@ -45,13 +45,13 @@ typedef struct
     uint64_t  Attribute;
 } __attribute__((aligned(16))) EFI_MEMORY_DESCRIPTOR;
 
-struct
+PRIVATE struct
 {
     bitmap_t   page_bitmap;
     spinlock_t lock;
 } mem;
 
-PRIVATE uint8_t  page_bitmap_map[PAGE_BITMAP_BYTES_LEN];
+PRIVATE uint8_t page_bitmap_map[PAGE_BITMAP_BYTES_LEN];
 
 PRIVATE size_t page_size_round_up(addr_t page_addr)
 {
@@ -172,6 +172,7 @@ PUBLIC status_t alloc_physical_page(IN(uint64_t number_of_pages),OUT(void *addr)
     if (ERROR(status))
     {
         spinlock_unlock(&mem.lock);
+        pr_log("\3 %s:Out of Memory.\n",__func__);
         return K_ERROR;
     }
     phy_addr_t paddr = 0;
@@ -213,19 +214,19 @@ PUBLIC void free_physical_page(void *addr,uint64_t number_of_pages)
 
 PUBLIC uint64_t* pml4t_entry(void *pml4t,void *vaddr)
 {
-    return (uint64_t*)pml4t + ADDR_PML4T_INDEX(vaddr);
+    return (uint64_t*)pml4t + GET_FIELD((addr_t)vaddr,ADDR_PML4T_INDEX);
 }
 
 PUBLIC uint64_t* pdpt_entry(void *pml4t,void *vaddr)
 {
     return (uint64_t*)(*(uint64_t*)KADDR_P2V(pml4t_entry(pml4t,vaddr)) & ~0xfff)
-            + ADDR_PDPT_INDEX(vaddr);
+            + GET_FIELD((addr_t)vaddr,ADDR_PDPT_INDEX);
 }
 
 PUBLIC uint64_t* pdt_entry(void *pml4t,void *vaddr)
 {
     return (uint64_t*)(*(uint64_t*)KADDR_P2V(pdpt_entry(pml4t,vaddr)) & ~0xfff)
-            + ADDR_PDT_INDEX(vaddr);
+            + GET_FIELD((addr_t)vaddr,ADDR_PDT_INDEX);
 }
 
 PUBLIC void* to_physical_address(void *pml4t,void *vaddr)
@@ -234,14 +235,14 @@ PUBLIC void* to_physical_address(void *pml4t,void *vaddr)
     uint64_t *pdpt,*v_pdpte,*pdpte;
     uint64_t *pdt,*v_pde,*pde;
     v_pml4t = KADDR_P2V(pml4t);
-    v_pml4e = v_pml4t + ADDR_PML4T_INDEX(vaddr);
+    v_pml4e = v_pml4t + GET_FIELD((addr_t)vaddr,ADDR_PML4T_INDEX);
     if (!(*v_pml4e & PG_P))
     {
         pr_log("\3 %s:vaddr pml4e not exist: %p\n",__func__,vaddr);
         return NULL;
     }
     pdpt = (uint64_t*)(*v_pml4e & (~0xfff));
-    pdpte = pdpt + ADDR_PDPT_INDEX(vaddr);
+    pdpte = pdpt + GET_FIELD((addr_t)vaddr,ADDR_PDPT_INDEX);
     v_pdpte = KADDR_P2V(pdpte);
     if (!(*v_pdpte & PG_P))
     {
@@ -249,14 +250,14 @@ PUBLIC void* to_physical_address(void *pml4t,void *vaddr)
         return NULL;
     }
     pdt = (uint64_t*)(*v_pdpte & (~0xfff));
-    pde = pdt + ADDR_PDT_INDEX(vaddr);
+    pde = pdt + GET_FIELD((addr_t)vaddr,ADDR_PDT_INDEX);
     v_pde = KADDR_P2V(pde);
     if (!(*v_pde & PG_P))
     {
         pr_log("\3 %s:vaddr pde not exist: %p\n",__func__,vaddr);
         return NULL;
     }
-    return (void*)((*v_pde & ~0xfff) + ADDR_OFFSET(vaddr));
+    return (void*)((*v_pde & ~0xfff) + GET_FIELD((addr_t)vaddr,ADDR_OFFSET));
 }
 
 PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
@@ -267,7 +268,7 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
     uint64_t *v_pdpt,*pdpt,*v_pdpte,*pdpte;
     uint64_t *v_pdt,*pdt,*v_pde,*pde;
     v_pml4t = KADDR_P2V(pml4t);
-    v_pml4e = v_pml4t + ADDR_PML4T_INDEX(vaddr);
+    v_pml4e = v_pml4t + GET_FIELD((addr_t)vaddr,ADDR_PML4T_INDEX);
     status_t status;
     if (!(*v_pml4e & PG_P))
     {
@@ -281,7 +282,7 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
         *v_pml4e = (uint64_t)pdpt | PG_US_U | PG_RW_W | PG_P;
     }
     pdpt = (uint64_t*)(*v_pml4e & (~0xfff));
-    pdpte = pdpt + ADDR_PDPT_INDEX(vaddr);
+    pdpte = pdpt + GET_FIELD((addr_t)vaddr,ADDR_PDPT_INDEX);
     v_pdpte = KADDR_P2V(pdpte);
     if (!(*v_pdpte & PG_P))
     {
@@ -295,7 +296,7 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
         *v_pdpte = (uint64_t)pdt | PG_US_U | PG_RW_W | PG_P;
     }
     pdt = (uint64_t*)(*v_pdpte & (~0xfff));
-    pde = pdt + ADDR_PDT_INDEX(vaddr);
+    pde = pdt + GET_FIELD((addr_t)vaddr,ADDR_PDT_INDEX);
     v_pde = KADDR_P2V(pde);
     *v_pde = (uint64_t)paddr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
 }
@@ -307,14 +308,14 @@ PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
     uint64_t *pdpt,*v_pdpte,*pdpte;
     uint64_t *pdt,*v_pde,*pde;
     v_pml4t = KADDR_P2V(pml4t);
-    v_pml4e = v_pml4t + ADDR_PML4T_INDEX(vaddr);
+    v_pml4e = v_pml4t + GET_FIELD((addr_t)vaddr,ADDR_PML4T_INDEX);
     if (!(*v_pml4e & PG_P))
     {
         pr_log("\3 vaddr pml4e not exist: %p\n",vaddr);
         return;
     }
     pdpt = (uint64_t*)(*v_pml4e & (~0xfff));
-    pdpte = pdpt + ADDR_PDPT_INDEX(vaddr);
+    pdpte = pdpt + GET_FIELD((addr_t)vaddr,ADDR_PDPT_INDEX);
     v_pdpte = KADDR_P2V(pdpte);
     if (!(*v_pdpte & PG_P))
     {
@@ -322,7 +323,7 @@ PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
         return;
     }
     pdt = (uint64_t*)(*v_pdpte & (~0xfff));
-    pde = pdt + ADDR_PDT_INDEX(vaddr);
+    pde = pdt + GET_FIELD((addr_t)vaddr,ADDR_PDT_INDEX);
     v_pde = KADDR_P2V(pde);
     if (!(*v_pde & PG_P))
     {

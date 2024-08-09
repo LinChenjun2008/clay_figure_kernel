@@ -14,8 +14,8 @@ PUBLIC syscall_status_t ASMLINKAGE sys_send_recv(uint32_t nr,pid_t src_dest,mess
     {
         src_dest = service_id_to_pid(src_dest);
     }
-    intr_status_t intr_status = intr_disable();
     syscall_status_t res;
+    intr_status_t intr_status = intr_disable();
     switch (nr)
     {
         case NR_SEND:
@@ -36,11 +36,11 @@ PUBLIC syscall_status_t ASMLINKAGE sys_send_recv(uint32_t nr,pid_t src_dest,mess
             res = SYSCALL_NO_SYSCALL;
             break;
     }
+    intr_set_status(intr_status);
     if (res != SYSCALL_SUCCESS)
     {
         pr_log("\3 syscall error: %x\n",res);
     }
-    intr_set_status(intr_status);
     return res;
 }
 

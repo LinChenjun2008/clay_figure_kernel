@@ -4,6 +4,8 @@
 typedef struct
 {
     volatile uint64_t lock;
+    volatile pid_t    holder;
+    volatile uint64_t holder_repeat_nr;
 } spinlock_t;
 
 PUBLIC void init_spinlock(spinlock_t *spinlock);

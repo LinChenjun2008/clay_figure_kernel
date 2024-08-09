@@ -5,6 +5,8 @@
 #include <std/string.h>
 #include <device/spinlock.h>
 
+#include <log.h>
+
 typedef struct
 {
     size_t     block_size;
@@ -78,6 +80,7 @@ PUBLIC status_t pmalloc(IN(size_t size),OUT(void *addr))
         if (ERROR(status))
         {
             spinlock_unlock(&mem_groups[i].lock);
+            pr_log("\3 %s:Out of Memory.\n",__func__);
             return K_ERROR;
         }
         c = KADDR_P2V(c);
@@ -115,10 +118,11 @@ PUBLIC void pfree(void *addr)
     mem_block_t *b;
     b = KADDR_P2V(addr);
     c = block2cache(b);
-    spinlock_lock(&c->group->lock);
-    list_append(&c->group->free_block_list,b);
+    mem_group_t *g = c->group;
+    spinlock_lock(&g->lock);
+    list_append(&g->free_block_list,b);
     c->cnt++;
-    if (c->cnt == c->number_of_blocks && c->group->total_free >= c->number_of_blocks * 3 / 2)
+    if (c->cnt == c->number_of_blocks && g->total_free >= c->number_of_blocks)
     {
         size_t idx;
         for (idx = 0;idx < c->number_of_blocks;idx++)
@@ -128,6 +132,6 @@ PUBLIC void pfree(void *addr)
         }
         free_physical_page(KADDR_V2P(c),1);
     }
-    spinlock_lock(&c->group->lock);
+    spinlock_unlock(&g->lock);
     return;
 }

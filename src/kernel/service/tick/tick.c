@@ -3,9 +3,6 @@
 #include <service.h>
 #include <ulib.h>
 
-#include <log.h>
-#include <task/task.h>
-
 #define MAX_TIMERS 512
 
 #define TIMER_UNUSED       0
@@ -38,7 +35,6 @@ PRIVATE status_t add_timer(message_t *msg)
             time_manager.timers[i].timeout = time_manager.ticks + msg->m3.l1;
             time_manager.timers[i].flag    = TIMER_WAIT_TIMEOUT;
             time_manager.timers[i].holder  = msg->src;
-            pr_log("timer set:%d,timeout: %d, holder: %d.\n",i,msg->m3.l1,msg->src);
             return K_SUCCESS;
         }
     }

@@ -37,14 +37,7 @@ PRIVATE void irq_timer_handler()
         while(1);
     }
     cur_task->elapsed_ticks++;
-    if (cur_task->ticks == 0)
-    {
-        schedule();
-    }
-    else
-    {
-        cur_task->ticks--;
-    }
+    cur_task->ticks >= cur_task->priority ? schedule() : cur_task->ticks++;
     return;
 }
 

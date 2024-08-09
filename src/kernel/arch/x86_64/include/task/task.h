@@ -42,6 +42,7 @@ typedef struct
     size_t                 ustack_size;
 
     pid_t                  pid;
+    pid_t                  ppid;
 
     char                   name[32];
     volatile task_status_t status;
@@ -68,7 +69,8 @@ typedef struct
 {
     task_struct_t task_table[MAX_TASK];
     list_t        task_list[NR_CPUS];
-    spinlock_t    task_lock;
+    spinlock_t    task_list_lock[NR_CPUS];
+    spinlock_t    task_table_lock;
 } taskmgr_t;
 
 PUBLIC task_struct_t* pid2task(pid_t pid);

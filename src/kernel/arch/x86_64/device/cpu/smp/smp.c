@@ -98,10 +98,9 @@ PUBLIC status_t smp_start()
                         DEFAULT_PRIORITY,
                         kstack_base,
                         KERNEL_STACK_SIZE);
-
-        spinlock_lock(&tm.task_lock);
+        spinlock_lock(&tm.task_list_lock[i]);
         list_append(&tm.task_list[i],&main_task->general_tag);
-        spinlock_unlock(&tm.task_lock);
+        spinlock_unlock(&tm.task_list_lock[i]);
 
     }
 

@@ -27,18 +27,18 @@ PUBLIC void schedule()
     }
     if (cur_task->status == TASK_RUNNING)
     {
-        spinlock_lock(&tm.task_lock);
+        spinlock_lock(&tm.task_list_lock[apic_id()]);
         list_append(&tm.task_list[apic_id()],&cur_task->general_tag);
-        spinlock_unlock(&tm.task_lock);
-        cur_task->ticks = cur_task->priority;
+        spinlock_unlock(&tm.task_list_lock[apic_id()]);
+        cur_task->ticks = 0;
         cur_task->status = TASK_READY;
     }
     task_struct_t *next = NULL;
     list_node_t *next_task_tag = NULL;
 
-    spinlock_lock(&tm.task_lock);
+    spinlock_lock(&tm.task_list_lock[apic_id()]);
     next_task_tag = list_pop(&tm.task_list[apic_id()]);
-    spinlock_unlock(&tm.task_lock);
+    spinlock_unlock(&tm.task_list_lock[apic_id()]);
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
     next->status = TASK_RUNNING;
 
@@ -69,9 +69,9 @@ PUBLIC void task_unblock(pid_t pid)
     intr_status_t intr_status = intr_disable();
     if (task->status != TASK_READY)
     {
-        spinlock_lock(&tm.task_lock);
+        spinlock_lock(&tm.task_list_lock[task->cpu_id]);
         list_push(&tm.task_list[task->cpu_id],&task->general_tag);
-        spinlock_unlock(&tm.task_lock);
+        spinlock_unlock(&tm.task_list_lock[task->cpu_id]);
         task->status = TASK_READY;
     };
     intr_set_status(intr_status);

@@ -47,6 +47,7 @@ enum
     MM_READ_PROG_ADDR,
 
     MM_START_PROG,
+    MM_EXIT,
 };
 
 enum

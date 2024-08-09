@@ -49,6 +49,7 @@ PUBLIC task_struct_t* running_task()
     wordsize_t rsp;
     __asm__ __volatile__ ("movq %%rsp,%0":"=g"(rsp)::);
     intr_status_t intr_status = intr_disable();
+    task_struct_t *res = NULL;
     int i;
     for (i = 0;i < MAX_TASK;i++)
     {
@@ -59,12 +60,12 @@ PUBLIC task_struct_t* running_task()
         if (rsp >= tm.task_table[i].kstack_base
             && rsp <= tm.task_table[i].kstack_base + tm.task_table[i].kstack_size)
         {
-            intr_set_status(intr_status);
-            return &tm.task_table[i];
+            res = &tm.task_table[i];
+            break;
         }
     }
     intr_set_status(intr_status);
-    return NULL;
+    return res;
 }
 
 // running_prog() can only be called in syscall
@@ -73,8 +74,9 @@ PUBLIC task_struct_t* running_prog()
     wordsize_t rsp;
     wordsize_t pml4t;
     __asm__ __volatile__ ("movq %%rsp,%0 \n\t""movq %%cr3,%1":"=g"(rsp),"=g"(pml4t)::);
-
     rsp = (wordsize_t)to_physical_address((void*)pml4t,(void*)rsp);
+    intr_status_t intr_status = intr_disable();
+    task_struct_t *res = NULL;
     int i;
     for (i = 0;i < MAX_TASK;i++)
     {
@@ -85,10 +87,12 @@ PUBLIC task_struct_t* running_prog()
         if (rsp >= tm.task_table[i].ustack_base
             && rsp <= tm.task_table[i].ustack_base + tm.task_table[i].ustack_size)
         {
-            return &tm.task_table[i];
+            res = &tm.task_table[i];
+            break;
         }
     }
-    return NULL;
+    intr_set_status(intr_status);
+    return res;
 }
 
 PUBLIC addr_t get_running_prog_kstack()
@@ -99,19 +103,20 @@ PUBLIC addr_t get_running_prog_kstack()
 
 PUBLIC status_t task_alloc(OUT(pid_t *pid))
 {
-    spinlock_lock(&tm.task_lock);
+    spinlock_lock(&tm.task_table_lock);
     pid_t i;
     for (i = 0;i < MAX_TASK;i++)
     {
         if (tm.task_table[i].status == TASK_NO_TASK)
         {
+            memset(&tm.task_table[i],0,sizeof(tm.task_table[i]));
             tm.task_table[i].status = TASK_USING;
-            spinlock_unlock(&tm.task_lock);
+            spinlock_unlock(&tm.task_table_lock);
             *pid = i;
             return K_SUCCESS;
         }
     }
-    spinlock_unlock(&tm.task_lock);
+    spinlock_unlock(&tm.task_table_lock);
     return K_ERROR;
 }
 
@@ -119,9 +124,9 @@ PUBLIC void task_free(pid_t pid)
 {
     if (pid < MAX_TASK)
     {
-        spinlock_lock(&tm.task_lock);
+        spinlock_lock(&tm.task_table_lock);
         tm.task_table[pid].status = TASK_NO_TASK;
-        spinlock_unlock(&tm.task_lock);
+        spinlock_unlock(&tm.task_table_lock);
     }
     return;
 }
@@ -145,6 +150,7 @@ PUBLIC task_struct_t* init_task_struct
     task->ustack_size = 0;
 
     task->pid         = ((addr_t)task - (addr_t)tm.task_table) / sizeof(*task);
+    task->ppid        = running_task()->pid;
 
     if (strlen(name) > 31)
     {
@@ -213,9 +219,9 @@ PUBLIC task_struct_t* task_start
     init_task_struct(task,name,priority,(addr_t)KADDR_P2V(kstack_base),kstack_size);
     create_task_struct(task,func,arg);
 
-    spinlock_lock(&tm.task_lock);
+    spinlock_lock(&tm.task_list_lock[apic_id()]);
     list_append(&tm.task_list[apic_id()],&task->general_tag);
-    spinlock_unlock(&tm.task_lock);
+    spinlock_unlock(&tm.task_list_lock[apic_id()]);
     return task;
 }
 
@@ -228,9 +234,9 @@ PRIVATE void make_main_task(void)
                     DEFAULT_PRIORITY,
                     (addr_t)KADDR_P2V(KERNEL_STACK_BASE),
                     KERNEL_STACK_SIZE);
-    spinlock_lock(&tm.task_lock);
+    spinlock_lock(&tm.task_list_lock[apic_id()]);
     list_append(&tm.task_list[apic_id()],&main_task->general_tag);
-    spinlock_unlock(&tm.task_lock);
+    spinlock_unlock(&tm.task_list_lock[apic_id()]);
     return;
 }
 
@@ -245,8 +251,9 @@ PUBLIC void task_init()
     for (i = 0;i < NR_CPUS;i++)
     {
         list_init(&tm.task_list[i]);
+        init_spinlock(&tm.task_list_lock[i]);
     }
-    init_spinlock(&tm.task_lock);
+    init_spinlock(&tm.task_table_lock);
     make_main_task();
     return;
 }
