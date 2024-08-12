@@ -43,47 +43,60 @@ PUBLIC void list_remove(list_node_t *node)
     intr_status_t intr_status = intr_disable();
     node->prev->next = node->next;
     node->next->prev = node->prev;
+    node->next = NULL;
+    node->prev = NULL;
     intr_set_status(intr_status);
     return;
 }
 
 PUBLIC list_node_t* list_pop(list_t *list)
 {
+    intr_status_t intr_status = intr_disable();
     list_node_t *node = list->head.next;
     list_remove(node);
+    intr_set_status(intr_status);
     return node;
 }
 
 PUBLIC bool list_find(list_t *list,list_node_t *objnode)
 {
+    intr_status_t intr_status = intr_disable();
     list_node_t *node = list->head.next;
+    bool res = FALSE;
     while (node != &(list->tail))
     {
         if (node == objnode)
         {
-            return TRUE;
+            res = TRUE;
+            break;
         }
         node = node->next;
     }
-    return FALSE;
+    intr_set_status(intr_status);
+    return res;
 }
 
 PUBLIC list_node_t* list_traversal(list_t *list,func function,int arg)
 {
+    intr_status_t intr_status = intr_disable();
     list_node_t *node = list->head.next;
+    list_node_t *res = NULL;
     while (node != &list->tail)
     {
         if (function(node,arg))
         {
-            return node;
+            res = node;
+            break;
         }
         node = node->next;
     }
-    return NULL;
+    intr_set_status(intr_status);
+    return res;
 }
 
 PUBLIC int list_len(list_t *list)
 {
+    intr_status_t intr_status = intr_disable();
     list_node_t *node = list->head.next;
     int len = 0;
     while (node != &list->tail)
@@ -91,6 +104,7 @@ PUBLIC int list_len(list_t *list)
         len++;
         node = node->next;
     }
+    intr_set_status(intr_status);
     return len;
 }
 

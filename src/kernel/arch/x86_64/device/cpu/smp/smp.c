@@ -8,7 +8,7 @@
 #include <task/task.h>
 
 extern apic_t apic;
-extern taskmgr_t tm;
+extern taskmgr_t *tm;
 
 PUBLIC uint64_t make_icr
 (
@@ -38,21 +38,7 @@ PUBLIC uint64_t make_icr
 PRIVATE void ipi_timer_handler()
 {
     eoi(0x80);
-    task_struct_t *cur_task = running_task();
-    if (cur_task == NULL)
-    {
-        pr_log("\3 cur_task == NULL.(%d)",apic_id());
-        return;
-    }
-    cur_task->elapsed_ticks++;
-    if (cur_task->ticks == 0)
-    {
-        schedule();
-    }
-    else
-    {
-        cur_task->ticks--;
-    }
+    do_schedule();
     return;
 }
 
@@ -98,10 +84,9 @@ PUBLIC status_t smp_start()
                         DEFAULT_PRIORITY,
                         kstack_base,
                         KERNEL_STACK_SIZE);
-
-        spinlock_lock(&tm.task_lock);
-        list_append(&tm.task_list[i],&main_task->general_tag);
-        spinlock_unlock(&tm.task_lock);
+        spinlock_lock(&tm->task_list_lock[i]);
+        list_append(&tm->task_list[i],&main_task->general_tag);
+        spinlock_unlock(&tm->task_list_lock[i]);
 
     }
 

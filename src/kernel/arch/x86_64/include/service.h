@@ -9,6 +9,12 @@ enum
      * return: ticks(m3.l1)
     */
     TICK_GET_TICKS,
+
+    /**
+     * SLEEP
+     * @param msecond (m3.l1)
+     */
+    TICK_SLEEP,
 };
 
 enum
@@ -41,6 +47,7 @@ enum
     MM_READ_PROG_ADDR,
 
     MM_START_PROG,
+    MM_EXIT,
 };
 
 enum

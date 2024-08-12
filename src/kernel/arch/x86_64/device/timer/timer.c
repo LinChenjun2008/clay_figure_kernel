@@ -30,21 +30,8 @@ PRIVATE void irq_timer_handler()
         0
     );
     send_IPI(icr);
-    task_struct_t *cur_task = running_task();
-    if (cur_task == NULL)
-    {
-        pr_log("\3 cur_task == NULL.");
-        while(1);
-    }
-    cur_task->elapsed_ticks++;
-    if (cur_task->ticks == 0)
-    {
-        schedule();
-    }
-    else
-    {
-        cur_task->ticks--;
-    }
+
+    do_schedule();
     return;
 }
 

@@ -22,15 +22,22 @@ typedef int bool;
 #define FALSE (1 == 0)
 #endif
 
+#define GET_FIELD(X,FIELD)       (((X) >> FIELD##_SHIFT) & FIELD##_MASK)
+#define SET_FIELD(X,FIELD,VALUE) (((X) & ~(FIELD##_MASK << FIELD##_SHIFT) | ((VALUE) << FILED##_SHIFT)))
+
 #define KERNEL_VMA_BASE           0xffff800000000000
 
 #define KADDR_P2V(ADDR) ((void*)((addr_t)(ADDR) + KERNEL_VMA_BASE))
 #define KADDR_V2P(ADDR) ((void*)((addr_t)(ADDR) - KERNEL_VMA_BASE))
 
-#define ADDR_PML4T_INDEX(ADDR) ((((addr_t)(ADDR)) >> 39) & 0x1ff)
-#define ADDR_PDPT_INDEX(ADDR)  ((((addr_t)(ADDR)) >> 30) & 0x1ff)
-#define ADDR_PDT_INDEX(ADDR)   ((((addr_t)(ADDR)) >> 21) & 0x1ff)
-#define ADDR_OFFSET(ADDR)      ((((addr_t)(ADDR)) & 0x1fffff))
+#define ADDR_PML4T_INDEX_SHIFT 39
+#define ADDR_PML4T_INDEX_MASK 0x1ff
+#define ADDR_PDPT_INDEX_SHIFT 30
+#define ADDR_PDPT_INDEX_MASK 0x1ff
+#define ADDR_PDT_INDEX_SHIFT 21
+#define ADDR_PDT_INDEX_MASK 0x1ff
+#define ADDR_OFFSET_SHIFT 0
+#define ADDR_OFFSET_MASK 0x1fffff
 
 #define ASMLINKAGE __attribute__((sysv_abi))
 

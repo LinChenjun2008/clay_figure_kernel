@@ -77,10 +77,10 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     pr_log("CR2 - %016x, CR3 - %016x\n",cr2,cr3);
     pr_log("DS  - %016x, ES  - %016x, FS  - %016x, GS  - %016x\n",
             stack->ds,stack->es,stack->fs,stack->gs);
-    pr_log("RAX - %016x, PBX - %016x, RCX - %016x, RDX - %016x\n",
+    pr_log("RAX - %016x, RBX - %016x, RCX - %016x, RDX - %016x\n",
             stack->rax,stack->rbx,stack->rcx,stack->rdx);
     pr_log("RSP - %016x, RBP - %016x, RSI - %016x, RDI - %016x\n",
-            stack,stack->rbp,stack->rsi,stack->rdi);
+            stack->rsp,stack->rbp,stack->rsi,stack->rdi);
     pr_log("R8  - %016x, R9  - %016x, R10 - %016x, R11 - %016x\n",
         stack->r8,stack->r9,stack->r10,stack->r11);
     pr_log("R12 - %016x, R13 - %016x, R14 - %016x, R15 - %016x\n",
@@ -95,7 +95,7 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     cpuid(1,0,&a,&b,&c,&d);
     b >>= 24;
     pr_log("CPUID: %x",b);
-    while(1);
+    while (1) continue;
 }
 
 PUBLIC void ASMLINKAGE do_irq(uint8_t nr,intr_stack_t *stack)

@@ -69,6 +69,7 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
         pr_log("\3'%s' -> '%s' dead lock\n",running_task()->name,pid2task(dest)->name);
         return SYSCALL_DEADLOCK;
     }
+    // pr_log("\1 send: '%-16s' -> '%-16s'\n",running_task()->name,pid2task(dest)->name);
     memcpy(&running_task()->msg,msg,sizeof(message_t));
     spinlock_lock(&pid2task(dest)->send_lock);
     list_append(&pid2task(dest)->sender_list,&running_task()->general_tag);
@@ -88,28 +89,29 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
 
 PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
 {
-    if (src == running_task()->pid)
+    task_struct_t *receiver = running_task();
+    if (src == receiver->pid)
     {
         return SYSCALL_DEADLOCK;
     }
-    running_task()->recv_from = src;
+    receiver->recv_from = src;
     if (src == RECV_FROM_ANY || src == RECV_FROM_INT)
     {
-        if (list_empty(&running_task()->sender_list) && !running_task()->has_intr_msg)
+        if (list_empty(&receiver->sender_list) && !receiver->has_intr_msg)
         {
             task_block(TASK_RECEIVING);
         }
-        if (running_task()->has_intr_msg)
+        if (receiver->has_intr_msg)
         {
             msg->src  = RECV_FROM_INT;
             msg->type = RECV_FROM_INT;
-            msg->m1.i1 = running_task()->has_intr_msg;
-            running_task()->has_intr_msg = 0;
+            msg->m1.i1 = receiver->has_intr_msg;
+            receiver->has_intr_msg = 0;
             return SYSCALL_SUCCESS;
         }
-        spinlock_lock(&running_task()->send_lock);
-        src = CONTAINER_OF(task_struct_t,general_tag,list_pop(&running_task()->sender_list))->pid;
-        spinlock_unlock(&running_task()->send_lock);
+        spinlock_lock(&receiver->send_lock);
+        src = CONTAINER_OF(task_struct_t,general_tag,list_pop(&receiver->sender_list))->pid;
+        spinlock_unlock(&receiver->send_lock);
     }
     else
     {
@@ -130,15 +132,23 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
             task_block(TASK_RECEIVING);
             spinlock_lock(&running_task()->send_lock);
         }
+        spinlock_unlock(&running_task()->send_lock);
+        if (!task_exist(src))
+        {
+            return SYSCALL_SRC_NOT_EXIST;
+        }
+        spinlock_lock(&running_task()->send_lock);
         list_remove(&pid2task(src)->general_tag);
         spinlock_unlock(&running_task()->send_lock);
     }
     memcpy(msg,&pid2task(src)->msg,sizeof(message_t));
     pid2task(src)->send_to = MAX_TASK;
-    if (pid2task(src)->status == TASK_SENDING)
+    if (pid2task(src)->status != TASK_SENDING)
     {
-        task_unblock(src);
+        pr_log("\3 task_status != TASK_SENDING.\n");
+        while (1) continue;
     }
+    task_unblock(src);
     running_task()->recv_from = MAX_TASK;
     return SYSCALL_SUCCESS;
 }

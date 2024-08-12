@@ -3,7 +3,9 @@
 #include <device/cpu.h>
 #include <intr.h>
 
-extern taskmgr_t tm;
+#include <log.h>
+
+extern taskmgr_t *tm;
 
 PRIVATE void switch_to(task_context_t **cur,task_context_t **next)
 {
@@ -18,33 +20,46 @@ PRIVATE void switch_to(task_context_t **cur,task_context_t **next)
     );
 }
 
+PUBLIC void do_schedule()
+{
+    task_struct_t *cur_task = running_task();
+    cur_task->jiffies   += 1;
+    cur_task->vrun_time += cur_task->priority;
+    if (cur_task->jiffies >= cur_task->priority)
+    {
+        schedule();
+    }
+    return;
+}
+
 PUBLIC void schedule()
 {
     task_struct_t *cur_task = running_task();
+    uint32_t cpu_id = apic_id();
     if (cur_task->spinlock_count > 0)
     {
         return;
     }
     if (cur_task->status == TASK_RUNNING)
     {
-        spinlock_lock(&tm.task_lock);
-        list_append(&tm.task_list[apic_id()],&cur_task->general_tag);
-        spinlock_unlock(&tm.task_lock);
-        cur_task->ticks = cur_task->priority;
-        cur_task->status = TASK_READY;
+        spinlock_lock(&tm->task_list_lock[cpu_id]);
+        task_list_insert(&tm->task_list[cpu_id],cur_task);
+        spinlock_unlock(&tm->task_list_lock[cpu_id]);
+        cur_task->jiffies = 0;
+        cur_task->status  = TASK_READY;
     }
     task_struct_t *next = NULL;
     list_node_t *next_task_tag = NULL;
 
-    spinlock_lock(&tm.task_lock);
-    next_task_tag = list_pop(&tm.task_list[apic_id()]);
-    spinlock_unlock(&tm.task_lock);
+    spinlock_lock(&tm->task_list_lock[cpu_id]);
+    next_task_tag = list_pop(&tm->task_list[cpu_id]);
+    spinlock_unlock(&tm->task_list_lock[cpu_id]);
+
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
     next->status = TASK_RUNNING;
-
     prog_activate(next);
     // fpu_set(cur_task,next);
-    next->cpu_id = apic_id();
+    next->cpu_id = cpu_id;
     switch_to(&cur_task->context,&next->context);
     return;
 }
@@ -66,14 +81,33 @@ PUBLIC void task_unblock(pid_t pid)
     {
         return;
     }
-    intr_status_t intr_status = intr_disable();
-    if (task->status != TASK_READY)
+    if (task->status == TASK_READY)
     {
-        spinlock_lock(&tm.task_lock);
-        list_push(&tm.task_list[task->cpu_id],&task->general_tag);
-        spinlock_unlock(&tm.task_lock);
-        task->status = TASK_READY;
-    };
+        pr_log("\3 ERROR :unblok a ready task: %s.\n",task->name);
+        return;
+    }
+    intr_status_t intr_status = intr_disable();
+    spinlock_lock(&tm->task_list_lock[task->cpu_id]);
+    task_list_insert(&tm->task_list[task->cpu_id],task);
+    task->status = TASK_READY;
+    if (!list_find(&tm->task_list[task->cpu_id],&task->general_tag))
+    {
+        pr_log("\3 Error: task %s has not in list.\n",task->name);
+    }
+    spinlock_unlock(&tm->task_list_lock[task->cpu_id]);
+    intr_set_status(intr_status);
+    return;
+}
+
+PUBLIC void task_yield()
+{
+    task_struct_t *cur_task = running_task();
+    intr_status_t intr_status = intr_disable();
+    spinlock_lock(&tm->task_list_lock[cur_task->cpu_id]);
+    task_list_insert(&tm->task_list[cur_task->cpu_id],cur_task);
+    cur_task->status = TASK_READY;
+    spinlock_unlock(&tm->task_list_lock[cur_task->cpu_id]);
+    schedule();
     intr_set_status(intr_status);
     return;
 }

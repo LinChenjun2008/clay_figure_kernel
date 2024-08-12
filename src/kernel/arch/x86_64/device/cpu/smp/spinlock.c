@@ -2,6 +2,8 @@
 #include <device/spinlock.h>
 #include <task/task.h>
 
+#include <log.h>
+
 PUBLIC void init_spinlock(spinlock_t *spinlock)
 {
     spinlock->lock = 1;

@@ -3,7 +3,7 @@
 
 typedef struct
 {
-    uint16_t limit_low;    //0-15 limit1
+    uint16_t limit_low;    //  0 - 15 limit1
     uint16_t base_low;     // 16 - 31 base0
     uint8_t  base_mid;     // 32 - 39 base1
     uint8_t  access_right; // 40 - 47 flag descType privilege isVaild

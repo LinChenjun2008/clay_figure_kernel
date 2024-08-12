@@ -5,7 +5,7 @@ typedef struct
 {
     bool     msi_capable;
     uint8_t  cap_addr; // capability_offset
-    uint32_t msg_cnt; // message count
+    uint32_t msg_cnt;  // message count
     uint32_t configured_count;
     uint32_t start_vector;
     uint16_t msg_ctrl; // control value

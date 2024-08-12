@@ -8,12 +8,7 @@
 #define __TIMER_8254__
 
 #define DEFAULT_PRIORITY 3
-#define SERVICE_PRIORITY 31
-
-#define TASK_LEVEL        3
-#define TASK_LEVEL_HIGH   0
-#define TASK_LEVEL_NORMAL 1
-#define TASK_LEVEL_LOW    2
+#define SERVICE_PRIORITY 1
 
 #define IN(x...) x
 #define OUT(x...) x
@@ -28,5 +23,16 @@
 #include <common.h>
 
 extern boot_info_t *g_boot_info;
+
+extern char _kernel_start[];
+extern char _text[];
+extern char _etext[];
+extern char _data[];
+extern char _edata[];
+extern char _rodata[];
+extern char _erodata[];
+extern char _bss[];
+extern char _ebss[];
+extern char _kernel_end[];
 
 #endif

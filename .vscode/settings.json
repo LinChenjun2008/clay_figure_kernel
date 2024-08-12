@@ -1,8 +1,10 @@
 {
     "files.associations": {
         "*.c": "c",
-        "*.h": "c"
+        "*.h": "c",
+        "compare": "c"
     },
     "files.eol": "\n",
-    "C_Cpp.errorSquiggles": "disabled"
+    "C_Cpp.errorSquiggles": "disabled",
+    "editor.tabCompletion": "on"
 }

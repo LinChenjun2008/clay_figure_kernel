@@ -42,19 +42,20 @@ typedef struct
     size_t                 ustack_size;
 
     pid_t                  pid;
+    pid_t                  ppid;
 
     char                   name[32];
     volatile task_status_t status;
     uint64_t               spinlock_count;
     uint64_t               priority;
-    uint64_t               ticks;
-    uint64_t               elapsed_ticks;
+    uint64_t               jiffies;
+    uint64_t               vrun_time;
 
     list_node_t            general_tag;
 
     uint64_t               cpu_id;
     uint64_t              *page_dir;
-    allocate_table_t       vaddr_table; // available when page_dir == NULL;
+    allocate_table_t       vaddr_table;
 
     message_t              msg;
     pid_t                  send_to;
@@ -68,7 +69,8 @@ typedef struct
 {
     task_struct_t task_table[MAX_TASK];
     list_t        task_list[NR_CPUS];
-    spinlock_t    task_lock;
+    spinlock_t    task_list_lock[NR_CPUS];
+    spinlock_t    task_table_lock;
 } taskmgr_t;
 
 PUBLIC task_struct_t* pid2task(pid_t pid);
@@ -77,6 +79,7 @@ PUBLIC task_struct_t* running_task();
 PUBLIC task_struct_t* running_prog();
 PUBLIC addr_t get_running_prog_kstack();
 PUBLIC status_t task_alloc(OUT(pid_t *pid));
+PUBLIC void task_list_insert(list_t *list,task_struct_t *task);
 PUBLIC void task_free(pid_t pid);
 PUBLIC task_struct_t* init_task_struct
 (
@@ -98,10 +101,11 @@ PUBLIC task_struct_t* task_start
 PUBLIC void task_init();
 
 /// schedule.c
+PUBLIC void do_schedule();
 PUBLIC void schedule();
 PUBLIC void task_block(task_status_t status);
 PUBLIC void task_unblock(pid_t pid);
-
+PUBLIC void task_yield();
 /// tss.c
 PUBLIC void init_tss(uint8_t nr_cpu);
 PUBLIC void update_tss_rsp0(task_struct_t *task);

@@ -14,7 +14,6 @@ struct Files
 struct Files Files[] =
 {
     {L"Kernel\\kernel.sys",AllocateAddress,{0x100000,0,0x80000001}},
-    {L"Kernel\\resource\\typeface.ttf",AllocateAnyPages,{0x800000,0,0x80000003}},
 };
 
 #endif

@@ -5,18 +5,45 @@
 #include <device/cpu.h>
 #include <std/string.h>
 
+#include <kernel/syscall.h>
+#include <service.h>
 #include <log.h>
 
-extern taskmgr_t tm;
+extern taskmgr_t *tm;
+
+PUBLIC void prog_exit()
+{
+    addr_t  func;
+    wordsize_t arg;
+    __asm__ __volatile__
+    (
+        "movq %%rsi,%[func] \n\t"
+        "movq %%rdi,%[arg] \n\t"
+        "movq $0,%%rsi \n\t"
+        "movq $0,%%rdi \n\t"
+        :[func]"=g"(func),[arg]"=g"(arg)
+        :
+        :"rsi","rdi"
+    );
+    int ret_value = ((int (*)(void*))func)((void*)arg);
+
+    message_t msg;
+    msg.type = MM_EXIT;
+    msg.m1.i1 = ret_value;
+    send_recv(NR_SEND,MM,&msg);
+    pr_log("\3 %s: Shuold not be here.",__func__);
+    while (1) continue;
+}
 
 PRIVATE void start_process(void *process)
 {
+    intr_disable();
     void *func = process;
     task_struct_t *cur = running_task();
     addr_t kstack = (addr_t)cur->context;
     kstack += sizeof(task_context_t);
     intr_stack_t *proc_stack = (intr_stack_t*)kstack;
-
+    memset(proc_stack,0,sizeof(*proc_stack));
     proc_stack->r15 = 0;
     proc_stack->r14 = 0;
     proc_stack->r13 = 0;
@@ -27,33 +54,40 @@ PRIVATE void start_process(void *process)
     proc_stack->r8 = 0;
 
     proc_stack->rdi = 0;
-    proc_stack->rsi = 0;
+    proc_stack->rsi = (wordsize_t)func;
     proc_stack->rbp = 0;
     proc_stack->rdx = 0;
     proc_stack->rcx = 0;
     proc_stack->rbx = 0;
     proc_stack->rax = 0;
 
-    proc_stack->gs = SELECTOR_DATA64_U;
-    proc_stack->fs = SELECTOR_DATA64_U;
-    proc_stack->es = SELECTOR_DATA64_U;
-    proc_stack->ds = SELECTOR_DATA64_U;
-    proc_stack->rip = func;
-    proc_stack->cs = SELECTOR_CODE64_U;
+    proc_stack->gs  = SELECTOR_DATA64_U;
+    proc_stack->fs  = SELECTOR_DATA64_U;
+    proc_stack->es  = SELECTOR_DATA64_U;
+    proc_stack->ds  = SELECTOR_DATA64_U;
+    proc_stack->rip = prog_exit;
+    proc_stack->cs  = SELECTOR_CODE64_U;
     proc_stack->rflags = (EFLAGS_IOPL_0 | EFLAGS_MBS | EFLAGS_IF_1);
 
     cur->context = (task_context_t*)kstack;
-    // 分配用户态下的栈
+
     addr_t ustack;
     status_t status = alloc_physical_page(IN(1),OUT(&ustack));
     if (ERROR(status))
     {
-        pr_log("\3 Alloc User Stack error.");
+        pr_log("\3 Alloc User Stack error.\n");
+        message_t msg;
+        msg.type = MM_EXIT;
+        msg.m1.i1 = K_ERROR;
+        sys_send_recv(NR_BOTH,MM,&msg);
+        pr_log("\3 %s: Shuold not be here.",__func__);
+        while (1) continue;
     }
     cur->ustack_base = ustack;
     cur->ustack_size = PG_SIZE;
     page_map(cur->page_dir,(void*)ustack,(void*)USER_STACK_VADDR_BASE);
     proc_stack->rsp = USER_STACK_VADDR_BASE + PG_SIZE;
+
     proc_stack->ss = SELECTOR_DATA64_U;
     __asm__ __volatile__
     (
@@ -101,7 +135,7 @@ PRIVATE uint64_t *create_page_dir(void)
     return (uint64_t*)KADDR_V2P(pgdir_v);
 }
 
-PRIVATE int user_vaddr_table_init(task_struct_t *task)
+PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
 {
     size_t entry_size          = sizeof(*task->vaddr_table.entries);
     uint64_t number_of_entries = 1024;
@@ -109,7 +143,7 @@ PRIVATE int user_vaddr_table_init(task_struct_t *task)
     status_t status = pmalloc(IN(entry_size * number_of_entries),OUT(&p));
     if (ERROR(status))
     {
-        return 0;
+        return status;
     }
     p = KADDR_P2V(p);
     allocate_table_init(&task->vaddr_table,p,number_of_entries);
@@ -117,7 +151,7 @@ PRIVATE int user_vaddr_table_init(task_struct_t *task)
     uint64_t index = USER_VADDR_START / PG_SIZE;
     uint64_t cnt   = (USER_STACK_VADDR_BASE - USER_VADDR_START) / PG_SIZE;
     free_units(&task->vaddr_table,index,cnt);
-    return 1;
+    return K_SUCCESS;
 }
 
 PUBLIC task_struct_t *prog_execute
@@ -153,19 +187,20 @@ PUBLIC task_struct_t *prog_execute
     if (task->page_dir == NULL)
     {
         pr_log("\3 Can not alloc memory for task page table.\n");
-        task_free(pid);
         pfree(kstack_base);
-    }
-    if (!user_vaddr_table_init(task))
-    {
-        pr_log("\3 Can not init vaddr table.\n");
         task_free(pid);
-        pfree(kstack_base);
-        pfree(task->page_dir);
         return NULL;
     }
-    spinlock_lock(&tm.task_lock);
-    list_append(&tm.task_list[apic_id()],&(task->general_tag));
-    spinlock_unlock(&tm.task_lock);
+    if (ERROR(user_vaddr_table_init(task)))
+    {
+        pr_log("\3 Can not init vaddr table.\n");
+        pfree(kstack_base);
+        pfree(task->page_dir);
+        task_free(pid);
+        return NULL;
+    }
+    spinlock_lock(&tm->task_list_lock[apic_id()]);
+    task_list_insert(&tm->task_list[apic_id()],task);
+    spinlock_unlock(&tm->task_list_lock[apic_id()]);
     return task;
 }

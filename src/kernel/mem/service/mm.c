@@ -4,8 +4,11 @@
 #include <service.h>
 #include <mem/mem.h>
 #include <lib/alloc_table.h>
+#include <intr.h>
 
 #include <log.h>
+
+extern taskmgr_t *tm;
 
 PRIVATE void mm_allocate_page(message_t *msg)
 {
@@ -38,6 +41,7 @@ PRIVATE void mm_allocate_page(message_t *msg)
                 page_unmap(src->page_dir,(void*)vaddr);
                 i--;
             }
+            free_units(&src->vaddr_table,vaddr_start,msg->m1.i1);
             msg->m2.p1 = NULL;
             return;
         }
@@ -102,6 +106,73 @@ PRIVATE void mm_read_prog_addr(message_t *msg)
     return;
 }
 
+PRIVATE void release_prog_page_pdt(uint64_t pdt)
+{
+    uint64_t *v_pdt;
+    v_pdt = KADDR_P2V(pdt);
+    int i;
+    for (i = 0;i < 512;i++)
+    {
+        if (v_pdt[i] & 1)
+        {
+            free_physical_page((void*)(v_pdt[i] & ~0xfffULL),1);
+        }
+    }
+    pfree((void*)pdt);
+}
+
+PRIVATE void release_prog_page_pdpt(uint64_t pdpt)
+{
+    uint64_t *v_pdpt;
+    v_pdpt = KADDR_P2V(pdpt);
+    int i;
+    for (i = 0;i < 512;i++)
+    {
+        if (v_pdpt[i] & 1)
+        {
+            release_prog_page_pdt(v_pdpt[i] & ~0xfffULL);
+        }
+    }
+    pfree((void*)pdpt);
+}
+
+PRIVATE void release_prog_page(uint64_t *pml4t)
+{
+    uint64_t *v_pml4t;
+    v_pml4t = KADDR_P2V(pml4t);
+    int i;
+    for (i = 0;i < 256;i++)
+    {
+        if (v_pml4t[i] & 1)
+        {
+            release_prog_page_pdpt(v_pml4t[i] & ~0xfffULL);
+        }
+    }
+    pfree(pml4t);
+}
+
+PRIVATE void mm_exit(message_t *msg)
+{
+    task_struct_t *src = pid2task(msg->src);
+    intr_status_t intr_status = intr_disable();
+    spinlock_lock(&tm->task_list_lock[src->cpu_id]);
+    if (list_find(&tm->task_list[src->cpu_id],&src->general_tag))
+    {
+        list_remove(&src->general_tag);
+    }
+    spinlock_unlock(&tm->task_list_lock[src->cpu_id]);
+    intr_set_status(intr_status);
+    if (src->page_dir != NULL)
+    {
+        release_prog_page(src->page_dir);
+        pfree(KADDR_V2P(src->vaddr_table.entries));
+    }
+    // release kernel stack
+    pfree(KADDR_V2P(src->kstack_base));
+    task_free(msg->src);
+    return;
+}
+
 PUBLIC void mm_main()
 {
     message_t msg;
@@ -122,6 +193,9 @@ PUBLIC void mm_main()
             case MM_READ_PROG_ADDR:
                 mm_read_prog_addr(&msg);
                 sys_send_recv(NR_SEND,msg.src,&msg);
+                break;
+            case MM_EXIT:
+                mm_exit(&msg);
                 break;
             default:
                 break;
