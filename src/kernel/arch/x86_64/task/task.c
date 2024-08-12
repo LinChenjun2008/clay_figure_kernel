@@ -240,7 +240,6 @@ PUBLIC task_struct_t* task_start
     create_task_struct(task,func,arg);
 
     spinlock_lock(&tm->task_list_lock[apic_id()]);
-    // list_append(&tm->task_list[apic_id()],&task->general_tag);
     task_list_insert(&tm->task_list[apic_id()],task);
     spinlock_unlock(&tm->task_list_lock[apic_id()]);
     return task;
@@ -255,10 +254,11 @@ PRIVATE void make_main_task(void)
                     DEFAULT_PRIORITY,
                     (addr_t)KADDR_P2V(KERNEL_STACK_BASE),
                     KERNEL_STACK_SIZE);
+
     spinlock_lock(&tm->task_list_lock[apic_id()]);
-    // list_append(&tm->task_list[apic_id()],&main_task->general_tag);
     task_list_insert(&tm->task_list[apic_id()],main_task);
     spinlock_unlock(&tm->task_list_lock[apic_id()]);
+
     return;
 }
 
@@ -285,6 +285,7 @@ PUBLIC void task_init()
         init_spinlock(&tm->task_list_lock[i]);
     }
     init_spinlock(&tm->task_table_lock);
+
     make_main_task();
     return;
 }
