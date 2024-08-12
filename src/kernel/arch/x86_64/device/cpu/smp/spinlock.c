@@ -7,19 +7,12 @@
 PUBLIC void init_spinlock(spinlock_t *spinlock)
 {
     spinlock->lock = 1;
-    spinlock->holder = TASK_NO_TASK;
-    spinlock->holder_repeat_nr = 0;
     return;
 }
 
 PUBLIC void spinlock_lock(spinlock_t *spinlock)
 {
     running_task()->spinlock_count++;
-    if (spinlock->holder == running_task()->pid)
-    {
-        spinlock->holder_repeat_nr++;
-        return;
-    }
     __asm__ __volatile__
     (
         ".try_lock: \n\t"
@@ -34,20 +27,11 @@ PUBLIC void spinlock_lock(spinlock_t *spinlock)
         :
         :"m"(spinlock->lock)
     );
-    spinlock->holder = running_task()->pid;
 }
 
 PUBLIC void spinlock_unlock(spinlock_t *spinlock)
 {
+    spinlock->lock = 1;
     running_task()->spinlock_count--;
-    if (spinlock->holder_repeat_nr > 0)
-    {
-        spinlock->holder_repeat_nr--;
-    }
-    else
-    {
-        spinlock->holder = TASK_NO_TASK;
-        spinlock->lock = 1;
-    }
     return;
 }

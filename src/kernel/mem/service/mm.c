@@ -8,7 +8,7 @@
 
 #include <log.h>
 
-extern taskmgr_t tm;
+extern taskmgr_t *tm;
 
 PRIVATE void mm_allocate_page(message_t *msg)
 {
@@ -41,6 +41,7 @@ PRIVATE void mm_allocate_page(message_t *msg)
                 page_unmap(src->page_dir,(void*)vaddr);
                 i--;
             }
+            free_units(&src->vaddr_table,vaddr_start,msg->m1.i1);
             msg->m2.p1 = NULL;
             return;
         }
@@ -153,14 +154,13 @@ PRIVATE void release_prog_page(uint64_t *pml4t)
 PRIVATE void mm_exit(message_t *msg)
 {
     task_struct_t *src = pid2task(msg->src);
-    pr_log("\1 task '%s' exit with code %d.\n",src->name,msg->m1.i1);
     intr_status_t intr_status = intr_disable();
-    spinlock_lock(&tm.task_list_lock[src->cpu_id]);
-    if (list_find(&tm.task_list[src->cpu_id],&src->general_tag))
+    spinlock_lock(&tm->task_list_lock[src->cpu_id]);
+    if (list_find(&tm->task_list[src->cpu_id],&src->general_tag))
     {
         list_remove(&src->general_tag);
     }
-    spinlock_unlock(&tm.task_list_lock[src->cpu_id]);
+    spinlock_unlock(&tm->task_list_lock[src->cpu_id]);
     intr_set_status(intr_status);
     if (src->page_dir != NULL)
     {

@@ -73,9 +73,6 @@ PRIVATE void init_desctrib()
 
 PRIVATE spinlock_t schedule_lock;
 
-/**
- * @brief 初始化所有内容
-*/
 PUBLIC void init_all()
 {
     init_spinlock(&schedule_lock);
@@ -84,12 +81,12 @@ PUBLIC void init_all()
     init_desctrib();
     intr_init();
 
+    mem_init();
+    mem_alloctor_init();
+
     task_init();
 
     spinlock_lock(&schedule_lock); // can not schedule.
-
-    mem_init();
-    mem_alloctor_init();
 
     detect_cores();
     smp_start();
@@ -115,7 +112,7 @@ PUBLIC void init_all()
     return;
 }
 
-extern taskmgr_t tm;
+extern taskmgr_t *tm;
 PUBLIC void ap_init_all()
 {
     intr_disable();

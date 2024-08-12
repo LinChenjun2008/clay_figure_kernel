@@ -95,7 +95,7 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     cpuid(1,0,&a,&b,&c,&d);
     b >>= 24;
     pr_log("CPUID: %x",b);
-    while(1);
+    while (1) continue;
 }
 
 PUBLIC void ASMLINKAGE do_irq(uint8_t nr,intr_stack_t *stack)
