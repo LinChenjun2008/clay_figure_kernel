@@ -9,7 +9,7 @@
 #include <service.h>
 #include <log.h>
 
-extern taskmgr_t tm;
+extern taskmgr_t *tm;
 
 PUBLIC void prog_exit()
 {
@@ -30,14 +30,14 @@ PUBLIC void prog_exit()
     message_t msg;
     msg.type = MM_EXIT;
     msg.m1.i1 = ret_value;
-    send_recv(NR_BOTH,MM,&msg);
+    send_recv(NR_SEND,MM,&msg);
     pr_log("\3 %s: Shuold not be here.",__func__);
-    while (1);
+    while (1) continue;
 }
 
 PRIVATE void start_process(void *process)
 {
-    // intr_status_t intr_status = intr_disable();
+    intr_disable();
     void *func = process;
     task_struct_t *cur = running_task();
     addr_t kstack = (addr_t)cur->context;
@@ -70,7 +70,7 @@ PRIVATE void start_process(void *process)
     proc_stack->rflags = (EFLAGS_IOPL_0 | EFLAGS_MBS | EFLAGS_IF_1);
 
     cur->context = (task_context_t*)kstack;
-    // 分配用户态下的栈
+
     addr_t ustack;
     status_t status = alloc_physical_page(IN(1),OUT(&ustack));
     if (ERROR(status))
@@ -81,7 +81,7 @@ PRIVATE void start_process(void *process)
         msg.m1.i1 = K_ERROR;
         sys_send_recv(NR_BOTH,MM,&msg);
         pr_log("\3 %s: Shuold not be here.",__func__);
-        while (1);
+        while (1) continue;
     }
     cur->ustack_base = ustack;
     cur->ustack_size = PG_SIZE;
@@ -89,7 +89,6 @@ PRIVATE void start_process(void *process)
     proc_stack->rsp = USER_STACK_VADDR_BASE + PG_SIZE;
 
     proc_stack->ss = SELECTOR_DATA64_U;
-    // intr_set_status(intr_status);
     __asm__ __volatile__
     (
         "movq %0, %%rsp\n\t"
@@ -200,8 +199,8 @@ PUBLIC task_struct_t *prog_execute
         task_free(pid);
         return NULL;
     }
-    spinlock_lock(&tm.task_list_lock[apic_id()]);
-    list_append(&tm.task_list[apic_id()],&task->general_tag);
-    spinlock_unlock(&tm.task_list_lock[apic_id()]);
+    spinlock_lock(&tm->task_list_lock[apic_id()]);
+    task_list_insert(&tm->task_list[apic_id()],task);
+    spinlock_unlock(&tm->task_list_lock[apic_id()]);
     return task;
 }

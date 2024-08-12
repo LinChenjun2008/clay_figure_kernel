@@ -55,7 +55,7 @@ typedef struct
 
     uint64_t               cpu_id;
     uint64_t              *page_dir;
-    allocate_table_t       vaddr_table; // available when page_dir == NULL;
+    allocate_table_t       vaddr_table;
 
     message_t              msg;
     pid_t                  send_to;
@@ -79,6 +79,7 @@ PUBLIC task_struct_t* running_task();
 PUBLIC task_struct_t* running_prog();
 PUBLIC addr_t get_running_prog_kstack();
 PUBLIC status_t task_alloc(OUT(pid_t *pid));
+PUBLIC void task_list_insert(list_t *list,task_struct_t *task);
 PUBLIC void task_free(pid_t pid);
 PUBLIC task_struct_t* init_task_struct
 (
@@ -104,7 +105,7 @@ PUBLIC void do_schedule();
 PUBLIC void schedule();
 PUBLIC void task_block(task_status_t status);
 PUBLIC void task_unblock(pid_t pid);
-
+PUBLIC void task_yield();
 /// tss.c
 PUBLIC void init_tss(uint8_t nr_cpu);
 PUBLIC void update_tss_rsp0(task_struct_t *task);
