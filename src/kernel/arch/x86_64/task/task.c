@@ -8,7 +8,7 @@
 
 #include <log.h>
 
-PUBLIC taskmgr_t tm;
+PUBLIC taskmgr_t *tm;
 
 PRIVATE void kernel_task(void)
 {
@@ -33,14 +33,14 @@ PUBLIC task_struct_t* pid2task(pid_t pid)
 {
     if (pid <= MAX_TASK)
     {
-        return &tm.task_table[pid];
+        return &tm->task_table[pid];
     }
     return NULL;
 }
 
 PUBLIC bool task_exist(pid_t pid)
 {
-    return pid <= MAX_TASK ? tm.task_table[pid].status != TASK_NO_TASK : 0;
+    return pid <= MAX_TASK ? tm->task_table[pid].status != TASK_NO_TASK : 0;
 }
 
 // running_task() can only be called in ring 0
@@ -53,14 +53,14 @@ PUBLIC task_struct_t* running_task()
     int i;
     for (i = 0;i < MAX_TASK;i++)
     {
-        if (tm.task_table[i].status == TASK_NO_TASK)
+        if (tm->task_table[i].status == TASK_NO_TASK)
         {
             continue;
         }
-        if (rsp >= tm.task_table[i].kstack_base
-            && rsp <= tm.task_table[i].kstack_base + tm.task_table[i].kstack_size)
+        if (rsp >= tm->task_table[i].kstack_base
+            && rsp <= tm->task_table[i].kstack_base + tm->task_table[i].kstack_size)
         {
-            res = &tm.task_table[i];
+            res = &tm->task_table[i];
             break;
         }
     }
@@ -80,14 +80,14 @@ PUBLIC task_struct_t* running_prog()
     int i;
     for (i = 0;i < MAX_TASK;i++)
     {
-        if (tm.task_table[i].status == TASK_NO_TASK)
+        if (tm->task_table[i].status == TASK_NO_TASK)
         {
             continue;
         }
-        if (rsp >= tm.task_table[i].ustack_base
-            && rsp <= tm.task_table[i].ustack_base + tm.task_table[i].ustack_size)
+        if (rsp >= tm->task_table[i].ustack_base
+            && rsp <= tm->task_table[i].ustack_base + tm->task_table[i].ustack_size)
         {
-            res = &tm.task_table[i];
+            res = &tm->task_table[i];
             break;
         }
     }
@@ -103,30 +103,50 @@ PUBLIC addr_t get_running_prog_kstack()
 
 PUBLIC status_t task_alloc(OUT(pid_t *pid))
 {
-    spinlock_lock(&tm.task_table_lock);
+    status_t res = K_ERROR;
+    spinlock_lock(&tm->task_table_lock);
     pid_t i;
     for (i = 0;i < MAX_TASK;i++)
     {
-        if (tm.task_table[i].status == TASK_NO_TASK)
+        if (tm->task_table[i].status == TASK_NO_TASK)
         {
-            memset(&tm.task_table[i],0,sizeof(tm.task_table[i]));
-            tm.task_table[i].status = TASK_USING;
-            spinlock_unlock(&tm.task_table_lock);
+            memset(&tm->task_table[i],0,sizeof(tm->task_table[i]));
+            tm->task_table[i].status = TASK_USING;
             *pid = i;
-            return K_SUCCESS;
+            res = K_SUCCESS;
+            break;
         }
     }
-    spinlock_unlock(&tm.task_table_lock);
-    return K_ERROR;
+    spinlock_unlock(&tm->task_table_lock);
+    return res;
+}
+
+PUBLIC void task_list_insert(list_t *list,task_struct_t *task)
+{
+    intr_status_t intr_status = intr_disable();
+    list_node_t *node = list->head.next;
+    task_struct_t *tmp;
+    while (node != &list->tail)
+    {
+        tmp = CONTAINER_OF(task_struct_t,general_tag,node);
+        if ((int64_t)(task->vrun_time - tmp->vrun_time) < 0)
+        {
+            break;
+        }
+        node = node->next;
+    }
+    list_in(&task->general_tag,node);
+    intr_set_status(intr_status);
+    return;
 }
 
 PUBLIC void task_free(pid_t pid)
 {
     if (pid < MAX_TASK)
     {
-        spinlock_lock(&tm.task_table_lock);
-        tm.task_table[pid].status = TASK_NO_TASK;
-        spinlock_unlock(&tm.task_table_lock);
+        spinlock_lock(&tm->task_table_lock);
+        tm->task_table[pid].status = TASK_NO_TASK;
+        spinlock_unlock(&tm->task_table_lock);
     }
     return;
 }
@@ -149,7 +169,7 @@ PUBLIC task_struct_t* init_task_struct
     task->ustack_base = 0;
     task->ustack_size = 0;
 
-    task->pid         = ((addr_t)task - (addr_t)tm.task_table) / sizeof(*task);
+    task->pid         = ((addr_t)task - (addr_t)tm->task_table) / sizeof(*task);
     task->ppid        = running_task()->pid;
 
     if (strlen(name) > 31)
@@ -219,41 +239,53 @@ PUBLIC task_struct_t* task_start
     init_task_struct(task,name,priority,(addr_t)KADDR_P2V(kstack_base),kstack_size);
     create_task_struct(task,func,arg);
 
-    spinlock_lock(&tm.task_list_lock[apic_id()]);
-    list_append(&tm.task_list[apic_id()],&task->general_tag);
-    spinlock_unlock(&tm.task_list_lock[apic_id()]);
+    spinlock_lock(&tm->task_list_lock[apic_id()]);
+    task_list_insert(&tm->task_list[apic_id()],task);
+    spinlock_unlock(&tm->task_list_lock[apic_id()]);
     return task;
 }
 
 PRIVATE void make_main_task(void)
 {
-    tm.task_table[0].status  = TASK_USING;
+    tm->task_table[0].status  = TASK_USING;
     task_struct_t *main_task = pid2task(0);
     init_task_struct(main_task,
                     "Main task",
                     DEFAULT_PRIORITY,
                     (addr_t)KADDR_P2V(KERNEL_STACK_BASE),
                     KERNEL_STACK_SIZE);
-    spinlock_lock(&tm.task_list_lock[apic_id()]);
-    list_append(&tm.task_list[apic_id()],&main_task->general_tag);
-    spinlock_unlock(&tm.task_list_lock[apic_id()]);
+
+    spinlock_lock(&tm->task_list_lock[apic_id()]);
+    task_list_insert(&tm->task_list[apic_id()],main_task);
+    spinlock_unlock(&tm->task_list_lock[apic_id()]);
+
     return;
 }
 
 PUBLIC void task_init()
 {
-    memset(tm.task_table,0,sizeof(tm.task_table[0]) * MAX_TASK);
+    addr_t addr;
+    status_t status;
+    status = alloc_physical_page(IN(sizeof(*tm) / PG_SIZE + 1),OUT(&addr));
+    if (ERROR(status))
+    {
+        pr_log("\3 Can not allocate memory for task manager.\n");
+        while (1) continue;
+    }
+    tm = KADDR_P2V(addr);
+    memset(tm,0,sizeof(*tm));
     pid_t i;
     for (i = 0;i < MAX_TASK;i++)
     {
-        tm.task_table[i].status = TASK_NO_TASK;
+        tm->task_table[i].status = TASK_NO_TASK;
     }
     for (i = 0;i < NR_CPUS;i++)
     {
-        list_init(&tm.task_list[i]);
-        init_spinlock(&tm.task_list_lock[i]);
+        list_init(&tm->task_list[i]);
+        init_spinlock(&tm->task_list_lock[i]);
     }
-    init_spinlock(&tm.task_table_lock);
+    init_spinlock(&tm->task_table_lock);
+
     make_main_task();
     return;
 }
