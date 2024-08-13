@@ -1,0 +1,10 @@
+TOOL_PATH        := ../../tools/
+MINGW64_GCC      := $(TOOL_PATH)/MinGW64/bin/gcc.exe
+X86_64-ELF-GCC   := $(TOOL_PATH)/X86_64-elf-tools/bin/x86_64-elf-gcc.exe
+X86_64-ELF-AS    := $(TOOL_PATH)/x86_64-elf-tools/x86_64-elf/bin/as.exe
+X86_64-ELF-LD    := $(TOOL_PATH)/x86_64-elf-tools/x86_64-elf/bin/ld.exe
+OBJCOPY          := $(TOOL_PATH)/objcopy
+QEMU             := $(TOOL_PATH)/qemu/qemu-system-x86_64.exe
+ECHO             := echo
+RM               := $(TOOL_PATH)/rm
+OVMF             := $(ESP_PATH)/../bios.bin
