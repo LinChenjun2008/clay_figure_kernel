@@ -3,7 +3,7 @@
 
 #ifndef INTR_HANDLER
 
-typedef struct
+typedef struct intr_stack_s
 {
     /* 低地址 */
     wordsize_t ds;
@@ -37,7 +37,7 @@ typedef struct
     /* 高地址 */
 } intr_stack_t;
 
-typedef enum
+typedef enum intr_status_e
 {
     INTR_OFF = 0,
     INTR_ON,

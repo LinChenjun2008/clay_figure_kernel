@@ -53,7 +53,7 @@ PRIVATE mem_cache_t* block2cache(mem_block_t *b)
     return ((mem_cache_t*)((uintptr_t)b & 0xffffffffffe00000));
 }
 
-PUBLIC status_t pmalloc(IN(size_t size),OUT(void *addr))
+PUBLIC status_t pmalloc(size_t size,void *addr)
 {
     if (addr == NULL)
     {
@@ -76,7 +76,7 @@ PUBLIC status_t pmalloc(IN(size_t size),OUT(void *addr))
     spinlock_lock(&mem_groups[i].lock);
     if (list_empty(&mem_groups[i].free_block_list))
     {
-        status_t status = alloc_physical_page(IN(1),OUT(&c));
+        status_t status = alloc_physical_page(1,&c);
         if (ERROR(status))
         {
             spinlock_unlock(&mem_groups[i].lock);
@@ -87,8 +87,8 @@ PUBLIC status_t pmalloc(IN(size_t size),OUT(void *addr))
         memset(c,0,PG_SIZE);
         c->group            = &mem_groups[i];
         c->number_of_blocks = (PG_SIZE - sizeof(*c)
-                                - (PG_SIZE - sizeof(*c)) % c->group->block_size)
-                                / c->group->block_size;
+                              - (PG_SIZE - sizeof(*c)) % c->group->block_size)
+                              / c->group->block_size;
         c->cnt              = c->number_of_blocks;
         mem_groups[i].total_free += c->cnt;
         size_t block_index;

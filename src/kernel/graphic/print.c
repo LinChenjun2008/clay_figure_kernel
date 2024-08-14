@@ -8,7 +8,7 @@ extern PUBLIC uint8_t ascii_character[][16];
 
 PUBLIC volatile uint32_t global_log_cnt;
 
-typedef struct
+typedef struct position_s
 {
     uint32_t x;
     uint32_t y;
@@ -58,11 +58,14 @@ PUBLIC void basic_print(uint32_t col,const char *str,...)
     char *s = msg;
     while(*s)
     {
-        if (*s == '\n' || pos.x >= g_boot_info->graph_info.horizontal_resolution - CHAR_X_SIZE)
+        if (*s == '\n'
+            || pos.x
+                 >= g_boot_info->graph_info.horizontal_resolution - CHAR_X_SIZE)
         {
             pos.x = X_START;
             pos.y += CHAR_Y_SIZE;
-            pos.y > g_boot_info->graph_info.vertical_resolution - CHAR_Y_SIZE ? pos.y = Y_START : 0;
+            pos.y > g_boot_info->graph_info.vertical_resolution - CHAR_Y_SIZE ?
+                 pos.y = Y_START : 0;
             s++;
             int i;
             for (i = 0;i < CHAR_Y_SIZE;i++)
@@ -71,7 +74,10 @@ PUBLIC void basic_print(uint32_t col,const char *str,...)
                     (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
                     + (pos.y + i) * g_boot_info->graph_info.horizontal_resolution;
                 uint32_t j;
-                for (j = 0;j < g_boot_info->graph_info.horizontal_resolution;j++){ pixel[j] = 0x00000000; }
+                for (j = 0;j < g_boot_info->graph_info.horizontal_resolution;j++)
+                {
+                    pixel[j] = 0x00000000;
+                }
             }
             continue;
         }

@@ -1,7 +1,7 @@
 #ifndef __INIT_H__
 #define __INIT_H__
 
-typedef struct
+typedef struct segmdesc_s
 {
     uint16_t limit_low;    //  0 - 15 limit1
     uint16_t base_low;     // 16 - 31 base0

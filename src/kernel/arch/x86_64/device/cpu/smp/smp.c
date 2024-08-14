@@ -10,8 +10,7 @@
 extern apic_t apic;
 extern taskmgr_t *tm;
 
-PUBLIC uint64_t make_icr
-(
+PUBLIC uint64_t make_icr(
     uint8_t  vector,
     uint8_t  deliver_mode,
     uint8_t  dest_mode,
@@ -19,8 +18,7 @@ PUBLIC uint64_t make_icr
     uint8_t  level,
     uint8_t  trigger,
     uint8_t  des_shorthand,
-    uint32_t destination
-)
+    uint32_t destination)
 {
     uint64_t icr;
     icr =     (vector         & 0xff)
@@ -47,14 +45,14 @@ PUBLIC status_t smp_start()
 {
     // copy ap_boot
     size_t ap_boot_size = (addr_t)AP_BOOT_END - (addr_t)AP_BOOT_BASE;
-    memcpy((void*)KADDR_P2V(0x7c000),AP_BOOT_BASE,ap_boot_size);
+    memcpy((void*)KADDR_P2V(0x10000),AP_BOOT_BASE,ap_boot_size);
 
     // allocate stack for apu
     status_t status;
     void *apu_stack_base;
-    status = alloc_physical_page
-                        (IN(((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1),
-                         OUT(&apu_stack_base));
+    status = alloc_physical_page(
+                ((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1,
+                &apu_stack_base);
     if (ERROR(status))
     {
         pr_log("\3 fatal: can not alloc memory for apu. \n");
@@ -68,7 +66,7 @@ PUBLIC status_t smp_start()
         char name[16];
         sprintf(name,"idle(%d)",i);
         pid_t ap_main_pid;
-        status = task_alloc(OUT(&ap_main_pid));
+        status = task_alloc(&ap_main_pid);
         if (ERROR(status))
         {
             pr_log("\3 Alloc task for AP error.\n");
@@ -80,10 +78,10 @@ PUBLIC status_t smp_start()
         kstack_base = (addr_t)
                       KADDR_P2V(apu_stack_base + (i - 1) * KERNEL_STACK_SIZE);
         init_task_struct(main_task,
-                        name,
-                        DEFAULT_PRIORITY,
-                        kstack_base,
-                        KERNEL_STACK_SIZE);
+                         name,
+                         DEFAULT_PRIORITY,
+                         kstack_base,
+                         KERNEL_STACK_SIZE);
         spinlock_lock(&tm->task_list_lock[i]);
         list_append(&tm->task_list[i],&main_task->general_tag);
         spinlock_unlock(&tm->task_list_lock[i]);
@@ -94,8 +92,7 @@ PUBLIC status_t smp_start()
     register_handle(0x80,ipi_timer_handler);
 
     // init IPI
-    uint64_t icr = make_icr
-    (
+    uint64_t icr = make_icr(
         0,
         ICR_DELIVER_MODE_INIT,
         ICR_DEST_MODE_PHY,
@@ -103,21 +100,18 @@ PUBLIC status_t smp_start()
         ICR_LEVEL_DE_ASSEST,
         ICR_TRIGGER_EDGE,
         ICR_ALL_EXCLUDE_SELF,
-        0
-    );
+        0);
     send_IPI(icr);
 
-    icr = make_icr
-    (
-        0x7c,
+    icr = make_icr(
+        0x10,
         ICR_DELIVER_MODE_START_UP,
         ICR_DEST_MODE_PHY,
         ICR_DELIVER_STATUS_IDLE,
         ICR_LEVEL_DE_ASSEST,
         ICR_TRIGGER_EDGE,
         ICR_ALL_EXCLUDE_SELF,
-        0
-    );
+        0);
     send_IPI(icr);
     send_IPI(icr);
 

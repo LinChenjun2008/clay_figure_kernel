@@ -13,8 +13,7 @@ PUBLIC void init_spinlock(spinlock_t *spinlock)
 PUBLIC void spinlock_lock(spinlock_t *spinlock)
 {
     running_task()->spinlock_count++;
-    __asm__ __volatile__
-    (
+    __asm__ __volatile__ (
         ".try_lock: \n\t"
         "lock decq %0 \n\t"
         "jz done \n\t"
@@ -25,8 +24,7 @@ PUBLIC void spinlock_lock(spinlock_t *spinlock)
         "jmp .try_lock \n\t"
         "done: \n\t"
         :
-        :"m"(spinlock->lock)
-    );
+        :"m"(spinlock->lock));
 }
 
 PUBLIC void spinlock_unlock(spinlock_t *spinlock)

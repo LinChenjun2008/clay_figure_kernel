@@ -32,9 +32,9 @@ PRIVATE void view_fill(message_t *msg)
 
     // print buf to screen.
     uint32_t x,y;
-    for (y = 0;y < msg->m3.i1;y++)
+    for (y = 0;y < msg->m3.i2;y++)
     {
-        for (x = 0;x < msg->m3.i2;x++)
+        for (x = 0;x < msg->m3.i1;x++)
         {
             uint32_t pixel = *(buf + y * msg->m3.i1 + x);
             *(gi.vram + (msg->m3.i4 + y) * gi.xsize + msg->m3.i3 + x) = pixel;

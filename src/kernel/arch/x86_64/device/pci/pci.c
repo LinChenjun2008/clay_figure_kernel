@@ -8,7 +8,11 @@
 PRIVATE pci_device_t pci_devices[256];
 PRIVATE uint8_t number_of_pci_device;
 
-PRIVATE uint32_t pci_config_read(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset)
+PRIVATE uint32_t pci_config_read(
+    uint8_t bus,
+    uint8_t dev,
+    uint8_t func,
+    uint8_t offset)
 {
     uint32_t address;
     /// PCI_CONFIG_ADDRESS:
@@ -26,7 +30,12 @@ PRIVATE uint32_t pci_config_read(uint8_t bus, uint8_t dev, uint8_t func, uint8_t
     return data;
 }
 
-PRIVATE void pci_config_write(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset,uint32_t value)
+PRIVATE void pci_config_write(
+    uint8_t bus,
+    uint8_t dev,
+    uint8_t func,
+    uint8_t offset,
+    uint32_t value)
 {
     uint32_t address;
     /// PCI_CONFIG_ADDRESS:
@@ -113,7 +122,10 @@ PUBLIC uint8_t pci_dev_read_sub_class_code(pci_device_t *dev)
     return pci_read_sub_class_code(dev->bus,dev->device,dev->func);
 }
 
-PRIVATE uint8_t pci_read_secondary_bus_number(uint8_t bus, uint8_t dev, uint8_t func)
+PRIVATE uint8_t pci_read_secondary_bus_number(
+    uint8_t bus,
+    uint8_t dev,
+    uint8_t func)
 {
     return (uint8_t)((pci_config_read(bus,dev,func,0x18) >> 8) & 0xff);
 }
@@ -239,13 +251,17 @@ PUBLIC void pci_scan_all_bus()
     return;
 }
 
-PUBLIC pci_device_t* pci_dev_match(uint8_t base_class,uint8_t sub_class,uint8_t prog_if)
+PUBLIC pci_device_t* pci_dev_match(
+    uint8_t base_class,
+    uint8_t sub_class,
+    uint8_t prog_if)
 {
     int i;
     for (i = 0;i < number_of_pci_device;i++)
     {
         uint32_t class_code = (pci_devices[i].class_code >> 8) & 0x00ffffff;
-        if (((uint32_t)base_class << 16 | (uint32_t)sub_class << 8 | prog_if) == class_code)
+        if (((uint32_t)base_class << 16 | (uint32_t)sub_class << 8 | prog_if)
+            == class_code)
         {
             return &pci_devices[i];
         }

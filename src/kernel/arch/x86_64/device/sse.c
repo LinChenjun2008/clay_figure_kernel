@@ -13,19 +13,14 @@ PUBLIC status_t check_sse()
 
 PUBLIC void sse_init()
 {
-    __asm__ __volatile__
-    (
+    __asm__ __volatile__ (
         "movq %%cr0,%%rax \n\t"
         "andw $0xfffb,%%ax \n\t"
         "orw $0x2,%%ax \n\t"
         "movq %%rax,%%cr0 \n\t"
         "movq %%cr4,%%rax \n\t"
         "orw $(3 << 9),%%ax \n\t"
-        "movq %%rax,%%cr4 \n\t"
-    :
-    :
-    :
-    );
+        "movq %%rax,%%cr4 \n\t":::);
     return;
 }
 

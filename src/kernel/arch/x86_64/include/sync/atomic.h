@@ -1,7 +1,7 @@
 #ifndef __ATOMIC_H__
 #define __ATOMIC_H__
 
-typedef struct
+typedef struct atomic_s
 {
     volatile uint64_t value;
 } atomic_t;

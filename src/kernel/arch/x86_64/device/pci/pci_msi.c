@@ -31,14 +31,12 @@ PUBLIC void pci_dev_read_msi_info(pci_device_t *dev)
     return;
 }
 
-PUBLIC void configure_msi
-(
+PUBLIC void configure_msi(
     pci_device_t *dev,
     uint8_t trigger_mode,
     uint32_t delivery_mode,
     uint8_t vector,
-    uint8_t num_vector_exponent
-)
+    uint8_t num_vector_exponent)
 {
     uint32_t msg_addr = apic.local_apic_address | apic.lapic_id[0] << 12;
     uint32_t msg_data = delivery_mode << 8 | vector;
@@ -66,7 +64,7 @@ PUBLIC void configure_msi
     if (msi_cap_addr)
     {
         uint32_t msi_cap = pci_dev_config_read(dev,msi_cap_addr);
-        if (((msi_cap >> 17) & 0b0111) /* multi msg capable */ <= num_vector_exponent)
+        if (((msi_cap >> 17) & 0b0111) <= num_vector_exponent)
         {
             // multi msg enable = multi msg capable
             msi_cap &= 0x00700000;
@@ -115,7 +113,10 @@ PUBLIC status_t pci_dev_configure_msi(pci_device_t *dev,uint32_t irq,uint32_t co
 {
     if (!dev->msi.msi_capable)
     {
-        pr_log("\3 PCI Device %x:%x:%x Not Support MSI.\n",dev->bus,dev->device,dev->func);
+        pr_log("\3 PCI Device %x:%x:%x Not Support MSI.\n",
+               dev->bus,
+               dev->device,
+               dev->func);
         return K_ERROR;
     }
     pci_msi_struct_t *msi = & dev->msi;
@@ -130,8 +131,10 @@ PUBLIC status_t pci_dev_configure_msi(pci_device_t *dev,uint32_t irq,uint32_t co
     // set vector
     msi->address_value = 0xfee00000 | (apic.lapic_id[0] << 12);
     msi->data_value    = irq;
-    pci_dev_config_write(dev,msi->cap_addr + 0x04,msi->address_value & 0xffffffff);
-    if (msi->msg_ctrl & 0x0080)// 64bit
+    pci_dev_config_write(dev,
+                         msi->cap_addr + 0x04,
+                         msi->address_value & 0xffffffff);
+    if (msi->msg_ctrl & 0x0080) // 64bit
     {
         pci_dev_config_write(dev,msi->cap_addr + 0x08,msi->address_value >> 32);
         pci_dev_config_write(dev,msi->cap_addr + 0x0c,msi->data_value);
@@ -141,7 +144,7 @@ PUBLIC status_t pci_dev_configure_msi(pci_device_t *dev,uint32_t irq,uint32_t co
         pci_dev_config_write(dev,msi->cap_addr + 0x08,msi->data_value);
     }
     msi->msg_ctrl &= ~0x0070;
-    msi->msg_ctrl |= (count - 1) << 4;// (count - 1) << 4
+    msi->msg_ctrl |= (count - 1) << 4; // (count - 1) << 4
 
     uint32_t val = pci_dev_config_read(dev,msi->cap_addr);
     val |= msi->msg_ctrl << 16;
@@ -165,6 +168,7 @@ PUBLIC status_t pci_dev_enable_msi(pci_device_t *dev)
     msi->msg_ctrl |= 0x01;
     pci_dev_config_write(dev,msi->cap_addr + 0x00,msi->msg_ctrl << 16);
 
-    pr_log("\2 MSI Enable: %s.\n",(pci_dev_config_read(dev,msi->cap_addr) >> 16) & 1 ? "Enabled" : "Failed");
+    pr_log("\2 MSI Enable: %s.\n",
+           (pci_dev_config_read(dev,msi->cap_addr) >> 16) & 1 ? "T" : "F");
     return K_SUCCESS;
 }

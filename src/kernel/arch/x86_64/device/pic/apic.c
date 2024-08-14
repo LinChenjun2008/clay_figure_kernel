@@ -56,15 +56,24 @@ PUBLIC void detect_cores()
                 break;
             case 1:
                 uint64_t ioapic_addr = (uint64_t)(*(uint32_t*)(p + 4) + 0UL);
-                apic.ioapic[apic.number_of_ioapic].index_addr = (uint8_t*)ioapic_addr;
-                apic.ioapic[apic.number_of_ioapic].data_addr  = (uint32_t*)(ioapic_addr + 0x10UL);
-                apic.ioapic[apic.number_of_ioapic].EOI_addr   = (uint32_t*)(ioapic_addr + 0x40UL);
+
+                apic.ioapic[apic.number_of_ioapic].index_addr
+                    = (uint8_t*)ioapic_addr;
+
+                apic.ioapic[apic.number_of_ioapic].data_addr
+                    = (uint32_t*)(ioapic_addr + 0x10UL);
+
+                apic.ioapic[apic.number_of_ioapic].EOI_addr
+                    = (uint32_t*)(ioapic_addr + 0x40UL);
+
                 apic.number_of_ioapic++;
                 pr_log("\2 Get IOAPIC address: %p\n",ioapic_addr);
                 break;
         }
     }
-    pr_log("\1 cores: %d, local apic addr %p\n",apic.number_of_cores,apic.local_apic_address);
+    pr_log("\1 cores: %d, local apic addr %p\n",
+           apic.number_of_cores,
+           apic.local_apic_address);
     return;
 }
 

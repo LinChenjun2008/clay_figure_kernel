@@ -1,11 +1,12 @@
 #ifndef __SEMAPHORE_H__
 #define __SEMAPHORE_H__
 
-#include <task/task.h>
 #include <lib/list.h>
 #include <sync/atomic.h>
 
-typedef struct
+typedef struct task_struct_s task_struct_t;
+
+typedef struct semaphore_s
 {
     atomic_t          value;
     list_t            waiters;

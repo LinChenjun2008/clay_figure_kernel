@@ -15,16 +15,14 @@ PUBLIC void prog_exit()
 {
     addr_t  func;
     wordsize_t arg;
-    __asm__ __volatile__
-    (
+    __asm__ __volatile__ (
         "movq %%rsi,%[func] \n\t"
         "movq %%rdi,%[arg] \n\t"
         "movq $0,%%rsi \n\t"
         "movq $0,%%rdi \n\t"
         :[func]"=g"(func),[arg]"=g"(arg)
         :
-        :"rsi","rdi"
-    );
+        :"rsi","rdi");
     int ret_value = ((int (*)(void*))func)((void*)arg);
 
     message_t msg;
@@ -37,7 +35,6 @@ PUBLIC void prog_exit()
 
 PRIVATE void start_process(void *process)
 {
-    intr_disable();
     void *func = process;
     task_struct_t *cur = running_task();
     addr_t kstack = (addr_t)cur->context;
@@ -72,7 +69,7 @@ PRIVATE void start_process(void *process)
     cur->context = (task_context_t*)kstack;
 
     addr_t ustack;
-    status_t status = alloc_physical_page(IN(1),OUT(&ustack));
+    status_t status = alloc_physical_page(1,&ustack);
     if (ERROR(status))
     {
         pr_log("\3 Alloc User Stack error.\n");
@@ -123,7 +120,7 @@ PUBLIC void prog_activate(task_struct_t *task)
 PRIVATE uint64_t *create_page_dir(void)
 {
     uint64_t *pgdir_v;
-    status_t status = pmalloc(IN(PT_SIZE),OUT(&pgdir_v));
+    status_t status = pmalloc(PT_SIZE,&pgdir_v);
     if (ERROR(status))
     {
         return NULL;
@@ -140,7 +137,7 @@ PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
     size_t entry_size          = sizeof(*task->vaddr_table.entries);
     uint64_t number_of_entries = 1024;
     void *p;
-    status_t status = pmalloc(IN(entry_size * number_of_entries),OUT(&p));
+    status_t status = pmalloc(entry_size * number_of_entries,&p);
     if (ERROR(status))
     {
         return status;
@@ -154,13 +151,11 @@ PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
     return K_SUCCESS;
 }
 
-PUBLIC task_struct_t *prog_execute
-(
+PUBLIC task_struct_t *prog_execute(
     char *name,
     uint64_t priority,
     size_t kstack_size,
-    void *prog
-)
+    void *prog)
 {
     if (kstack_size & (kstack_size - 1))
     {
@@ -168,20 +163,23 @@ PUBLIC task_struct_t *prog_execute
     }
     status_t status;
     pid_t pid;
-    status = task_alloc(OUT(&pid));
+    status = task_alloc(&pid);
     if (ERROR(status))
     {
         return NULL;
     }
     void *kstack_base;
-    status = pmalloc(IN(kstack_size),OUT(&kstack_base));
+    status = pmalloc(kstack_size,&kstack_base);
     if (ERROR(status))
     {
         task_free(pid);
         return NULL;
     }
     task_struct_t *task = pid2task(pid);
-    init_task_struct(task,name,priority,(addr_t)KADDR_P2V(kstack_base),kstack_size);
+    init_task_struct(task,
+                     name,priority,
+                     (addr_t)KADDR_P2V(kstack_base),
+                     kstack_size);
     create_task_struct(task,start_process,(uint64_t)prog);
     task->page_dir = create_page_dir();
     if (task->page_dir == NULL)

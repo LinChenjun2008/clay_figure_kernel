@@ -69,7 +69,7 @@ typedef uint32_t pid_t;
 typedef uint32_t status_t;
 typedef uint32_t syscall_status_t;
 
-typedef struct
+typedef struct message_s
 {
     volatile pid_t    src;
     volatile uint32_t type;

@@ -51,7 +51,13 @@ PUBLIC void put_pixel(uint32_t x,uint32_t y,uint32_t color)
     return;
 }
 
-PUBLIC void fill(void *buffer,size_t buffer_size,uint32_t xsize,uint32_t ysize,uint32_t x,uint32_t y)
+PUBLIC void fill(
+    void *buffer,
+    size_t buffer_size,
+    uint32_t xsize,
+    uint32_t ysize,
+    uint32_t x,
+    uint32_t y)
 {
     message_t msg;
     msg.type = VIEW_FILL;

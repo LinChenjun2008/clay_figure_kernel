@@ -1,9 +1,10 @@
 #include <kernel/global.h>
 #include <lib/alloc_table.h>
 
-PUBLIC void allocate_table_init(allocate_table_t *table,
-                                allocate_table_entry_t *entries,
-                                uint64_t number_of_entries)
+PUBLIC void allocate_table_init(
+    allocate_table_t *table,
+    allocate_table_entry_t *entries,
+    uint64_t number_of_entries)
 {
     table->number_of_entries = number_of_entries;
     table->frees             = 0;
@@ -11,11 +12,9 @@ PUBLIC void allocate_table_init(allocate_table_t *table,
     return;
 }
 
-PUBLIC status_t allocate_units
-(
-    IN(allocate_table_t *table,uint64_t number_of_units),
-    OUT(uint64_t *index)
-)
+PUBLIC status_t allocate_units(
+    allocate_table_t *table,uint64_t number_of_units,
+    uint64_t *index)
 {
     if (index == NULL)
     {
@@ -46,8 +45,10 @@ PUBLIC status_t allocate_units
     return K_ERROR;
 }
 
-PUBLIC void free_units(allocate_table_t *table,uint64_t index,
-                       uint64_t number_of_units)
+PUBLIC void free_units(
+    allocate_table_t *table,
+    uint64_t index,
+    uint64_t number_of_units)
 {
     uint64_t i,j;
     for (i = 0;i < table->frees;i++)
