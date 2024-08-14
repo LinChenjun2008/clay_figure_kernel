@@ -10,6 +10,13 @@ PUBLIC void mem_init();
 PUBLIC status_t alloc_physical_page(uint64_t number_of_pages,void *addr);
 
 /**
+ * 在task_init阶段分配number_of_pages个连续的大小为PG_SIZE的物理页
+ * 本函数不会操作自旋锁.
+ * 如果成功,addr指针处存储了分配到的物理页基地址.
+ */
+PUBLIC status_t init_alloc_physical_page(uint64_t number_of_pages,void *addr);
+
+/**
  * 归还从addr地址开始,number_of_pages个大小为PG_SZIE的物理页.
  * addr必须是PG_SIZE对齐的.
  */

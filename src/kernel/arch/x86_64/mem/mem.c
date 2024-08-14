@@ -190,6 +190,37 @@ PUBLIC status_t alloc_physical_page(uint64_t number_of_pages,void *addr)
     return K_SUCCESS;
 }
 
+PUBLIC status_t init_alloc_physical_page(uint64_t number_of_pages,void *addr)
+{
+    if (addr == NULL)
+    {
+        return K_ERROR;
+    }
+    if (number_of_pages == 0)
+    {
+        return K_ERROR;
+    }
+    uint32_t index;
+    status_t status = bitmap_alloc(&mem.page_bitmap,number_of_pages,&index);
+    if (ERROR(status))
+    {
+        pr_log("\3 %s:Out of Memory.\n",__func__);
+        return K_ERROR;
+    }
+    phy_addr_t paddr = 0;
+
+    uint64_t i;
+    for (i = index;i < index + number_of_pages;i++)
+    {
+        bitmap_set(&mem.page_bitmap,i,1);
+    }
+    paddr = (0UL + (phy_addr_t)index * PG_SIZE);
+    memset(KADDR_P2V(paddr),0,number_of_pages * PG_SIZE);
+
+    *(phy_addr_t*)addr = paddr;
+    return K_SUCCESS;
+}
+
 PUBLIC void free_physical_page(void *addr,uint64_t number_of_pages)
 {
     if (number_of_pages == 0)
