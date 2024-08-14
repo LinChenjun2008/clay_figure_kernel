@@ -5,7 +5,6 @@ include win_tools_def.txt
 BOOTLOADER_FLAGS := -Wall -Wextra -I$(BOOTLOADER_INCLUDE_PATH) -I$(SRC_PATH) -I$(BOOTLOADER_SRC_PATH) \
  -std=c99 \
  -e UefiMain -nostdinc -nostdlib \
- -Wno-comment \
  -finput-charset=UTF-8 -fexec-charset=UTF-8 -fno-stack-protector -O0 \
  -fno-builtin -Wl,--subsystem,10 -m64 -mcmodel=large -fpic
 
@@ -32,5 +31,6 @@ QEMU_FLAGS := -m 128M -bios $(OVMF) \
 
 # -device qemu-xhci,id=xhci
 # -d cpu_reset
+
 # -chardev stdio,mux=on,id=com1 \
  -serial chardev:com1 \
