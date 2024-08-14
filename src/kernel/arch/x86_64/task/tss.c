@@ -44,12 +44,10 @@ PUBLIC void init_tss(uint8_t nr_cpu)
     uint64_t tss_base_l = ((uint64_t)&tss[nr_cpu]) & 0xffffffff;
     uint64_t tss_base_h = (((uint64_t)&tss[nr_cpu]) >> 32) & 0xffffffff;
 
-            gdt_table[5 + nr_cpu * 2] = make_segmdesc
-            (
-                (uint32_t)(tss_base_l & 0xffffffff),
-                tss_size - 1,
-                AR_TSS64
-            );
+            gdt_table[5 + nr_cpu * 2] = make_segmdesc(
+                                            (uint32_t)(tss_base_l & 0xffffffff),
+                                            tss_size - 1,
+                                            AR_TSS64);
     memcpy(&gdt_table[5 + nr_cpu * 2 + 1],&tss_base_h,8);
     return;
 }

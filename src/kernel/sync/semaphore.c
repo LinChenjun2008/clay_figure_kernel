@@ -1,6 +1,6 @@
 #include <kernel/global.h>
-#include <task/task.h>
 #include <sync/semaphore.h>
+#include <task/task.h>
 #include <std/string.h>
 #include <intr.h>
 
@@ -41,7 +41,9 @@ PUBLIC status_t sema_up(semaphore_t *sema)
     intr_status_t intr_status = intr_disable();
     if (!list_empty(&sema->waiters))
     {
-        task_struct_t *blocked_task = CONTAINER_OF(task_struct_t,general_tag,list_pop(&sema->waiters));
+        task_struct_t *blocked_task = CONTAINER_OF(task_struct_t,
+                                                   general_tag,
+                                                   list_pop(&sema->waiters));
         task_unblock(blocked_task->pid);
     }
     atomic_inc(&sema->value);

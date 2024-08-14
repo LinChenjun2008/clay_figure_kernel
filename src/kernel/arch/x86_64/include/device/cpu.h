@@ -1,8 +1,6 @@
 #ifndef __CPU_H__
 #define __CPU_H__
 
-#include <kernel/global.h>
-
 static __inline__ uint64_t rdmsr(uint64_t address)
 {
     uint64_t edx = 0;
@@ -13,13 +11,19 @@ static __inline__ uint64_t rdmsr(uint64_t address)
 
 static __inline__ void wrmsr(uint64_t address,uint64_t value)
 {
-    __asm__ __volatile__ ("wrmsr":
-                :"d"(value >> 32),"a"(value & 0xffffffff),"c"(address):"memory");
+    __asm__ __volatile__ (
+        "wrmsr"
+        ::"d"(value >> 32),"a"(value & 0xffffffff),"c"(address):"memory");
     return;
 }
 
-static __inline__ void cpuid(uint32_t mop,uint32_t sop,uint32_t *a,uint32_t *b,
-                             uint32_t *c,uint32_t *d)
+static __inline__ void cpuid(
+    uint32_t mop,
+    uint32_t sop,
+    uint32_t *a,
+    uint32_t *b,
+    uint32_t *c,
+    uint32_t *d)
 {
     __asm__ __volatile__
     (
@@ -36,15 +40,12 @@ static __inline__ void cpu_name(char *s)
     uint32_t i;
     for (i = 0x80000002; i < 0x80000005;i++)
     {
-        cpuid
-        (
-            i,
-            0,
-            (uint32_t*)s + (i - 0x80000002) * 4,
-            (uint32_t*)s + (i - 0x80000002) * 4 + 1,
-            (uint32_t*)s + (i - 0x80000002) * 4 + 2,
-            (uint32_t*)s + (i - 0x80000002) * 4 + 3
-        );
+        cpuid(i,
+              0,
+              (uint32_t*)s + (i - 0x80000002) * 4,
+              (uint32_t*)s + (i - 0x80000002) * 4 + 1,
+              (uint32_t*)s + (i - 0x80000002) * 4 + 2,
+              (uint32_t*)s + (i - 0x80000002) * 4 + 3);
     }
 }
 
@@ -60,8 +61,7 @@ static __inline__ uint32_t apic_id()
     return (b >> 24) & 0xff;
 }
 
-PUBLIC uint64_t make_icr
-(
+PUBLIC uint64_t make_icr(
     uint8_t  vector,
     uint8_t  deliver_mode,
     uint8_t  dest_mode,
@@ -69,8 +69,8 @@ PUBLIC uint64_t make_icr
     uint8_t  level,
     uint8_t  trigger,
     uint8_t  des_shorthand,
-    uint32_t destination
-);
+    uint32_t destination);
+
 PUBLIC status_t smp_start();
 PUBLIC void send_IPI(uint64_t icr);
 

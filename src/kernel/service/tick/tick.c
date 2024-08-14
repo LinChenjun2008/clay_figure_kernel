@@ -46,7 +46,8 @@ PRIVATE void wake_up()
     int i;
     for (i = 0;i < MAX_TIMERS;i++)
     {
-        if (time_manager.timers[i].flag != TIMER_UNUSED && time_manager.ticks >= time_manager.timers[i].timeout)
+        if (time_manager.timers[i].flag != TIMER_UNUSED
+            && time_manager.ticks >= time_manager.timers[i].timeout)
         {
             message_t msg;
             msg.m3.l1 = 0;

@@ -6,7 +6,7 @@
 
 
 #pragma pack(1)
-typedef struct
+typedef struct ACPI_DESCRIPTION_HEADER_s
 {
     uint32_t Signature;
     uint32_t Length;
@@ -19,14 +19,14 @@ typedef struct
     uint32_t CreatorRevision;
 } ACPI_DESCRIPTION_HEADER_t;
 
-typedef struct
+typedef struct XSDT_TABLE_s
 {
     ACPI_DESCRIPTION_HEADER_t Header;
     uint64_t                  Entry;
 } XSDT_TABLE_t;
 
 // MADT
-typedef struct
+typedef struct MADT_s
 {
     ACPI_DESCRIPTION_HEADER_t Header;
     uint32_t                  LocalApicAddress;
@@ -34,14 +34,14 @@ typedef struct
 } MADT_t;
 #pragma pack()
 
-typedef struct
+typedef struct ioapic_s
 {
     uint8_t  *index_addr;
     uint32_t *data_addr;
     uint32_t *EOI_addr;
 } ioapic_t;
 
-typedef struct
+typedef struct apic_s
 {
     uint64_t  local_apic_address;
     uint8_t   number_of_cores;

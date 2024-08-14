@@ -66,7 +66,9 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
     msg->src = running_task()->pid;
     if (deadlock(running_task()->pid,dest))
     {
-        pr_log("\3'%s' -> '%s' dead lock\n",running_task()->name,pid2task(dest)->name);
+        pr_log("\3'%s' -> '%s' dead lock\n",
+               running_task()->name,
+               pid2task(dest)->name);
         return SYSCALL_DEADLOCK;
     }
     // pr_log("\1 send: '%-16s' -> '%-16s'\n",running_task()->name,pid2task(dest)->name);
@@ -110,7 +112,8 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
             return SYSCALL_SUCCESS;
         }
         spinlock_lock(&receiver->send_lock);
-        src = CONTAINER_OF(task_struct_t,general_tag,list_pop(&receiver->sender_list))->pid;
+        src = CONTAINER_OF(task_struct_t,general_tag,
+                           list_pop(&receiver->sender_list))->pid;
         spinlock_unlock(&receiver->send_lock);
     }
     else
@@ -126,7 +129,8 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
             return SYSCALL_SRC_NOT_EXIST;
         }
         spinlock_lock(&running_task()->send_lock);
-        while (!list_find(&running_task()->sender_list,&pid2task(src)->general_tag))
+        while (!list_find(&running_task()->sender_list,
+                          &pid2task(src)->general_tag))
         {
             spinlock_unlock(&running_task()->send_lock);
             task_block(TASK_RECEIVING);

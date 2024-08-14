@@ -18,8 +18,7 @@ PRIVATE void irq_timer_handler()
     global_ticks++;
     // send IPI
     uint64_t icr;
-    icr = make_icr
-    (
+    icr = make_icr(
         0x80,
         ICR_DELIVER_MODE_FIXED,
         ICR_DEST_MODE_PHY,
@@ -27,8 +26,7 @@ PRIVATE void irq_timer_handler()
         ICR_LEVEL_DE_ASSEST,
         ICR_TRIGGER_EDGE,
         ICR_ALL_EXCLUDE_SELF,
-        0
-    );
+        0);
     send_IPI(icr);
 
     do_schedule();

@@ -7,12 +7,6 @@
 // #define __TIMER_HPET__
 #define __TIMER_8254__
 
-#define DEFAULT_PRIORITY 3
-#define SERVICE_PRIORITY 1
-
-#define IN(x...) x
-#define OUT(x...) x
-
 #define ERROR(x) ((x) != K_SUCCESS)
 #define K_ERROR          0xc0000000
 #define K_SUCCESS        0x80000000

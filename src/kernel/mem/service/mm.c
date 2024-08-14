@@ -21,7 +21,7 @@ PRIVATE void mm_allocate_page(message_t *msg)
         return;
     }
 
-    status_t status = allocate_units(IN(&src->vaddr_table,msg->m1.i1),OUT(&vaddr_start));
+    status_t status = allocate_units(&src->vaddr_table,msg->m1.i1,&vaddr_start);
     if (ERROR(status))
     {
         msg->m2.p1 = NULL;
@@ -32,7 +32,7 @@ PRIVATE void mm_allocate_page(message_t *msg)
     uint32_t i;
     for (i = 0;i < msg->m1.i1;i++)
     {
-        status_t status = alloc_physical_page(IN(1),OUT(&paddr));
+        status_t status = alloc_physical_page(1,&paddr);
         if (ERROR(status))
         {
             while (i > 0)

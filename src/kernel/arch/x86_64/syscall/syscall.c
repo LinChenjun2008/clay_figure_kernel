@@ -7,8 +7,10 @@
 
 #include <log.h>
 
-
-PUBLIC syscall_status_t ASMLINKAGE sys_send_recv(uint32_t nr,pid_t src_dest,message_t *msg)
+PUBLIC syscall_status_t ASMLINKAGE sys_send_recv(
+    uint32_t nr,
+    pid_t src_dest,
+    message_t *msg)
 {
     if (is_service_id(src_dest))
     {
@@ -54,7 +56,8 @@ PUBLIC void syscall_init()
 
     wrmsr(IA32_LSTAR,(uint64_t)syscall_entry);
     // IA32_STAR[63:48] + 16 = user CS,IA32_STAR[63:48] + 8 = user SS
-    wrmsr(IA32_STAR,(uint64_t)SELECTOR_CODE64_K << 32 | (uint64_t)(SELECTOR_CODE64_U - 16) << 48);
+    wrmsr(IA32_STAR,(uint64_t)SELECTOR_CODE64_K << 32
+          | (uint64_t)(SELECTOR_CODE64_U - 16) << 48);
     wrmsr(IA32_FMASK,EFLAGS_IF_1);
     return;
 }

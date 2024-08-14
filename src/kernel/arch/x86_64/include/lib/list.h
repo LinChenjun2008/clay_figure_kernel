@@ -1,21 +1,21 @@
 #ifndef __LIST_H__
 #define __LIST_H__
 
-typedef struct _list_node_t list_node_t;
-
 #define OFFSET(CONTAINER_TYPE, MEMBER_NAME) \
     (uint64_t)(&((CONTAINER_TYPE*)0)->MEMBER_NAME)
 
 #define CONTAINER_OF(CONTAINER_TYPE,MEMBER_NAME,MEMBER_PTR) \
     ((CONTAINER_TYPE*)((addr_t)MEMBER_PTR - OFFSET(CONTAINER_TYPE, MEMBER_NAME)))
 
-struct _list_node_t
+typedef struct list_node_s list_node_t;
+
+typedef struct list_node_s
 {
     list_node_t *prev;
     list_node_t *next;
-};
+} list_node_t;
 
-typedef struct
+typedef struct list_s
 {
     list_node_t head;
     list_node_t tail;

@@ -1,9 +1,8 @@
 #ifndef __FIFO_H__
 #define __FIFO_H__
 
-typedef struct
+typedef struct fifo_s
 {
-    // struct lock lock;
     union
     {
         uint8_t  *buf8;
@@ -19,9 +18,9 @@ typedef struct
 } fifo_t;
 
 PUBLIC void init_fifo(fifo_t *fifo,void* buf,int type,int size);
-PUBLIC status_t fifo_put(IN(fifo_t *fifo,void* data));
+PUBLIC status_t fifo_put(fifo_t *fifo,void* data);
 
-PUBLIC status_t fifo_get(IN(fifo_t *fifo),OUT(void* data));
+PUBLIC status_t fifo_get(fifo_t *fifo,void* data);
 PUBLIC bool fifo_empty(fifo_t *fifo);
 PUBLIC bool fifo_fill(fifo_t *fifo);
 

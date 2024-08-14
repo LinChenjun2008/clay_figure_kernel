@@ -1,12 +1,14 @@
 #include <kernel/global.h>
 #include <device/pci.h>
 #include <device/usb/xhci.h>
+#include <device/usb/usb.h>
 #include <mem/mem.h>
 #include <io.h>
 #include <device/pic.h>
 #include <intr.h>
 #include <kernel/syscall.h>
 #include <lib/list.h>
+#include <service.h>
 
 #include <log.h>
 
@@ -31,35 +33,95 @@ PRIVATE void switch_to_xhci(pci_device_t *xhci_dev)
 
 PRIVATE void pr_usbsts()
 {
-    pr_log("\2 USBSTS: %08x\n",xhci_read_opt_reg32(XHCI_OPT_REG_USBSTS));
+    pr_log("\2 USBCMD: %08x USBSTS: %08x\n",
+            xhci_read_opt(XHCI_OPT_USBCMD),
+            xhci_read_opt(XHCI_OPT_USBSTS));
 }
 
 PRIVATE void xhci_halt()
 {
     pr_log("\1 xHCI halt.\n");
-    uint32_t usbcmd = xhci_read_opt_reg32(XHCI_OPT_REG_USBCMD);
+    uint32_t usbcmd = xhci_read_opt(XHCI_OPT_USBCMD);
     usbcmd &= ~USBCMD_RUN;
-    xhci_write_opt_reg32(XHCI_OPT_REG_USBCMD,usbcmd);
-    while((xhci_read_opt_reg32(XHCI_OPT_REG_USBSTS) & USBSTS_HCH) == 0);
+    xhci_write_opt(XHCI_OPT_USBCMD,usbcmd);
+    while((xhci_read_opt(XHCI_OPT_USBSTS) & USBSTS_HCH) == 0);
     pr_log("\1 xHCI shutdown.\n");
+}
+
+
+PRIVATE void xhci_read_xecp()
+{
+    uint32_t offset;
+    addr_t addr = (addr_t)xhci.cap_regs + xhci.xecp_offset;
+    do
+    {
+        xhci_xcap_regs_t *xcap = (void*)addr;
+        uint32_t cap = xcap->cap;
+        uint32_t name;
+        uint32_t ports;
+        offset = GET_FIELD(cap,XECP_NEXT_POINT) << 2;
+        addr += offset;
+        if (GET_FIELD(cap,XECP_CAP_ID) == 0x01)
+        {
+            if (GET_FIELD(cap,XECP_CAP_SPEC) & 1)
+            {
+                pr_log("\1 xHCI is bios owner. switch to this system.\n");
+                cap |=  (1 << 24); // HC OS owned.
+                cap &= ~(1 << 16); // HC Bios owned.
+                xcap->cap = cap;
+            }
+            else
+            {
+                pr_log("\1 xHCI is OS owned.\n");
+            }
+        }
+        if (GET_FIELD(cap,XECP_CAP_ID) == 0x02)
+        {
+            name = xcap->data[0];
+            ports = xcap->data[1];
+            uint8_t major = GET_FIELD(cap,XECP_SUP_MAJOR);
+            uint8_t minor = GET_FIELD(cap,XECP_SUP_MINOR);
+            uint8_t count = (ports >> 8) & 0xff;
+            uint8_t start = (ports >> 0) & 0xff;
+            pr_log("\1 xHCI protocol %c%c%c%c %x.%02x ,%d ports (offset %d), def %x\n",
+                    (name >>  0) & 0xff,
+                    (name >>  8) & 0xff,
+                    (name >> 16) & 0xff,
+                    (name >> 24) & 0xff,
+                    major,minor,count,start,ports >> 16);
+            if (strncmp((const char*)&name,"USB ",4) != 0)
+            {
+                continue;
+            }
+            if (major == 2)
+            {
+                xhci.usb2.start = start;
+                xhci.usb2.count = count;
+            }
+            if (major == 3)
+            {
+                xhci.usb3.start = start;
+                xhci.usb3.count = count;
+            }
+        }
+    } while (offset > 0);
 }
 
 PRIVATE void xhci_reset()
 {
     pr_log("\1 xHCI reset.\n");
-    uint32_t usbcmd = xhci_read_opt_reg32(XHCI_OPT_REG_USBCMD);
+    uint32_t usbcmd = xhci_read_opt(XHCI_OPT_USBCMD);
     usbcmd |= USBCMD_HCRST;
-    xhci_write_opt_reg32(XHCI_OPT_REG_USBCMD,usbcmd);
+    xhci_write_opt(XHCI_OPT_USBCMD,usbcmd);
     // Wait 1ms
-    intr_status_t intr_status = intr_enable();
-    pr_log("\1 xHCI resetting,wait 1ms.\n");
-    uint64_t old_ticks = global_ticks;
-    while(global_ticks < old_ticks + 10);
-    intr_set_status(intr_status);
+    message_t msg;
+    msg.type = TICK_SLEEP;
+    msg.m3.l1 = 1;
+    sys_send_recv(NR_BOTH,TICK,&msg);
 
-    while((xhci_read_opt_reg32(XHCI_OPT_REG_USBCMD) & USBCMD_HCRST));
+    while((xhci_read_opt(XHCI_OPT_USBCMD) & USBCMD_HCRST));
 
-    while((xhci_read_opt_reg32(XHCI_OPT_REG_USBSTS) & USBSTS_CNR));
+    while((xhci_read_opt(XHCI_OPT_USBSTS) & USBSTS_CNR));
 
     pr_log("\1 xHCI reset successfully.\n");
 }
@@ -70,20 +132,21 @@ PRIVATE void xhci_start()
     {
         xhci.max_slots = XHCI_MAX_SLOTS;
     }
-    xhci_write_opt_reg32(XHCI_OPT_REG_CONFIG,xhci.max_slots);
-    uint32_t hcsparam2 = xhci_read_cap_reg32(XHCI_CAP_REG_HCSPARAM2);
-    xhci.scrath_chapad_count = GET_HCSP2_MAX_SC_BUF(hcsparam2);
+    xhci_write_opt(XHCI_OPT_CONFIG,xhci.max_slots);
+    uint32_t hcsp2 = xhci_read_cap(XHCI_CAP_HCSPARAM2);
+    xhci.scrath_chapad_count = GET_HCSP2_MAX_SC_BUF(hcsp2);
     if (xhci.scrath_chapad_count > XHCI_MAX_SCRATCHPADS)
     {
-        pr_log("\3 invalid number of scrath chapad: %d.\n",xhci.scrath_chapad_count);
+        pr_log("\3 invalid number of scrath chapad: %d.\n",
+               xhci.scrath_chapad_count);
         return;
     }
-    xhci_write_opt_reg32(XHCI_OPT_REG_USBSTS,xhci_read_opt_reg32(XHCI_OPT_REG_USBSTS));
-    xhci_write_opt_reg32(XHCI_OPT_REG_DNCTRL,0);
+    xhci_write_opt(XHCI_OPT_USBSTS,xhci_read_opt(XHCI_OPT_USBSTS));
+    xhci_write_opt(XHCI_OPT_DNCTRL,0);
 
     uint8_t* buf;
     status_t status;
-    status = pmalloc(IN(sizeof(*xhci.dev_cxt_arr)),OUT(&buf));
+    status = pmalloc(sizeof(*xhci.dev_cxt_arr),&buf);
     if (ERROR(status))
     {
         pr_log("\3 Can not alloc addr for DCBA.\n");
@@ -97,7 +160,7 @@ PRIVATE void xhci_start()
     for (i = 0;i < xhci.scrath_chapad_count;i++)
     {
         void *buf_arr;
-        status = pmalloc(IN(4096),OUT(&buf_arr));
+        status = pmalloc(4096,&buf_arr);
         if (ERROR(status))
         {
             pr_log("\3 Can not alloc memory for scratchpad_buf_arr[%d].\n",i);
@@ -105,17 +168,19 @@ PRIVATE void xhci_start()
         }
         xhci.dev_cxt_arr->scratchpad[i] = (phy_addr_t)buf_arr;
         memset(KADDR_P2V(xhci.dev_cxt_arr->scratchpad[i]),0,4096);
-        pr_log("\2 scratchpad buffer array %d = %p\n",i,xhci.dev_cxt_arr->scratchpad[i]);
+        pr_log("\2 scratchpad buffer array %d = %p\n",
+               i,
+               xhci.dev_cxt_arr->scratchpad[i]);
     }
     pr_log("\2 Set DCBAPP: %p.\n",buf);
-    xhci_write_opt_reg32(XHCI_OPT_REG_DCBAPP_LO,(phy_addr_t)buf & 0xffffffff);
-    xhci_write_opt_reg32(XHCI_OPT_REG_DCBAPP_HI,(phy_addr_t)buf >> 32);
+    xhci_write_opt(XHCI_OPT_DCBAPP_LO,(phy_addr_t)buf & 0xffffffff);
+    xhci_write_opt(XHCI_OPT_DCBAPP_HI,(phy_addr_t)buf >> 32);
 
     // Event Ring
-    status = pmalloc(IN(sizeof(*xhci.erst)
+    status = pmalloc(sizeof(*xhci.erst)
                   + (XHCI_MAX_COMMANDS + XHCI_MAX_EVENTS)
-                  * sizeof(xhci_trb_t)),
-                  OUT(&buf));
+                  * sizeof(xhci_trb_t),
+                  &buf);
 
     if (ERROR(status))
     {
@@ -133,59 +198,60 @@ PRIVATE void xhci_start()
     xhci.erst->rsvdz = 0;
 
     addr += sizeof(xhci_erst_t);
-    xhci.event_ring = (xhci_trb_t*)addr;
+    xhci.event_ring.ring = (xhci_trb_t*)addr;
     addr += XHCI_MAX_EVENTS * sizeof(xhci_trb_t);
-    xhci.command_ring = (xhci_trb_t*)addr;
+    xhci.command_ring.ring = (xhci_trb_t*)addr;
 
     // Set ERST size
     pr_log("\1 Setting ERST size.\n");
-    xhci_write_run_reg32(XHCI_IRS_ERSTSZ(0),ERSTSZ_SET(1));
+    xhci_write_run(XHCI_IRS_ERSTSZ(0),ERSTSZ_SET(1));
 
     // Set ERDP
     pr_log("\1 Setting ERDP: %p.\n",xhci.erst->rs_addr);
-    xhci_write_run_reg32(XHCI_IRS_ERDP_LO(0),xhci.erst->rs_addr & 0xffffffff);
-    xhci_write_run_reg32(XHCI_IRS_ERDP_HI(0),xhci.erst->rs_addr >> 32);
+    xhci_write_run(XHCI_IRS_ERDP_LO(0),xhci.erst->rs_addr & 0xffffffff);
+    xhci_write_run(XHCI_IRS_ERDP_HI(0),xhci.erst->rs_addr >> 32);
 
     // Set ERSTBA
     pr_log("\1 Setting ERST base address: %p\n",buf);
-    xhci_write_run_reg32(XHCI_IRS_ERSTBA_LO(0),(phy_addr_t)buf & 0xffffff);
-    xhci_write_run_reg32(XHCI_IRS_ERSTBA_HI(0),(phy_addr_t)buf >> 32);
+    xhci_write_run(XHCI_IRS_ERSTBA_LO(0),(phy_addr_t)buf & 0xffffff);
+    xhci_write_run(XHCI_IRS_ERSTBA_HI(0),(phy_addr_t)buf >> 32);
 
     buf += sizeof(xhci_erst_t) + XHCI_MAX_EVENTS * sizeof(xhci_trb_t);
 
-    if ((xhci_read_opt_reg32(XHCI_OPT_REG_CRCR_LO) & CRCR_CRR) != 0)
+    if ((xhci_read_opt(XHCI_OPT_CRCR_LO) & CRCR_CRR) != 0)
     {
         pr_log("\1 Command Ring is Running. stop it.\n");
-        xhci_write_opt_reg32(XHCI_OPT_REG_CRCR_LO,CRCR_CS);
-        xhci_write_opt_reg32(XHCI_OPT_REG_CRCR_HI,      0);
-        xhci_write_opt_reg32(XHCI_OPT_REG_CRCR_LO,CRCR_CA);
-        xhci_write_opt_reg32(XHCI_OPT_REG_CRCR_HI,      0);
-        while(xhci_read_opt_reg32(XHCI_OPT_REG_CRCR_LO) & CRCR_CRR);
+        xhci_write_opt(XHCI_OPT_CRCR_LO,CRCR_CS);
+        xhci_write_opt(XHCI_OPT_CRCR_HI,      0);
+        xhci_write_opt(XHCI_OPT_CRCR_LO,CRCR_CA);
+        xhci_write_opt(XHCI_OPT_CRCR_HI,      0);
+        while(xhci_read_opt(XHCI_OPT_CRCR_LO) & CRCR_CRR);
     }
     pr_log("\1 Setting CRCR = %p.\n",buf);
-    xhci_write_opt_reg32(XHCI_OPT_REG_CRCR_LO,((addr_t)buf | CRCR_RCS) & 0xffffffff);
-    xhci_write_opt_reg32(XHCI_OPT_REG_CRCR_HI,(addr_t)buf >> 32);
+    xhci_write_opt(XHCI_OPT_CRCR_LO,((addr_t)buf | CRCR_RCS) & 0xffffffff);
+    xhci_write_opt(XHCI_OPT_CRCR_HI,(addr_t)buf >> 32);
 
-    xhci.command_ring[XHCI_MAX_COMMANDS - 1].addr = (phy_addr_t)buf;
+    xhci.command_ring.ring[XHCI_MAX_COMMANDS - 1].addr = (phy_addr_t)buf;
 
     // Set interrupt rate.
     pr_log("\1 Setting interrupt rate.\n");
     // interrupts/sec = 1/(250 × (10^-9 sec) × Interval)
-    xhci_write_run_reg32(XHCI_IRS_IMOD(0),0x000003f8);
+    xhci_write_run(XHCI_IRS_IMOD(0),0x000003f8);
 
     // enable intr
-    uint32_t iman = xhci_read_run_reg32(XHCI_IRS_IMAN(0));
+    uint32_t iman = xhci_read_run(XHCI_IRS_IMAN(0));
     iman |= IMAN_INTR_EN;
-    xhci_write_run_reg32(XHCI_IRS_IMAN(0),iman);
+    xhci_write_run(XHCI_IRS_IMAN(0),iman);
 
     // run
-    xhci_write_opt_reg32(XHCI_OPT_REG_USBCMD,USBCMD_RUN | USBCMD_INTE | USBCMD_HSEE);
+    xhci_write_opt(XHCI_OPT_USBCMD,USBCMD_RUN | USBCMD_INTE | USBCMD_HSEE);
 
     // wait for start up.
     pr_log("\1 wait for xHCI start up.\n");
-    while(xhci_read_opt_reg32(XHCI_OPT_REG_USBSTS) & USBSTS_HCH);
+    while(xhci_read_opt(XHCI_OPT_USBSTS) & USBSTS_HCH);
     pr_log("\1 xHCI start up done.\n");
-    pr_log("\1 xHCI is %s now.\n",xhci_read_opt_reg32(XHCI_OPT_REG_USBCMD) & USBCMD_RUN ? "Running" : "Stop");
+    pr_log("\1 xHCI is %s now.\n",
+           xhci_read_opt(XHCI_OPT_USBCMD) & USBCMD_RUN ? "Running" : "Stop");
 
     pr_usbsts();
     return;
@@ -196,6 +262,7 @@ PRIVATE void intr_xHCI_handler()
 {
     eoi(IRQ_XHCI);
     inform_intr(USB_SRV);
+        pr_log("\2 xHCI intr.\n");
     return;
 }
 
@@ -213,56 +280,74 @@ PUBLIC status_t xhci_init()
         pr_log("\3xhci_dev not found.\n");
         return K_ERROR;
     }
-    pr_log("\1 xhci_dev vendor ID: %04x.\n",pci_dev_config_read(device,0) & 0xffff);
+    if ((pci_dev_config_read(device,0) & 0xffff) == 0x8086)
+    {
+        switch_to_xhci(device);
+    }
+    pr_log("\1 xhci_dev vendor ID: %04x,Device ID: %04x.\n",
+            pci_dev_config_read(device,0) & 0xffff,
+            (pci_dev_config_read(device,0) >> 16) & 0xffff);
 
     addr_t xhci_mmio_base = pci_dev_read_bar(device,0);
     pr_log("\1 xhci mmio base: %p\n",xhci_mmio_base);
 
-    page_map((uint64_t*)KERNEL_PAGE_DIR_TABLE_POS,(void*)xhci_mmio_base,(void*)KADDR_P2V(xhci_mmio_base));
+    page_map((uint64_t*)KERNEL_PAGE_DIR_TABLE_POS,
+             (void*)xhci_mmio_base,
+             (void*)KADDR_P2V(xhci_mmio_base));
+
     xhci_mmio_base      = (addr_t)KADDR_P2V(xhci_mmio_base);
     uint8_t cap_length  = *(uint8_t*)xhci_mmio_base & 0xff;
 
     xhci.mmio_base     = (void*)xhci_mmio_base;
     xhci.cap_regs      = (uint8_t*)xhci_mmio_base;
     xhci.opt_regs      = xhci.cap_regs + cap_length;
-    xhci.run_regs      = xhci.cap_regs + xhci_read_cap_reg32(XHCI_CAP_REG_RSTOFF);
-    xhci.doorbell_regs = xhci.cap_regs + (xhci_read_cap_reg32(XHCI_CAP_REG_DBOFF) & 3);
+    xhci.run_regs      = xhci.cap_regs + xhci_read_cap(XHCI_CAP_RSTOFF);
+    xhci.doorbell_regs = xhci.cap_regs + (xhci_read_cap(XHCI_CAP_DBOFF) & 3);
 
-    xhci.max_ports = GET_HCSP1_MAX_PORTS(xhci_read_cap_reg32(XHCI_CAP_REG_HCSPARAM1));
-    xhci.max_slots = GET_HCSP1_MAX_SLOTS(xhci_read_cap_reg32(XHCI_CAP_REG_HCSPARAM1));
+    xhci.max_ports = GET_FIELD(xhci_read_cap(XHCI_CAP_HCSPARAM1),HCSP1_MAX_PORTS);
+    xhci.max_slots = GET_FIELD(xhci_read_cap(XHCI_CAP_HCSPARAM1),HCSP1_MAX_SLOTS);
 
     xhci.msi_vector = IRQ_XHCI;
 
-    xhci.event_cycle_bit   = 1;
-    xhci.command_cycle_bit = 1;
-    xhci.event_index       = 0;
-    xhci.command_index     = 0;
+    xhci.event_ring.cycle_bit   = 1;
+    xhci.command_ring.cycle_bit = 1;
+    xhci.event_ring.e_index       = 0;
+    xhci.event_ring.n_index       = 0;
+    xhci.command_ring.e_index     = 0;
+    xhci.command_ring.n_index     = 0;
 
-    uint16_t hci_ver = HCIVERSION(xhci_read_cap_reg32(XHCI_CAP_REG_HCIVERSION));
+    uint16_t hci_ver = GET_FIELD(xhci_read_cap(XHCI_CAP_HCIVERSION),HCIVERSION);
     pr_log("\1 interface version: %04x\n",hci_ver);
     if (hci_ver < 0x0090 || hci_ver > 0x0120)
     {
         pr_log("\3 Unsupported HCI version.\n");
         return K_ERROR;
     }
-    uint32_t hccparams = xhci_read_cap_reg32(XHCI_CAP_REG_HCCPARAMS);
-    pr_log("\1 HCCPARAMS: %08x\n",hccparams);
-    if (hccparams == 0xffffffff)
-    {
-        return K_ERROR;
-    }
-    xhci.cxt_size = GET_HCCP_CSZ(hccparams) == 1 ? 64 : 32;
 
-    if ((pci_dev_config_read(device,0) & 0xffff) == 0x8086)
-    {
-        switch_to_xhci(device);
-    }
     // halt xHCI
     xhci_halt();
 
     // reset xHCI
     xhci_reset();
     pr_usbsts();
+
+    uint32_t hccp1 = xhci_read_cap(XHCI_CAP_HCCPARAM1);
+    pr_log("\1 HCCPARAM1: %08x\n",hccp1);
+    if (hccp1 == 0xffffffff)
+    {
+        return K_ERROR;
+    }
+    xhci.cxt_size    = GET_FIELD(hccp1,HCCP1_CSZ) == 1 ? 64 : 32;
+    xhci.xecp_offset = GET_FIELD(hccp1,HCCP1_XECP) << 2;
+    if (xhci.xecp_offset)
+    {
+        pr_log("\1 xHCI has xECP. now read xecp.\n");
+        xhci_read_xecp();
+    }
+    else
+    {
+        pr_log("\1 xHCI has no xECP.\n");
+    }
 
     // pci interrupt_line
     // this register corresponds to
@@ -297,104 +382,89 @@ PUBLIC status_t xhci_init()
     return K_SUCCESS;
 }
 
-PUBLIC uint32_t xhci_read_cap_reg32(uint32_t reg)
+PUBLIC uint32_t xhci_read_cap(uint32_t reg)
 {
     return *(volatile uint32_t*)(xhci.mmio_base + reg);
 }
 
-PUBLIC uint32_t xhci_read_opt_reg32(uint32_t reg)
+PUBLIC uint32_t xhci_read_opt(uint32_t reg)
 {
     return *(volatile uint32_t*)(xhci.opt_regs + reg);
 }
 
-PUBLIC void xhci_write_opt_reg32(uint32_t reg,uint32_t value)
+PUBLIC void xhci_write_opt(uint32_t reg,uint32_t value)
 {
     *(volatile uint32_t*)(xhci.opt_regs + reg) = value;
     return;
 }
 
-PUBLIC uint32_t xhci_read_run_reg32(uint32_t reg)
+PUBLIC uint32_t xhci_read_run(uint32_t reg)
 {
     return *(volatile uint32_t*)(xhci.run_regs + reg);
 }
 
-PUBLIC void xhci_write_run_reg32(uint32_t reg,uint32_t val)
+PUBLIC void xhci_write_run(uint32_t reg,uint32_t val)
 {
     *(volatile uint32_t*)(xhci.run_regs + reg) = val;
-
     return;
 }
 
-PUBLIC uint32_t xhci_read_doorbell_reg32(uint32_t reg)
+PUBLIC uint32_t xhci_read_doorbell(uint32_t reg)
 {
     return *(volatile uint32_t*)(xhci.doorbell_regs + reg);
 }
 
-PUBLIC void xhci_write_doorbell_reg32(uint32_t reg,uint32_t val)
+PUBLIC void xhci_write_doorbell(uint32_t reg,uint32_t val)
 {
     *(volatile uint32_t*)(xhci.doorbell_regs + reg) = val;
-}
-
-PRIVATE void queue_command(xhci_trb_t *trb)
-{
-    uint8_t i,j;
-    uint32_t temp;
-    i = xhci.command_index;
-    j = xhci.command_cycle_bit;
-    xhci.command_ring[i].addr   = trb->addr;
-    xhci.command_ring[i].status = trb->status;
-
-    temp = trb->flags;
-
-    j ? (temp |= TRB_3_CYCLE_BIT) : (temp &= TRB_3_CYCLE_BIT);
-    temp &= ~TRB_3_TC_BIT;
-    xhci.command_ring[i].flags = temp;
-
-    xhci.command_addr =  xhci.erst->rs_addr
-                       + (XHCI_MAX_EVENTS + i) *sizeof(xhci_trb_t);
-
-    i++;
-    if (i == XHCI_MAX_COMMANDS - 1)
-    {
-        temp = TRB_3_TYPE(TRB_TYPE_LINK) | TRB_3_TC_BIT;
-        if (j) {temp |= TRB_3_CYCLE_BIT;}
-        xhci.command_ring[i].flags = temp;
-        i = 0;
-        j ^= 1;
-    }
-    xhci.command_index     = i;
-    xhci.command_cycle_bit = j;
     return;
 }
 
-PRIVATE void xhci_ring(uint8_t slot,uint8_t endpoint)
+PRIVATE void trb_queue(xhci_ring_t *ring,xhci_trb_t *trb)
 {
-    xhci_write_doorbell_reg32
+    uint8_t i,cycle_bit;
+    uint32_t temp;
+    i = ring->e_index;
+    cycle_bit = ring->cycle_bit;
+    ring->ring[i].addr   = trb->addr;
+    ring->ring[i].status = trb->status;
+
+    temp = trb->flags;
+
+    cycle_bit ? (temp |= TRB_3_CYCLE_BIT) : (temp &= TRB_3_CYCLE_BIT);
+    temp &= ~TRB_3_TC_BIT;
+    ring->ring[i].flags = temp;
+    i++;
+    if (i >= XHCI_MAX_COMMANDS - 1)
+    {
+        temp = TRB_3_TYPE(TRB_TYPE_LINK) | TRB_3_TC_BIT;
+        if (cycle_bit)
+        {
+            temp |= TRB_3_CYCLE_BIT;
+        }
+        ring->ring[i].flags = temp;
+        i = 0;
+        cycle_bit ^= 1;
+    }
+    ring->e_index     = i;
+    ring->cycle_bit = cycle_bit;
+    return;
+}
+
+PRIVATE void xhci_doorbell_ring(uint8_t slot,uint8_t endpoint)
+{
+    xhci_write_doorbell
     (
         XHCI_DOORBELL(slot),
         XHCI_DOORBELL_TARGET(endpoint) | XHCI_DOORBELL_STREAMID(0)
     );
-    xhci_read_doorbell_reg32(XHCI_DOORBELL(slot));
     return;
-
 }
 
 PUBLIC status_t xhci_do_command(xhci_trb_t *trb)
 {
-    queue_command(trb);
-    xhci_ring(0,0);
+    trb_queue(&xhci.command_ring,trb);
+    xhci_doorbell_ring(0,0);
 
-    pr_log("\2 wait command.\n");
-    // while(!xhci.command_completion);
-    xhci.command_completion = FALSE;
-    pr_log("\3 xHCI command done.\n");
-    uint32_t completion_code = GET_TRB_2_COMP_CODE(xhci.command_result[0]);
-    if (completion_code != COMP_SUCCESS)
-    {
-        pr_log("\3 xHCI command error.\n");
-        return K_ERROR;
-    }
-    trb->status = xhci.command_result[0];
-    trb->flags  = xhci.command_result[1];
     return K_SUCCESS;
 }

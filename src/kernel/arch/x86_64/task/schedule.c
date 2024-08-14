@@ -1,6 +1,7 @@
 #include <kernel/global.h>
 #include <task/task.h>
 #include <device/cpu.h>
+#include <device/sse.h>
 #include <intr.h>
 
 #include <log.h>
@@ -9,15 +10,13 @@ extern taskmgr_t *tm;
 
 PRIVATE void switch_to(task_context_t **cur,task_context_t **next)
 {
-    __asm__ __volatile__
-    (
+    __asm__ __volatile__ (
         "pushq %1 \n\t"
         "pushq %0 \n\t"
         "leaq asm_switch_to(%%rip),%%rax \n\t"
         "callq *%%rax \n\t"
         :
-        :"g"(cur),"g"(next)
-    );
+        :"g"(cur),"g"(next));
 }
 
 PUBLIC void do_schedule()
@@ -58,7 +57,8 @@ PUBLIC void schedule()
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
     next->status = TASK_RUNNING;
     prog_activate(next);
-    // fpu_set(cur_task,next);
+    fxsave(cur_task->fxsave_region);
+    fxrstor(next->fxsave_region);
     next->cpu_id = cpu_id;
     switch_to(&cur_task->context,&next->context);
     return;

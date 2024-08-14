@@ -3,6 +3,7 @@
 #include <intr.h>
 #include <device/pic.h>
 #include <device/cpu.h>
+#include <device/sse.h>
 #include <device/timer.h>
 #include <device/pci.h>
 #include <device/usb/xhci.h>
@@ -11,7 +12,7 @@
 #include <kernel/syscall.h>
 #include <service.h>
 
-#include <std/stdio.h>
+#include <log.h>
 
 PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access)
 {
@@ -32,25 +33,22 @@ PRIVATE void load_gdt()
     uint128_t gdt_ptr = (((uint128_t)0
                         + ((uint128_t)((uint64_t)gdt_table))) << 16)
                         | (sizeof(gdt_table) - 1);
-    __asm__ __volatile__
-    (
-        "lgdtq %[gdt_ptr] \n\t"
+    __asm__ __volatile__ (
+        "lgdtq %0 \n\t"
         "movw %%ax,%%ds \n\t"
         "movw %%ax,%%es \n\t"
         "movw %%ax,%%fs \n\t"
         "movw %%ax,%%gs \n\t"
         "movw %%ax,%%ss \n\t"
 
-        "pushq %[SELECTOR_CODE64] \n\t"
+        "pushq %1 \n\t"
         "leaq %=f(%%rip),%%rax \n\t"
         "pushq %%rax \n\t"
         "lretq \n\t"
         "%=: \n\t"
         :
-        :[gdt_ptr]"m"(gdt_ptr),[SELECTOR_CODE64]"i"(SELECTOR_CODE64_K),
-         [SELECTOR_DATA64]"ax"(SELECTOR_DATA64_K)
-        :"memory"
-    );
+        :"m"(gdt_ptr),"i"(SELECTOR_CODE64_K),"ax"(SELECTOR_DATA64_K)
+        :"memory");
 }
 
 PRIVATE void load_tss(uint8_t nr_cpu)
@@ -81,6 +79,13 @@ PUBLIC void init_all()
     init_desctrib();
     intr_init();
 
+    if (ERROR(check_sse()))
+    {
+        pr_log("\3 HW no support SSE.\n");
+        while (1) continue;
+    }
+    sse_init();
+
     mem_init();
     mem_alloctor_init();
 
@@ -100,15 +105,14 @@ PUBLIC void init_all()
     intr_enable();
     spinlock_unlock(&schedule_lock);
 
-    extern uint64_t global_ticks;
-    uint64_t ticks = global_ticks;
-    while(global_ticks <= ticks + running_task()->priority * 2);
+    schedule();
 
     message_t msg;
     msg.m3.p1 = (void*)g_boot_info->graph_info.frame_buffer_base;
     msg.m3.i1 = g_boot_info->graph_info.horizontal_resolution;
     msg.m3.i2 = g_boot_info->graph_info.vertical_resolution;
     sys_send_recv(NR_SEND,VIEW,&msg);
+
     return;
 }
 
@@ -122,6 +126,7 @@ PUBLIC void ap_init_all()
 
     ap_intr_init();
     local_apic_init();
+    sse_init();
     syscall_init();
     intr_enable();
     return;

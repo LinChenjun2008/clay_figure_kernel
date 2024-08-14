@@ -1,7 +1,7 @@
 #ifndef __PCI_H__
 #define __PCI_H__
 
-typedef struct
+typedef struct pci_msi_struct_s
 {
     bool     msi_capable;
     uint8_t  cap_addr; // capability_offset
@@ -13,7 +13,7 @@ typedef struct
     uint64_t address_value;
 } pci_msi_struct_t;
 
-typedef struct
+typedef struct pci_device_s
 {
     uint8_t  bus;
     uint8_t  device;
@@ -24,7 +24,10 @@ typedef struct
 } pci_device_t;
 
 PUBLIC uint32_t pci_dev_config_read(pci_device_t *dev,uint8_t offset);
-PUBLIC void pci_dev_config_write(pci_device_t *dev,uint8_t offset,uint32_t value);
+PUBLIC void pci_dev_config_write(
+    pci_device_t *dev,
+    uint8_t offset,
+    uint32_t value);
 
 PUBLIC uint8_t pci_dev_read_header_type(pci_device_t *dev);
 PUBLIC uint16_t pci_dev_read_vendor_id(pci_device_t *dev);
@@ -37,7 +40,10 @@ PUBLIC uint64_t pci_dev_read_bar(pci_device_t *dev,uint8_t bar_index);
 PUBLIC uint8_t pci_dev_read_cap_point(pci_device_t *dev);
 
 PUBLIC void pci_scan_all_bus();
-PUBLIC pci_device_t* pci_dev_match(uint8_t base_class,uint8_t sub_class,uint8_t prog_if);
+PUBLIC pci_device_t* pci_dev_match(
+    uint8_t base_class,
+    uint8_t sub_class,
+    uint8_t prog_if);
 
 // pci_msi.c
 PUBLIC void pci_dev_read_msi_info(pci_device_t *dev);
@@ -51,7 +57,10 @@ PUBLIC void configure_msi
     uint8_t num_vector_exponent
 );
 
-PUBLIC status_t pci_dev_configure_msi(pci_device_t *dev,uint32_t irq,uint32_t count);
+PUBLIC status_t pci_dev_configure_msi(
+    pci_device_t *dev,
+    uint32_t irq,
+    uint32_t count);
 PUBLIC status_t pci_dev_enable_msi(pci_device_t *dev);
 
 #endif

@@ -12,7 +12,7 @@
 
 #define MADT_SIGNATURE SIGNATURE_32('A','P','I','C') //"APIC"
 
-
+#if 0
 #define DISPLAY_INFO(msg) \
     do \
     { \
@@ -31,6 +31,11 @@
         gST->ConOut->SetAttribute(gST->ConOut,  0x0F | 0x00); \
         gST->ConOut->OutputString(gST->ConOut,msg); \
     }while(0);
+
+#endif
+
+#define DISPLAY_INFO(msg) (void)0
+#define DISPLAY_ERROR(msg) (void)0
 
 EFI_SYSTEM_TABLE                *gST;
 EFI_BOOT_SERVICES               *gBS;
@@ -79,31 +84,24 @@ UefiMain
 {
     EFI_STATUS Status = EFI_SUCCESS;
 
-
-
     // init
     gST = SystemTable;
     gBS = SystemTable->BootServices;
     gBS->LocateProtocol(&gEfiGraphicsOutputProtocolGuid,NULL,(VOID**)&Gop);
     gImageHandle = ImageHandle;
 
-
-
     // disable watch dog timer
     gST->BootServices->SetWatchdogTimer(0,0,0,NULL);
 
-
-
-    // Status = SetVideoMode(HORIZONTAL_RESOLUTION,VERTICAL_RESOLUTION);
-    // if (EFI_ERROR(Status))
-    // {
-    //     DISPLAY_ERROR(L"Can not set video mode.\r\n");
-    // }
-
+    Status = SetVideoMode(HORIZONTAL_RESOLUTION,VERTICAL_RESOLUTION);
+    if (EFI_ERROR(Status))
+    {
+        DISPLAY_ERROR(L"Can not set video mode.\r\n");
+    }
 
     DisplayLogo();
 
-    gST->ConOut->SetAttribute(gST->ConOut,  0x0F | 0x00);
+    // gST->ConOut->SetAttribute(gST->ConOut,  0x0F | 0x00);
     DISPLAY_INFO(L"\r---------------------------------------------------------\r\n"
                     "----- Clay Figure Boot v1.0                         -----\r\n"
                     "----- Copyright (c) LinChenjun,All Rights Reserved. -----\r\n"
@@ -140,8 +138,8 @@ UefiMain
          file_index++)
     {
         DISPLAY_INFO(L"    Load file: ");
-        gST->ConOut->OutputString(gST->ConOut,Files[file_index].Name);
-        gST->ConOut->OutputString(gST->ConOut,L"\r\n");
+        // gST->ConOut->OutputString(gST->ConOut,Files[file_index].Name);
+        // gST->ConOut->OutputString(gST->ConOut,L"\r\n");
         UINT64 FileSize = 0;
         boot_info->loaded_file[boot_info->loaded_files] = Files[file_index].Info;
         Status = ReadFile(Files[file_index].Name,
@@ -159,8 +157,6 @@ UefiMain
     }
     DISPLAY_INFO(L"Load File Done.\r\n");
 
-
-
     // Get memory map
     DISPLAY_INFO(L"Get Memory map.\r\n");
     boot_info->memory_map.map_size = 4096 * 4,
@@ -172,11 +168,9 @@ UefiMain
     if (EFI_ERROR(Status))
     {
         DISPLAY_ERROR(L"Get Memory map Error. Boot Failed.\r\n");
-        while(1);
+        while (1) continue;
     }
     DISPLAY_INFO(L"Get Memory Map Success.\r\n");
-
-
 
     // Get MADT
     //    Get RSDP
@@ -219,10 +213,8 @@ UefiMain
     if (i == entries)
     {
         DISPLAY_ERROR(L"Get MADT Error. Boot failed.\r\n");
-        while(1);
+        while (1) continue;
     }
-
-
 
     // Create Page
     DISPLAY_INFO(L"Create Page.\r\n");
@@ -246,6 +238,6 @@ UefiMain
         :
         :"r"(PML4T_POS),"r"(0xffff800000100000)
     );
-    while(1);
+    while (1) continue;
     return Status;
 }

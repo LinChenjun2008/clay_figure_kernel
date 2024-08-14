@@ -90,6 +90,9 @@
 
 #define MAX_TASK 4096
 
+#define DEFAULT_PRIORITY 3
+#define SERVICE_PRIORITY 1
+
 #define IRQ_CNT 0xff
 
 #define PIC_M_CTRL 0x20    /* 8259A主片的控制端口是0x20 */

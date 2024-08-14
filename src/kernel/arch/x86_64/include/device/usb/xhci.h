@@ -9,57 +9,109 @@ offset |  size (byte)| Mnemonic
    04h |           4 | HCSPARAMS 1
    08h |           4 | HCSPARAMS 2
    0Ch |           4 | HCSPARAMS 3
-   10h |           4 | HCCPARAMS
+   10h |           4 | HCCPARAM  1
    14h |           4 | DBOFF
    18h |           4 | RTSOFF
-   1Ch |CAPLENGTH-1Ch| Rsvd
+   20h |           4 | HCCPARAM  2
+   20h |CAPLENGTH-20h| Rsvd
 */
 
-#define XHCI_CAP_REG_CAPLENGTH  0x00 /* bits  7:0 */
-#define XHCI_CAP_REG_HCIVERSION 0x00 /* bits 31:16*/
-#define XHCI_CAP_REG_HCSPARAM1  0x04
-#define XHCI_CAP_REG_HCSPARAM2  0x08
-#define XHCI_CAP_REG_HCSPARAM3  0x0c
-#define XHCI_CAP_REG_HCCPARAMS  0x10
-#define XHCI_CAP_REG_DBOFF      0x14
-#define XHCI_CAP_REG_RSTOFF     0x18
+#define XHCI_CAP_CAPLENGTH  0x00 /* bits  7:0 */
+#define XHCI_CAP_HCIVERSION 0x00 /* bits 31:16*/
+#define XHCI_CAP_HCSPARAM1  0x04
+#define XHCI_CAP_HCSPARAM2  0x08
+#define XHCI_CAP_HCSPARAM3  0x0c
+#define XHCI_CAP_HCCPARAM1  0x10
+#define XHCI_CAP_DBOFF      0x14
+#define XHCI_CAP_RSTOFF     0x18
+#define XHCI_CAP_HCCPARAM2  0x1c
 
 // CAPLENGTH
-#define CAPLENGTH(x)  (((x) >>  0) & 0x00ff)
+#define CAPLENGTH_SHIFT 0
+#define CAPLENGTH_MASK  0x00ff
 
 // HCIVERSION
-#define HCIVERSION(x) (((x) >> 16) & 0xffff)
+#define HCIVERSION_SHIFT 16
+#define HCIVERSION_MASK  0xffff
 
 // HCSPARAM1
-#define GET_HCSP1_MAX_SLOTS(x) (((x) >>  0) & 0x0ff)
-#define GET_HCSP1_MAX_INTR(x)  (((x) >>  8) & 0x3ff)
-#define GET_HCSP1_MAX_PORTS(x) (((x) >> 24) & 0x0ff)
+#define HCSP1_MAX_SLOTS_SHIFT 0
+#define HCSP1_MAX_SLOTS_MASK  0x0ff
+
+#define HCSP1_MAX_INTR_SHIFT 8
+#define HCSP1_MAX_INTR_MASK  0x3ff
+
+#define HCSP1_MAX_PORTS_SHIFT 24
+#define HCSP1_MAX_PORTS_MASK  0x0ff
 
 // HCSPARAM2
-#define GET_HCSP2_IST(x)        (((x) >>  0) & 0x07)
-#define GET_HCSP2_ERST_MAX(x)   (((x) >>  3) & 0x0f)
-#define GET_HCSP2_SPR(x)        (((x) >> 26) & 0x01)
-#define GET_HCSP2_MAX_SC_BUF(x) (((((x) >> 21) & 0x1f) << 5) | (((x) >> 27) & 0x1f))
+#define HCSP2_IST_SHIFT 0
+#define HCSP2_IST_MASK  0x07
+
+#define HCSP2_ERST_MAX_SHIFT 3
+#define HCSP2_ERST_MAX_MASK  0x0f
+
+#define HCSP2_SPR_SHIFT 26
+#define HCSP2_SPR_MASK  0x01
+
+#define HCSP2_MAX_SC_BUF_LO_SHIFT 27
+#define HCSP2_MAX_SC_BUF_LO_MASK  0x1f
+
+#define HCSP2_MAX_SC_BUF_HI_SHIFT 21
+#define HCSP2_MAX_SC_BUF_HI_MASK  0x1f
+
+#define GET_HCSP2_MAX_SC_BUF(x) ((GET_FIELD(x,HCSP2_MAX_SC_BUF_HI) << 5) \
+                                 | GET_FIELD(x,HCSP2_MAX_SC_BUF_LO))
 
 // HCSPARAM3
-#define GET_HCSP3_U1_DEVICE_LATENCY(x) (((x) >>  0) & 0xff)
-#define GET_HCSP3_U2_DEVICE_LATENCY(x) (((x) >> 16) & 0xff)
+#define HCSP3_U1_DEVICE_LATENCY_SHIFT 0
+#define HCSP3_U1_DEVICE_LATENCY_MASK  0xff
 
-// HCCPARAMS
-#define GET_HCCP_AC64(x)       (((x) >>  0) & 0x001)
-#define GET_HCCP_BNC(x)        (((x) >>  1) & 0x001)
-#define GET_HCCP_CSZ(x)        (((x) >>  2) & 0x001)
-#define GET_HCCP_PPC(x)        (((x) >>  3) & 0x001)
-#define GET_HCCP_PIND(x)       (((x) >>  4) & 0x001)
-#define GET_HCCP_LHRC(x)       (((x) >>  5) & 0x001)
-#define GET_HCCP_LTC(x)        (((x) >>  6) & 0x001)
-#define GET_HCCP_NSS(x)        (((x) >>  7) & 0x001)
-#define GET_HCCP_PAE(x)        (((x) >>  8) & 0x001)
-#define GET_HCCP_SPC(x)        (((x) >>  9) & 0x001)
-#define GET_HCCP_SEC(x)        (((x) >> 10) & 0x001)
-#define GET_HCCP_CFC(x)        (((x) >> 11) & 0x001)
-#define GET_HCCP_MAXPSASIZE(x) (((x) >> 12) & 0x00f)
-#define GET_HCCP_XECP(x)       (((x) >> 16) & 0xfff)
+#define HCSP3_U2_DEVICE_LATENCY_SHIFT 16
+#define HCSP3_U2_DEVICE_LATENCY_MASK  0xff
+
+// HCCPARAM1
+#define HCCP1_AC64_SHIFT 0
+#define HCCP1_AC64_MASK  0x001
+
+#define HCCP1_BNC_SHIFT 1
+#define HCCP1_BNC_MASK  0x001
+
+#define HCCP1_CSZ_SHIFT 2
+#define HCCP1_CSZ_MASK  0x001
+
+#define HCCP1_PPC_SHIFT 3
+#define HCCP1_PPC_MASK  0x001
+
+#define HCCP1_PIND_SHIFT 4
+#define HCCP1_PIND_MASK  0x001
+
+#define HCCP1_LHRC_SHIFT 5
+#define HCCP1_LHRC_MASK  0x001
+
+#define HCCP1_LTC_SHIFT 6
+#define HCCP1_LTC_MASK  0x001
+
+#define HCCP1_NSS_SHIFT 7
+#define HCCP1_NSS_MASK  0x001
+
+#define HCCP1_PAE_SHIFT 8
+#define HCCP1_PAE_MASK  0x001
+
+#define HCCP1_SPC_SHIFT 9
+#define HCCP1_SPC_MASK  0x001
+
+#define HCCP1_SEC_SHIFT 10
+#define HCCP1_SEC_MASK  0x001
+
+#define HCCP1_CFC_SHIFT 11
+#define HCCP1_CFC_MASK  0x001
+
+#define HCCP1_MAXPSASIZE_SHIFT 12
+#define HCCP1_MAXPSASIZE_MASK  0x00f
+
+#define HCCP1_XECP_SHIFT 16
+#define HCCP1_XECP_MASK  0xfff
 
 
 
@@ -77,20 +129,20 @@ offset |  size (byte)| Mnemonic
 400-13FFh Port Register Set 1-MaxPorts
 */
 
-#define XHCI_OPT_REG_USBCMD    0x00
-#define XHCI_OPT_REG_USBSTS    0x04
-#define XHCI_OPT_REG_PAGESIZE  0x08
-#define XHCI_OPT_REG_DNCTRL    0x14
-#define XHCI_OPT_REG_CRCR_LO   0x18
-#define XHCI_OPT_REG_CRCR_HI   0x1c
-#define XHCI_OPT_REG_DCBAPP_LO 0x30
-#define XHCI_OPT_REG_DCBAPP_HI 0x34
-#define XHCI_OPT_REG_CONFIG    0x38
+#define XHCI_OPT_USBCMD    0x00
+#define XHCI_OPT_USBSTS    0x04
+#define XHCI_OPT_PAGESIZE  0x08
+#define XHCI_OPT_DNCTRL    0x14
+#define XHCI_OPT_CRCR_LO   0x18
+#define XHCI_OPT_CRCR_HI   0x1c
+#define XHCI_OPT_DCBAPP_LO 0x30
+#define XHCI_OPT_DCBAPP_HI 0x34
+#define XHCI_OPT_CONFIG    0x38
 
-#define XHCI_OPT_REG_PORTSC(n)    (0x400 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
-#define XHCI_OPT_REG_PORTPMSC(n)  (0x404 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
-#define XHCI_OPT_REG_PORTLI(n)    (0x408 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
-#define XHCI_OPT_REG_PORTHLPMC(n) (0x40c + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
+#define XHCI_OPT_PORTSC(n)    (0x400 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
+#define XHCI_OPT_PORTPMSC(n)  (0x404 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
+#define XHCI_OPT_PORTLI(n)    (0x408 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
+#define XHCI_OPT_PORTHLPMC(n) (0x40c + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
 
 #define PORTSC_CCS (1 <<  0) // Current Connect Status
 #define PORTSC_PED (1 <<  1) // Port Enabled/Disabled
@@ -98,12 +150,43 @@ offset |  size (byte)| Mnemonic
 #define PORTSC_CSC (1 << 17) // Connect Status Change
 #define PORTSC_PRC (1 << 21) // Port Reset Change
 
-#define GET_PORTSC_CCS(x)   (((x) >>  0) & 0x01)
-#define GET_PORTSC_PED(x)   (((x) >>  1) & 0x01)
-#define GET_PORTSC_PLS(x)   (((x) >>  5) & 0x0f)
-#define GET_PORTSC_SPEED(x) (((x) >> 10) & 0x0f)
-#define GET_PORTSC_CSC(x)   (((x) >> 17) & 0x01)
-#define GET_PORTSC_PRC(x)   (((x) >> 21) & 0x01)
+#define PORTSC_CCS_SHIFT 0
+#define PORTSC_CCS_MASK  0x01
+
+#define PORTSC_PED_SHIFT 1
+#define PORTSC_PED_MASK  0x01
+
+#define PORTSC_PR_SHIFT 4
+#define PORTSC_PR_MASK  0x01
+
+#define PORTSC_PLS_SHIFT 5
+#define PORTSC_PLS_MASK  0x0f
+
+#define PORTSC_PP_SHIFT 9
+#define PORTSC_PP_MASK  0x01
+
+#define PORTSC_SPEED_SHIFT 10
+#define PORTSC_SPEED_MASK  0x0f
+
+#define PORTSC_CSC_SHIFT 17
+#define PORTSC_CSC_MASK  0x01
+
+#define PORTSC_PRC_SHIFT 21
+#define PORTSC_PRC_MASK  0x01
+
+#define PLS_U0               0
+#define PLS_U1               1
+#define PLS_U2               2
+#define PLS_U3               3
+#define PLS_DISABLED         4
+#define PLS_RX_DETECT        5
+#define PLS_INACTIVE         6
+#define PLS_POLLING          7
+#define PLS_RECOVERY         8
+#define PLS_HOT_RESET        9
+#define PLS_COMPILANCE_MODE 10
+#define PLS_TEST_MODE       11
+#define PLS_RESUME          15
 
 // USBCMD
 #define USBCMD_RUN    (1 <<  0) // Running
@@ -126,7 +209,8 @@ offset |  size (byte)| Mnemonic
 #define USBSTS_CNR  (1 << 11)  // Controller Not Ready
 #define USBSTS_HCE  (1 << 12)  // Host Controller Error
 
-#define GET_USBSTS_PCD(x) (((x) >> 4) & 0x01)
+#define USBSTS_PCD_SHIFT 4
+#define USBSTS_PCD_MASK  0x01
 
 // CRCR
 #define CRCR_RCS (1<<0)
@@ -145,7 +229,7 @@ offset |  size (byte)| Mnemonic
       8000h | IR1023 Interrupter Register Set 1023
 */
 
-#define XHCI_RUN_REG_MFINDEX      0x00
+#define XHCI_RUN_MFINDEX      0x00
 
 /* Interrupt Regisets
 Offset | Size (bits) | Mnemonic
@@ -191,7 +275,7 @@ Offset | Size (bits) | Mnemonic
 #pragma pack(1)
 
 // Section 6.2.2
-typedef struct
+typedef struct xhci_slot_ctx_s
 {
     uint32_t slot0;
     uint32_t slot1;
@@ -201,7 +285,7 @@ typedef struct
 } xhci_slot_ctx_t;
 
 // Section 6.2.3
-typedef struct
+typedef struct xhci_endpoint_ctx_s
 {
     uint32_t endpoint0;
     uint32_t endpoint1;
@@ -211,14 +295,14 @@ typedef struct
 } xhci_endpoint_ctx_t;
 
 // Section 6.2.1
-typedef struct
+typedef struct xhci_device_ctx_s
 {
     xhci_slot_ctx_t slot;
     xhci_endpoint_ctx_t endpoint[XHCI_MAX_ENDPOINTS - 1];
 } xhci_device_ctx_t;
 
 // Section 6.4
-typedef struct
+typedef struct xhci_trb_s
 {
     uint64_t addr;
     uint32_t status;
@@ -227,7 +311,8 @@ typedef struct
 
 // TRB
 #define TRB_3_TYPE(x)     (((x) & 0x3f) << 10)
-#define GET_TRB_3_TYPE(x) (((x) >> 10) & 0x3f)
+#define TRB_3_TYPE_SHIFT 10
+#define TRB_3_TYPE_MASK  0x3f
 
 // TRB type
 #define TRB_TYPE_NORMAL                 1
@@ -265,7 +350,8 @@ typedef struct
 #define TRB_TYPE_DEVICE_NOTIFICATION   38
 #define TRB_TYPE_MFINDEX_WRAP          39
 
-#define GET_TRB_2_COMP_CODE(x)     (((x) >> 24) & 0xff)
+#define TRB_2_COMP_CODE_SHIFT 24
+#define TRB_2_COMP_CODE_MASK  0xff
 
 #define COMP_INVALID                 0
 #define COMP_SUCCESS                 1
@@ -323,10 +409,11 @@ typedef struct
 #define TRB_3_SUSPEND_ENDPOINT_BIT (1U << 23)
 #define TRB_3_ISO_SIA_BIT          (1U << 31)
 
-#define GET_TRB_3_SLOT(x)          (((x) >> 24) & 0xff)
+#define TRB_3_SLOT_SHIFT 24
+#define TRB_3_SLOT_MASK  0xff
 
 // Section 6.5
-typedef struct
+typedef struct xhci_erst_s
 {
     uint64_t rs_addr;
     uint32_t rs_size;
@@ -335,47 +422,85 @@ typedef struct
 
 #pragma pack()
 
-typedef struct
+typedef struct xhci_device_cxt_arr_s
 {
     uint64_t base_addr[XHCI_MAX_SLOTS];
     uint64_t padding;
     uint64_t scratchpad[XHCI_MAX_SCRATCHPADS];
 } xhci_device_cxt_arr_t;
 
-typedef struct
+typedef struct xhci_ring_s
+{
+    xhci_trb_t *ring;
+    xhci_trb_t *event;
+    uint8_t     cycle_bit;
+    uint16_t    e_index;
+    uint16_t    n_index;
+} xhci_ring_t;
+
+// Section 7
+typedef struct xhci_xcap_regs_s
+{
+    uint32_t cap;
+    uint32_t data[];
+} xhci_xcap_regs_t;
+
+#define XECP_CAP_ID_SHIFT 0
+#define XECP_CAP_ID_MASK  0xff
+
+#define XECP_NEXT_POINT_SHIFT 8
+#define XECP_NEXT_POINT_MASK  0xff
+
+#define XECP_CAP_SPEC_SHIFT 16
+#define XECP_CAP_SPEC_MASK  0xffff
+
+// xHCI Supported Protocol Capability
+#define XECP_SUP_MAJOR_SHIFT 24
+#define XECP_SUP_MAJOR_MASK  0xff
+
+#define XECP_SUP_MINOR_SHIFT 16
+#define XECP_SUP_MINOR_MASK  0xff
+
+typedef struct xhci_portmap_s
+{
+    uint8_t start;
+    uint8_t count;
+} xhci_portmap_t;
+
+typedef struct xhci_s
 {
     uint8_t               *mmio_base;
     uint8_t               *cap_regs;
     uint8_t               *opt_regs;
     uint8_t               *run_regs;
     uint8_t               *doorbell_regs;
+
     uint32_t               max_ports;
     uint32_t               max_slots;
     uint32_t               cxt_size;
+    uint32_t               xecp_offset;
     uint32_t               msi_vector;
     uint32_t               scrath_chapad_count;
-    xhci_device_cxt_arr_t *dev_cxt_arr;
+
+    xhci_portmap_t         usb2;
+    xhci_portmap_t         usb3;
+
+    xhci_ring_t            event_ring;
+    xhci_ring_t            command_ring;
     xhci_erst_t           *erst;
-    xhci_trb_t            *event_ring;
-    xhci_trb_t            *command_ring;
-    uint32_t               command_result[2];
-    uint64_t               command_addr;
-    uint8_t                event_cycle_bit;
-    uint8_t                command_cycle_bit;
-    uint16_t               event_index;
-    uint16_t               command_index;
-    volatile uint8_t       command_completion;
+    xhci_device_cxt_arr_t *dev_cxt_arr;
+
     pid_t                  event_task;
 } xhci_t;
 
 PUBLIC status_t xhci_init();
-PUBLIC uint32_t xhci_read_cap_reg32(uint32_t reg);
-PUBLIC uint32_t xhci_read_opt_reg32(uint32_t reg);
-PUBLIC void xhci_write_opt_reg32(uint32_t reg,uint32_t value);
-PUBLIC uint32_t xhci_read_run_reg32(uint32_t reg);
-PUBLIC void xhci_write_run_reg32(uint32_t reg,uint32_t val);
-PUBLIC uint32_t xhci_read_doorbell_reg32(uint32_t reg);
-PUBLIC void xhci_write_doorbell_reg32(uint32_t reg,uint32_t val);
+PUBLIC uint32_t xhci_read_cap(uint32_t reg);
+PUBLIC uint32_t xhci_read_opt(uint32_t reg);
+PUBLIC void xhci_write_opt(uint32_t reg,uint32_t value);
+PUBLIC uint32_t xhci_read_run(uint32_t reg);
+PUBLIC void xhci_write_run(uint32_t reg,uint32_t val);
+PUBLIC uint32_t xhci_read_doorbell(uint32_t reg);
+PUBLIC void xhci_write_doorbell(uint32_t reg,uint32_t val);
 
 PUBLIC status_t xhci_do_command(xhci_trb_t *trb);
 

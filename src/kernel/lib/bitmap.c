@@ -15,7 +15,7 @@ PUBLIC bool bitmap_scan_test(bitmap_t *btmp,int32_t bit_index)
     return btmp->map[byte_index] & (1 << bit_odd);
 }
 
-PUBLIC status_t bitmap_alloc(IN(bitmap_t *btmp,int32_t cnt),OUT(uint32_t *index))
+PUBLIC status_t bitmap_alloc(bitmap_t *btmp,int32_t cnt,uint32_t *index)
 {
     if (index == NULL)
     {

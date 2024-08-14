@@ -74,7 +74,7 @@ enum
     VIEW_FILL,
 };
 
-typedef struct _service_task_t service_task_t;
+typedef struct service_task_s service_task_t;
 
 PUBLIC bool is_service_id(uint32_t sid);
 PUBLIC pid_t service_id_to_pid(uint32_t sid);

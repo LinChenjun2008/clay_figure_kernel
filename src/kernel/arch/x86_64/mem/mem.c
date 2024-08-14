@@ -156,7 +156,7 @@ PUBLIC void mem_init()
     return;
 }
 
-PUBLIC status_t alloc_physical_page(IN(uint64_t number_of_pages),OUT(void *addr))
+PUBLIC status_t alloc_physical_page(uint64_t number_of_pages,void *addr)
 {
     if (addr == NULL)
     {
@@ -168,7 +168,7 @@ PUBLIC status_t alloc_physical_page(IN(uint64_t number_of_pages),OUT(void *addr)
     }
     spinlock_lock(&mem.lock);
     uint32_t index;
-    status_t status = bitmap_alloc(IN(&mem.page_bitmap,number_of_pages),OUT(&index));
+    status_t status = bitmap_alloc(&mem.page_bitmap,number_of_pages,&index);
     if (ERROR(status))
     {
         spinlock_unlock(&mem.lock);
@@ -272,7 +272,7 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
     status_t status;
     if (!(*v_pml4e & PG_P))
     {
-        status = pmalloc(IN(PT_SIZE),OUT(&pdpt));
+        status = pmalloc(PT_SIZE,&pdpt);
         if (ERROR(status))
         {
             pr_log("\3 Can not alloc addr for pdpt.\n");
@@ -286,7 +286,7 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
     v_pdpte = KADDR_P2V(pdpte);
     if (!(*v_pdpte & PG_P))
     {
-        status = pmalloc(IN(PT_SIZE),OUT(&pdt));
+        status = pmalloc(PT_SIZE,&pdt);
         if (ERROR(status))
         {
             pr_log("\3 Can not alloc addr for pdt.\n");

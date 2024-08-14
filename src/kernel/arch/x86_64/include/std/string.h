@@ -1,8 +1,6 @@
 #ifndef __STRING_H__
 #define __STRING_H__
 
-#include <kernel/def.h>
-
 static __inline__ void memset(void *dst,uint8_t value,size_t size)
 {
     uint8_t *__dst = dst;
