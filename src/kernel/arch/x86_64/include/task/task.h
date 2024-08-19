@@ -72,6 +72,7 @@ typedef struct taskmgr_s
 {
     task_struct_t task_table[MAX_TASK];
     list_t        task_list[NR_CPUS];
+    pid_t         idle_task[NR_CPUS];
     spinlock_t    task_list_lock[NR_CPUS];
     spinlock_t    task_table_lock;
 } taskmgr_t;

@@ -93,11 +93,11 @@ UefiMain
     // disable watch dog timer
     gST->BootServices->SetWatchdogTimer(0,0,0,NULL);
 
-    Status = SetVideoMode(HORIZONTAL_RESOLUTION,VERTICAL_RESOLUTION);
-    if (EFI_ERROR(Status))
-    {
-        DISPLAY_ERROR(L"Can not set video mode.\r\n");
-    }
+    // Status = SetVideoMode(HORIZONTAL_RESOLUTION,VERTICAL_RESOLUTION);
+    // if (EFI_ERROR(Status))
+    // {
+    //     DISPLAY_ERROR(L"Can not set video mode.\r\n");
+    // }
 
     DisplayLogo();
 

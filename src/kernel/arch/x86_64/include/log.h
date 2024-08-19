@@ -90,12 +90,34 @@ static inline void pr_log(const char *log,...)
     buf = msg;
     basic_print(0x00ffffff,buf);
 
-    #if !__DISABLE_SERIAL_LOG__
+#if !__DISABLE_SERIAL_LOG__
     va_start(ap,log);
     serial_pr_log(log,ap);
-    #endif
+#endif
     return;
 }
+
+#endif
+
+PUBLIC void panic_spin(
+    char* filename,
+    int line,
+    const char* func,
+    const char* condition);
+
+#define PANIC(...) panic_spin (__FILE__,__LINE__,__FUNCTION__,__VA_ARGS__)
+
+#if __DISABLE_ASSERT__
+
+#define ASSERT(X) ((void)0)
+
+#else
+
+#define ASSERT(X) \
+    do \
+    { \
+        if (!(X)) { PANIC("ASSERT("#X")"); } \
+    } while (0)
 
 #endif
 

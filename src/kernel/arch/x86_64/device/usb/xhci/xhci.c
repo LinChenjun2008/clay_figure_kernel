@@ -118,9 +118,9 @@ PRIVATE void xhci_reset()
     msg.type = TICK_SLEEP;
     msg.m3.l1 = 1;
     sys_send_recv(NR_BOTH,TICK,&msg);
-
+    pr_log("\1 xHCI reset: wait HCRST.\n");
     while((xhci_read_opt(XHCI_OPT_USBCMD) & USBCMD_HCRST));
-
+    pr_log("\1 xHCI reset: wait CNR.\n");
     while((xhci_read_opt(XHCI_OPT_USBSTS) & USBSTS_CNR));
 
     pr_log("\1 xHCI reset successfully.\n");
@@ -132,6 +132,10 @@ PRIVATE void xhci_start()
     {
         xhci.max_slots = XHCI_MAX_SLOTS;
     }
+
+    // Program the Max Device Slots Enabled field in the CONFIG
+    // register to enable the device slots that system software
+    // is going to use.
     xhci_write_opt(XHCI_OPT_CONFIG,xhci.max_slots);
     uint32_t hcsp2 = xhci_read_cap(XHCI_CAP_HCSPARAM2);
     xhci.scrath_chapad_count = GET_HCSP2_MAX_SC_BUF(hcsp2);
@@ -172,15 +176,21 @@ PRIVATE void xhci_start()
                i,
                xhci.dev_cxt_arr->scratchpad[i]);
     }
+
+    // Program the Device Context Base Address Array Point (DCBAPP) register
+    // with a 64-bit address pointing to where the Device Context Base Address
+    // Array is located.
     pr_log("\2 Set DCBAPP: %p.\n",buf);
     xhci_write_opt(XHCI_OPT_DCBAPP_LO,(phy_addr_t)buf & 0xffffffff);
     xhci_write_opt(XHCI_OPT_DCBAPP_HI,(phy_addr_t)buf >> 32);
 
     // Event Ring
+
+    // Allocate and initialize the Event Ring Segment
     status = pmalloc(sizeof(*xhci.erst)
-                  + (XHCI_MAX_COMMANDS + XHCI_MAX_EVENTS)
-                  * sizeof(xhci_trb_t),
-                  &buf);
+                     + (XHCI_MAX_COMMANDS + XHCI_MAX_EVENTS)
+                     * sizeof(xhci_trb_t),
+                     &buf);
 
     if (ERROR(status))
     {
@@ -192,7 +202,9 @@ PRIVATE void xhci_start()
     memset(xhci.erst,0,   sizeof(*xhci.erst)
                        + (XHCI_MAX_COMMANDS + XHCI_MAX_EVENTS)
                        * sizeof(xhci_trb_t));
-
+    // Allocate the Event Ring Segment Table (ERST)
+    // Initialize ERST table entries to point to and to define
+    // the size (in TRBs) of the respective Event Ring Segment.
     xhci.erst->rs_addr = (addr_t)buf + sizeof(xhci_erst_t);
     xhci.erst->rs_size = XHCI_MAX_EVENTS;
     xhci.erst->rsvdz = 0;
@@ -202,22 +214,34 @@ PRIVATE void xhci_start()
     addr += XHCI_MAX_EVENTS * sizeof(xhci_trb_t);
     xhci.command_ring.ring = (xhci_trb_t*)addr;
 
-    // Set ERST size
+    // ERSTSZ
+    // Program the Interrupter Event Ring Segment Table Size
+    // (ERSTSZ) register with the number of segments
+    // described by the Event Ring Segment Table.
     pr_log("\1 Setting ERST size.\n");
     xhci_write_run(XHCI_IRS_ERSTSZ(0),ERSTSZ_SET(1));
 
-    // Set ERDP
+    // ERDP
+    // Program the Interrupter Event Ring Dequeue Pointer (ERDP)
+    // register with the starting address of the first segment
+    // described by the Event Ring Segment Table.
     pr_log("\1 Setting ERDP: %p.\n",xhci.erst->rs_addr);
     xhci_write_run(XHCI_IRS_ERDP_LO(0),xhci.erst->rs_addr & 0xffffffff);
     xhci_write_run(XHCI_IRS_ERDP_HI(0),xhci.erst->rs_addr >> 32);
 
     // Set ERSTBA
+    // Program the Interrupter Event Ring Segment Table Base
+    // Address (ERSTBA) register with a 64-bit address pointer to where the
+    // Event Ring Segment Table is located.
     pr_log("\1 Setting ERST base address: %p\n",buf);
-    xhci_write_run(XHCI_IRS_ERSTBA_LO(0),(phy_addr_t)buf & 0xffffff);
+    xhci_write_run(XHCI_IRS_ERSTBA_LO(0),(phy_addr_t)buf & 0xffffffff);
     xhci_write_run(XHCI_IRS_ERSTBA_HI(0),(phy_addr_t)buf >> 32);
 
     buf += sizeof(xhci_erst_t) + XHCI_MAX_EVENTS * sizeof(xhci_trb_t);
 
+    // Define the Command Ring Dequeue Pointer by programming the Command
+    // Ring Control Register with a 64-bit address pointing to the starting
+    // address of the first TRB of Command Ring.
     if ((xhci_read_opt(XHCI_OPT_CRCR_LO) & CRCR_CRR) != 0)
     {
         pr_log("\1 Command Ring is Running. stop it.\n");
@@ -234,22 +258,29 @@ PRIVATE void xhci_start()
     xhci.command_ring.ring[XHCI_MAX_COMMANDS - 1].addr = (phy_addr_t)buf;
 
     // Set interrupt rate.
-    pr_log("\1 Setting interrupt rate.\n");
+    // Initializing the Interval field of the Interrupt Moderation register
+    // with the target interrupt moderation rate.
     // interrupts/sec = 1/(250 × (10^-9 sec) × Interval)
+    pr_log("\1 Setting interrupt rate.\n");
     xhci_write_run(XHCI_IRS_IMOD(0),0x000003f8);
 
-    // enable intr
+    // Enable the Interrupter by writing a '1' to the Interrupt Enable
+    // (IE) field of the Interrupter Management register
     uint32_t iman = xhci_read_run(XHCI_IRS_IMAN(0));
     iman |= IMAN_INTR_EN;
     xhci_write_run(XHCI_IRS_IMAN(0),iman);
 
-    // run
+
+    // Enable system bus interrupt generation by writing a '1' to the
+    // Interrupter Enable (INTE) flag of the USBCMD register
+
+    // Write the USBCMD to turn the host controller ON via setting the
+    // Run/Stop (R/S) bit to '1'. This operation allows the xHC to begin accepting
+    // doorbell references.
     xhci_write_opt(XHCI_OPT_USBCMD,USBCMD_RUN | USBCMD_INTE | USBCMD_HSEE);
 
     // wait for start up.
-    pr_log("\1 wait for xHCI start up.\n");
     while(xhci_read_opt(XHCI_OPT_USBSTS) & USBSTS_HCH);
-    pr_log("\1 xHCI start up done.\n");
     pr_log("\1 xHCI is %s now.\n",
            xhci_read_opt(XHCI_OPT_USBCMD) & USBCMD_RUN ? "Running" : "Stop");
 
@@ -262,7 +293,6 @@ PRIVATE void intr_xHCI_handler()
 {
     eoi(IRQ_XHCI);
     inform_intr(USB_SRV);
-        pr_log("\2 xHCI intr.\n");
     return;
 }
 
@@ -288,6 +318,7 @@ PUBLIC status_t xhci_init()
             pci_dev_config_read(device,0) & 0xffff,
             (pci_dev_config_read(device,0) >> 16) & 0xffff);
 
+    // Initialization MMIO map
     addr_t xhci_mmio_base = pci_dev_read_bar(device,0);
     pr_log("\1 xhci mmio base: %p\n",xhci_mmio_base);
 
@@ -311,10 +342,10 @@ PUBLIC status_t xhci_init()
 
     xhci.event_ring.cycle_bit   = 1;
     xhci.command_ring.cycle_bit = 1;
-    xhci.event_ring.e_index       = 0;
-    xhci.event_ring.n_index       = 0;
-    xhci.command_ring.e_index     = 0;
-    xhci.command_ring.n_index     = 0;
+    xhci.event_ring.dequeue_index   = 0;
+    xhci.event_ring.enqueue_index   = 0;
+    xhci.command_ring.dequeue_index = 0;
+    xhci.command_ring.enqueue_index = 0;
 
     uint16_t hci_ver = GET_FIELD(xhci_read_cap(XHCI_CAP_HCIVERSION),HCIVERSION);
     pr_log("\1 interface version: %04x\n",hci_ver);
@@ -329,7 +360,6 @@ PUBLIC status_t xhci_init()
 
     // reset xHCI
     xhci_reset();
-    pr_usbsts();
 
     uint32_t hccp1 = xhci_read_cap(XHCI_CAP_HCCPARAM1);
     pr_log("\1 HCCPARAM1: %08x\n",hccp1);
@@ -377,7 +407,7 @@ PUBLIC status_t xhci_init()
     }
     pci_dev_enable_msi(device);
     pr_log("\1 xHCI init done.\n");
-    pr_usbsts();
+
     xhci_start();
     return K_SUCCESS;
 }
@@ -424,7 +454,7 @@ PRIVATE void trb_queue(xhci_ring_t *ring,xhci_trb_t *trb)
 {
     uint8_t i,cycle_bit;
     uint32_t temp;
-    i = ring->e_index;
+    i = ring->dequeue_index;
     cycle_bit = ring->cycle_bit;
     ring->ring[i].addr   = trb->addr;
     ring->ring[i].status = trb->status;
@@ -446,7 +476,7 @@ PRIVATE void trb_queue(xhci_ring_t *ring,xhci_trb_t *trb)
         i = 0;
         cycle_bit ^= 1;
     }
-    ring->e_index     = i;
+    ring->dequeue_index     = i;
     ring->cycle_bit = cycle_bit;
     return;
 }

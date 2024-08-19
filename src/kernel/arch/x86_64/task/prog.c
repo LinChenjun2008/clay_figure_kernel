@@ -157,19 +157,18 @@ PUBLIC task_struct_t *prog_execute(
     size_t kstack_size,
     void *prog)
 {
-    if (kstack_size & (kstack_size - 1))
-    {
-        return NULL;
-    }
+    ASSERT(!(kstack_size & (kstack_size - 1)));
     status_t status;
     pid_t pid;
     status = task_alloc(&pid);
+    ASSERT(!ERROR(status));
     if (ERROR(status))
     {
         return NULL;
     }
     void *kstack_base;
     status = pmalloc(kstack_size,&kstack_base);
+    ASSERT(!ERROR(status));
     if (ERROR(status))
     {
         task_free(pid);
@@ -182,6 +181,7 @@ PUBLIC task_struct_t *prog_execute(
                      kstack_size);
     create_task_struct(task,start_process,(uint64_t)prog);
     task->page_dir = create_page_dir();
+    ASSERT(task->page_dir != NULL);
     if (task->page_dir == NULL)
     {
         pr_log("\3 Can not alloc memory for task page table.\n");
@@ -189,7 +189,9 @@ PUBLIC task_struct_t *prog_execute(
         task_free(pid);
         return NULL;
     }
-    if (ERROR(user_vaddr_table_init(task)))
+    status = user_vaddr_table_init(task);
+    ASSERT(!ERROR(status));
+    if (ERROR(status))
     {
         pr_log("\3 Can not init vaddr table.\n");
         pfree(kstack_base);

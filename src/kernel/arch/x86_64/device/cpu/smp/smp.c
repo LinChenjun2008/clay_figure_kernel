@@ -40,6 +40,12 @@ PRIVATE void ipi_timer_handler()
     return;
 }
 
+PRIVATE void ipi_panic_handler()
+{
+    eoi(0x81);
+    while (1) __asm__ __volatile("cli\n\t""hlt":::);
+    return;
+}
 
 PUBLIC status_t smp_start()
 {
@@ -82,6 +88,7 @@ PUBLIC status_t smp_start()
                          DEFAULT_PRIORITY,
                          kstack_base,
                          KERNEL_STACK_SIZE);
+        tm->idle_task[i] = main_task->pid;
         spinlock_lock(&tm->task_list_lock[i]);
         list_append(&tm->task_list[i],&main_task->general_tag);
         spinlock_unlock(&tm->task_list_lock[i]);
@@ -90,7 +97,7 @@ PUBLIC status_t smp_start()
 
     // register IPI
     register_handle(0x80,ipi_timer_handler);
-
+    register_handle(0x81,ipi_panic_handler);
     // init IPI
     uint64_t icr = make_icr(
         0,

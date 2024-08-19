@@ -4,6 +4,8 @@
 #include <std/string.h>
 #include <intr.h>
 
+#include <log.h>
+
 PUBLIC void init_semaphore(semaphore_t *sema,uint32_t value)
 {
     memset(sema,0,sizeof(*sema));
@@ -24,10 +26,7 @@ PUBLIC status_t sema_down(semaphore_t *sema)
     intr_status_t intr_status = intr_disable();
     while(sema->value.value == 0)
     {
-        if (list_find(&sema->waiters,&running_task()->general_tag))
-        {
-            return K_ERROR;
-        }
+        ASSERT(!list_find(&sema->waiters,&running_task()->general_tag));
         list_append(&sema->waiters,&running_task()->general_tag);
         task_block(TASK_BLOCKED);
     }

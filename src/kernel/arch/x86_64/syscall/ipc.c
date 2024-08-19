@@ -42,11 +42,12 @@ PUBLIC void inform_intr(pid_t dest)
     {
         return;
     }
-    pid2task(dest)->has_intr_msg++;
-    pid_t recv_from = pid2task(dest)->recv_from;
+    task_struct_t *receiver = pid2task(dest);
+    receiver->has_intr_msg++;
+    pid_t recv_from = receiver->recv_from;
     if (recv_from == RECV_FROM_ANY || recv_from == RECV_FROM_INT)
     {
-        if (pid2task(dest)->status == TASK_RECEIVING)
+        if (receiver->status == TASK_RECEIVING)
         {
             task_unblock(dest);
         }
@@ -56,42 +57,45 @@ PUBLIC void inform_intr(pid_t dest)
 
 PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
 {
-    running_task()->send_to = dest;
-
+    ASSERT(task_exist(dest));
     if (!task_exist(dest))
     {
         running_task()->send_to = MAX_TASK;
         return SYSCALL_DEST_NOT_EXIST;
     }
-    msg->src = running_task()->pid;
-    if (deadlock(running_task()->pid,dest))
+    task_struct_t *sender   = running_task();
+    task_struct_t *receiver = pid2task(dest);
+    sender->send_to = dest;
+    msg->src = sender->pid;
+    ASSERT(!deadlock(sender->pid,dest));
+    if (deadlock(sender->pid,dest))
     {
         pr_log("\3'%s' -> '%s' dead lock\n",
-               running_task()->name,
-               pid2task(dest)->name);
+               sender->name,
+               receiver->name);
         return SYSCALL_DEADLOCK;
     }
-    // pr_log("\1 send: '%-16s' -> '%-16s'\n",running_task()->name,pid2task(dest)->name);
-    memcpy(&running_task()->msg,msg,sizeof(message_t));
-    spinlock_lock(&pid2task(dest)->send_lock);
-    list_append(&pid2task(dest)->sender_list,&running_task()->general_tag);
-    if (pid2task(dest)->status == TASK_RECEIVING)
+    memcpy(&sender->msg,msg,sizeof(message_t));
+    spinlock_lock(&receiver->send_lock);
+    list_append(&receiver->sender_list,&sender->general_tag);
+    if (receiver->status == TASK_RECEIVING)
     {
-        if (pid2task(dest)->recv_from == RECV_FROM_ANY
-           || pid2task(dest)->recv_from == running_task()->pid)
+        if (receiver->recv_from == RECV_FROM_ANY
+           || receiver->recv_from == sender->pid)
         {
-            task_unblock(dest);
+            task_unblock(receiver->pid);
         }
     }
-    spinlock_unlock(&pid2task(dest)->send_lock);
+    spinlock_unlock(&receiver->send_lock);
     task_block(TASK_SENDING);
-    running_task()->send_to = MAX_TASK;
+    sender->send_to = MAX_TASK;
     return SYSCALL_SUCCESS;
 }
 
 PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
 {
     task_struct_t *receiver = running_task();
+    task_struct_t *sender;
     if (src == receiver->pid)
     {
         return SYSCALL_DEADLOCK;
@@ -99,7 +103,10 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
     receiver->recv_from = src;
     if (src == RECV_FROM_ANY || src == RECV_FROM_INT)
     {
-        if (list_empty(&receiver->sender_list) && !receiver->has_intr_msg)
+        spinlock_lock(&receiver->send_lock);
+        bool has_msg_received = !list_empty(&receiver->sender_list);
+        spinlock_unlock(&receiver->send_lock);
+        if (!has_msg_received && !receiver->has_intr_msg)
         {
             task_block(TASK_RECEIVING);
         }
@@ -112,47 +119,41 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
             return SYSCALL_SUCCESS;
         }
         spinlock_lock(&receiver->send_lock);
-        src = CONTAINER_OF(task_struct_t,general_tag,
-                           list_pop(&receiver->sender_list))->pid;
+        ASSERT(!list_empty(&receiver->sender_list));
+        list_node_t *src_node;
+        src_node = list_pop(&receiver->sender_list);
         spinlock_unlock(&receiver->send_lock);
+        sender = CONTAINER_OF(task_struct_t,general_tag,src_node);
     }
     else
     {
+        ASSERT(task_exist(src));
         if (!task_exist(src))
         {
-            running_task()->recv_from = MAX_TASK;
+            receiver->recv_from = MAX_TASK;
             return SYSCALL_SRC_NOT_EXIST;
         }
-        if (pid2task(src) == NULL)
+        sender = pid2task(src);
+        spinlock_lock(&receiver->send_lock);
+
+        while (!list_find(&receiver->sender_list,
+                          &sender->general_tag))
         {
-            running_task()->recv_from = MAX_TASK;
-            return SYSCALL_SRC_NOT_EXIST;
-        }
-        spinlock_lock(&running_task()->send_lock);
-        while (!list_find(&running_task()->sender_list,
-                          &pid2task(src)->general_tag))
-        {
-            spinlock_unlock(&running_task()->send_lock);
+            spinlock_unlock(&receiver->send_lock);
             task_block(TASK_RECEIVING);
-            spinlock_lock(&running_task()->send_lock);
+            spinlock_lock(&receiver->send_lock);
         }
-        spinlock_unlock(&running_task()->send_lock);
-        if (!task_exist(src))
-        {
-            return SYSCALL_SRC_NOT_EXIST;
-        }
-        spinlock_lock(&running_task()->send_lock);
-        list_remove(&pid2task(src)->general_tag);
-        spinlock_unlock(&running_task()->send_lock);
+        list_remove(&sender->general_tag);
+        spinlock_unlock(&receiver->send_lock);
     }
-    memcpy(msg,&pid2task(src)->msg,sizeof(message_t));
-    pid2task(src)->send_to = MAX_TASK;
-    if (pid2task(src)->status != TASK_SENDING)
+    memcpy(msg,&sender->msg,sizeof(message_t));
+    sender->send_to = MAX_TASK;
+    ASSERT(sender->status == TASK_SENDING);
+    if (sender->status != TASK_SENDING)
     {
-        pr_log("\3 task_status != TASK_SENDING.\n");
-        while (1) continue;
+        PANIC("task_status != TASK_SENDING.\n");
     }
-    task_unblock(src);
-    running_task()->recv_from = MAX_TASK;
+    task_unblock(sender->pid);
+    receiver->recv_from = MAX_TASK;
     return SYSCALL_SUCCESS;
 }

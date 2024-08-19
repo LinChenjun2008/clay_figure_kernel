@@ -14,28 +14,20 @@ extern apic_t apic;
 
 PUBLIC void pic_init()
 {
-    if (support_apic())
-    {
-        apic_init();
-    }
-    else
-    {
-        init_8259a();
-    }
+#ifndef __PIC_8259A__
+    apic_init();
+#else
+    init_8259a();
+#endif
     return;
 }
 
 PUBLIC void eoi(uint8_t irq)
 {
     (void)irq;
-    #if !__DISABLE_APIC__
-    if (support_apic())
-    {
-        local_apic_write(0x0b0,0);
-    }
-    else
-    #endif
-    {
-        io_out8(PIC_M_CTRL,0x20);
-    }
+#ifndef __PIC_8259A__
+    local_apic_write(0x0b0,0);
+#else
+    io_out8(PIC_M_CTRL,0x20);
+#endif
 }

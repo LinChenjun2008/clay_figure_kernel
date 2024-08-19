@@ -67,13 +67,9 @@ PUBLIC void detect_cores()
                     = (uint32_t*)(ioapic_addr + 0x40UL);
 
                 apic.number_of_ioapic++;
-                pr_log("\2 Get IOAPIC address: %p\n",ioapic_addr);
                 break;
         }
     }
-    pr_log("\1 cores: %d, local apic addr %p\n",
-           apic.number_of_cores,
-           apic.local_apic_address);
     return;
 }
 
@@ -216,10 +212,7 @@ PUBLIC void apic_init()
     io_out8(0x22,0x70);
     io_out8(0x23,0x01);
 
-    pr_log("\1 init local apic.\n");
     local_apic_init();
-    pr_log("\1 init ioapic.\n");
     ioapic_init();
-    pr_log("\1 init ioapic done.\n");
     return;
 }
