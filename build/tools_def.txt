@@ -3,10 +3,10 @@ include win_tools_def.txt
 # include linux_tools_def.txt
 
 BOOTLOADER_FLAGS := -Wall -Wextra -I$(BOOTLOADER_INCLUDE_PATH) -I$(SRC_PATH) -I$(BOOTLOADER_SRC_PATH) \
- -std=c99 \
  -e UefiMain -nostdinc -nostdlib \
- -finput-charset=UTF-8 -fexec-charset=UTF-8 -fno-stack-protector -O0 \
- -fno-builtin -Wl,--subsystem,10 -m64 -mcmodel=large -fpic
+ -fno-stack-protector \
+ -m64 -mcmodel=small -fpic -fpie \
+ -fno-builtin -Wl,--subsystem,10
 
 KERNEL_FLAGS     := -I$(KERNEL_ARCH_INCLUDE_PATH) -I$(SRC_PATH) -I$(KERNEL_INCLUDE_PATH) \
  -Wall -Wextra -Werror \
