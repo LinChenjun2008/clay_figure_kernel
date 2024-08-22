@@ -83,7 +83,6 @@ AP_CODE64_BASE:
     movq %rax,%fs
     movq %rax,%gs
     movq %rax,%ss
-    cli
 
     movq $1,%rax
     movq $0,%rbx

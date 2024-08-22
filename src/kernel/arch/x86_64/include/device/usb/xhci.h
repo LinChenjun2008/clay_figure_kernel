@@ -434,8 +434,8 @@ typedef struct xhci_ring_s
     xhci_trb_t *ring;
     xhci_trb_t *event;
     uint8_t     cycle_bit;
-    uint16_t    e_index;
-    uint16_t    n_index;
+    uint16_t    dequeue_index;
+    uint16_t    enqueue_index;
 } xhci_ring_t;
 
 // Section 7

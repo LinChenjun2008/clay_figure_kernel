@@ -6,6 +6,8 @@
 #include <device/sse.h>
 #include <device/spinlock.h>
 #include <std/string.h>
+#include <service.h>
+#include <kernel/syscall.h>
 
 #include <log.h>
 
@@ -25,6 +27,10 @@ PRIVATE void kernel_task(void)
         :"rsi","rdi");
     intr_enable();
     ((void (*)(void*))func)((void*)arg);
+    message_t msg;
+    msg.type = MM_EXIT;
+    sys_send_recv(NR_BOTH,MM,&msg);
+    while (1) continue;
     return;
 }
 
@@ -125,7 +131,6 @@ PUBLIC status_t task_alloc(pid_t *pid)
 
 PUBLIC void task_list_insert(list_t *list,task_struct_t *task)
 {
-    intr_status_t intr_status = intr_disable();
     list_node_t *node = list->head.next;
     task_struct_t *tmp;
     while (node != &list->tail)
@@ -138,7 +143,6 @@ PUBLIC void task_list_insert(list_t *list,task_struct_t *task)
         node = node->next;
     }
     list_in(&task->general_tag,node);
-    intr_set_status(intr_status);
     return;
 }
 
@@ -263,7 +267,7 @@ PRIVATE void make_main_task(void)
                      DEFAULT_PRIORITY,
                      (addr_t)KADDR_P2V(KERNEL_STACK_BASE),
                      KERNEL_STACK_SIZE);
-
+    tm->idle_task[apic_id()] = main_task->pid;
     spinlock_lock(&tm->task_list_lock[apic_id()]);
     task_list_insert(&tm->task_list[apic_id()],main_task);
     spinlock_unlock(&tm->task_list_lock[apic_id()]);
@@ -278,8 +282,7 @@ PUBLIC void task_init()
     status = init_alloc_physical_page(sizeof(*tm) / PG_SIZE + 1,&addr);
     if (ERROR(status))
     {
-        pr_log("\3 Can not allocate memory for task manager.\n");
-        while (1) continue;
+        PANIC("Can not allocate memory for task manager.");
     }
     tm = KADDR_P2V(addr);
     memset(tm,0,sizeof(*tm));

@@ -93,11 +93,11 @@ UefiMain
     // disable watch dog timer
     gST->BootServices->SetWatchdogTimer(0,0,0,NULL);
 
-    Status = SetVideoMode(HORIZONTAL_RESOLUTION,VERTICAL_RESOLUTION);
-    if (EFI_ERROR(Status))
-    {
-        DISPLAY_ERROR(L"Can not set video mode.\r\n");
-    }
+    // Status = SetVideoMode(HORIZONTAL_RESOLUTION,VERTICAL_RESOLUTION);
+    // if (EFI_ERROR(Status))
+    // {
+    //     DISPLAY_ERROR(L"Can not set video mode.\r\n");
+    // }
 
     DisplayLogo();
 
@@ -121,13 +121,6 @@ UefiMain
     boot_info->graph_info.vertical_resolution   = Gop->Mode->
                                                   Info->VerticalResolution;
     boot_info->graph_info.frame_buffer_base     = 0xffff807fc0000000;
-
-    UINT64 ScriptSize = 0;
-    ReadFile(L"EFI/Boot/boot.txt",
-                          0,
-                          AllocateAnyPages,
-                          &ScriptSize);
-    DISPLAY_INFO(L"Read EFI/Boot/boot.txt ...\r\n");
 
     // load file
     DISPLAY_INFO(L"Load Files ...\r\n");
@@ -229,15 +222,8 @@ UefiMain
 
     DISPLAY_INFO(L"Exit BootService & go to kernel.\r\n");
     gBS->ExitBootServices(gImageHandle,boot_info->memory_map.map_key);
-    __asm__ __volatile__
-    (
-        "movq %0,%%cr3 \n\t"
-        "movq $0xffff800000310000,%%rsp \n\t"
-        "movq %1,%%rax \n\t"
-        "callq *%%rax"
-        :
-        :"r"(PML4T_POS),"r"(0xffff800000100000)
-    );
+    UINT64 (*kernel_main)(void) = (void*)0x100000;
+    kernel_main();
     while (1) continue;
     return Status;
 }

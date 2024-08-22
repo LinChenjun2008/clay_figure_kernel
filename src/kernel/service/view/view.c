@@ -23,7 +23,6 @@ PRIVATE void view_fill(message_t *msg)
     uint32_t *buf = allocate_page(msg->m3.l1 / PG_SIZE + 1);
     if (buf == NULL)
     {
-        // pr_log("\3 can not alloc buffer.\n");
         return;
     }
 
@@ -43,7 +42,6 @@ PRIVATE void view_fill(message_t *msg)
     free_page(buf,msg->m3.l1 / PG_SIZE + 1);
     return;
 }
-
 
 PUBLIC void view_main()
 {

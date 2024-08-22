@@ -76,14 +76,12 @@ PRIVATE void mm_read_prog_addr(message_t *msg)
     if (cur == NULL)
     {
         msg->m1.i1 = 1;
-        pr_log("\3 read prog addr failed. %d\n",msg->m1.i1);
         return;
     }
     uint8_t *buffer = to_physical_address(src->page_dir,msg->m3.p2);
     if (buffer == NULL)
     {
         msg->m1.i1 = 2;
-        pr_log("\3 read prog addr failed. %d\n",msg->m1.i1);
         return;
     }
     buffer = KADDR_P2V(buffer);
@@ -97,7 +95,6 @@ PRIVATE void mm_read_prog_addr(message_t *msg)
     if (data == NULL)
     {
         msg->m1.i1 = 3;
-        pr_log("\3 read prog addr failed. %d\n",msg->m1.i1);
         return;
     }
     data = KADDR_P2V(data);

@@ -85,26 +85,29 @@ INTR_HANDLER(asm_intr0x1d_handler,0x1d,      nop)
 INTR_HANDLER(asm_intr0x1e_handler,0x1e,      nop)
 INTR_HANDLER(asm_intr0x1f_handler,0x1f, pushq $0)
 
-INTR_HANDLER(asm_intr0x20_handler,0x20, pushq $0) // 时钟中断对应的入口
-INTR_HANDLER(asm_intr0x21_handler,0x21, pushq $0) // 键盘中断对应的入口
-INTR_HANDLER(asm_intr0x22_handler,0x22, pushq $0) // 级联用的
-INTR_HANDLER(asm_intr0x23_handler,0x23, pushq $0) // 串口2对应的入口
-INTR_HANDLER(asm_intr0x24_handler,0x24, pushq $0) // 串口1对应的入口
-INTR_HANDLER(asm_intr0x25_handler,0x25, pushq $0) // 并口2对应的入口
-INTR_HANDLER(asm_intr0x26_handler,0x26, pushq $0) // 软盘对应的入口
-INTR_HANDLER(asm_intr0x27_handler,0x27, pushq $0) // 并口1对应的入口
-INTR_HANDLER(asm_intr0x28_handler,0x28, pushq $0) // 实时时钟对应的入口
-INTR_HANDLER(asm_intr0x29_handler,0x29, pushq $0) // 重定向
-INTR_HANDLER(asm_intr0x2a_handler,0x2a, pushq $0) // 保留
-INTR_HANDLER(asm_intr0x2b_handler,0x2b, pushq $0) // 保留
-INTR_HANDLER(asm_intr0x2c_handler,0x2c, pushq $0) // ps/2鼠标
-INTR_HANDLER(asm_intr0x2d_handler,0x2d, pushq $0) // fpu浮点单元异常
-INTR_HANDLER(asm_intr0x2e_handler,0x2e, pushq $0) // 硬盘
-INTR_HANDLER(asm_intr0x2f_handler,0x2f, pushq $0) // 保留
+INTR_HANDLER(asm_intr0x20_handler,0x20, pushq $0)
+INTR_HANDLER(asm_intr0x21_handler,0x21, pushq $0)
+INTR_HANDLER(asm_intr0x22_handler,0x22, pushq $0)
+INTR_HANDLER(asm_intr0x23_handler,0x23, pushq $0)
+INTR_HANDLER(asm_intr0x24_handler,0x24, pushq $0)
+INTR_HANDLER(asm_intr0x25_handler,0x25, pushq $0)
+INTR_HANDLER(asm_intr0x26_handler,0x26, pushq $0)
+INTR_HANDLER(asm_intr0x27_handler,0x27, pushq $0)
+INTR_HANDLER(asm_intr0x28_handler,0x28, pushq $0)
+INTR_HANDLER(asm_intr0x29_handler,0x29, pushq $0)
+INTR_HANDLER(asm_intr0x2a_handler,0x2a, pushq $0)
+INTR_HANDLER(asm_intr0x2b_handler,0x2b, pushq $0)
+INTR_HANDLER(asm_intr0x2c_handler,0x2c, pushq $0)
+INTR_HANDLER(asm_intr0x2d_handler,0x2d, pushq $0)
+INTR_HANDLER(asm_intr0x2e_handler,0x2e, pushq $0)
+INTR_HANDLER(asm_intr0x2f_handler,0x2f, pushq $0)
 
 INTR_HANDLER(asm_intr0x30_handler,IRQ_XHCI,pushq $0)
 
-INTR_HANDLER(asm_intr0x80_handler,0x80, pushq $0) // IPI
+// IPI
+INTR_HANDLER(asm_intr0x80_handler,0x80, pushq $0) // Timer
+INTR_HANDLER(asm_intr0x81_handler,0x81, pushq $0) // Kernel Panic
+
 #endif
 
 #endif

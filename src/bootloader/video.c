@@ -7,7 +7,7 @@ EFI_STATUS SetVideoMode(UINT32 xsize,UINT32 ysize)
     UINTN SizeOfInfo = 0;
     EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Info;
     UINTN i;
-    int Mode = 0;
+    UINT32 Mode = 0;
     UINTN sub = 0xffffffff;
     for(i = 0;i < Gop->Mode->MaxMode;i++)
     {
@@ -19,6 +19,10 @@ EFI_STATUS SetVideoMode(UINT32 xsize,UINT32 ysize)
                  + ABS(ysize - Info->VerticalResolution);
             Mode = i;
         }
+    }
+    if (Mode == Gop->Mode->MaxMode)
+    {
+        return EFI_ERR;
     }
     return Gop->SetMode(Gop,Mode);
 }
