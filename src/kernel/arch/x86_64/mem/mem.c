@@ -150,9 +150,6 @@ PUBLIC void mem_init()
     {
         bitmap_set(&mem.page_bitmap,i,1);
     }
-    pr_log("\1 Memory: total: %d MB ( %d GB ),free: %d MB (%d GB)\n",
-            mem_size >> 20,mem_size >> 30,
-            total_free >> 20,total_free >> 30);
     return;
 }
 

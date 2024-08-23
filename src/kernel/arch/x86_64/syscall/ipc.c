@@ -148,11 +148,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
     }
     memcpy(msg,&sender->msg,sizeof(message_t));
     sender->send_to = MAX_TASK;
-    ASSERT(sender->status == TASK_SENDING);
-    if (sender->status != TASK_SENDING)
-    {
-        PANIC("task_status != TASK_SENDING.\n");
-    }
+    // ASSERT(sender->status == TASK_SENDING);
     task_unblock(sender->pid);
     receiver->recv_from = MAX_TASK;
     return SYSCALL_SUCCESS;

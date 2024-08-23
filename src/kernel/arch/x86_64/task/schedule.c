@@ -21,6 +21,7 @@ PRIVATE void switch_to(task_context_t **cur,task_context_t **next)
 
 PUBLIC void do_schedule()
 {
+    ASSERT(intr_get_status() == INTR_OFF);
     task_struct_t *cur_task = running_task();
     cur_task->jiffies   += 1;
     cur_task->vrun_time += cur_task->priority;
@@ -81,22 +82,22 @@ PUBLIC void task_block(task_status_t status)
     return;
 }
 
-PRIVATE uint64_t get_minimun_vrun_time(list_t *list)
-{
-    uint64_t vrun_time = 0x7fffffffffffffff;
-    list_node_t *node = list->head.next;
-    task_struct_t *tmp;
-    while (node != &list->tail)
-    {
-        tmp = CONTAINER_OF(task_struct_t,general_tag,node);
-        if ((int64_t)(tmp->vrun_time - vrun_time) < 0)
-        {
-            vrun_time = tmp->vrun_time;
-        }
-        node = node->next;
-    }
-    return vrun_time;
-}
+// PRIVATE uint64_t get_minimun_vrun_time(list_t *list)
+// {
+//     uint64_t vrun_time = 0x7fffffffffffffff;
+//     list_node_t *node = list->head.next;
+//     task_struct_t *tmp;
+//     while (node != &list->tail)
+//     {
+//         tmp = CONTAINER_OF(task_struct_t,general_tag,node);
+//         if ((int64_t)(tmp->vrun_time - vrun_time) < 0)
+//         {
+//             vrun_time = tmp->vrun_time;
+//         }
+//         node = node->next;
+//     }
+//     return vrun_time;
+// }
 
 PUBLIC void task_unblock(pid_t pid)
 {
@@ -106,11 +107,11 @@ PUBLIC void task_unblock(pid_t pid)
 
     intr_status_t intr_status = intr_disable();
     spinlock_lock(&tm->task_list_lock[task->cpu_id]);
-    uint64_t vrun_time = get_minimun_vrun_time(&tm->task_list[task->cpu_id]);
-    if (task->vrun_time + 100 < vrun_time)
-    {
-        task->vrun_time = vrun_time - 10;
-    }
+    // uint64_t vrun_time = get_minimun_vrun_time(&tm->task_list[task->cpu_id]);
+    // if (task->vrun_time + 100 < vrun_time)
+    // {
+    //     task->vrun_time = vrun_time;
+    // }
     task_list_insert(&tm->task_list[task->cpu_id],task);
     task->status = TASK_READY;
     ASSERT(list_find(&tm->task_list[task->cpu_id],&task->general_tag));

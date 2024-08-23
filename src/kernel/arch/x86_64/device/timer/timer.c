@@ -5,9 +5,7 @@
 #include <device/cpu.h>
 #include <task/task.h>
 #include <kernel/syscall.h>
-
-
-#include <log.h>
+#include <device/timer.h>
 
 PUBLIC volatile uint64_t global_ticks;
 
@@ -37,21 +35,16 @@ PUBLIC void pit_init()
 {
     global_ticks = 0;
     register_handle(0x20,irq_timer_handler);
-    #if defined __TIMER_HPET__ && defined __TIMER_8254__
-        "Only one timer can be selected."
-    #elif defined __TIMER_HPET__
+#if defined __TIMER_HPET__
     uint8_t *HPET_addr = (uint8_t *)0xfed00000;
 
     *(uint64_t*)(HPET_addr +  0x10) = 3;
     *(uint64_t*)(HPET_addr + 0x100) = 0x004c;
-    // 100000000 / 69.841279 = 100000000 / 70 = 1ms
-    *(uint64_t*)(HPET_addr + 0x108) = 100000000 / 70;
+    *(uint64_t*)(HPET_addr + 0x108) = 1428571;
     *(uint64_t*)(HPET_addr + 0xf0) = 0;
-    #elif defined __TIMER_8254__
+#else
     io_out8(PIT_CTRL,0x34);
-    io_out8(PIT_CNT0,0x9c);
-    io_out8(PIT_CNT0,0x2e);
-    #else
-        "You must select a timer."
-    #endif
+    io_out8(PIT_CNT0,COUNTER0_VALUE_LO);
+    io_out8(PIT_CNT0,COUNTER0_VALUE_HI);
+#endif
 }
