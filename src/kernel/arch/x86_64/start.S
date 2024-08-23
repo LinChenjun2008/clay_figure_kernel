@@ -2,6 +2,7 @@
 
 .extern kernel_main
 .extern ap_kernel_main
+
 .global kernel_entry
 kernel_entry:
     movq $IA32_APIC_BASE,%rcx

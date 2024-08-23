@@ -1,15 +1,14 @@
 #ifndef __GLOBAL_H__
 #define __GLOBAL_H__
 
-#define __DISABLE_LOG__  0
-#define __DISABLE_SERIAL_LOG__ 1 // available when __DISABLE_LOG__ == FALSE
+// #define __DISABLE_LOG__
+#define __DISABLE_SERIAL_LOG__
 
-#define __DISABLE_ASSERT__ 0
+// #define __DISABLE_ASSERT__
 
 // #define __PIC_8259A__
 
 // #define __TIMER_HPET__
-#define __TIMER_8254__
 
 #define ERROR(x) ((x) != K_SUCCESS)
 #define K_ERROR          0xc0000000

@@ -8,23 +8,107 @@
 
 extern PUBLIC uint8_t ascii_character[][16];
 
-PUBLIC volatile uint32_t global_log_cnt;
-
 typedef struct position_s
 {
     uint32_t x;
     uint32_t y;
 } position_t;
 
-#define X_START 10U
-#define Y_START 10U
+#define X_START (8  + 1)
+#define Y_START (16 + 2)
 
 #define CHAR_X_SIZE (8  + 1)
-#define CHAR_Y_SIZE (16 + 1)
+#define CHAR_Y_SIZE (16 + 2)
 
 PRIVATE position_t pos = {X_START,Y_START};
 
-PUBLIC void basic_put_char(char c,uint32_t col)
+
+
+#define IS_TRANSMIT_EMPTY(port) (io_in8(port + 5) & 0x20)
+
+#ifdef __DISABLE_SERIAL_LOG__
+#define serial_pr_log(...) (void)0
+#else
+static inline void serial_pr_log(const char *log,va_list ap)
+{
+    char msg[256];
+    char *buf;
+    uint16_t port = 0x3f8;
+    char *level[] =
+    {
+        "\033[32m[ INFO  ]\033[0m ",
+        "\033[33m[ DEBUG ]\033[0m ",
+        "\033[31m[ ERROR ]\033[0m ",
+    };
+    if (*log >= 1 && *log <= 3)
+    {
+        buf = level[*log - 1];
+        while (IS_TRANSMIT_EMPTY(port) == 0);
+        if(*buf != 0)
+        {
+            do
+            {
+                while (IS_TRANSMIT_EMPTY(port) == 0);
+                io_out8(port,*buf);
+            } while (*buf++);
+        }
+    }
+    vsprintf(msg,log,ap);
+    buf = msg;
+    while (IS_TRANSMIT_EMPTY(port) == 0);
+    if(*buf != 0)
+    {
+        do
+        {
+            while (IS_TRANSMIT_EMPTY(port) == 0);
+            io_out8(port,*buf);
+        } while (*buf++);
+    }
+    return;
+}
+#endif /* __DISABLE_SERIAL_LOG__ */
+
+#undef IS_TRANSMIT_EMPTY
+
+PUBLIC void pr_log(const char *log,...)
+{
+    char msg[256];
+    char *buf;
+    char *level[] =
+    {
+        "[ INFO  ] ",
+        "[ DEBUG ] ",
+        "[ ERROR ] "
+    };
+    if (*log >= 1 && *log <= 3)
+    {
+        buf = level[*log - 1];
+        if (*log - 1 == 0)
+        {
+            basic_print(0x0000c500,buf);
+        }
+        else if (*log - 1 == 1)
+        {
+            basic_print(0x00c59900,buf);
+        }
+        else if (*log - 1 == 2)
+        {
+            basic_print(0x00c50000,buf);
+        }
+        log = log + 1;
+    }
+    va_list ap;
+    va_start(ap,log);
+    vsprintf(msg,log,ap);
+    buf = msg;
+    basic_print(0x00c5c5c5,buf);
+
+    va_start(ap,log);
+    serial_pr_log(log,ap);
+    return;
+}
+
+PUBLIC void basic_put_char(unsigned char c,uint32_t col)
 {
     uint8_t *character = ascii_character[(uint32_t)c];
     int i;
@@ -46,6 +130,29 @@ PUBLIC void basic_put_char(char c,uint32_t col)
         if ((data & 0x02) != 0){ pixel[6] = col; }
         if ((data & 0x01) != 0){ pixel[7] = col; }
     }
+    if (c != 255)
+    {
+        col = 0x00ffffff;
+        character = ascii_character[255];
+        for (i = 0;i < 16;i++)
+        {
+            uint8_t data = character[i];
+            uint32_t *pixel = \
+                (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
+                + (pos.y + i) * g_boot_info->graph_info.horizontal_resolution \
+                + pos.x + CHAR_X_SIZE;
+            int j;
+            for (j = 0;j < 8;j++){ pixel[j] = 0x00000000; }
+            if ((data & 0x80) != 0){ pixel[0] = col; }
+            if ((data & 0x40) != 0){ pixel[1] = col; }
+            if ((data & 0x20) != 0){ pixel[2] = col; }
+            if ((data & 0x10) != 0){ pixel[3] = col; }
+            if ((data & 0x08) != 0){ pixel[4] = col; }
+            if ((data & 0x04) != 0){ pixel[5] = col; }
+            if ((data & 0x02) != 0){ pixel[6] = col; }
+            if ((data & 0x01) != 0){ pixel[7] = col; }
+        }
+    }
 
     return;
 }
@@ -64,23 +171,13 @@ PUBLIC void basic_print(uint32_t col,const char *str,...)
             || pos.x
                  >= g_boot_info->graph_info.horizontal_resolution - CHAR_X_SIZE)
         {
+            basic_put_char(255,0);
             pos.x = X_START;
             pos.y += CHAR_Y_SIZE;
             pos.y > g_boot_info->graph_info.vertical_resolution - CHAR_Y_SIZE ?
                  pos.y = Y_START : 0;
             s++;
-            int i;
-            for (i = 0;i < CHAR_Y_SIZE;i++)
-            {
-                uint32_t *pixel = \
-                    (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
-                    + (pos.y + i) * g_boot_info->graph_info.horizontal_resolution;
-                uint32_t j;
-                for (j = 0;j < g_boot_info->graph_info.horizontal_resolution;j++)
-                {
-                    pixel[j] = 0x00000000;
-                }
-            }
+            basic_put_char(255,0x00ffffff);
             continue;
         }
         if (*s == '\b')
@@ -101,13 +198,23 @@ PUBLIC void basic_print(uint32_t col,const char *str,...)
             pos.x = X_START;
             continue;
         }
+        int i;
+        for (i = 0;i < CHAR_Y_SIZE;i++)
+        {
+            uint32_t *pixel =
+                (uint32_t*)g_boot_info->graph_info.frame_buffer_base
+                + (pos.y + i) * g_boot_info->graph_info.horizontal_resolution;
+            uint32_t j;
+            for (j = pos.x;j < pos.x + CHAR_X_SIZE;j++)
+            {
+                pixel[j] = 0x00000000;
+            }
+        }
         basic_put_char(*s++,col);
         pos.x += CHAR_X_SIZE;
     }
     return;
 }
-
-PRIVATE spinlock_t log_lock = { 1 };
 
 PUBLIC void panic_spin(
     char* filename,
@@ -115,12 +222,6 @@ PUBLIC void panic_spin(
     const char* func,
     const char* condition)
 {
-    spinlock_lock(&log_lock);
-    __asm__ __volatile__ ("cli":::);
-    pr_log("\n");
-    pr_log("\3 >>> PANIC <<<\n");
-    pr_log("\3 %s: In function '%s':\n",filename,func);
-    pr_log("\3 %s:%d: %s\n",filename,line,condition);
     uint64_t icr;
     icr = make_icr(
         0x81,
@@ -132,5 +233,10 @@ PUBLIC void panic_spin(
         ICR_ALL_EXCLUDE_SELF,
         0);
     send_IPI(icr);
+    __asm__ __volatile__ ("cli":::);
+    pr_log("\n");
+    pr_log("\3 >>> PANIC <<<\n");
+    pr_log("\3 %s: In function '%s':\n",filename,func);
+    pr_log("\3 %s:%d: %s\n",filename,line,condition);
     while (1) __asm__ __volatile("cli\n\t""hlt":::);
 }

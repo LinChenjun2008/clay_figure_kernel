@@ -36,7 +36,6 @@ void ktask()
 
 void kernel_main()
 {
-    global_log_cnt = 0;
     init_all();
     prog_execute("k task",DEFAULT_PRIORITY,4096,ktask);
     while(1)
