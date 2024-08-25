@@ -1,88 +1,26 @@
 # Clay Figure Kernel
-# 目录
-* [编译工具](#编译工具)
-* [编译](#编译)
-* [运行](#运行)
-* [参考资料](#参考资料)
 
-# 编译工具
-在Linux上，你可以使用下方的命令安装所需程序：
-```sh
-sudo apt-get install gcc g++ gcc-mingw-w64-x86-64 qemu-system-x86 ovmf
-```
-在windows上，从以下网站下载所需的工具:
+### 简介
+Clay Figure Kernel是一个简易的系统内核（开发中），可运行在带有UEFI的x86_64架构（amd64）的计算机中。
+本项目可用于学习操作系统相关知识以及入门操作系统的参考。
 
-* [x86_64-elf-tools](https://github.com/lordmilko/i686-elf-tools/releases)
-* [Mingw64](https://www.mingw-w64.org/)
-* [Qemu](https://www.qemu.org)
+关于本项目如何编译，参见：[如何编译与运行](docs/index.md)
 
-或者下载精简过的[BuildTools](https://gitee.com/linchenjun2008/build_tools)(请将其中所有的压缩文件解压缩)。
+### 加入开发
+对本项目功能的追加/错误的修正，请在Pull Request中提出，如果有Bug的反馈或其他疑问，请提出issue。
 
- * 注：以下部分均假设在Windows环境下进行。
-# 编译
+### 更多：
+* [代码规范](docs/system/coding_style.md)
+* [系统调用](docs/system/syscall.md)
 
-1. 获取源代码：
-```bash
-mkdir project
-cd ./project
-git clone https://github.com/linchenjun2008/clay_figure_kernel.git
-```
-2. 准备[工具](#编译工具)，并确保目录结构是下面这样的：
-```
-project
-    ├─clay_figure_kernel
-    │  ├─.vscode
-    │  ├─build
-    │  ├─docs
-    │  └─src
-    │      └─...
-    ├─run
-    │  └─esp
-    │      ├─EFI
-    │      │  └─Boot
-    │      └─Kernel
-    │          └─resource
-    └─tools
-        ├─MinGW64
-        │  ├─bin
-        │  ├─include
-        │  ├─lib
-        │  ├─libexec
-        │  ├─share
-        │  └─x86_64-w64-mingw32
-        ├─qemu
-        │  └─...
-        └─x86_64-elf-tools
-            ├─bin
-            ├─include
-            ├─libexec
-            ├─share
-            └─x86_64-elf
-```
-如果你将编译工具（`tools`）安装在了其他位置，请编辑`build/tools_def.txt`中的工具路径，将其设为实际的安装位置。
-
-3. 进入`build`目录,开始编译:
-```bash
-cd ./clay_figure_kernel/build/
-make
-```
-如果一切顺利，你将在`run/esp`中找到编译结果。
-
-# 运行
-进入`build`目录,执行`make run`:
-```bash
-cd ./clay_figure_kernel/build/
-make run
-```
-若要在物理机上运行，只需将`run/esp`中的文件复制到用于启动的磁盘，将该磁盘作为引导设备启动即可（请确定该磁盘为`FAT`类的文件系统）。
-
-# 参考资料
+### 参考书籍
 * 郑刚.操作系统真相还原.北京:人民邮电出版社,2016.
 * 川和秀実.30天自制操作系统.周自恒,李黎明,曾祥江,张文旭 译.北京:人民邮电出版社,2012.
 * 于渊.Orange'S: 一个操作系统的实现.北京:电子工业出版社,2009.
-* UEFI Spec 2.9
 * 大神 祐真.[フルスクラッチで作る!UEFIベアメタルプログラミング](https://kagurazakakotori.github.io/ubmp-cn/).神楽坂琴梨 译.
+
+### 其他参考资料
 * [osdev](https://wiki.osdev.org)
-* [GuideOS](https://github.com/Codetector1374/GuideOS)
-* eXtensible Host Controller Interface for Universal Serial Bus
+* [UEFI Spec 2.9](https://uefi.org/)
+* [eXtensible Host Controller Interface for Universal Serial Bus](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf)
 * [Haiku](https://github.com/haiku/haiku)
