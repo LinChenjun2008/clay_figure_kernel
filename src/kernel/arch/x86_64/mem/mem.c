@@ -38,17 +38,20 @@ typedef enum
 
 typedef struct
 {
-    uint32_t  Type;
+    uint32_t   Type;
     phy_addr_t PhysicalStart;
-    addr_t VirtualStart;
-    uint64_t  NumberOfPages;
-    uint64_t  Attribute;
+    addr_t     VirtualStart;
+    uint64_t   NumberOfPages;
+    uint64_t   Attribute;
 } __attribute__((aligned(16))) EFI_MEMORY_DESCRIPTOR;
 
 PRIVATE struct
 {
     bitmap_t   page_bitmap;
     spinlock_t lock;
+    size_t     mem_size;
+    uint32_t   total_pages;
+    uint32_t   free_pages;
 } mem;
 
 PRIVATE uint8_t page_bitmap_map[PAGE_BITMAP_BYTES_LEN];
@@ -101,15 +104,16 @@ PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
 
 PUBLIC void mem_init()
 {
-    mem.page_bitmap.map = page_bitmap_map;
+    mem.page_bitmap.map            = page_bitmap_map;
     mem.page_bitmap.btmp_bytes_len = PAGE_BITMAP_BYTES_LEN;
+    mem.mem_size                   = 0;
+    mem.total_pages                = 0;
+    mem.free_pages                 = 0;
     init_bitmap(&mem.page_bitmap);
     init_spinlock(&mem.lock);
     int number_of_memory_desct;
     number_of_memory_desct = g_boot_info->memory_map.map_size
                            / g_boot_info->memory_map.descriptor_size;
-    size_t    total_free  = 0;
-    size_t    mem_size    = 0;
     addr_t    max_address = 0;
     int i;
     for (i = 0;i < number_of_memory_desct;i++)
@@ -120,7 +124,6 @@ PUBLIC void mem_init()
         phy_addr_t end   = start + (efi_memory_desc[i].NumberOfPages << 12);
         max_address      = efi_memory_desc[i].PhysicalStart
                           + (efi_memory_desc[i].NumberOfPages << 12);
-        mem_size        += efi_memory_desc[i].NumberOfPages << 12;
         if (memory_type(efi_memory_desc[i].Type) != FREE_MEMORY)
         {
             start = page_size_round_down(start);
@@ -133,11 +136,13 @@ PUBLIC void mem_init()
         }
         else
         {
+            mem.mem_size += efi_memory_desc[i].NumberOfPages << 12;
             start = page_size_round_up(start);
             end   = page_size_round_down(end);
             if(end >= start)
             {
-                total_free += (end - start) * PG_SIZE;
+                mem.total_pages += end - start;
+                mem.free_pages = mem.total_pages;
             }
         }
     }
@@ -151,6 +156,21 @@ PUBLIC void mem_init()
         bitmap_set(&mem.page_bitmap,i,1);
     }
     return;
+}
+
+PUBLIC size_t total_memory()
+{
+    return mem.mem_size;
+}
+
+PUBLIC uint32_t total_pages()
+{
+    return mem.total_pages;
+}
+
+PUBLIC uint32_t total_free_pages()
+{
+    return mem.free_pages;
 }
 
 PUBLIC status_t alloc_physical_page(uint64_t number_of_pages,void *addr)
@@ -174,6 +194,7 @@ PUBLIC status_t alloc_physical_page(uint64_t number_of_pages,void *addr)
     {
         bitmap_set(&mem.page_bitmap,i,1);
     }
+    mem.free_pages -= number_of_pages;
     spinlock_unlock(&mem.lock);
     paddr = (0UL + (phy_addr_t)index * PG_SIZE);
     memset(KADDR_P2V(paddr),0,number_of_pages * PG_SIZE);
@@ -215,6 +236,7 @@ PUBLIC void free_physical_page(void *addr,uint64_t number_of_pages)
     {
         bitmap_set(&mem.page_bitmap,i,0);
     }
+    mem.free_pages += number_of_pages;
     spinlock_unlock(&mem.lock);
     return;
 }

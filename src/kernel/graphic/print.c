@@ -61,8 +61,8 @@ static inline void serial_pr_log(const char *log,va_list ap)
         do
         {
             while (IS_TRANSMIT_EMPTY(port) == 0);
-            io_out8(port,*buf);
-        } while (*buf++);
+            io_out8(port,*buf++);
+        } while (*buf);
     }
     return;
 }
@@ -76,9 +76,9 @@ PUBLIC void pr_log(const char *log,...)
     char *buf;
     char *level[] =
     {
-        "[ INFO  ] ",
-        "[ DEBUG ] ",
-        "[ ERROR ] "
+        "[ INFO  ]",
+        "[ DEBUG ]",
+        "[ ERROR ]"
     };
     if (*log >= 1 && *log <= 3)
     {
@@ -157,14 +157,9 @@ PUBLIC void basic_put_char(unsigned char c,uint32_t col)
     return;
 }
 
-PUBLIC void basic_print(uint32_t col,const char *str,...)
+PUBLIC void basic_print(uint32_t col,const char *str)
 {
-    char msg[128];
-    va_list ap;
-    va_start(ap,str);
-    vsprintf(msg,str,ap);
-    va_end(ap);
-    char *s = msg;
+    const char *s = str;
     while(*s)
     {
         if (*s == '\n'

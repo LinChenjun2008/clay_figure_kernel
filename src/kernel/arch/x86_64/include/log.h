@@ -7,15 +7,11 @@
 #include <std/stdio.h>
 
 PUBLIC void basic_put_char(unsigned char c,uint32_t col);
-PUBLIC void basic_print(uint32_t col,const char *str,...);
+PUBLIC void basic_print(uint32_t col,const char *str);
 
-#ifdef __DISABLE_LOG__
-#define pr_log(...) (void)0
 #if defined __DISABLE_SERIAL_LOG__
 #define serial_pr_log(...) (void)0
 #endif /* __DISABLE_SERIAL_LOG__ */
-
-#else
 
 PUBLIC void pr_log(const char* str,...);
 
@@ -40,7 +36,5 @@ PUBLIC void panic_spin(
     } while (0)
 
 #endif /* __DISABLE_ASSERT__ */
-
-#endif /* __DISABLE_LOG__ */
 
 #endif

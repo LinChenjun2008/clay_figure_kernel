@@ -140,7 +140,7 @@ PUBLIC void task_list_insert(list_t *list,task_struct_t *task)
         {
             break;
         }
-        node = node->next;
+        node = list_next(node);
     }
     list_in(&task->general_tag,node);
     return;

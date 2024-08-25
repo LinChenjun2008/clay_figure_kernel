@@ -99,8 +99,6 @@ PUBLIC void configure_msi(
             // msi pending bits
             pci_dev_config_write(dev,msg_data_addr + 4,msi_pending_bits);
         }
-        pr_log("\1 MSI mask: %x, pending: %x.\n",msi_mask_bits,msi_pending_bits);
-        pr_log("\1 Congiure MSI done.\n");
         return;
     }
     else if (msix_cap_addr)
@@ -167,8 +165,5 @@ PUBLIC status_t pci_dev_enable_msi(pci_device_t *dev)
 
     msi->msg_ctrl |= 0x01;
     pci_dev_config_write(dev,msi->cap_addr + 0x00,msi->msg_ctrl << 16);
-
-    pr_log("\2 MSI Enable: %s.\n",
-           (pci_dev_config_read(dev,msi->cap_addr) >> 16) & 1 ? "T" : "F");
     return K_SUCCESS;
 }

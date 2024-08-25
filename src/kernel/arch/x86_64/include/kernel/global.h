@@ -1,7 +1,6 @@
 #ifndef __GLOBAL_H__
 #define __GLOBAL_H__
 
-// #define __DISABLE_LOG__
 #define __DISABLE_SERIAL_LOG__
 
 // #define __DISABLE_ASSERT__

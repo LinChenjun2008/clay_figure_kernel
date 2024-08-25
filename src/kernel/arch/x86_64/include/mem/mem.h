@@ -2,6 +2,9 @@
 #define __MEM_H__
 
 PUBLIC void mem_init();
+PUBLIC size_t total_memory();
+PUBLIC uint32_t total_pages();
+PUBLIC uint32_t total_free_pages();
 
 /**
  * 分配number_of_pages个连续的大小为PG_SIZE的物理页
