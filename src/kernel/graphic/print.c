@@ -63,6 +63,7 @@ static inline void serial_pr_log(const char *log,va_list ap)
             while (IS_TRANSMIT_EMPTY(port) == 0);
             io_out8(port,*buf++);
         } while (*buf);
+
     }
     return;
 }
@@ -79,6 +80,7 @@ PUBLIC void pr_log(const char *log,...)
         "[ INFO  ]",
         "[ DEBUG ]",
         "[ ERROR ]"
+
     };
     if (*log >= 1 && *log <= 3)
     {
