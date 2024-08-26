@@ -493,15 +493,16 @@ typedef struct xhci_s
     pid_t                  event_task;
 } xhci_t;
 
-PUBLIC status_t xhci_init();
-PUBLIC uint32_t xhci_read_cap(uint32_t reg);
-PUBLIC uint32_t xhci_read_opt(uint32_t reg);
-PUBLIC void xhci_write_opt(uint32_t reg,uint32_t value);
-PUBLIC uint32_t xhci_read_run(uint32_t reg);
-PUBLIC void xhci_write_run(uint32_t reg,uint32_t val);
-PUBLIC uint32_t xhci_read_doorbell(uint32_t reg);
-PUBLIC void xhci_write_doorbell(uint32_t reg,uint32_t val);
+PUBLIC status_t xhci_setup();
+PUBLIC status_t xhci_init(xhci_t *xhci);
+PUBLIC uint32_t xhci_read_cap(xhci_t *xhci,uint32_t reg);
+PUBLIC uint32_t xhci_read_opt(xhci_t *xhci,uint32_t reg);
+PUBLIC void xhci_write_opt(xhci_t *xhci,uint32_t reg,uint32_t value);
+PUBLIC uint32_t xhci_read_run(xhci_t *xhci,uint32_t reg);
+PUBLIC void xhci_write_run(xhci_t *xhci,uint32_t reg,uint32_t val);
+PUBLIC uint32_t xhci_read_doorbell(xhci_t *xhci,uint32_t reg);
+PUBLIC void xhci_write_doorbell(xhci_t *xhci,uint32_t reg,uint32_t val);
 
-PUBLIC status_t xhci_do_command(xhci_trb_t *trb);
+PUBLIC status_t xhci_do_command(xhci_t *xhci,xhci_trb_t *trb);
 
 #endif

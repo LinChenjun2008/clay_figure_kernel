@@ -3,8 +3,6 @@
 #include <io.h>
 #include <device/pic.h>
 
-#include <log.h>
-
 PRIVATE pci_device_t pci_devices[256];
 PRIVATE uint8_t number_of_pci_device;
 
@@ -165,8 +163,13 @@ PRIVATE void add_device(pci_device_t *device)
 {
     pci_devices[number_of_pci_device] = *device;
     number_of_pci_device++;
+    // pr_log("\2 pci {%02x,%02x,%02x} class code: %06x: %s.\n",
+    //         device->bus,
+    //         device->device,
+    //         device->func,
+    //         ((device->class_code) >> 8) & 0xffffff,
+    //         pci_dev_type_str(device));
 }
-
 
 PRIVATE void scan_func(uint8_t bus,uint8_t dev,uint8_t func);
 PRIVATE void scan_device(uint8_t bus,uint8_t dev);
@@ -183,7 +186,12 @@ PRIVATE void scan_func(uint8_t bus,uint8_t dev,uint8_t func)
 
     uint8_t header_type = pci_read_header_type(bus,dev,func);
     uint32_t class_code = pci_read_class_code(bus,dev,func);
-    pci_device_t device = {bus,dev,func,header_type,class_code,{0,0,0,0,0,0,0,0}};
+    pci_device_t device;
+    device.bus         = bus;
+    device.device      = dev;
+    device.func        = func;
+    device.header_type = header_type;
+    device.class_code  = class_code;
     pci_dev_read_msi_info(&device);
     add_device(&device);
 
@@ -234,7 +242,7 @@ PUBLIC void pci_scan_all_bus()
     number_of_pci_device = 0;
     uint8_t func;
     uint8_t header_type = pci_read_header_type(0,0,0);
-    if ((header_type & 0x80) == 0)// singal pci host controller
+    if ((header_type & 0x80) == 0) // singal pci host controller
     {
         scan_bus(0);
         return;
@@ -251,11 +259,12 @@ PUBLIC void pci_scan_all_bus()
     return;
 }
 
-PUBLIC pci_device_t* pci_dev_match(
+PUBLIC uint32_t pci_dev_count(
     uint8_t base_class,
     uint8_t sub_class,
     uint8_t prog_if)
 {
+    int res = 0;
     int i;
     for (i = 0;i < number_of_pci_device;i++)
     {
@@ -263,8 +272,74 @@ PUBLIC pci_device_t* pci_dev_match(
         if (((uint32_t)base_class << 16 | (uint32_t)sub_class << 8 | prog_if)
             == class_code)
         {
-            return &pci_devices[i];
+            res++;
+        }
+    }
+    return res;
+}
+
+PUBLIC pci_device_t* pci_dev_match(
+    uint8_t base_class,
+    uint8_t sub_class,
+    uint8_t prog_if,
+    uint32_t index)
+{
+    uint32_t idx = 0;
+    int i;
+    for (i = 0;i < number_of_pci_device;i++)
+    {
+        uint32_t class_code = (pci_devices[i].class_code >> 8) & 0x00ffffff;
+        if (((uint32_t)base_class << 16 | (uint32_t)sub_class << 8 | prog_if)
+            == class_code)
+        {
+            if (idx == index)
+            {
+                return &pci_devices[i];
+            }
+            idx++;
         }
     }
     return NULL;
+}
+
+PUBLIC const char* pci_dev_type_str(pci_device_t *dev)
+{
+    uint32_t class_code = (pci_dev_read_class_code(dev) >> 8) & 0xffffff;
+    switch (class_code)
+    {
+        case 0x010100: return "ISA Compatibility mode-only controller";
+        case 0x010105: return "PCI native mode-only controller";
+        case 0x01010a: return "ISA Compatibility mode controller";
+        case 0x01010f: return "PCI native mode controller";
+        case 0x010180: return "ISA Compatibility mode-only controller";
+        case 0x010185: return "PCI native mode-only controller";
+        case 0x01018a: return "ISA Compatibility mode controller";
+        case 0x01018f: return "PCI native mode controller";
+
+        case 0x010520: return "Single DMA";
+        case 0x010530: return "Chained DMA";
+
+        case 0x010600: return "Vendor Specific Interface";
+        case 0x010601: return "AHCI 1.0";
+        case 0x010602: return "Serial Storage Bus";
+
+        case 0x010701: return "Serial Storage Bus";
+
+        case 0x010801: return "NVMHCI";
+        case 0x010802: return "NVM Express";
+
+        case 0x030000: return "VGA Controller";
+        case 0x030001: return "8514-Compatible Controller";
+
+        case 0x080010: return "I/O APIC Interrupt Controller";
+        case 0x080020: return "I/O(x) APIC Interrupt Controller";
+
+        case 0x080200: return "Generic 8254-Compatible";
+        case 0x080203: return "HPET";
+
+        case 0x0c0320: return "EHCI Controller";
+        case 0x0c0330: return "xHCI Controller";
+        case 0x0c03fe: return "USB device";
+    }
+    return "Unknow";
 }

@@ -40,10 +40,18 @@ PUBLIC uint64_t pci_dev_read_bar(pci_device_t *dev,uint8_t bar_index);
 PUBLIC uint8_t pci_dev_read_cap_point(pci_device_t *dev);
 
 PUBLIC void pci_scan_all_bus();
-PUBLIC pci_device_t* pci_dev_match(
+
+PUBLIC uint32_t pci_dev_count(
     uint8_t base_class,
     uint8_t sub_class,
     uint8_t prog_if);
+PUBLIC pci_device_t* pci_dev_match(
+    uint8_t base_class,
+    uint8_t sub_class,
+    uint8_t prog_if,
+    uint32_t index);
+
+PUBLIC const char* pci_dev_type_str(pci_device_t *dev);
 
 // pci_msi.c
 PUBLIC void pci_dev_read_msi_info(pci_device_t *dev);

@@ -13,9 +13,9 @@ typedef unsigned long long int addr_t;
 #pragma pack(1)
 typedef struct
 {
-    addr_t    frame_buffer_base;
-    uint32_t  horizontal_resolution;
-    uint32_t  vertical_resolution;
+    addr_t   frame_buffer_base;
+    uint32_t horizontal_resolution;
+    uint32_t vertical_resolution;
 } graph_info_t;
 
 typedef struct
@@ -29,9 +29,9 @@ typedef struct
 
 typedef struct
 {
-    addr_t    base_address;
-    uint64_t  size;
-    uint32_t  flag;
+    addr_t   base_address;
+    uint64_t size;
+    uint32_t flag;
 } file_info_t;
 
 typedef struct

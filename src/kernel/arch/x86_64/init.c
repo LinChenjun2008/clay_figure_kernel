@@ -57,7 +57,7 @@ PRIVATE void load_tss(uint8_t nr_cpu)
     return;
 }
 
-PRIVATE void init_desctrib()
+PRIVATE void init_desc()
 {
     gdt_table[0] = make_segmdesc(0,      0,             0);
     gdt_table[1] = make_segmdesc(0,      0,     AR_CODE64);
@@ -71,38 +71,72 @@ PRIVATE void init_desctrib()
 
 PRIVATE spinlock_t schedule_lock;
 
+extern uint64_t global_ticks;
+
 PUBLIC void init_all()
 {
     init_spinlock(&schedule_lock);
     intr_disable();
+    pr_log("\1 Segment initializing ...");
+    init_desc();
+    pr_log(" OK.\n");
 
-    init_desctrib();
+    pr_log("\1 Interrrupt initializing ...");
     intr_init();
+    pr_log(" OK.\n");
 
+    pr_log("\1 SSE initializing ...");
     if (ERROR(check_sse()))
     {
         pr_log("\3 HW no support SSE.\n");
         while (1) continue;
     }
-    sse_init();
 
+    sse_init();
+    pr_log(" OK.\n");
+
+    pr_log("\1 Memory initializing ...");
     mem_init();
     mem_alloctor_init();
+    pr_log(" OK.\n");
 
+    pr_log("\1 Task initializing ...");
     task_init();
+    pr_log(" OK.\n");
 
-    spinlock_lock(&schedule_lock); // can not schedule.
-
+    spinlock_lock(&schedule_lock);
+    pr_log("\1 SMP initializing ...");
     detect_cores();
     smp_start();
+    pr_log(" OK.\n");
 
+    pr_log("\1 PIC initializing ...");
     pic_init();
-    pit_init();
-    pci_scan_all_bus();
-    syscall_init();
-    service_init();
+    pr_log(" OK.\n");
 
+    pr_log("\1 Timer initializing ...");
+    pit_init();
+    pr_log(" OK.\n");
+
+    pr_log("\1 PCI initializing ...");
+    pci_scan_all_bus();
+    pr_log(" OK.\n");
+
+    pr_log("\1 System Call initializing ...");
+    syscall_init();
+    pr_log(" OK.\n");
+
+    pr_log("\1 Service initializing ...");
+    service_init();
     intr_enable();
+    pr_log(" OK.\n");
+
+    pr_log("\1 Memory: %d MB (%d GB), free: %d MB,using: %d%% .\n",
+        total_memory() >> 20,
+        total_memory() >> 30,
+        total_free_pages() * 2,
+        100 - (total_free_pages() * 100 / total_pages()));
+
     spinlock_unlock(&schedule_lock);
 
     schedule();
