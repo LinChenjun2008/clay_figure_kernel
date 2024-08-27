@@ -29,8 +29,8 @@ typedef struct task_context_s
 
     wordsize_t rbp;
     wordsize_t rbx;
-    wordsize_t rdi;
     wordsize_t rsi;
+    wordsize_t rdi;
 } task_context_t;
 
 typedef struct task_struct_s

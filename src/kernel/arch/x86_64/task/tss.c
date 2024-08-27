@@ -1,9 +1,8 @@
 #include <kernel/global.h>
-#include <kernel/init.h>
-#include <task/task.h>
-#include <std/string.h>
-
-#include <device/cpu.h>
+#include <kernel/init.h> // segmdesc
+#include <task/task.h>   // task_struct
+#include <std/string.h>  // memset,memcpy
+#include <device/cpu.h>  // apic_id
 
 extern segmdesc_t gdt_table[];
 

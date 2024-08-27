@@ -1,6 +1,8 @@
-include win_tools_def.txt
-
-# include linux_tools_def.txt
+ifeq ($(shell uname -s),Linux)
+    include linux_tools_def.txt
+else
+    include win_tools_def.txt
+endif
 
 BOOTLOADER_FLAGS := -Wall -Wextra -I$(BOOTLOADER_INCLUDE_PATH) -I$(SRC_PATH) -I$(BOOTLOADER_SRC_PATH) \
  -e UefiMain -nostdinc -nostdlib \
@@ -27,10 +29,11 @@ QEMU_FLAGS := -m 128M -bios $(OVMF) \
  -device usb-kbd \
  -device usb-mouse \
  -no-shutdown \
- -monitor stdio \
 
 # -device qemu-xhci,id=xhci
 # -d cpu_reset
 
 # -chardev stdio,mux=on,id=com1 \
  -serial chardev:com1 \
+
+# -monitor stdio \

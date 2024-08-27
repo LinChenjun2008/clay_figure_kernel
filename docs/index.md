@@ -26,9 +26,6 @@ git clone https://github.com/linchenjun2008/clay_figure_kernel.git
 
 2. 准备所需的[编译工具](#编译工具)
 
-编辑`tools_def.txt`文件，如果是在linux中编译，请使用`include linux_tools_def.txt`，在windows中请使用`include win_tools_def.txt`。
-请编辑对应的`tools_def.txt`，将其中的工具路径设为正确的值。
-
 编辑`target.txt`，将其中的`ESP_PATH`设为一个正确的路径，用于保存编译结果。
 
 3. 开始编译

@@ -1,13 +1,11 @@
 #include <kernel/global.h>
-#include <task/task.h>
-#include <mem/mem.h>
-#include <intr.h>
-#include <device/cpu.h>
-#include <device/sse.h>
-#include <device/spinlock.h>
-#include <std/string.h>
-#include <service.h>
-#include <kernel/syscall.h>
+#include <task/task.h>      // include sse,spinlock
+#include <mem/mem.h>        // pmalloc,to_physical_address,init_alloc_physical_page
+#include <intr.h>           // intr functions
+#include <device/cpu.h>     // apic_id
+#include <std/string.h>     // memset,strlen,strcpy
+#include <service.h>        // MM_EXIT
+#include <kernel/syscall.h> // sys_send_recv
 
 #include <log.h>
 
@@ -98,6 +96,10 @@ PUBLIC task_struct_t* running_prog()
             res = &tm->task_table[i];
             break;
         }
+    }
+    if (i == MAX_TASK)
+    {
+        PANIC("running program not found.\n");
     }
     intr_set_status(intr_status);
     return res;

@@ -1,9 +1,8 @@
 #include <kernel/global.h>
-#include <lib/bitmap.h>
-#include <std/string.h>
-#include <intr.h>
-#include <mem/mem.h>
-#include <device/spinlock.h>
+#include <lib/bitmap.h>      // bitmap
+#include <mem/mem.h>         // pmalloc
+#include <device/spinlock.h> // spinlock
+#include <std/string.h>      // memset
 
 #include <log.h>
 

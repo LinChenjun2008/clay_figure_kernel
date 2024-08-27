@@ -1,11 +1,6 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
-#include <io.h>
-#include <std/string.h>
-#include <std/stdarg.h>
-#include <std/stdio.h>
-
 PUBLIC void basic_put_char(unsigned char c,uint32_t col);
 PUBLIC void basic_print(uint32_t col,const char *str);
 

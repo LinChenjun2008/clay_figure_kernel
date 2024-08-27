@@ -6,6 +6,7 @@
 #include <kernel/syscall.h>
 #include <device/cpu.h>
 #include <service.h>
+#include <std/stdio.h>
 
 #include <log.h>
 

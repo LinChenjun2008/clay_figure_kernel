@@ -170,7 +170,8 @@ UefiMain
     DISPLAY_INFO(L"Get MADT.\r\n");
     EFI_CONFIGURATION_TABLE *ConfigTable = gST->ConfigurationTable;
     EFI_ACPI_6_4_ROOT_SYSTEM_DESCRIPTION_POINTER *rsdp;
-    for (UINTN i = 0;i < gST->NumberOfTableEntries;i++)
+    UINTN i;
+    for (i = 0;i < gST->NumberOfTableEntries;i++)
     {
         if (CompareGuid(&ConfigTable->VendorGuid,&gEfiAcpiTableGuid))
         {
@@ -189,7 +190,7 @@ UefiMain
     XSDT_TABLE *xsdt = (void*)rsdp->XsdtAddress;
     UINT32 entries = (xsdt->Header.Length - sizeof(xsdt->Header)) / 8;
     uint64_t *point_to_other_sdt = &xsdt->Entry;
-    UINT32 i;
+
     for (i = 0;i < entries;i++)
     {
         EFI_ACPI_DESCRIPTION_HEADER *h = \

@@ -1,8 +1,8 @@
 #include <kernel/global.h>
-#include <sync/semaphore.h>
-#include <task/task.h>
-#include <std/string.h>
-#include <intr.h>
+#include <sync/semaphore.h> // include list,atomic
+#include <task/task.h>      // task function
+#include <std/string.h>     // memset
+#include <intr.h>           // intr functions
 
 #include <log.h>
 

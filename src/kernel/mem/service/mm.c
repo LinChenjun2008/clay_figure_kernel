@@ -1,10 +1,10 @@
 #include <kernel/global.h>
-#include <kernel/syscall.h>
-#include <task/task.h>
-#include <service.h>
-#include <mem/mem.h>
-#include <lib/alloc_table.h>
-#include <intr.h>
+#include <kernel/syscall.h>  // sys_send_recv
+#include <task/task.h>       // task functions,include list,spinlock,alloc_table
+#include <service.h>         // message type
+#include <mem/mem.h>         // memory functions
+#include <intr.h>            // intr functions
+#include <std/string.h>      // memcpy
 
 #include <log.h>
 

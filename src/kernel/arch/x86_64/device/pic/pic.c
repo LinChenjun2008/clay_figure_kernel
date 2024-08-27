@@ -1,7 +1,6 @@
 #include <kernel/global.h>
-#include <device/pic.h>
-#include <io.h>
-#include <device/cpu.h>
+#include <device/pic.h> // apic_t
+#include <io.h>         // io_out8
 
 #include <log.h>
 

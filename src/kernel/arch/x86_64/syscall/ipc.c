@@ -1,8 +1,7 @@
 #include <kernel/global.h>
-#include <task/task.h>
-#include <mem/mem.h>
-#include <std/string.h>
-#include <service.h>
+#include <task/task.h>  // task_struct_t running_task,task block/unblock,list
+#include <service.h>    // is_service_id,service_id_to_pid
+#include <std/string.h> // memcpy
 
 #include <log.h>
 

@@ -1,8 +1,7 @@
 #include <kernel/global.h>
-#include <task/task.h>
-#include <device/cpu.h>
-#include <device/sse.h>
-#include <intr.h>
+#include <task/task.h>  // task structs & functions,list,sse
+#include <device/cpu.h> // apic_id
+#include <intr.h>       // intr functions
 
 #include <log.h>
 

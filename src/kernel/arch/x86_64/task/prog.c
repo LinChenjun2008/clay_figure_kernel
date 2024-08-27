@@ -1,28 +1,18 @@
 #include <kernel/global.h>
-#include <task/task.h>
-#include <mem/mem.h>
-#include <intr.h>
-#include <device/cpu.h>
-#include <std/string.h>
+#include <task/task.h>      // task struct & functions,spinlock
+#include <mem/mem.h>        // alloc_physical_page,page_map,pmalloc,pfree
+#include <intr.h>           // intr_stack_t
+#include <device/cpu.h>     // apic_id
+#include <std/string.h>     // memset,memcpy
+#include <kernel/syscall.h> // sys_send_recv
+#include <service.h>        // MM_EXIT
 
-#include <kernel/syscall.h>
-#include <service.h>
 #include <log.h>
 
 extern taskmgr_t *tm;
 
-PUBLIC void prog_exit()
+PUBLIC void prog_exit(addr_t func,wordsize_t arg)
 {
-    addr_t  func;
-    wordsize_t arg;
-    __asm__ __volatile__ (
-        "movq %%rsi,%[func] \n\t"
-        "movq %%rdi,%[arg] \n\t"
-        "movq $0,%%rsi \n\t"
-        "movq $0,%%rdi \n\t"
-        :[func]"=g"(func),[arg]"=g"(arg)
-        :
-        :"rsi","rdi");
     int ret_value = ((int (*)(void*))func)((void*)arg);
 
     message_t msg;
@@ -39,34 +29,6 @@ PRIVATE void start_process(void *process)
     task_struct_t *cur = running_task();
     addr_t kstack = (addr_t)cur->context;
     kstack += sizeof(task_context_t);
-    intr_stack_t *proc_stack = (intr_stack_t*)kstack;
-    memset(proc_stack,0,sizeof(*proc_stack));
-    proc_stack->r15 = 0;
-    proc_stack->r14 = 0;
-    proc_stack->r13 = 0;
-    proc_stack->r12 = 0;
-    proc_stack->r11 = 0;
-    proc_stack->r10 = 0;
-    proc_stack->r9 = 0;
-    proc_stack->r8 = 0;
-
-    proc_stack->rdi = 0;
-    proc_stack->rsi = (wordsize_t)func;
-    proc_stack->rbp = 0;
-    proc_stack->rdx = 0;
-    proc_stack->rcx = 0;
-    proc_stack->rbx = 0;
-    proc_stack->rax = 0;
-
-    proc_stack->gs  = SELECTOR_DATA64_U;
-    proc_stack->fs  = SELECTOR_DATA64_U;
-    proc_stack->es  = SELECTOR_DATA64_U;
-    proc_stack->ds  = SELECTOR_DATA64_U;
-    proc_stack->rip = prog_exit;
-    proc_stack->cs  = SELECTOR_CODE64_U;
-    proc_stack->rflags = (EFLAGS_IOPL_0 | EFLAGS_MBS | EFLAGS_IF_1);
-
-    cur->context = (task_context_t*)kstack;
 
     addr_t ustack;
     status_t status = alloc_physical_page(1,&ustack);
@@ -83,15 +45,42 @@ PRIVATE void start_process(void *process)
     cur->ustack_base = ustack;
     cur->ustack_size = PG_SIZE;
     page_map(cur->page_dir,(void*)ustack,(void*)USER_STACK_VADDR_BASE);
-    proc_stack->rsp = USER_STACK_VADDR_BASE + PG_SIZE;
 
+    intr_stack_t *proc_stack = (intr_stack_t*)kstack;
+    memset(proc_stack,0,sizeof(*proc_stack));
+    proc_stack->r15 = 0;
+    proc_stack->r14 = 0;
+    proc_stack->r13 = 0;
+    proc_stack->r12 = 0;
+    proc_stack->r11 = 0;
+    proc_stack->r10 = 0;
+    proc_stack->r9 = 0;
+    proc_stack->r8 = 0;
+
+    proc_stack->rdi = (wordsize_t)func;
+    proc_stack->rsi = 0;
+    proc_stack->rbp = 0;
+    proc_stack->rdx = 0;
+    proc_stack->rcx = 0;
+    proc_stack->rbx = 0;
+    proc_stack->rax = 0;
+
+    proc_stack->gs  = SELECTOR_DATA64_U;
+    proc_stack->fs  = SELECTOR_DATA64_U;
+    proc_stack->es  = SELECTOR_DATA64_U;
+    proc_stack->ds  = SELECTOR_DATA64_U;
+    proc_stack->rip = (void*)prog_exit;
+    proc_stack->cs  = SELECTOR_CODE64_U;
+    proc_stack->rflags = (EFLAGS_IOPL_0 | EFLAGS_MBS | EFLAGS_IF_1);
+    proc_stack->rsp = USER_STACK_VADDR_BASE + PG_SIZE;
     proc_stack->ss = SELECTOR_DATA64_U;
+
     __asm__ __volatile__
     (
         "movq %0, %%rsp\n\t"
         "jmp intr_exit"
         :
-        :"g"(proc_stack)
+        :"r"(proc_stack)
         :"memory"
     );
 }

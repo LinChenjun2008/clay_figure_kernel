@@ -1,7 +1,6 @@
 #include <kernel/global.h>
-#include <kernel/syscall.h>
-#include <service.h>
-#include <ulib.h>
+#include <kernel/syscall.h> // send_recv
+#include <service.h>        // message type
 
 #define MAX_TIMERS 512
 

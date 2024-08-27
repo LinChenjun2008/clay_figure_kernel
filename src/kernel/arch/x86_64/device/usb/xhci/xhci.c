@@ -1,14 +1,13 @@
 #include <kernel/global.h>
-#include <device/pci.h>
-#include <device/usb/xhci.h>
-#include <device/usb/usb.h>
-#include <mem/mem.h>
-#include <io.h>
-#include <device/pic.h>
-#include <intr.h>
-#include <kernel/syscall.h>
-#include <lib/list.h>
-#include <service.h>
+#include <device/pci.h>      // pci_device_t,pci functions
+#include <device/usb/xhci.h> // xhci_t,xhci registers
+#include <mem/mem.h>         // pmalloc
+#include <device/pic.h>      // eoi
+#include <intr.h>            // register_handle
+#include <kernel/syscall.h>  // sys_send_recv,inform_intr
+#include <lib/list.h>        // OFFSET
+#include <service.h>         // TICK_SLEEP
+#include <std/string.h>      // strncmp,memset
 
 #include <log.h>
 
@@ -29,13 +28,6 @@ PRIVATE void switch_to_xhci(pci_device_t *xhci_dev)
     pci_dev_config_write(xhci_dev, 0xd8, superspeed_ports); // USB3_PSSEN
     uint32_t ehci2xhci_ports = pci_dev_config_read(xhci_dev, 0xd4); // XUSB2PRM
     pci_dev_config_write(xhci_dev, 0xd0, ehci2xhci_ports); // XUSB2PR
-}
-
-PRIVATE void pr_usbsts(xhci_t *xhci)
-{
-    pr_log("\2 USBCMD: %08x USBSTS: %08x\n",
-            xhci_read_opt(xhci,XHCI_OPT_USBCMD),
-            xhci_read_opt(xhci,XHCI_OPT_USBSTS));
 }
 
 PRIVATE void xhci_halt(xhci_t *xhci)
@@ -200,7 +192,8 @@ PRIVATE void xhci_start(xhci_t *xhci)
 
     addr += sizeof(xhci_erst_t);
     xhci->event_ring.ring = (xhci_trb_t*)addr;
-    addr += XHCI_MAX_EVENTS * sizeof(xhci_trb_t);
+    addr += XHCI_MAX_EVENTS * sizeof(xhci_trb_t) + 63;
+    addr &= ~63ULL; // 64-bit align
     xhci->command_ring.ring = (xhci_trb_t*)addr;
 
     // ERSTSZ
@@ -226,7 +219,8 @@ PRIVATE void xhci_start(xhci_t *xhci)
     xhci_write_run(xhci,XHCI_IRS_ERSTBA_LO(0),(phy_addr_t)buf & 0xffffffff);
     xhci_write_run(xhci,XHCI_IRS_ERSTBA_HI(0),(phy_addr_t)buf >> 32);
 
-    buf += sizeof(xhci_erst_t) + XHCI_MAX_EVENTS * sizeof(xhci_trb_t);
+    buf += sizeof(xhci_erst_t) + XHCI_MAX_EVENTS * sizeof(xhci_trb_t) + 63;
+    buf = (uint8_t*)((phy_addr_t)buf & ~63ULL); // 64-bit align
 
     // Define the Command Ring Dequeue Pointer by programming the Command
     // Ring Control Register with a 64-bit address pointing to the starting
@@ -241,8 +235,10 @@ PRIVATE void xhci_start(xhci_t *xhci)
         while(xhci_read_opt(xhci,XHCI_OPT_CRCR_LO) & CRCR_CRR);
     }
     pr_log("\1 Setting CRCR = %p.\n",buf);
-    xhci_write_opt(xhci,XHCI_OPT_CRCR_LO,((addr_t)buf | CRCR_RCS) & 0xffffffff);
-    xhci_write_opt(xhci,XHCI_OPT_CRCR_HI,(addr_t)buf >> 32);
+    uint32_t crcr_lo = ((phy_addr_t)buf & 0xffffffff) | CRCR_RCS;
+    uint32_t crcr_hi = (phy_addr_t)buf >> 32;
+    xhci_write_opt(xhci,XHCI_OPT_CRCR_LO,crcr_lo);
+    xhci_write_opt(xhci,XHCI_OPT_CRCR_HI,crcr_hi);
 
     xhci->command_ring.ring[XHCI_MAX_COMMANDS - 1].addr = (phy_addr_t)buf;
 
@@ -259,7 +255,6 @@ PRIVATE void xhci_start(xhci_t *xhci)
     iman |= IMAN_INTR_EN;
     xhci_write_run(xhci,XHCI_IRS_IMAN(0),iman);
 
-
     // Enable system bus interrupt generation by writing a '1' to the
     // Interrupter Enable (INTE) flag of the USBCMD register
 
@@ -273,7 +268,27 @@ PRIVATE void xhci_start(xhci_t *xhci)
     pr_log("\1 xHCI is %s now.\n",
            xhci_read_opt(xhci,XHCI_OPT_USBCMD) & USBCMD_RUN ? "Running" : "Stop");
 
-    pr_usbsts(xhci);
+    pr_log("xHCI Cap Regs:\n");
+    pr_log("CAPLENGTH  %08x\n",xhci_read_cap(xhci,XHCI_CAP_CAPLENGTH));
+    pr_log("HCIVERSION %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCIVERSION));
+    pr_log("HCSPARAM1  %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCSPARAM1));
+    pr_log("HCSPARAM2  %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCSPARAM2));
+    pr_log("HCSPARAM3  %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCSPARAM3));
+    pr_log("HCCPARAM1  %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCCPARAM1));
+    pr_log("DBOFF      %08x\n",xhci_read_cap(xhci,XHCI_CAP_DBOFF));
+    pr_log("RSTOFF     %08x\n",xhci_read_cap(xhci,XHCI_CAP_RSTOFF));
+    pr_log("HCCPARAM2  %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCCPARAM2));
+
+    pr_log("xHCI Opt Regs:\n");
+    pr_log("USBCMD:    %08x\n",xhci_read_opt(xhci,XHCI_OPT_USBCMD));
+    pr_log("USBSTS:    %08x\n",xhci_read_opt(xhci,XHCI_OPT_USBSTS));
+    pr_log("PAGESIZE:  %08x\n",xhci_read_opt(xhci,XHCI_OPT_PAGESIZE));
+    pr_log("DNCTRL:    %08x\n",xhci_read_opt(xhci,XHCI_OPT_DNCTRL));
+    pr_log("CRCR LO:   %08x\n",xhci_read_opt(xhci,XHCI_OPT_CRCR_LO));
+    pr_log("CRCR HI:   %08x\n",xhci_read_opt(xhci,XHCI_OPT_CRCR_HI));
+    pr_log("DCBAPP LO: %08x\n",xhci_read_opt(xhci,XHCI_OPT_DCBAPP_LO));
+    pr_log("DCBAPP HI: %08x\n",xhci_read_opt(xhci,XHCI_OPT_DCBAPP_HI));
+    pr_log("CONFIG:    %08x\n",xhci_read_opt(xhci,XHCI_OPT_CONFIG));
     return;
 }
 
@@ -292,6 +307,9 @@ PUBLIC status_t xhci_setup()
         pr_log("\3xhci_dev not found.\n");
         return K_ERROR;
     }
+
+    register_handle(IRQ_XHCI,intr_xHCI_handler);
+
     pr_log("\1 this machine has %d xHCI in total.\n",number_of_xhci);
     addr_t addr;
     status_t status = pmalloc(sizeof(xhci_set[0]) * number_of_xhci,&addr);
@@ -340,10 +358,10 @@ PUBLIC status_t xhci_setup()
 
         xhci->event_ring.cycle_bit   = 1;
         xhci->command_ring.cycle_bit = 1;
-        xhci->event_ring.dequeue_index   = 0;
         xhci->event_ring.enqueue_index   = 0;
-        xhci->command_ring.dequeue_index = 0;
+        xhci->event_ring.dequeue_index   = 0;
         xhci->command_ring.enqueue_index = 0;
+        xhci->command_ring.dequeue_index = 0;
 
         // pci interrupt_line
         // this register corresponds to
@@ -384,8 +402,6 @@ PUBLIC status_t xhci_setup()
 
 PUBLIC status_t xhci_init(xhci_t *xhci)
 {
-    register_handle(IRQ_XHCI,intr_xHCI_handler);
-
     pr_log("\1 xHCI init.\n");
 
     uint16_t hci_ver = GET_FIELD(xhci_read_cap(xhci,XHCI_CAP_HCIVERSION),HCIVERSION);
@@ -418,49 +434,16 @@ PUBLIC status_t xhci_init(xhci_t *xhci)
     return K_SUCCESS;
 }
 
-PUBLIC uint32_t xhci_read_cap(xhci_t *xhci,uint32_t reg)
+PUBLIC bool xhci_ring_busy(xhci_ring_t *ring)
 {
-    return *(volatile uint32_t*)(xhci->mmio_base + reg);
+    return ring->enqueue_index != ring->dequeue_index;
 }
 
-PUBLIC uint32_t xhci_read_opt(xhci_t *xhci,uint32_t reg)
-{
-    return *(volatile uint32_t*)(xhci->opt_regs + reg);
-}
-
-PUBLIC void xhci_write_opt(xhci_t *xhci,uint32_t reg,uint32_t value)
-{
-    *(volatile uint32_t*)(xhci->opt_regs + reg) = value;
-    return;
-}
-
-PUBLIC uint32_t xhci_read_run(xhci_t *xhci,uint32_t reg)
-{
-    return *(volatile uint32_t*)(xhci->run_regs + reg);
-}
-
-PUBLIC void xhci_write_run(xhci_t *xhci,uint32_t reg,uint32_t val)
-{
-    *(volatile uint32_t*)(xhci->run_regs + reg) = val;
-    return;
-}
-
-PUBLIC uint32_t xhci_read_doorbell(xhci_t *xhci,uint32_t reg)
-{
-    return *(volatile uint32_t*)(xhci->doorbell_regs + reg);
-}
-
-PUBLIC void xhci_write_doorbell(xhci_t *xhci,uint32_t reg,uint32_t val)
-{
-    *(volatile uint32_t*)(xhci->doorbell_regs + reg) = val;
-    return;
-}
-
-PRIVATE void trb_queue(xhci_ring_t *ring,xhci_trb_t *trb)
+PRIVATE void xhci_trb_queue(xhci_ring_t *ring,xhci_trb_t *trb)
 {
     uint8_t i,cycle_bit;
     uint32_t temp;
-    i = ring->dequeue_index;
+    i = ring->enqueue_index;
     cycle_bit = ring->cycle_bit;
     ring->ring[i].addr   = trb->addr;
     ring->ring[i].status = trb->status;
@@ -482,26 +465,23 @@ PRIVATE void trb_queue(xhci_ring_t *ring,xhci_trb_t *trb)
         i = 0;
         cycle_bit ^= 1;
     }
-    ring->dequeue_index     = i;
+    ring->enqueue_index     = i;
     ring->cycle_bit = cycle_bit;
     return;
 }
 
 PRIVATE void xhci_doorbell_ring(xhci_t *xhci,uint8_t slot,uint8_t endpoint)
 {
-    xhci_write_doorbell
-    (
+    xhci_write_doorbell(
         xhci,
         XHCI_DOORBELL(slot),
-        XHCI_DOORBELL_TARGET(endpoint) | XHCI_DOORBELL_STREAMID(0)
-    );
+        XHCI_DOORBELL_TARGET(endpoint) | XHCI_DOORBELL_STREAMID(0));
     return;
 }
 
-PUBLIC status_t xhci_do_command(xhci_t *xhci,xhci_trb_t *trb)
+PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb)
 {
-    trb_queue(&xhci->command_ring,trb);
+    xhci_trb_queue(&xhci->command_ring,trb);
     xhci_doorbell_ring(xhci,0,0);
-
     return K_SUCCESS;
 }

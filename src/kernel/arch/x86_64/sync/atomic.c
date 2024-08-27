@@ -1,5 +1,5 @@
 #include <kernel/global.h>
-#include <sync/atomic.h>
+#include <sync/atomic.h> // atomic_t
 
 PUBLIC void atomic_add(atomic_t *atom,uint64_t value)
 {

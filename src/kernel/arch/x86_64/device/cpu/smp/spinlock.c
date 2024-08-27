@@ -1,6 +1,6 @@
 #include <kernel/global.h>
 #include <device/spinlock.h>
-#include <task/task.h>
+#include <task/task.h> // running_task
 
 #include <log.h>
 

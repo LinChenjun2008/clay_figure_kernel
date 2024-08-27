@@ -1,9 +1,9 @@
 #include <kernel/global.h>
-#include <mem/mem.h>
-#include <lib/list.h>
-#include <intr.h>
-#include <std/string.h>
-#include <device/spinlock.h>
+#include <mem/mem.h>         // memory functions
+#include <lib/list.h>        // list functions
+#include <intr.h>            // intr functions
+#include <std/string.h>      // memset
+#include <device/spinlock.h> // spinlock
 
 #include <log.h>
 
