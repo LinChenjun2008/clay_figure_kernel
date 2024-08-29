@@ -59,5 +59,6 @@ PUBLIC uint32_t local_apic_read(uint16_t index);
 PUBLIC void pic_init();
 PUBLIC void local_apic_init();
 PUBLIC void eoi(uint8_t irq);
+PUBLIC void ioapic_enable(uint64_t pin,uint64_t vector);
 
 #endif

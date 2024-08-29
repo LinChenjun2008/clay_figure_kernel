@@ -44,7 +44,7 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr);
  */
 PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr);
 
-PUBLIC void mem_alloctor_init();
+PUBLIC void mem_allocator_init();
 
 /**
  * 在内存池中分配size大小的内存块.

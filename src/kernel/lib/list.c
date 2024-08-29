@@ -1,6 +1,6 @@
 #include <kernel/global.h>
 #include <lib/list.h>
-#include <intr.h>
+#include <intr.h> // intr functions
 
 PUBLIC void list_init(list_t *list)
 {

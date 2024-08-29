@@ -1,5 +1,5 @@
 #include <kernel/global.h>
-#include <intr.h>
+// #include <intr.h>
 #include <lib/fifo.h>
 
 PUBLIC void init_fifo(fifo_t *fifo,void *buf,int type,int size)
@@ -33,7 +33,7 @@ PUBLIC status_t fifo_put(fifo_t *fifo,void* data)
     {
         return K_ERROR;
     }
-    intr_status_t intr_status = intr_disable();
+    // intr_status_t intr_status = intr_disable();
 
     if (fifo->free == 0) /* 没有空余 */
     {
@@ -56,7 +56,7 @@ PUBLIC status_t fifo_put(fifo_t *fifo,void* data)
             break;
     }
     fifo->nw = (fifo->nw + 1) % fifo->size;
-    intr_set_status(intr_status);
+    // intr_set_status(intr_status);
     return K_SUCCESS;
 }
 
@@ -66,7 +66,7 @@ PUBLIC status_t fifo_get(fifo_t *fifo,void* data)
     {
         return K_ERROR;
     }
-    intr_status_t intr_status = intr_disable();
+    // intr_status_t intr_status = intr_disable();
     if (fifo->free == fifo->size)
     {
         return K_ERROR;
@@ -88,7 +88,7 @@ PUBLIC status_t fifo_get(fifo_t *fifo,void* data)
             break;
     }
     fifo->nr = (fifo->nr + 1) % fifo->size;
-    intr_set_status(intr_status);
+    // intr_set_status(intr_status);
     return K_SUCCESS;
 }
 

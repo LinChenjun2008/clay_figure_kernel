@@ -46,13 +46,13 @@ jmpq *%rax; \
 intr_exit:
 
 popq %rax
-movw  %ax,%ds
+movw %ax,%ds
 popq %rax
-movw  %ax,%es
+movw %ax,%es
 popq %rax
-movw  %ax,%fs
+movw %ax,%fs
 popq %rax
-movw  %ax,%gs
+movw %ax,%gs
 
 popq %rax
 popq %rbx

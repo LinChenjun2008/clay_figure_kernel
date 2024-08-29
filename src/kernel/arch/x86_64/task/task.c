@@ -1,30 +1,18 @@
 #include <kernel/global.h>
-#include <task/task.h>
-#include <mem/mem.h>
-#include <intr.h>
-#include <device/cpu.h>
-#include <device/sse.h>
-#include <device/spinlock.h>
-#include <std/string.h>
-#include <service.h>
-#include <kernel/syscall.h>
+#include <task/task.h>      // include sse,spinlock
+#include <mem/mem.h>        // pmalloc,to_physical_address,init_alloc_physical_page
+#include <intr.h>           // intr functions
+#include <device/cpu.h>     // apic_id
+#include <std/string.h>     // memset,strlen,strcpy
+#include <service.h>        // MM_EXIT
+#include <kernel/syscall.h> // sys_send_recv
 
 #include <log.h>
 
 PUBLIC taskmgr_t *tm;
 
-PRIVATE void kernel_task(void)
+PRIVATE void kernel_task(addr_t  func,wordsize_t arg)
 {
-    addr_t  func;
-    wordsize_t arg;
-    __asm__ __volatile__ (
-        "movq %%rsi,%[func] \n\t"
-        "movq %%rdi,%[arg] \n\t"
-        "movq $0,%%rsi \n\t"
-        "movq $0,%%rdi \n\t"
-        :[func]"=g"(func),[arg]"=g"(arg)
-        :
-        :"rsi","rdi");
     intr_enable();
     ((void (*)(void*))func)((void*)arg);
     message_t msg;
@@ -98,6 +86,10 @@ PUBLIC task_struct_t* running_prog()
             res = &tm->task_table[i];
             break;
         }
+    }
+    if (i == MAX_TASK)
+    {
+        PANIC("running program not found.\n");
     }
     intr_set_status(intr_status);
     return res;
@@ -214,8 +206,8 @@ PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg)
     kstack -= sizeof(task_context_t);
     task->context = (task_context_t*)kstack;
     task_context_t *context =task->context;
-    context->rsi = (wordsize_t)func;
-    context->rdi = (wordsize_t)arg;
+    context->rsi = (wordsize_t)arg;
+    context->rdi = (wordsize_t)func;
 }
 
 PUBLIC task_struct_t* task_start(

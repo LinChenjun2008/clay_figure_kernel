@@ -1,8 +1,7 @@
 #include <kernel/global.h>
-#include <task/task.h>
-#include <mem/mem.h>
-#include <std/string.h>
-#include <service.h>
+#include <task/task.h>  // task_struct_t running_task,task block/unblock,list
+#include <service.h>    // is_service_id,service_id_to_pid
+#include <std/string.h> // memcpy
 
 #include <log.h>
 
@@ -55,6 +54,12 @@ PUBLIC void inform_intr(pid_t dest)
     return;
 }
 
+PRIVATE void wait_recevice()
+{
+    task_struct_t *sender = running_task();
+    while (sender->send_to != MAX_TASK) __asm__ __volatile__ ("hlt");
+}
+
 PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
 {
     ASSERT(task_exist(dest));
@@ -77,7 +82,7 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
     }
     memcpy(&sender->msg,msg,sizeof(message_t));
     spinlock_lock(&receiver->send_lock);
-    list_append(&receiver->sender_list,&sender->general_tag);
+    list_append(&receiver->sender_list,&sender->send_tag);
     if (receiver->status == TASK_RECEIVING)
     {
         if (receiver->recv_from == RECV_FROM_ANY
@@ -87,9 +92,14 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
         }
     }
     spinlock_unlock(&receiver->send_lock);
-    task_block(TASK_SENDING);
-    sender->send_to = MAX_TASK;
+    wait_recevice();
     return SYSCALL_SUCCESS;
+}
+
+PRIVATE void inform_receive(pid_t sender_pid)
+{
+    task_struct_t *sender = pid2task(sender_pid);
+    sender->send_to = MAX_TASK;
 }
 
 PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
@@ -123,7 +133,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
         list_node_t *src_node;
         src_node = list_pop(&receiver->sender_list);
         spinlock_unlock(&receiver->send_lock);
-        sender = CONTAINER_OF(task_struct_t,general_tag,src_node);
+        sender = CONTAINER_OF(task_struct_t,send_tag,src_node);
     }
     else
     {
@@ -137,19 +147,17 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
         spinlock_lock(&receiver->send_lock);
 
         while (!list_find(&receiver->sender_list,
-                          &sender->general_tag))
+                          &sender->send_tag))
         {
             spinlock_unlock(&receiver->send_lock);
             task_block(TASK_RECEIVING);
             spinlock_lock(&receiver->send_lock);
         }
-        list_remove(&sender->general_tag);
+        list_remove(&sender->send_tag);
         spinlock_unlock(&receiver->send_lock);
     }
     memcpy(msg,&sender->msg,sizeof(message_t));
-    sender->send_to = MAX_TASK;
-    // ASSERT(sender->status == TASK_SENDING);
-    task_unblock(sender->pid);
     receiver->recv_from = MAX_TASK;
+    inform_receive(sender->pid);
     return SYSCALL_SUCCESS;
 }

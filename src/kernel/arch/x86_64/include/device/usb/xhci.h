@@ -434,8 +434,8 @@ typedef struct xhci_ring_s
     xhci_trb_t *ring;
     xhci_trb_t *event;
     uint8_t     cycle_bit;
-    uint16_t    dequeue_index;
     uint16_t    enqueue_index;
+    uint16_t    dequeue_index;
 } xhci_ring_t;
 
 // Section 7
@@ -490,11 +490,16 @@ typedef struct xhci_s
     xhci_erst_t           *erst;
     xhci_device_cxt_arr_t *dev_cxt_arr;
 
-    pid_t                  event_task;
+    uint8_t                max_address;
 } xhci_t;
 
 PUBLIC status_t xhci_setup();
+PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb);
 PUBLIC status_t xhci_init(xhci_t *xhci);
+PUBLIC bool xhci_ring_busy(xhci_ring_t *ring);
+
+// registers.c
+
 PUBLIC uint32_t xhci_read_cap(xhci_t *xhci,uint32_t reg);
 PUBLIC uint32_t xhci_read_opt(xhci_t *xhci,uint32_t reg);
 PUBLIC void xhci_write_opt(xhci_t *xhci,uint32_t reg,uint32_t value);
@@ -502,7 +507,5 @@ PUBLIC uint32_t xhci_read_run(xhci_t *xhci,uint32_t reg);
 PUBLIC void xhci_write_run(xhci_t *xhci,uint32_t reg,uint32_t val);
 PUBLIC uint32_t xhci_read_doorbell(xhci_t *xhci,uint32_t reg);
 PUBLIC void xhci_write_doorbell(xhci_t *xhci,uint32_t reg,uint32_t val);
-
-PUBLIC status_t xhci_do_command(xhci_t *xhci,xhci_trb_t *trb);
 
 #endif

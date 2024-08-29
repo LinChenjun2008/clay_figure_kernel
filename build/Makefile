@@ -13,6 +13,10 @@ all: $(TARGET_BOOTLOADER) $(TARGET_KERNEL)
 run: all
 	-@"$(QEMU)" $(QEMU_FLAGS)
 
+.PHONY: debug
+debug: all
+	-@"$(QEMU)" -S -s $(QEMU_FLAGS)
+
 .PHONY: clean
 clean:
 	-@"$(RM)" $(KERNEL_C_SRC:c=o) $(KERNEL_ASM_SRC:S=o) $(TMP_KERNEL_TARGET) $(TARGET_BOOTLOADER)

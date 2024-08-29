@@ -1,8 +1,9 @@
 #include <kernel/global.h>
-#include <io.h>
 #include <intr.h>
-#include <task/task.h>
-#include <device/cpu.h>
+#include <task/task.h>      // task_struct_t,running_task
+#include <device/cpu.h>     // cpuid
+#include <service.h>        // MM_EXIT
+#include <kernel/syscall.h> // sys_send_recv
 
 #include <log.h>
 
@@ -45,12 +46,10 @@ PRIVATE void set_gatedesc(gate_desc_t *gd,void *func,int selector,int ar)
 PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
 {
     pr_log("\n");
-    pr_log("\3 INTR : 0x%x ( %s )\n",nr,nr < 20 ? intr_name[nr] : "Other Intr");
+    pr_log("\3 INTR : 0x%x ( %s )\n",nr,nr < 20 ? intr_name[nr] : "Unknow");
     uint64_t cr2,cr3;
-    __asm__ __volatile__
-    (
-        "movq %%cr2,%0\n\t""movq %%cr3,%1\n\t":"=r"(cr2),"=r"(cr3)::
-    );
+    __asm__ __volatile__(
+        "movq %%cr2,%0\n\t""movq %%cr3,%1\n\t":"=r"(cr2),"=r"(cr3)::);
     pr_log("CS:RIP %04x:%016x\n"
            "ERROR CODE: %016x "
         ,stack->cs,stack->rip,
@@ -85,17 +84,25 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
         stack->r8,stack->r9,stack->r10,stack->r11);
     pr_log("R12 - %016x, R13 - %016x, R14 - %016x, R15 - %016x\n",
            stack->r12,stack->r13,stack->r14,stack->r15);
-    if (running_task() != NULL)
-    {
-        task_struct_t *running = running_task();
-        pr_log("running task: %s\n",running->name);
-        pr_log("task context: %p\n",running->context);
-    }
     uint32_t a,b,c,d;
     cpuid(1,0,&a,&b,&c,&d);
     b >>= 24;
-    pr_log("CPUID: %x",b);
-    while (1) continue;
+    pr_log("CPUID: %x\n",b);
+    if (running_task() == NULL)
+    {
+        PANIC("Can not Get Running Task.");
+    }
+    task_struct_t *running = running_task();
+    pr_log("running task: %s\n",running->name);
+    pr_log("task context: %p\n",running->context);
+    if (running->page_dir != NULL)
+    {
+        message_t msg;
+        msg.type = MM_EXIT;
+        msg.m1.i1 = K_ERROR;
+        sys_send_recv(NR_BOTH,MM,&msg);
+    }
+    PANIC("Kernel Error.");
 }
 
 PUBLIC void ASMLINKAGE do_irq(uint8_t nr,intr_stack_t *stack)

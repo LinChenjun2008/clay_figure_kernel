@@ -1,7 +1,6 @@
 #include <kernel/global.h>
-#include <device/sse.h>
-#include <device/cpu.h>
-#include <task/task.h>
+#include <device/sse.h> // fxsave_region_t
+#include <device/cpu.h> // cpuid
 
 PUBLIC status_t check_sse()
 {

@@ -1,6 +1,6 @@
 #include <kernel/global.h>
 #include <lib/bitmap.h>
-#include <std/string.h>
+#include <std/string.h> // memset
 
 PUBLIC void init_bitmap(bitmap_t *btmp)
 {

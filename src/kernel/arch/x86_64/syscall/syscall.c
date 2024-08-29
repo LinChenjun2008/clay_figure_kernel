@@ -1,9 +1,7 @@
 #include <kernel/global.h>
-#include <device/cpu.h>
-#include <task/task.h>
-#include <kernel/syscall.h>
-#include <service.h>
-#include <intr.h>
+#include <device/cpu.h>     // wrmsr,rdmsr
+#include <kernel/syscall.h> // msg_send,msg_recv
+#include <service.h>        // is_service_id,service_id_to_pid
 
 #include <log.h>
 
@@ -17,7 +15,6 @@ PUBLIC syscall_status_t ASMLINKAGE sys_send_recv(
         src_dest = service_id_to_pid(src_dest);
     }
     syscall_status_t res;
-    intr_status_t intr_status = intr_disable();
     switch (nr)
     {
         case NR_SEND:
@@ -38,7 +35,6 @@ PUBLIC syscall_status_t ASMLINKAGE sys_send_recv(
             res = SYSCALL_NO_SYSCALL;
             break;
     }
-    intr_set_status(intr_status);
     if (res != SYSCALL_SUCCESS)
     {
         pr_log("\3 syscall error: %x\n",res);

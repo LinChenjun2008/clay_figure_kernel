@@ -1,8 +1,8 @@
 #include <kernel/global.h>
-#include <io.h>
-#include <device/cpu.h>
-#include <device/pic.h>
-#include <std/string.h>
+#include <io.h>         // io_mfence,io_out8
+#include <device/cpu.h> // wrmsr,rdmsr,cpuid
+#include <device/pic.h> // apic_t,ioapic_t
+#include <std/string.h> // memset
 
 #include <log.h>
 
@@ -197,7 +197,6 @@ PRIVATE void ioapic_init()
     {
         ioapic_rte_write(i,0x10000);
     }
-    ioapic_enable(2,0x20);
     return;
 }
 

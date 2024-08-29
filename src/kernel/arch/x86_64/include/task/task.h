@@ -29,8 +29,8 @@ typedef struct task_context_s
 
     wordsize_t rbp;
     wordsize_t rbx;
-    wordsize_t rdi;
     wordsize_t rsi;
+    wordsize_t rdi;
 } task_context_t;
 
 typedef struct task_struct_s
@@ -64,6 +64,7 @@ typedef struct task_struct_s
     uint8_t                has_intr_msg;
     spinlock_t             send_lock;
     list_t                 sender_list;
+    list_node_t            send_tag;
 
     fxsave_region_t       *fxsave_region;
 } task_struct_t;
@@ -168,7 +169,6 @@ PUBLIC void task_block(task_status_t status);
  * 将pid对应的进程解除阻塞.
  */
 PUBLIC void task_unblock(pid_t pid);
-PUBLIC void task_yield();
 
 /// tss.c
 PUBLIC void init_tss(uint8_t nr_cpu);

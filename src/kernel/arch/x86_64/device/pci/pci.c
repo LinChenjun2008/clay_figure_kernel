@@ -1,7 +1,6 @@
 #include <kernel/global.h>
 #include <device/pci.h>
-#include <io.h>
-#include <device/pic.h>
+#include <io.h> // io_out32,io_in32
 
 PRIVATE pci_device_t pci_devices[256];
 PRIVATE uint8_t number_of_pci_device;

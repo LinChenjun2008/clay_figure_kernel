@@ -1,5 +1,5 @@
 #include <kernel/global.h>
-#include <io.h>
+#include <io.h> // io_out8
 
 PUBLIC void init_8259a()
 {

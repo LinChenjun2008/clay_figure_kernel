@@ -1,11 +1,11 @@
 #include <kernel/global.h>
-#include <io.h>
-#include <intr.h>
-#include <device/pic.h>
-#include <device/cpu.h>
-#include <task/task.h>
-#include <kernel/syscall.h>
-#include <device/timer.h>
+#include <io.h>             // io_out8
+#include <intr.h>           // register_handle
+#include <device/pic.h>     // eoi
+#include <device/cpu.h>     // make_icr,send_IPI
+#include <task/task.h>      // do_schedule
+#include <kernel/syscall.h> // inform_intr
+#include <device/timer.h>   // COUNTER0_VALUE_LO,COUNTER0_VALUE_HI
 
 PUBLIC volatile uint64_t global_ticks;
 
@@ -35,6 +35,7 @@ PUBLIC void pit_init()
 {
     global_ticks = 0;
     register_handle(0x20,irq_timer_handler);
+    ioapic_enable(2,0x20);
 #if defined __TIMER_HPET__
     uint8_t *HPET_addr = (uint8_t *)0xfed00000;
 

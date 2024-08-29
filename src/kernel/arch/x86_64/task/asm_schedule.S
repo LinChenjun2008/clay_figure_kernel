@@ -3,8 +3,8 @@ asm_switch_to:
     /***    next     *** rsp + 8*10 */
     /***     cur     *** rsp + 8* 9 */
     /*** return addr *** rsp + 8* 8 */
-    pushq %rsi
     pushq %rdi
+    pushq %rsi
     pushq %rbx
     pushq %rbp
 
@@ -26,6 +26,6 @@ asm_switch_to:
 
     popq %rbp
     popq %rbx
-    popq %rdi
     popq %rsi
+    popq %rdi
     retq

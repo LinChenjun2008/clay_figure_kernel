@@ -1,11 +1,13 @@
 #include <kernel/global.h>
-#include <device/cpu.h>
-#include <device/pic.h>
-#include <mem/mem.h>
-#include <std/string.h>
-#include <intr.h>
+#include <device/cpu.h> // rdmsr,wrmsr,
+#include <device/pic.h> // local_apic_write,eoi,apic
+#include <mem/mem.h>    // alloc_physical_page
+#include <std/string.h> // memcpy
+#include <intr.h>       // register_handle
+#include <task/task.h>  // init_task_struct,spinlock,list
+#include <std/stdio.h>  // sprintf
+
 #include <log.h>
-#include <task/task.h>
 
 extern apic_t apic;
 extern taskmgr_t *tm;
