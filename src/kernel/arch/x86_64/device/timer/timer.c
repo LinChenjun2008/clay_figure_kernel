@@ -35,6 +35,7 @@ PUBLIC void pit_init()
 {
     global_ticks = 0;
     register_handle(0x20,irq_timer_handler);
+    ioapic_enable(2,0x20);
 #if defined __TIMER_HPET__
     uint8_t *HPET_addr = (uint8_t *)0xfed00000;
 

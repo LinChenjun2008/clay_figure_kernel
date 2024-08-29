@@ -1,6 +1,7 @@
 #include <kernel/global.h>
 #include <device/usb/xhci.h> // xhci_t,xhci registers
 #include <device/usb/usb.h>  // trb_type_str
+#include <std/string.h>      // memset
 
 #include <log.h>
 
@@ -42,14 +43,14 @@ PRIVATE status_t xhci_hub_port_reset(xhci_t *xhci,uint8_t port_id)
     return K_SUCCESS;
 }
 
-// PRIVATE status_t xhci_enable_slot(xhci_t *xhci)
-// {
-//     xhci_trb_t trb;
-//     memset(&trb,0,sizeof(trb));
-//     trb.flags = TRB_3_TYPE(TRB_TYPE_ENABLE_SLOT);
-//     xhci_submit_command(xhci,&trb);
-//     return K_SUCCESS;
-// }
+PRIVATE status_t xhci_enable_slot(xhci_t *xhci)
+{
+    xhci_trb_t trb;
+    memset(&trb,0,sizeof(trb));
+    trb.flags = TRB_3_TYPE(TRB_TYPE_ENABLE_SLOT);
+    xhci_submit_command(xhci,&trb);
+    return K_SUCCESS;
+}
 
 PRIVATE status_t xhci_configure_port(xhci_t *xhci,uint8_t port_id)
 {
@@ -58,7 +59,8 @@ PRIVATE status_t xhci_configure_port(xhci_t *xhci,uint8_t port_id)
     {
         return status;
     }
-    // status = xhci_enable_slot(xhci);
+    // TODO: configure slot
+    status = xhci_enable_slot(xhci);
     return K_SUCCESS;
 }
 

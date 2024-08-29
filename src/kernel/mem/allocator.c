@@ -26,7 +26,7 @@ typedef list_node_t mem_block_t;
 
 PRIVATE mem_group_t mem_groups[NUMBER_OF_MEMORY_BLOCK_TYPES];
 
-PUBLIC void mem_alloctor_init()
+PUBLIC void mem_allocator_init()
 {
     ASSERT(MIN_ALLOCATE_MEMORY_SIZE >= sizeof(mem_block_t));
     size_t block_size = MIN_ALLOCATE_MEMORY_SIZE;
@@ -124,6 +124,7 @@ PUBLIC void pfree(void *addr)
         {
             b = cache2block(c,idx);
             list_remove(b);
+            g->total_free--;
         }
         free_physical_page(KADDR_V2P(c),1);
     }

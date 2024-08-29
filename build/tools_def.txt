@@ -26,14 +26,14 @@ QEMU_FLAGS := -m 128M -bios $(OVMF) \
  -drive file=fat:rw:$(ESP_PATH),index=0,format=vvfat -net none \
  -usb \
  -device nec-usb-xhci,id=xhci \
- -device usb-kbd \
  -device usb-mouse \
  -no-shutdown \
 
 # -device qemu-xhci,id=xhci
+# -device usb-kbd
 # -d cpu_reset
 
-# -chardev stdio,mux=on,id=com1 \
- -serial chardev:com1 \
+# -chardev stdio,mux=on,id=com1
+# -serial chardev:com1
 
-# -monitor stdio \
+# -monitor stdio

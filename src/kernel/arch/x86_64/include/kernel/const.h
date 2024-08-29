@@ -155,12 +155,13 @@
 
 #define SERVICE_ID_BASE 0x80000000UL
 
-#define SERVICES 4
+#define SERVICES 5
 
 #define TICK     SERVICE_ID_BASE
 #define MM       SERVICE_ID_BASE + 1
 #define VIEW     SERVICE_ID_BASE + 2
 #define USB_SRV  SERVICE_ID_BASE + 3
+#define KBD_SRV  SERVICE_ID_BASE + 4
 
 #define SYSCALL_SUCCESS        0x80000000
 #define SYSCALL_ERROR          0xc0000000

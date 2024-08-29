@@ -85,30 +85,15 @@ PUBLIC void task_unblock(pid_t pid)
 {
     task_struct_t *task = pid2task(pid);
     ASSERT(task != NULL);
-    ASSERT(task->status != TASK_READY);
-
     intr_status_t intr_status = intr_disable();
     spinlock_lock(&tm->task_list_lock[task->cpu_id]);
-
+    ASSERT(task->status != TASK_READY);
     task->vrun_time = running_task()->vrun_time;
 
     task_list_insert(&tm->task_list[task->cpu_id],task);
     task->status = TASK_READY;
     ASSERT(list_find(&tm->task_list[task->cpu_id],&task->general_tag));
     spinlock_unlock(&tm->task_list_lock[task->cpu_id]);
-    intr_set_status(intr_status);
-    return;
-}
-
-PUBLIC void task_yield()
-{
-    task_struct_t *cur_task = running_task();
-    intr_status_t intr_status = intr_disable();
-    spinlock_lock(&tm->task_list_lock[cur_task->cpu_id]);
-    task_list_insert(&tm->task_list[cur_task->cpu_id],cur_task);
-    cur_task->status = TASK_READY;
-    spinlock_unlock(&tm->task_list_lock[cur_task->cpu_id]);
-    schedule();
     intr_set_status(intr_status);
     return;
 }

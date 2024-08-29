@@ -22,6 +22,7 @@ PUBLIC void tick_main();
 PUBLIC void mm_main();
 PUBLIC void view_main();
 PUBLIC void usb_main();
+PUBLIC void keyboard_main();
 
 PUBLIC void service_init()
 {
@@ -46,6 +47,12 @@ PUBLIC void service_init()
                                                     SERVICE_PRIORITY,
                                                     4096,
                                                     usb_main,
+                                                    0)->pid;
+    service_pid_table[KBD_SRV - SERVICE_ID_BASE] = task_start(
+                                                    "Keyboard service",
+                                                    SERVICE_PRIORITY,
+                                                    4096,
+                                                    keyboard_main,
                                                     0)->pid;
     return;
 }

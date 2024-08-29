@@ -97,7 +97,7 @@ PUBLIC void init_all()
 
     pr_log("\1 Memory initializing ...");
     mem_init();
-    mem_alloctor_init();
+    mem_allocator_init();
     pr_log(" OK.\n");
 
     pr_log("\1 Task initializing ...");
