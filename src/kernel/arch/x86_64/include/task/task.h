@@ -93,6 +93,7 @@ typedef struct task_struct_s
     pid_t                  recv_from;
     uint8_t                has_intr_msg;
     spinlock_t             send_lock;
+    int32_t                send_status;
     list_t                 sender_list;
     list_node_t            send_tag;
 
@@ -136,6 +137,7 @@ PUBLIC status_t task_alloc(pid_t *pid);
  * 队列按vrun_time由小到大排序.
  */
 PUBLIC void task_list_insert(list_t *list,task_struct_t *task);
+PUBLIC list_node_t* get_next_task(list_t *list);
 
 /**
  * 将pid对应的任务结构体标记为未使用.

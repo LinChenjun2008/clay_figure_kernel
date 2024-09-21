@@ -87,7 +87,7 @@ PUBLIC void schedule()
         task_unblock(tm->idle_task[cpu_id]);
         spinlock_lock(&tm->task_list_lock[cpu_id]);
     }
-    next_task_tag = list_pop(&tm->task_list[cpu_id]);
+    next_task_tag = get_next_task(&tm->task_list[cpu_id]);
     spinlock_unlock(&tm->task_list_lock[cpu_id]);
     ASSERT(next_task_tag != NULL);
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);

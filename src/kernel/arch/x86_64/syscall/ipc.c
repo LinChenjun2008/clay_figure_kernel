@@ -87,7 +87,9 @@ PUBLIC void inform_intr(pid_t dest)
 PRIVATE void wait_recevice()
 {
     task_struct_t *sender = running_task();
-    while (sender->send_to != MAX_TASK) __asm__ __volatile__ ("hlt");
+    sender->send_status++;
+    while (sender->send_status) __asm__ __volatile__ ("hlt");
+
 }
 
 PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
@@ -129,6 +131,7 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
 PRIVATE void inform_receive(pid_t sender_pid)
 {
     task_struct_t *sender = pid2task(sender_pid);
+    sender->send_status--;
     sender->send_to = MAX_TASK;
 }
 

@@ -168,6 +168,24 @@ PUBLIC void task_list_insert(list_t *list,task_struct_t *task)
     return;
 }
 
+PRIVATE bool task_ckeck(list_node_t *node,uint64_t arg)
+{
+    (void)arg;
+    task_struct_t *task = CONTAINER_OF(task_struct_t,general_tag,node);
+    return task->send_status <= 0;
+}
+
+PUBLIC list_node_t* get_next_task(list_t *list)
+{
+    list_node_t *next = list_traversal(list,task_ckeck,0);
+    if (next == NULL)
+    {
+        return list_pop(list);
+    }
+    list_remove(next);
+    return next;
+}
+
 PUBLIC void task_free(pid_t pid)
 {
     if (pid < MAX_TASK)
@@ -216,6 +234,7 @@ PUBLIC status_t init_task_struct(
     task->recv_from      = MAX_TASK;
     task->has_intr_msg   = 0;
     init_spinlock(&task->send_lock);
+    task->send_status    = 0;
     list_init(&task->sender_list);
     addr_t fxsave_region;
     status_t status = pmalloc(sizeof(*task->fxsave_region),&fxsave_region);
