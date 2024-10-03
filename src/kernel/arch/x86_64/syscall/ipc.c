@@ -88,7 +88,7 @@ PRIVATE void wait_recevice()
 {
     task_struct_t *sender = running_task();
     sender->send_status++;
-    while (sender->send_status) __asm__ __volatile__ ("hlt");
+    while (sender->send_status) task_yield();
 
 }
 

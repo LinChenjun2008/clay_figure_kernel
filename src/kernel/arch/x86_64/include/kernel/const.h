@@ -120,8 +120,8 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 
 #define MAX_TASK 4096
 
-#define DEFAULT_PRIORITY 3
-#define SERVICE_PRIORITY 1
+#define DEFAULT_PRIORITY 1
+#define SERVICE_PRIORITY 3
 
 #define IRQ_CNT 0xff
 

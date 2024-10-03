@@ -178,11 +178,10 @@ PRIVATE bool task_ckeck(list_node_t *node,uint64_t arg)
 PUBLIC list_node_t* get_next_task(list_t *list)
 {
     list_node_t *next = list_traversal(list,task_ckeck,0);
-    if (next == NULL)
+    if (next != NULL)
     {
-        return list_pop(list);
+        list_remove(next);
     }
-    list_remove(next);
     return next;
 }
 
@@ -225,6 +224,7 @@ PUBLIC status_t init_task_struct(
     task->spinlock_count = 0;
     task->priority       = priority;
     task->jiffies        = 0;
+    task->ideal_runtime  = priority;
     task->vrun_time      = running_task()->vrun_time;
 
     task->cpu_id         = apic_id();

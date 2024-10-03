@@ -133,6 +133,7 @@ PRIVATE void usb_event_task()
             process_intr(&xhci_set[i]);
             process_event(&xhci_set[i]);
         }
+        task_yield();
     };
 }
 

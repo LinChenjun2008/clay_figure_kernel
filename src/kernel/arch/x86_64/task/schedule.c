@@ -52,13 +52,27 @@ PUBLIC void do_schedule()
 {
     ASSERT(intr_get_status() == INTR_OFF);
     task_struct_t *cur_task = running_task();
-    cur_task->jiffies   += 1;
-    cur_task->vrun_time += cur_task->priority;
-    if (cur_task->jiffies >= cur_task->priority)
+    cur_task->jiffies++;
+    if (cur_task->jiffies >= cur_task->ideal_runtime)
     {
+        cur_task->jiffies       = 0;
+        cur_task->ideal_runtime = cur_task->priority;
+        cur_task->vrun_time++;
         schedule();
     }
     return;
+}
+
+PRIVATE void task_unblock_without_spinlock(pid_t pid)
+{
+    task_struct_t *task = pid2task(pid);
+    ASSERT(task != NULL);
+    ASSERT(task->status != TASK_READY);
+    task->vrun_time = running_task()->vrun_time;
+
+    ASSERT(!list_find(&tm->task_list[task->cpu_id],&task->general_tag));
+    task_list_insert(&tm->task_list[task->cpu_id],task);
+    task->status = TASK_READY;
 }
 
 PUBLIC void schedule()
@@ -72,22 +86,22 @@ PUBLIC void schedule()
     if (cur_task->status == TASK_RUNNING)
     {
         spinlock_lock(&tm->task_list_lock[cpu_id]);
+        ASSERT(!list_find(&tm->task_list[cpu_id],&cur_task->general_tag));
         task_list_insert(&tm->task_list[cpu_id],cur_task);
         spinlock_unlock(&tm->task_list_lock[cpu_id]);
-        cur_task->jiffies = 0;
         cur_task->status  = TASK_READY;
     }
     task_struct_t *next = NULL;
     list_node_t *next_task_tag = NULL;
 
     spinlock_lock(&tm->task_list_lock[cpu_id]);
-    if (list_empty(&tm->task_list[cpu_id]))
-    {
-        spinlock_unlock(&tm->task_list_lock[cpu_id]);
-        task_unblock(tm->idle_task[cpu_id]);
-        spinlock_lock(&tm->task_list_lock[cpu_id]);
-    }
     next_task_tag = get_next_task(&tm->task_list[cpu_id]);
+    if (next_task_tag == NULL)
+    {
+        task_unblock_without_spinlock(tm->idle_task[cpu_id]);
+        next_task_tag = get_next_task(&tm->task_list[cpu_id]);
+        ASSERT(next_task_tag != NULL);
+    }
     spinlock_unlock(&tm->task_list_lock[cpu_id]);
     ASSERT(next_task_tag != NULL);
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
@@ -114,16 +128,20 @@ PUBLIC void task_block(task_status_t status)
 PUBLIC void task_unblock(pid_t pid)
 {
     task_struct_t *task = pid2task(pid);
-    ASSERT(task != NULL);
     intr_status_t intr_status = intr_disable();
     spinlock_lock(&tm->task_list_lock[task->cpu_id]);
-    ASSERT(task->status != TASK_READY);
-    task->vrun_time = running_task()->vrun_time;
+    
+    task_unblock_without_spinlock(pid);
 
-    task_list_insert(&tm->task_list[task->cpu_id],task);
-    task->status = TASK_READY;
-    ASSERT(list_find(&tm->task_list[task->cpu_id],&task->general_tag));
     spinlock_unlock(&tm->task_list_lock[task->cpu_id]);
     intr_set_status(intr_status);
     return;
+}
+
+PUBLIC void task_yield()
+{
+    intr_status_t intr_status = intr_disable();
+    running_task()->vrun_time++;
+    schedule();
+    intr_set_status(intr_status);
 }

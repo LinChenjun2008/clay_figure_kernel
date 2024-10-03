@@ -80,6 +80,7 @@ typedef struct task_struct_s
     uint64_t               spinlock_count;
     uint64_t               priority;
     uint64_t               jiffies;
+    uint64_t               ideal_runtime;
     uint64_t               vrun_time;
 
     list_node_t            general_tag;
@@ -201,6 +202,8 @@ PUBLIC void task_block(task_status_t status);
  * 将pid对应的进程解除阻塞.
  */
 PUBLIC void task_unblock(pid_t pid);
+
+PUBLIC void task_yield();
 
 /// tss.c
 PUBLIC void init_tss(uint8_t nr_cpu);
