@@ -48,7 +48,7 @@ PRIVATE void switch_to(task_context_t **cur,task_context_t **next)
         :"g"(cur),"g"(next));
 }
 
-PUBLIC void do_schedule()
+PUBLIC void schedule()
 {
     ASSERT(intr_get_status() == INTR_OFF);
     task_struct_t *cur_task = running_task();
@@ -58,7 +58,7 @@ PUBLIC void do_schedule()
         cur_task->jiffies       = 0;
         cur_task->ideal_runtime = cur_task->priority;
         cur_task->vrun_time++;
-        schedule();
+        do_schedule();
     }
     return;
 }
@@ -75,7 +75,7 @@ PRIVATE void task_unblock_without_spinlock(pid_t pid)
     task->status = TASK_READY;
 }
 
-PUBLIC void schedule()
+PUBLIC void do_schedule()
 {
     task_struct_t *cur_task = running_task();
     uint32_t cpu_id = apic_id();
@@ -120,7 +120,7 @@ PUBLIC void task_block(task_status_t status)
     task_struct_t *cur_task = running_task();
     ASSERT(cur_task->spinlock_count == 0);
     cur_task->status = status;
-    schedule();
+    do_schedule();
     intr_set_status(intr_status);
     return;
 }
@@ -141,7 +141,6 @@ PUBLIC void task_unblock(pid_t pid)
 PUBLIC void task_yield()
 {
     intr_status_t intr_status = intr_disable();
-    running_task()->vrun_time++;
-    schedule();
+    do_schedule();
     intr_set_status(intr_status);
 }

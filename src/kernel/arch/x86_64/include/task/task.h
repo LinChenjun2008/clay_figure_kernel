@@ -185,13 +185,13 @@ PUBLIC void task_init();
 /**
  * 更新vrun_time,并判断是否需要调度.
  */
-PUBLIC void do_schedule();
+PUBLIC void schedule();
 
 /**
  * 进行任务调度.
  * 如果进程持有自旋锁,则不会触发调度.
  */
-PUBLIC void schedule();
+PUBLIC void do_schedule();
 
 /**
  * 阻塞当前任务,并将任务状态设为status.
