@@ -21,6 +21,14 @@ debug: all
 clean:
 	-@"$(RM)" $(KERNEL_C_SRC:c=o) $(KERNEL_ASM_SRC:S=o) $(TMP_KERNEL_TARGET) $(TARGET_BOOTLOADER)
 
+.PHONY: init
+init:
+	-$(MKDIR) "$(RUNNING_PATH)"
+	-$(MKDIR) "$(ESP_PATH)"
+	-$(MKDIR) "$(ESP_PATH)/EFI/"
+	-$(MKDIR) "$(ESP_PATH)/EFI/Boot/"
+	-$(MKDIR) "$(ESP_PATH)/Kernel/"
+
 $(TARGET_BOOTLOADER): $(BOOTLOADER_SRC)
 	@$(ECHO) compiling $^
 	@"$(MINGW64_GCC)" $(BOOTLOADER_FLAGS) -o $@ $^

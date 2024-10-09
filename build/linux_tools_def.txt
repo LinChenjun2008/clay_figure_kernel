@@ -5,5 +5,6 @@ X86_64-ELF-LD    := ld
 OBJCOPY          := objcopy
 QEMU             := qemu-system-x86_64
 ECHO             := echo
+MKDIR            := mkdir
 RM               := rm
 OVMF             := OVMF.fd
