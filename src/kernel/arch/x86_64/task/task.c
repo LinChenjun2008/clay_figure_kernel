@@ -36,6 +36,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #include <std/string.h>     // memset,strlen,strcpy
 #include <service.h>        // MM_EXIT
 #include <kernel/syscall.h> // sys_send_recv
+#include <sync/atomic.h>    // atomic functions
 
 #include <log.h>
 
@@ -153,6 +154,7 @@ PUBLIC status_t task_alloc(pid_t *pid)
 
 PUBLIC void task_list_insert(list_t *list,task_struct_t *task)
 {
+    ASSERT(!list_find(list,&task->general_tag));
     list_node_t *node = list->head.next;
     task_struct_t *tmp;
     while (node != &list->tail)
@@ -170,9 +172,11 @@ PUBLIC void task_list_insert(list_t *list,task_struct_t *task)
 
 PRIVATE bool task_ckeck(list_node_t *node,uint64_t arg)
 {
-    (void)arg;
     task_struct_t *task = CONTAINER_OF(task_struct_t,general_tag,node);
-    return task->send_status <= 0;
+    ASSERT(atomic_read(&task->send_status) == -1ULL 
+            || atomic_read(&task->send_status) == 0 
+            || atomic_read(&task->send_status) == 1);
+    return (int64_t)atomic_read(&task->send_status) <= (int64_t)arg;
 }
 
 PUBLIC list_node_t* get_next_task(list_t *list)
@@ -187,12 +191,13 @@ PUBLIC list_node_t* get_next_task(list_t *list)
 
 PUBLIC void task_free(pid_t pid)
 {
-    if (pid < MAX_TASK)
+    if (pid >= MAX_TASK)
     {
-        spinlock_lock(&tm->task_table_lock);
-        tm->task_table[pid].status = TASK_NO_TASK;
-        spinlock_unlock(&tm->task_table_lock);
+        PANIC("Invailable pid");
     }
+    spinlock_lock(&tm->task_table_lock);
+    tm->task_table[pid].status = TASK_NO_TASK;
+    spinlock_unlock(&tm->task_table_lock);
     return;
 }
 
@@ -234,7 +239,7 @@ PUBLIC status_t init_task_struct(
     task->recv_from      = MAX_TASK;
     task->has_intr_msg   = 0;
     init_spinlock(&task->send_lock);
-    task->send_status    = 0;
+    atomic_set(&task->send_status,0);
     list_init(&task->sender_list);
     addr_t fxsave_region;
     status_t status = pmalloc(sizeof(*task->fxsave_region),&fxsave_region);

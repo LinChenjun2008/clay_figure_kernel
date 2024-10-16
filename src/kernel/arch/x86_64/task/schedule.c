@@ -141,6 +141,11 @@ PUBLIC void task_unblock(pid_t pid)
 PUBLIC void task_yield()
 {
     intr_status_t intr_status = intr_disable();
+    task_struct_t *task = running_task();
+    spinlock_lock(&tm->task_list_lock[task->cpu_id]);
+    task->status = TASK_READY;
+    task_list_insert(&tm->task_list[task->cpu_id],task);
+    spinlock_unlock(&tm->task_list_lock[task->cpu_id]);
     do_schedule();
     intr_set_status(intr_status);
 }

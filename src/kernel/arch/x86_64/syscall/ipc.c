@@ -87,8 +87,8 @@ PUBLIC void inform_intr(pid_t dest)
 PRIVATE void wait_recevice()
 {
     task_struct_t *sender = running_task();
-    sender->send_status++;
-    while (sender->send_status) task_yield();
+    atomic_inc(&sender->send_status);
+    while (atomic_read(&sender->send_status)) task_yield();
 
 }
 
@@ -131,7 +131,7 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
 PRIVATE void inform_receive(pid_t sender_pid)
 {
     task_struct_t *sender = pid2task(sender_pid);
-    sender->send_status--;
+    atomic_dec(&sender->send_status);
     sender->send_to = MAX_TASK;
 }
 

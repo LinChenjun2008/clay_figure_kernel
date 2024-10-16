@@ -35,6 +35,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #include <lib/alloc_table.h>
 #include <device/spinlock.h>
 #include <device/sse.h>
+#include <sync/atomic.h>
 
 typedef enum task_status_e
 {
@@ -94,7 +95,7 @@ typedef struct task_struct_s
     pid_t                  recv_from;
     uint8_t                has_intr_msg;
     spinlock_t             send_lock;
-    int32_t                send_status;
+    atomic_t               send_status;
     list_t                 sender_list;
     list_node_t            send_tag;
 
