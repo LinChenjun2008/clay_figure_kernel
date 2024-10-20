@@ -73,23 +73,13 @@ PUBLIC void inform_intr(pid_t dest)
     }
     task_struct_t *receiver = pid2task(dest);
     receiver->has_intr_msg++;
-    pid_t recv_from = receiver->recv_from;
-    if (recv_from == RECV_FROM_ANY || recv_from == RECV_FROM_INT)
-    {
-        if (receiver->status == TASK_RECEIVING)
-        {
-            task_unblock(dest);
-        }
-    }
+    receiver->recv_flag = 0;
     return;
 }
 
 PRIVATE void wait_recevice()
 {
-    task_struct_t *sender = running_task();
-    atomic_inc(&sender->send_status);
-    while (atomic_read(&sender->send_status)) task_yield();
-
+    task_block(TASK_SENDING);
 }
 
 PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
@@ -113,17 +103,11 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
         return SYSCALL_DEADLOCK;
     }
     memcpy(&sender->msg,msg,sizeof(message_t));
+
     spinlock_lock(&receiver->send_lock);
     list_append(&receiver->sender_list,&sender->send_tag);
-    if (receiver->status == TASK_RECEIVING)
-    {
-        if (receiver->recv_from == RECV_FROM_ANY
-           || receiver->recv_from == sender->pid)
-        {
-            task_unblock(receiver->pid);
-        }
-    }
     spinlock_unlock(&receiver->send_lock);
+    
     wait_recevice();
     return SYSCALL_SUCCESS;
 }
@@ -131,8 +115,8 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
 PRIVATE void inform_receive(pid_t sender_pid)
 {
     task_struct_t *sender = pid2task(sender_pid);
-    atomic_dec(&sender->send_status);
     sender->send_to = MAX_TASK;
+    task_unblock(sender_pid);
 }
 
 PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
@@ -151,7 +135,11 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
         spinlock_unlock(&receiver->send_lock);
         if (!has_msg_received && !receiver->has_intr_msg)
         {
-            task_block(TASK_RECEIVING);
+            receiver->recv_flag = 1;
+            while (receiver->recv_flag)
+            {
+                task_yield();
+            }
         }
         if (receiver->has_intr_msg)
         {
@@ -183,7 +171,8 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
                           &sender->send_tag))
         {
             spinlock_unlock(&receiver->send_lock);
-            task_block(TASK_RECEIVING);
+            receiver->recv_flag = 1;
+            task_yield();
             spinlock_lock(&receiver->send_lock);
         }
         list_remove(&sender->send_tag);

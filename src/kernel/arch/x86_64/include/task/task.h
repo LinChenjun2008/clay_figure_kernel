@@ -93,9 +93,9 @@ typedef struct task_struct_s
     message_t              msg;
     pid_t                  send_to;
     pid_t                  recv_from;
+    uint8_t                recv_flag;
     uint8_t                has_intr_msg;
     spinlock_t             send_lock;
-    atomic_t               send_status;
     list_t                 sender_list;
     list_node_t            send_tag;
 

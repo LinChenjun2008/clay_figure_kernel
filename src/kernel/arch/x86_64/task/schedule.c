@@ -103,6 +103,10 @@ PUBLIC void do_schedule()
         ASSERT(next_task_tag != NULL);
     }
     spinlock_unlock(&tm->task_list_lock[cpu_id]);
+    if (cur_task->status == TASK_SENDING)
+    {
+        pid2task(cur_task->send_to)->recv_flag = 0;
+    }
     ASSERT(next_task_tag != NULL);
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
     next->status = TASK_RUNNING;

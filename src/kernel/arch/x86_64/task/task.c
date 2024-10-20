@@ -172,11 +172,13 @@ PUBLIC void task_list_insert(list_t *list,task_struct_t *task)
 
 PRIVATE bool task_ckeck(list_node_t *node,uint64_t arg)
 {
+    (void)arg;
     task_struct_t *task = CONTAINER_OF(task_struct_t,general_tag,node);
-    ASSERT(atomic_read(&task->send_status) == -1ULL 
-            || atomic_read(&task->send_status) == 0 
-            || atomic_read(&task->send_status) == 1);
-    return (int64_t)atomic_read(&task->send_status) <= (int64_t)arg;
+    if (task->recv_flag == 1)
+    {
+        return FALSE;
+    }
+    return TRUE;
 }
 
 PUBLIC list_node_t* get_next_task(list_t *list)
@@ -237,9 +239,9 @@ PUBLIC status_t init_task_struct(
 
     task->send_to        = MAX_TASK;
     task->recv_from      = MAX_TASK;
+    task->recv_flag      = 0;
     task->has_intr_msg   = 0;
     init_spinlock(&task->send_lock);
-    atomic_set(&task->send_status,0);
     list_init(&task->sender_list);
     addr_t fxsave_region;
     status_t status = pmalloc(sizeof(*task->fxsave_region),&fxsave_region);
