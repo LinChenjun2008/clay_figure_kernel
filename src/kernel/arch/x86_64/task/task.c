@@ -174,7 +174,7 @@ PRIVATE bool task_ckeck(list_node_t *node,uint64_t arg)
 {
     (void)arg;
     task_struct_t *task = CONTAINER_OF(task_struct_t,general_tag,node);
-    if (task->recv_flag == 1)
+    if (task->recv_flag == 1 || task->send_flag > 0)
     {
         return FALSE;
     }
@@ -238,6 +238,7 @@ PUBLIC status_t init_task_struct(
     task->page_dir       = NULL;
 
     task->send_to        = MAX_TASK;
+    task->send_flag      = 0;
     task->recv_from      = MAX_TASK;
     task->recv_flag      = 0;
     task->has_intr_msg   = 0;

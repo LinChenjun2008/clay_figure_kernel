@@ -79,7 +79,10 @@ PUBLIC void inform_intr(pid_t dest)
 
 PRIVATE void wait_recevice()
 {
-    task_block(TASK_SENDING);
+    task_struct_t *sender = running_task();
+    sender->send_flag++;
+    while(sender->send_flag) task_yield();
+    // task_block(TASK_SENDING);
 }
 
 PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
@@ -106,6 +109,7 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
 
     spinlock_lock(&receiver->send_lock);
     list_append(&receiver->sender_list,&sender->send_tag);
+    receiver->recv_flag = 0;
     spinlock_unlock(&receiver->send_lock);
     
     wait_recevice();
@@ -116,7 +120,8 @@ PRIVATE void inform_receive(pid_t sender_pid)
 {
     task_struct_t *sender = pid2task(sender_pid);
     sender->send_to = MAX_TASK;
-    task_unblock(sender_pid);
+    sender->send_flag--;
+    // task_unblock(sender_pid);
 }
 
 PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)

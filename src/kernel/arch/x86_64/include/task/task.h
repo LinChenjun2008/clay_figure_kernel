@@ -92,6 +92,7 @@ typedef struct task_struct_s
 
     message_t              msg;
     pid_t                  send_to;
+    int8_t                 send_flag;
     pid_t                  recv_from;
     uint8_t                recv_flag;
     uint8_t                has_intr_msg;
