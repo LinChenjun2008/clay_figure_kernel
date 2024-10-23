@@ -81,7 +81,9 @@ PRIVATE void wait_recevice()
 {
     task_struct_t *sender = running_task();
     sender->send_flag++;
-    while(sender->send_flag) task_yield();
+    // while(sender->send_flag > 0) task_yield();
+    task_yield();
+    // sender->send_flag = 0;
     // task_block(TASK_SENDING);
 }
 
@@ -121,7 +123,6 @@ PRIVATE void inform_receive(pid_t sender_pid)
     task_struct_t *sender = pid2task(sender_pid);
     sender->send_to = MAX_TASK;
     sender->send_flag--;
-    // task_unblock(sender_pid);
 }
 
 PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
@@ -141,10 +142,10 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
         if (!has_msg_received && !receiver->has_intr_msg)
         {
             receiver->recv_flag = 1;
-            while (receiver->recv_flag)
-            {
+            // while (receiver->recv_flag != 0)
+            // {
                 task_yield();
-            }
+            // }
         }
         if (receiver->has_intr_msg)
         {
