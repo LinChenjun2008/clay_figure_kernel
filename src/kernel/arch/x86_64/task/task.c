@@ -55,11 +55,12 @@ PRIVATE void kernel_task(addr_t  func,wordsize_t arg)
 
 PUBLIC task_struct_t* pid2task(pid_t pid)
 {
-    if (pid <= MAX_TASK)
+    ASSERT(pid <= MAX_TASK);
+    if (pid > MAX_TASK)
     {
-        return &tm->task_table[pid];
+        return NULL;
     }
-    return NULL;
+    return &tm->task_table[pid];
 }
 
 PUBLIC bool task_exist(pid_t pid)
@@ -174,8 +175,14 @@ PRIVATE bool task_ckeck(list_node_t *node,uint64_t arg)
 {
     (void)arg;
     task_struct_t *task = CONTAINER_OF(task_struct_t,general_tag,node);
-    if (task->recv_flag == 1 || task->send_flag > 0)
+    if (task->recv_flag == 1)
     {
+        return FALSE;
+    }
+    else if (task->send_flag > 0)
+    {
+        task_struct_t *receiver = pid2task(task->send_to);
+        receiver->recv_flag = 0;
         return FALSE;
     }
     return TRUE;
