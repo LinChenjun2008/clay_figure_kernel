@@ -36,6 +36,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #include <std/string.h>     // memset,strlen,strcpy
 #include <service.h>        // MM_EXIT
 #include <kernel/syscall.h> // sys_send_recv
+#include <sync/atomic.h>    // atomic functions
 
 #include <log.h>
 
@@ -54,11 +55,12 @@ PRIVATE void kernel_task(addr_t  func,wordsize_t arg)
 
 PUBLIC task_struct_t* pid2task(pid_t pid)
 {
-    if (pid <= MAX_TASK)
+    ASSERT(pid <= MAX_TASK);
+    if (pid > MAX_TASK)
     {
-        return &tm->task_table[pid];
+        return NULL;
     }
-    return NULL;
+    return &tm->task_table[pid];
 }
 
 PUBLIC bool task_exist(pid_t pid)
@@ -153,6 +155,7 @@ PUBLIC status_t task_alloc(pid_t *pid)
 
 PUBLIC void task_list_insert(list_t *list,task_struct_t *task)
 {
+    ASSERT(!list_find(list,&task->general_tag));
     list_node_t *node = list->head.next;
     task_struct_t *tmp;
     while (node != &list->tail)
@@ -168,14 +171,42 @@ PUBLIC void task_list_insert(list_t *list,task_struct_t *task)
     return;
 }
 
+PRIVATE bool task_ckeck(list_node_t *node,uint64_t arg)
+{
+    (void)arg;
+    task_struct_t *task = CONTAINER_OF(task_struct_t,general_tag,node);
+    if (task->recv_flag == 1)
+    {
+        return FALSE;
+    }
+    else if (task->send_flag > 0)
+    {
+        task_struct_t *receiver = pid2task(task->send_to);
+        receiver->recv_flag = 0;
+        return FALSE;
+    }
+    return TRUE;
+}
+
+PUBLIC list_node_t* get_next_task(list_t *list)
+{
+    list_node_t *next = list_traversal(list,task_ckeck,0);
+    if (next != NULL)
+    {
+        list_remove(next);
+    }
+    return next;
+}
+
 PUBLIC void task_free(pid_t pid)
 {
-    if (pid < MAX_TASK)
+    if (pid >= MAX_TASK)
     {
-        spinlock_lock(&tm->task_table_lock);
-        tm->task_table[pid].status = TASK_NO_TASK;
-        spinlock_unlock(&tm->task_table_lock);
+        PANIC("Invailable pid");
     }
+    spinlock_lock(&tm->task_table_lock);
+    tm->task_table[pid].status = TASK_NO_TASK;
+    spinlock_unlock(&tm->task_table_lock);
     return;
 }
 
@@ -207,13 +238,16 @@ PUBLIC status_t init_task_struct(
     task->spinlock_count = 0;
     task->priority       = priority;
     task->jiffies        = 0;
+    task->ideal_runtime  = priority;
     task->vrun_time      = running_task()->vrun_time;
 
     task->cpu_id         = apic_id();
     task->page_dir       = NULL;
 
     task->send_to        = MAX_TASK;
+    task->send_flag      = 0;
     task->recv_from      = MAX_TASK;
+    task->recv_flag      = 0;
     task->has_intr_msg   = 0;
     init_spinlock(&task->send_lock);
     list_init(&task->sender_list);

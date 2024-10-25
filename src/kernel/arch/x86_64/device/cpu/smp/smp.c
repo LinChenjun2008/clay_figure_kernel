@@ -68,7 +68,7 @@ PUBLIC uint64_t make_icr(
 PRIVATE void ipi_timer_handler()
 {
     eoi(0x80);
-    do_schedule();
+    schedule();
     return;
 }
 

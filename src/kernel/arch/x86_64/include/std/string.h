@@ -11,11 +11,12 @@ static __inline__ void memset(void *dst,uint8_t value,size_t size)
 
 static __inline__ void memcpy(void *dst,const void *src,size_t size)
 {
-    uint8_t *__dst = dst;
-    uint8_t *__src = (uint8_t*)src;
-    int i = size;
-    while(i--) {*__dst++ = *__src++;}
-    return;
+    __asm__ __volatile__
+    (
+        "cld \n\t"
+        "rep movsb \n\t"
+        ::"rdi"(dst),"rsi"(src),"rcx"(size):"cc"
+    );
 }
 
 static __inline__ int32_t memcmp(const void *p1__,const void *p2__,size_t size)

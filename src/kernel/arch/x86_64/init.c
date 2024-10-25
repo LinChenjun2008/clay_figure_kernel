@@ -169,7 +169,7 @@ PUBLIC void init_all()
 
     spinlock_unlock(&schedule_lock);
 
-    schedule();
+    do_schedule();
 
     message_t msg;
     msg.m3.p1 = (void*)g_boot_info->graph_info.frame_buffer_base;

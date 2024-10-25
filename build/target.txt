@@ -1,4 +1,5 @@
-ESP_PATH          := ../../run/esp/
+RUNNING_PATH      := ../../run/
+ESP_PATH          := $(RUNNING_PATH)/esp/
 
 TARGET_ARCH       := x86_64
 

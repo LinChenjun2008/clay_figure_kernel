@@ -31,6 +31,17 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #include <kernel/global.h>
 #include <sync/atomic.h> // atomic_t
 
+PUBLIC void atomic_set(atomic_t *atom,uint64_t value)
+{
+    atom->value = value;
+    return;
+}
+
+PUBLIC uint64_t atomic_read(atomic_t *atom)
+{
+    return atom->value;
+}
+
 PUBLIC void atomic_add(atomic_t *atom,uint64_t value)
 {
     __asm__ __volatile__ ("lock addq %1,%0"
@@ -62,5 +73,14 @@ PUBLIC void atomic_dec(atomic_t *atom)
     __asm__ __volatile__ ("lock decq %0"
                           :"=m"(atom->value)
                           ::"memory");
+    return;
+}
+
+PUBLIC void atomic_mask(atomic_t *atom,uint64_t mask)
+{
+    __asm__ __volatile__ ("lock andq %1,%0"
+                          :"=m"(atom->value)
+                          :"r"(mask)
+                          :"memory");
     return;
 }

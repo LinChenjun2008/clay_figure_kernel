@@ -6,5 +6,6 @@ X86_64-ELF-LD    := $(TOOL_PATH)/x86_64-elf-tools/x86_64-elf/bin/ld.exe
 OBJCOPY          := $(TOOL_PATH)/objcopy
 QEMU             := $(TOOL_PATH)/qemu/qemu-system-x86_64.exe
 ECHO             := echo
+MKDIR            := mkdir
 RM               := $(TOOL_PATH)/rm
 OVMF             := $(ESP_PATH)/../bios.bin

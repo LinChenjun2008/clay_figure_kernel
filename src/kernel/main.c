@@ -42,9 +42,9 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 
 #include <ulib.h>
 
-boot_info_t *g_boot_info = (boot_info_t*)0xffff800000310000;
+PUBLIC boot_info_t *g_boot_info = (boot_info_t*)0xffff800000310000;
 
-void ktask()
+PRIVATE void ktask()
 {
     uint32_t color = 0x00000000;
     uint32_t xsize = 10;
@@ -65,7 +65,7 @@ void ktask()
     };
 }
 
-void kernel_main()
+PUBLIC void kernel_main()
 {
     init_all();
     prog_execute("k task",DEFAULT_PRIORITY,4096,ktask);
@@ -76,7 +76,7 @@ void kernel_main()
     };
 }
 
-void ap_kernel_main()
+PUBLIC void ap_kernel_main()
 {
     ap_init_all();
     char name[31];

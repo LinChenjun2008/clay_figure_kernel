@@ -35,6 +35,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #include <lib/alloc_table.h>
 #include <device/spinlock.h>
 #include <device/sse.h>
+#include <sync/atomic.h>
 
 typedef enum task_status_e
 {
@@ -80,6 +81,7 @@ typedef struct task_struct_s
     uint64_t               spinlock_count;
     uint64_t               priority;
     uint64_t               jiffies;
+    uint64_t               ideal_runtime;
     uint64_t               vrun_time;
 
     list_node_t            general_tag;
@@ -90,7 +92,9 @@ typedef struct task_struct_s
 
     message_t              msg;
     pid_t                  send_to;
+    int8_t                 send_flag;
     pid_t                  recv_from;
+    uint8_t                recv_flag;
     uint8_t                has_intr_msg;
     spinlock_t             send_lock;
     list_t                 sender_list;
@@ -136,6 +140,7 @@ PUBLIC status_t task_alloc(pid_t *pid);
  * 队列按vrun_time由小到大排序.
  */
 PUBLIC void task_list_insert(list_t *list,task_struct_t *task);
+PUBLIC list_node_t* get_next_task(list_t *list);
 
 /**
  * 将pid对应的任务结构体标记为未使用.
@@ -182,13 +187,13 @@ PUBLIC void task_init();
 /**
  * 更新vrun_time,并判断是否需要调度.
  */
-PUBLIC void do_schedule();
+PUBLIC void schedule();
 
 /**
  * 进行任务调度.
  * 如果进程持有自旋锁,则不会触发调度.
  */
-PUBLIC void schedule();
+PUBLIC void do_schedule();
 
 /**
  * 阻塞当前任务,并将任务状态设为status.
@@ -199,6 +204,8 @@ PUBLIC void task_block(task_status_t status);
  * 将pid对应的进程解除阻塞.
  */
 PUBLIC void task_unblock(pid_t pid);
+
+PUBLIC void task_yield();
 
 /// tss.c
 PUBLIC void init_tss(uint8_t nr_cpu);

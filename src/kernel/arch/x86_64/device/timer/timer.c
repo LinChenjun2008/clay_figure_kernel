@@ -57,7 +57,7 @@ PRIVATE void irq_timer_handler()
         0);
     send_IPI(icr);
 
-    do_schedule();
+    schedule();
     return;
 }
 
