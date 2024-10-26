@@ -34,10 +34,8 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 
 #include <log.h>
 
-PUBLIC bool support_apic();
 PUBLIC void init_8259a();
 PUBLIC void apic_init();
-PUBLIC void local_apic_write(uint16_t index,uint32_t value);
 
 extern apic_t apic;
 

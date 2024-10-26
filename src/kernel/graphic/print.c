@@ -105,7 +105,7 @@ PUBLIC void pr_log(const char *log,...)
 {
     char msg[256];
     char *buf;
-    char *level[] =
+    const char *level[] =
     {
         "[ INFO  ]",
         "[ DEBUG ]",
@@ -114,7 +114,7 @@ PUBLIC void pr_log(const char *log,...)
     };
     if (*log >= 1 && *log <= 3)
     {
-        buf = level[*log - 1];
+        buf = (char*)level[*log - 1];
         if (*log - 1 == 0)
         {
             basic_print(0x0000c500,buf);
@@ -244,7 +244,7 @@ PUBLIC void basic_print(uint32_t col,const char *str)
 }
 
 PUBLIC void panic_spin(
-    char* filename,
+    const char* filename,
     int line,
     const char* func,
     const char* condition)

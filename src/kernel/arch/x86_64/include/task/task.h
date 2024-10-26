@@ -152,7 +152,7 @@ PUBLIC void task_free(pid_t pid);
  */
 PUBLIC status_t init_task_struct(
     task_struct_t* task,
-    char* name,
+    const char* name,
     uint64_t priority,
     addr_t kstack_base,
     size_t kstack_size);
@@ -174,7 +174,7 @@ PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg);
  *  返回对应的任务结构体,失败则返回NULL.
  */
 PUBLIC task_struct_t* task_start(
-    char* name,
+    const char* name,
     uint64_t priority,
     size_t kstack_size,
     void* func,
@@ -226,7 +226,7 @@ PUBLIC void prog_activate(task_struct_t *task);
  *  返回对应的任务结构体,失败则返回NULL.
  */
 PUBLIC task_struct_t *prog_execute(
-    char *name,
+    const char *name,
     uint64_t priority,
     size_t kstack_size,
     void *prog);

@@ -212,7 +212,7 @@ PUBLIC void task_free(pid_t pid)
 
 PUBLIC status_t init_task_struct(
     task_struct_t* task,
-    char* name,
+    const char* name,
     uint64_t priority,
     addr_t kstack_base,
     size_t kstack_size)
@@ -229,11 +229,9 @@ PUBLIC status_t init_task_struct(
     task->pid         = ((addr_t)task - (addr_t)tm->task_table) / sizeof(*task);
     task->ppid        = running_task()->pid;
 
-    if (strlen(name) > 31)
-    {
-        name[31] = 0;
-    }
-    strcpy(task->name,name);
+    strncpy(task->name,name,31);
+    task->name[31] = '\0';
+
     task->status         = TASK_READY;
     task->spinlock_count = 0;
     task->priority       = priority;
@@ -275,7 +273,7 @@ PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg)
 }
 
 PUBLIC task_struct_t* task_start(
-    char* name,
+    const char* name,
     uint64_t priority,
     size_t kstack_size,
     void* func,

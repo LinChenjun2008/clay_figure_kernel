@@ -34,6 +34,13 @@ static __inline__ char* strcpy(char *dst__,const char *src__)
     return r;
 }
 
+static __inline__ char* strncpy(char *dst__,const char *src__,size_t n)
+{
+    char *r = dst__;
+    while (n-- && (*dst__++ = *src__++));
+    return r;
+}
+
 static __inline__ size_t strlen(const char *str)
 {
     int len = 0;

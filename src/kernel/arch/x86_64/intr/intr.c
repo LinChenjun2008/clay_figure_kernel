@@ -39,7 +39,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 
 void (*irq_handler[IRQ_CNT])(intr_stack_t*);
 
-PRIVATE char *intr_name[20] =
+PRIVATE const char *intr_name[20] =
 {
     "#DE","#DB","NMI","#BP","#OF",
     "#BR","#UD","#NM","#DF","CSO",

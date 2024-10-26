@@ -171,7 +171,7 @@ PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
 }
 
 PUBLIC task_struct_t *prog_execute(
-    char *name,
+    const char *name,
     uint64_t priority,
     size_t kstack_size,
     void *prog)
