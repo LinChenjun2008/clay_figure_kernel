@@ -37,6 +37,25 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 
 extern taskmgr_t *tm;
 
+PUBLIC void update_vruntime(task_struct_t *task)
+{
+    uint64_t ideal_vruntime = tm->core[task->cpu_id].min_vruntime - 1;
+    if ((int64_t)(task->vrun_time - ideal_vruntime) < 0)
+    {
+        task->vrun_time = ideal_vruntime;
+    }
+    return;
+}
+
+PRIVATE void update_min_vruntime(core_taskmgr_t *taskmgr,uint64_t vruntime)
+{
+    if (vruntime > taskmgr->min_vruntime)
+    {
+        taskmgr->min_vruntime = vruntime;
+    }
+    return;
+}
+
 PUBLIC void schedule()
 {
     ASSERT(intr_get_status() == INTR_OFF);
@@ -57,7 +76,8 @@ PRIVATE void task_unblock_without_spinlock(pid_t pid)
     task_struct_t *task = pid2task(pid);
     ASSERT(task != NULL);
     ASSERT(task->status != TASK_READY);
-    task->vrun_time = running_task()->vrun_time;
+
+    update_vruntime(task);
 
     ASSERT(!list_find(&tm->core[task->cpu_id].task_list,&task->general_tag));
     task_list_insert(&tm->core[task->cpu_id].task_list,task);
@@ -86,20 +106,25 @@ PUBLIC void do_schedule()
 
     spinlock_lock(&tm->core[cpu_id].task_list_lock);
     next_task_tag = get_next_task(&tm->core[cpu_id].task_list);
-    if (next_task_tag == NULL)
+    next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
+    if (next_task_tag != NULL)
+    {
+        update_min_vruntime(&tm->core[cpu_id],next->vrun_time);
+    }
+    else
     {
         task_unblock_without_spinlock(tm->core[cpu_id].idle_task);
         next_task_tag = get_next_task(&tm->core[cpu_id].task_list);
+        next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
         ASSERT(next_task_tag != NULL);
     }
     spinlock_unlock(&tm->core[cpu_id].task_list_lock);
-    ASSERT(next_task_tag != NULL);
-    next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
     next->status = TASK_RUNNING;
     prog_activate(next);
     asm_fxsave(cur_task->fxsave_region);
     asm_fxrstor(next->fxsave_region);
     next->cpu_id = cpu_id;
+    update_min_vruntime(&tm->core[cpu_id],next->vrun_time);
     asm_switch_to(&cur_task->context,&next->context);
     return;
 }
@@ -121,6 +146,7 @@ PUBLIC void task_unblock(pid_t pid)
     intr_status_t intr_status = intr_disable();
     spinlock_lock(&tm->core[task->cpu_id].task_list_lock);
 
+    task->status = TASK_READY;
     task_unblock_without_spinlock(pid);
 
     spinlock_unlock(&tm->core[task->cpu_id].task_list_lock);

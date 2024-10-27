@@ -73,18 +73,25 @@ PUBLIC void inform_intr(pid_t dest)
     }
     task_struct_t *receiver = pid2task(dest);
     receiver->has_intr_msg++;
+    update_vruntime(receiver);
     receiver->recv_flag = 0;
     return;
 }
 
 PRIVATE void wait_recevice()
 {
+
     task_struct_t *sender = running_task();
+    task_struct_t *receiver = pid2task(sender->send_to);
+
+    spinlock_lock(&receiver->send_lock);
+    list_append(&receiver->sender_list,&sender->send_tag);
+    update_vruntime(receiver);
+    receiver->recv_flag = 0;
+    spinlock_unlock(&receiver->send_lock);
+
     sender->send_flag++;
-    // while(sender->send_flag > 0) task_yield();
     task_yield();
-    // sender->send_flag = 0;
-    // task_block(TASK_SENDING);
 }
 
 PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
@@ -108,12 +115,6 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
         return SYSCALL_DEADLOCK;
     }
     memcpy(&sender->msg,msg,sizeof(message_t));
-
-    spinlock_lock(&receiver->send_lock);
-    list_append(&receiver->sender_list,&sender->send_tag);
-    receiver->recv_flag = 0;
-    spinlock_unlock(&receiver->send_lock);
-    
     wait_recevice();
     return SYSCALL_SUCCESS;
 }
@@ -122,6 +123,7 @@ PRIVATE void inform_receive(pid_t sender_pid)
 {
     task_struct_t *sender = pid2task(sender_pid);
     sender->send_to = MAX_TASK;
+    update_vruntime(sender);
     sender->send_flag--;
 }
 
@@ -142,10 +144,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
         if (!has_msg_received && !receiver->has_intr_msg)
         {
             receiver->recv_flag = 1;
-            // while (receiver->recv_flag != 0)
-            // {
-                task_yield();
-            // }
+            task_yield();
         }
         if (receiver->has_intr_msg)
         {
