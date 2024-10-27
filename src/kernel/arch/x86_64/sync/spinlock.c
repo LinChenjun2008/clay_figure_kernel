@@ -28,80 +28,29 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 你应该随程序获得一份 GNU 通用公共许可证的复本。如果没有，请看
 <https://www.gnu.org/licenses/>。  */
 
-#include <kernel/const.h>
+#include <kernel/global.h>
+#include <device/spinlock.h>
+#include <task/task.h> // running_task
 
-#define INTR_HANDLER(ENTRY,NR,ERROR_CODE) \
-.global ENTRY; \
-ENTRY:; \
-ERROR_CODE; \
-\
-pushq %r15; \
-pushq %r14; \
-pushq %r13; \
-pushq %r12; \
-pushq %r11; \
-pushq %r10; \
-pushq %r9; \
-pushq %r8; \
-\
-pushq %rdi; \
-pushq %rsi; \
-pushq %rbp; \
-pushq %rdx; \
-pushq %rcx; \
-pushq %rbx; \
-pushq %rax; \
-\
-movq  $0, %rax; \
-movw  %gs, %ax; \
-pushq %rax; \
-movw  %fs, %ax; \
-pushq %rax; \
-movw  %es, %ax; \
-pushq %rax; \
-movw  %ds, %ax; \
-pushq %rax; \
-\
-movq $NR, %rdi; \
-movq %rsp, %rsi; \
-\
-leaq do_irq(%rip), %rax; \
-callq *%rax; \
-leaq intr_exit(%rip), %rax; \
-jmpq *%rax; \
+#include <log.h>
 
-.text
+PUBLIC void init_spinlock(spinlock_t *spinlock)
+{
+    spinlock->lock = 1;
+    return;
+}
 
-#include <intr.h>
+extern void asm_spinlock_lock(volatile uint64_t *lock);
+PUBLIC void spinlock_lock(spinlock_t *spinlock)
+{
+    running_task()->spinlock_count++;
+    asm_spinlock_lock(&spinlock->lock);
+    return;
+}
 
-.global intr_exit
-intr_exit:
-
-popq %rax
-movw %ax, %ds
-popq %rax
-movw %ax, %es
-popq %rax
-movw %ax, %fs
-popq %rax
-movw %ax, %gs
-
-popq %rax
-popq %rbx
-popq %rcx
-popq %rdx
-popq %rbp
-popq %rsi
-popq %rdi
-
-popq %r8
-popq %r9
-popq %r10
-popq %r11
-popq %r12
-popq %r13
-popq %r14
-popq %r15
-
-addq $8, %rsp
-iretq
+PUBLIC void spinlock_unlock(spinlock_t *spinlock)
+{
+    spinlock->lock = 1;
+    running_task()->spinlock_count--;
+    return;
+}

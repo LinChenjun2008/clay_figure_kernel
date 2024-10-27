@@ -38,68 +38,68 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 .global AP_BOOT_BASE
 AP_BOOT_BASE:
     cli
-    mov %cs,%ax
-    mov %ax,%ds
-    mov %ax,%es
-    mov %ax,%ss
-    mov %ax,%fs
-    mov %ax,%gs
+    mov %cs, %ax
+    mov %ax, %ds
+    mov %ax, %es
+    mov %ax, %ss
+    mov %ax, %fs
+    mov %ax, %gs
 
-    mov $0x7c00,%sp
+    mov $0x7c00, %sp
 
-    mov %cs,%ax
-    mov $0,%ebp
-    mov %ax,%bp
-    shll $4,%ebp
+    mov %cs, %ax
+    mov $0, %ebp
+    mov %ax, %bp
+    shll $4, %ebp
 
-    leal (AP_CODE32_BASE - AP_BOOT_BASE)(%ebp),%eax
+    leal (AP_CODE32_BASE - AP_BOOT_BASE)(%ebp), %eax
     movl %eax,CODE32_VECTOR - AP_BOOT_BASE
 
-    leal (AP_CODE64_BASE - AP_BOOT_BASE)(%ebp),%eax
+    leal (AP_CODE64_BASE - AP_BOOT_BASE)(%ebp), %eax
     movl %eax,CODE64_VECTOR - AP_BOOT_BASE
 
-    leal (GDT - AP_BOOT_BASE)(%ebp),%eax
+    leal (GDT - AP_BOOT_BASE)(%ebp), %eax
     movl %eax,(GDT_PTR - AP_BOOT_BASE + 2)
 
     lgdtl GDT_PTR - AP_BOOT_BASE
 
-    movl %cr0,%eax
-    bts $0,%eax
-    movl %eax,%cr0
+    movl %cr0, %eax
+    bts $0, %eax
+    movl %eax, %cr0
 
     ljmpl *(CODE32_VECTOR - AP_BOOT_BASE)
 
 .balign 4
 .code32
 AP_CODE32_BASE:
-    mov $0x10,%ax
-    mov %ax,%ds
-    mov %ax,%es
-    mov %ax,%ss
-    mov %ax,%fs
-    mov %ax,%gs
+    mov $0x10, %ax
+    mov %ax, %ds
+    mov %ax, %es
+    mov %ax, %ss
+    mov %ax, %fs
+    mov %ax, %gs
 
-    mov $0x7c00,%esp
+    mov $0x7c00, %esp
 
     // PAE
-    movl %cr4,%eax
-    bts $5,%eax
-    movl %eax,%cr4
+    movl %cr4, %eax
+    bts $5, %eax
+    movl %eax, %cr4
 
     // page table
-    movl $KERNEL_PAGE_DIR_TABLE_POS,%eax
-    movl %eax,%cr3
+    movl $KERNEL_PAGE_DIR_TABLE_POS, %eax
+    movl %eax, %cr3
 
     // enable long mode
-    movl $0xc0000080,%ecx
+    movl $0xc0000080, %ecx
     rdmsr
-    bts $8,%eax
+    bts $8, %eax
     wrmsr
 
-    movl %cr0,%eax
-    bts $0,%eax
-    bts $31,%eax
-    mov %eax,%cr0
+    movl %cr0, %eax
+    bts $0, %eax
+    bts $31, %eax
+    mov %eax, %cr0
 
     ljmp *(CODE64_VECTOR - AP_BOOT_BASE)(%ebp)
 
@@ -107,25 +107,25 @@ AP_CODE32_BASE:
 .balign 4
 .code64
 AP_CODE64_BASE:
-    movq $0x20,%rax
-    movq %rax,%ds
-    movq %rax,%es
-    movq %rax,%fs
-    movq %rax,%gs
-    movq %rax,%ss
+    movq $0x20, %rax
+    movq %rax, %ds
+    movq %rax, %es
+    movq %rax, %fs
+    movq %rax, %gs
+    movq %rax, %ss
 
-    movq $1,%rax
-    movq $0,%rbx
+    movq $1, %rax
+    movq $0, %rbx
     cpuid
-    shrq $24,%rbx
-    shlq $16,%rbx
-    movq $AP_STACK_BASE_PTR,%rax
-    addq (%rax),%rbx
-    movq $0xffff800000000000,%rax
-    addq %rax,%rbx
-    movq %rbx,%rsp
+    shrq $24, %rbx
+    shlq $16, %rbx
+    movq $AP_STACK_BASE_PTR, %rax
+    addq (%rax), %rbx
+    movq $0xffff800000000000, %rax
+    addq %rax, %rbx
+    movq %rbx, %rsp
 
-    movq $0xffff800000100000,%rax
+    movq $0xffff800000100000, %rax
     jmpq *%rax
 
 

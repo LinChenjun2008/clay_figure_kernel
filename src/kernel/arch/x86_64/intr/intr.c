@@ -30,6 +30,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 
 #include <kernel/global.h>
 #include <intr.h>
+#include <io.h>             // get_flags
 #include <task/task.h>      // task_struct_t,running_task
 #include <device/cpu.h>     // cpuid
 #include <service.h>        // MM_EXIT
@@ -78,8 +79,8 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     pr_log("\n");
     pr_log("\3 INTR : 0x%x ( %s )\n",nr,nr < 20 ? intr_name[nr] : "Unknow");
     uint64_t cr2,cr3;
-    __asm__ __volatile__(
-        "movq %%cr2,%0\n\t""movq %%cr3,%1\n\t":"=r"(cr2),"=r"(cr3)::);
+    cr2 = get_cr2();
+    cr3 = get_cr3();
     pr_log("CS:RIP %04x:%016x\n"
            "ERROR CODE: %016x "
         ,stack->cs,stack->rip,
@@ -115,7 +116,7 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     pr_log("R12 - %016x, R13 - %016x, R14 - %016x, R15 - %016x\n",
            stack->r12,stack->r13,stack->r14,stack->r15);
     uint32_t a,b,c,d;
-    cpuid(1,0,&a,&b,&c,&d);
+    asm_cpuid(1,0,&a,&b,&c,&d);
     b >>= 24;
     pr_log("CPUID: %x\n",b);
     if (running_task() == NULL)
@@ -164,6 +165,7 @@ PRIVATE void idt_desc_init(void)
     #undef INTR_HANDLER
 }
 
+extern void asm_lidt(void *idt_ptr);
 PUBLIC void intr_init()
 {
     idt_desc_init();
@@ -174,7 +176,7 @@ PUBLIC void intr_init()
     }
     uint128_t idt_ptr = (((uint128_t)0 + ((uint128_t)((uint64_t)idt))) << 16) \
                         | (sizeof(idt) - 1);
-    __asm__ __volatile__ ("lidt %[idt_ptr]"::[idt_ptr]"m"(idt_ptr):);
+    asm_lidt(&idt_ptr);
     return;
 }
 
@@ -182,7 +184,7 @@ PUBLIC void ap_intr_init()
 {
     uint128_t idt_ptr = (((uint128_t)0 + ((uint128_t)((uint64_t)idt))) << 16) \
                         | (sizeof(idt) - 1);
-    __asm__ __volatile__ ("lidt %[idt_ptr]"::[idt_ptr]"m"(idt_ptr):);
+    asm_lidt(&idt_ptr);
 }
 
 PUBLIC void register_handle(uint8_t nr,void (*handle)(intr_stack_t*))
@@ -194,7 +196,7 @@ PUBLIC void register_handle(uint8_t nr,void (*handle)(intr_stack_t*))
 PUBLIC intr_status_t intr_get_status()
 {
     wordsize_t flags;
-    __asm__ __volatile__ ("pushf\n\t""popq %q0":"=a"(flags)::"memory");
+    flags = get_flags();
     return ((flags & 0x00000200) ? INTR_ON : INTR_OFF);
 }
 

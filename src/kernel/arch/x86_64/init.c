@@ -58,32 +58,20 @@ PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access)
 
 PUBLIC segmdesc_t gdt_table[8192];
 
+extern void asm_load_gdt(void *gdt_ptr,uint16_t code,uint16_t data);
 PRIVATE void load_gdt()
 {
     uint128_t gdt_ptr = (((uint128_t)0
                         + ((uint128_t)((uint64_t)gdt_table))) << 16)
                         | (sizeof(gdt_table) - 1);
-    __asm__ __volatile__ (
-        "lgdtq %0 \n\t"
-        "movw %%ax,%%ds \n\t"
-        "movw %%ax,%%es \n\t"
-        "movw %%ax,%%fs \n\t"
-        "movw %%ax,%%gs \n\t"
-        "movw %%ax,%%ss \n\t"
-
-        "pushq %1 \n\t"
-        "leaq %=f(%%rip),%%rax \n\t"
-        "pushq %%rax \n\t"
-        "lretq \n\t"
-        "%=: \n\t"
-        :
-        :"m"(gdt_ptr),"i"(SELECTOR_CODE64_K),"ax"(SELECTOR_DATA64_K)
-        :"memory");
+    asm_load_gdt(&gdt_ptr,SELECTOR_CODE64_K,SELECTOR_DATA64_K);
+    return;
 }
 
+extern void asm_ltr(uint64_t sel);
 PRIVATE void load_tss(uint8_t nr_cpu)
 {
-    __asm__ __volatile__ ("ltr %w0"::"r"(SELECTOR_TSS(nr_cpu)));
+    asm_ltr(SELECTOR_TSS(nr_cpu));
     return;
 }
 

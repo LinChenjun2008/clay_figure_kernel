@@ -34,9 +34,9 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 typedef uint8_t fxsave_region_t[512];
 
 PUBLIC status_t check_sse();
-PUBLIC void sse_init();
+extern void sse_init();
 
-PUBLIC void fxsave(fxsave_region_t *fxsave_region);
-PUBLIC void fxrstor(fxsave_region_t *fxsave_region);
+extern void asm_fxsave(fxsave_region_t *fxsave_region);
+extern void asm_fxrstor(fxsave_region_t *fxsave_region);
 
 #endif

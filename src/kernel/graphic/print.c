@@ -31,6 +31,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #include <kernel/global.h>
 #include <std/stdarg.h>
 #include <std/stdio.h>
+#include <io.h>         // io_hlt,io_cli
 #include <device/cpu.h>
 #include <device/spinlock.h>
 
@@ -260,10 +261,10 @@ PUBLIC void panic_spin(
         ICR_ALL_EXCLUDE_SELF,
         0);
     send_IPI(icr);
-    __asm__ __volatile__ ("cli":::);
+    io_cli();
     pr_log("\n");
     pr_log("\3 >>> PANIC <<<\n");
     pr_log("\3 %s: In function '%s':\n",filename,func);
     pr_log("\3 %s:%d: %s\n",filename,line,condition);
-    while (1) __asm__ __volatile("cli\n\t""hlt":::);
+    while (1) io_hlt();
 }

@@ -103,13 +103,19 @@ typedef struct task_struct_s
     fxsave_region_t       *fxsave_region;
 } task_struct_t;
 
+typedef struct core_taskmgr_s
+{
+    list_t     task_list;
+    uint64_t   min_vruntime;
+    pid_t      idle_task;
+    spinlock_t task_list_lock;
+} core_taskmgr_t;
+
 typedef struct taskmgr_s
 {
-    task_struct_t task_table[MAX_TASK];
-    list_t        task_list[NR_CPUS];
-    pid_t         idle_task[NR_CPUS];
-    spinlock_t    task_list_lock[NR_CPUS];
-    spinlock_t    task_table_lock;
+    task_struct_t  task_table[MAX_TASK];
+    spinlock_t     task_table_lock;
+    core_taskmgr_t core[NR_CPUS];
 } taskmgr_t;
 
 /**

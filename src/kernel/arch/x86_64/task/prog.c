@@ -32,6 +32,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #include <task/task.h>      // task struct & functions,spinlock
 #include <mem/mem.h>        // alloc_physical_page,page_map,pmalloc,pfree
 #include <intr.h>           // intr_stack_t
+#include <io.h>             // set_cr3
 #include <device/cpu.h>     // apic_id
 #include <std/string.h>     // memset,memcpy
 #include <kernel/syscall.h> // sys_send_recv
@@ -53,6 +54,7 @@ PUBLIC void prog_exit(addr_t func,wordsize_t arg)
     while (1) continue;
 }
 
+extern void asm_process_start(void *stack);
 PRIVATE void start_process(void *process)
 {
     void *func = process;
@@ -105,14 +107,7 @@ PRIVATE void start_process(void *process)
     proc_stack->rsp = USER_STACK_VADDR_BASE + PG_SIZE;
     proc_stack->ss = SELECTOR_DATA64_U;
 
-    __asm__ __volatile__
-    (
-        "movq %0, %%rsp\n\t"
-        "jmp intr_exit"
-        :
-        :"r"(proc_stack)
-        :"memory"
-    );
+    asm_process_start((void*)proc_stack);
 }
 
 PRIVATE void page_dir_activate(task_struct_t *task)
@@ -122,7 +117,7 @@ PRIVATE void page_dir_activate(task_struct_t *task)
     {
         page_dir_table_pos = task->page_dir;
     }
-    __asm__ __volatile__("movq %0,%%cr3"::"r"(page_dir_table_pos):"memory");
+    set_cr3((wordsize_t)page_dir_table_pos);
     return;
 }
 
@@ -218,8 +213,8 @@ PUBLIC task_struct_t *prog_execute(
         task_free(pid);
         return NULL;
     }
-    spinlock_lock(&tm->task_list_lock[apic_id()]);
-    task_list_insert(&tm->task_list[apic_id()],task);
-    spinlock_unlock(&tm->task_list_lock[apic_id()]);
+    spinlock_lock(&tm->core[apic_id()].task_list_lock);
+    task_list_insert(&tm->core[apic_id()].task_list,task);
+    spinlock_unlock(&tm->core[apic_id()].task_list_lock);
     return task;
 }

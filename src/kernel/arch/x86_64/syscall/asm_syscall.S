@@ -31,7 +31,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 .global send_recv
 send_recv:
     pushq %r10
-    movq %rcx,%r10 // save rcx in r10
+    movq %rcx, %r10 // save rcx in r10
     syscall
     popq %r10
     retq
@@ -43,33 +43,33 @@ syscall_entry:
     pushq %rbp
     pushq %rcx // origin rip
     pushq %r11 // origin rflags
-    movq %r10,%rcx // restore rcx
+    movq %r10, %rcx // restore rcx
 
 // switch to kernel stack
     pushq %rdi
     pushq %rsi
     pushq %rdx
 
-    leaq get_running_prog_kstack(%rip),%rax
+    leaq get_running_prog_kstack(%rip), %rax
     call *%rax
 
     popq %rdx
     popq %rsi
     popq %rdi
 
-    movq %rsp,%rbp
-    movq %rax,%rsp
+    movq %rsp, %rbp
+    movq %rax, %rsp
 
     pushq %rbp // save rbp
 
     sti
-    leaq sys_send_recv(%rip),%rax
+    leaq sys_send_recv(%rip), %rax
     callq *%rax
     cli
 
 // switch to user stack
     popq %rbx
-    movq %rbx,%rsp
+    movq %rbx, %rsp
 
     popq %r11
     popq %rcx

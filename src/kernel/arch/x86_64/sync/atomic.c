@@ -42,45 +42,38 @@ PUBLIC uint64_t atomic_read(atomic_t *atom)
     return atom->value;
 }
 
+extern void asm_atomic_add(volatile uint64_t *atom,uint64_t value);
+extern void asm_atomic_sub(volatile uint64_t *atom,uint64_t value);
+extern void asm_atomic_inc(volatile uint64_t *atom);
+extern void asm_atomic_dec(volatile uint64_t *atom);
+extern void asm_atomic_mask(volatile uint64_t *atom,uint64_t mask);
+
 PUBLIC void atomic_add(atomic_t *atom,uint64_t value)
 {
-    __asm__ __volatile__ ("lock addq %1,%0"
-                          :"=m"(atom->value)
-                          :"r"(value)
-                          :"memory");
+    asm_atomic_add(&atom->value,value);
     return;
 }
 
 PUBLIC void atomic_sub(atomic_t *atom,uint64_t value)
 {
-    __asm__ __volatile__ ("lock subq %1,%0"
-                          :"=m"(atom->value)
-                          :"r"(value)
-                          :"memory");
+    asm_atomic_sub(&atom->value,value);
     return;
 }
 
 PUBLIC void atomic_inc(atomic_t *atom)
 {
-    __asm__ __volatile__ ("lock incq %0"
-                          :"=m"(atom->value)
-                          ::"memory");
+    asm_atomic_inc(&atom->value);
     return;
 }
 
 PUBLIC void atomic_dec(atomic_t *atom)
 {
-    __asm__ __volatile__ ("lock decq %0"
-                          :"=m"(atom->value)
-                          ::"memory");
+    asm_atomic_dec(&atom->value);
     return;
 }
 
 PUBLIC void atomic_mask(atomic_t *atom,uint64_t mask)
 {
-    __asm__ __volatile__ ("lock andq %1,%0"
-                          :"=m"(atom->value)
-                          :"r"(mask)
-                          :"memory");
+    asm_atomic_mask(&atom->value,mask);
     return;
 }

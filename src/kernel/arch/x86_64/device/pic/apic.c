@@ -58,7 +58,7 @@ PUBLIC apic_t apic;
 PUBLIC bool support_apic()
 {
     uint32_t a,b,c,d;
-    cpuid(1,0,&a,&b,&c,&d);
+    asm_cpuid(1,0,&a,&b,&c,&d);
     return (d & (1 << 9)) && (rdmsr(IA32_APIC_BASE) & (1 << 11));
 }
 
@@ -160,7 +160,7 @@ PRIVATE void x2apic_init()
 PUBLIC void local_apic_init()
 {
     uint32_t a,b,c,d;
-    cpuid(1,0,&a,&b,&c,&d);
+    asm_cpuid(1,0,&a,&b,&c,&d);
     uint64_t ia32_apic_base = rdmsr(IA32_APIC_BASE);
     if ((c & (1 << 21)) && (ia32_apic_base & 0x400))
     {
