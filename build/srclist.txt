@@ -17,6 +17,7 @@ $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/start.S \
 $(KERNEL_SRC_PATH)/main.c \
  \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/init.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/asmfunc.S \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/intr/intr.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/intr/asm_intr.S \
  \
@@ -25,8 +26,8 @@ $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pic/8259a.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pic/apic.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/cpu/smp/smp.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/cpu/smp/ap_boot.S \
-$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/cpu/smp/spinlock.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/sse.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/asm_sse.S \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/timer/timer.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pci/pci.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pci/pci_msi.c \
@@ -43,10 +44,13 @@ $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/schedule.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/asm_schedule.S \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/prog.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/sync/atomic.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/sync/spinlock.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/sync/asm_sync.S \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/mem/mem.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/syscall.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/asm_syscall.S \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/ipc.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/lib/asm_libc.S \
  \
 $(KERNEL_SRC_PATH)/service/service.c \
 $(KERNEL_SRC_PATH)/service/tick/tick.c \

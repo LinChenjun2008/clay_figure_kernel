@@ -41,7 +41,7 @@ PUBLIC void basic_print(uint32_t col,const char *str);
 PUBLIC void pr_log(const char* str,...);
 
 PUBLIC void panic_spin(
-    char* filename,
+    const char* filename,
     int line,
     const char* func,
     const char* condition);

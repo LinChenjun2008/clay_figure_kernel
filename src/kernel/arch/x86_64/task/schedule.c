@@ -37,17 +37,6 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 
 extern taskmgr_t *tm;
 
-PRIVATE void switch_to(task_context_t **cur,task_context_t **next)
-{
-    __asm__ __volatile__ (
-        "pushq %1 \n\t"
-        "pushq %0 \n\t"
-        "leaq asm_switch_to(%%rip),%%rax \n\t"
-        "callq *%%rax \n\t"
-        :
-        :"g"(cur),"g"(next));
-}
-
 PUBLIC void schedule()
 {
     ASSERT(intr_get_status() == INTR_OFF);
@@ -70,11 +59,12 @@ PRIVATE void task_unblock_without_spinlock(pid_t pid)
     ASSERT(task->status != TASK_READY);
     task->vrun_time = running_task()->vrun_time;
 
-    ASSERT(!list_find(&tm->task_list[task->cpu_id],&task->general_tag));
-    task_list_insert(&tm->task_list[task->cpu_id],task);
+    ASSERT(!list_find(&tm->core[task->cpu_id].task_list,&task->general_tag));
+    task_list_insert(&tm->core[task->cpu_id].task_list,task);
     task->status = TASK_READY;
 }
 
+extern void ASMLINKAGE asm_switch_to(task_context_t **cur,task_context_t **next);
 PUBLIC void do_schedule()
 {
     task_struct_t *cur_task = running_task();
@@ -85,32 +75,32 @@ PUBLIC void do_schedule()
     }
     if (cur_task->status == TASK_RUNNING)
     {
-        spinlock_lock(&tm->task_list_lock[cpu_id]);
-        ASSERT(!list_find(&tm->task_list[cpu_id],&cur_task->general_tag));
-        task_list_insert(&tm->task_list[cpu_id],cur_task);
-        spinlock_unlock(&tm->task_list_lock[cpu_id]);
+        spinlock_lock(&tm->core[cpu_id].task_list_lock);
+        ASSERT(!list_find(&tm->core[cpu_id].task_list,&cur_task->general_tag));
+        task_list_insert(&tm->core[cpu_id].task_list,cur_task);
+        spinlock_unlock(&tm->core[cpu_id].task_list_lock);
         cur_task->status  = TASK_READY;
     }
     task_struct_t *next = NULL;
     list_node_t *next_task_tag = NULL;
 
-    spinlock_lock(&tm->task_list_lock[cpu_id]);
-    next_task_tag = get_next_task(&tm->task_list[cpu_id]);
+    spinlock_lock(&tm->core[cpu_id].task_list_lock);
+    next_task_tag = get_next_task(&tm->core[cpu_id].task_list);
     if (next_task_tag == NULL)
     {
-        task_unblock_without_spinlock(tm->idle_task[cpu_id]);
-        next_task_tag = get_next_task(&tm->task_list[cpu_id]);
+        task_unblock_without_spinlock(tm->core[cpu_id].idle_task);
+        next_task_tag = get_next_task(&tm->core[cpu_id].task_list);
         ASSERT(next_task_tag != NULL);
     }
-    spinlock_unlock(&tm->task_list_lock[cpu_id]);
+    spinlock_unlock(&tm->core[cpu_id].task_list_lock);
     ASSERT(next_task_tag != NULL);
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
     next->status = TASK_RUNNING;
     prog_activate(next);
-    fxsave(cur_task->fxsave_region);
-    fxrstor(next->fxsave_region);
+    asm_fxsave(cur_task->fxsave_region);
+    asm_fxrstor(next->fxsave_region);
     next->cpu_id = cpu_id;
-    switch_to(&cur_task->context,&next->context);
+    asm_switch_to(&cur_task->context,&next->context);
     return;
 }
 
@@ -129,11 +119,11 @@ PUBLIC void task_unblock(pid_t pid)
 {
     task_struct_t *task = pid2task(pid);
     intr_status_t intr_status = intr_disable();
-    spinlock_lock(&tm->task_list_lock[task->cpu_id]);
-    
+    spinlock_lock(&tm->core[task->cpu_id].task_list_lock);
+
     task_unblock_without_spinlock(pid);
 
-    spinlock_unlock(&tm->task_list_lock[task->cpu_id]);
+    spinlock_unlock(&tm->core[task->cpu_id].task_list_lock);
     intr_set_status(intr_status);
     return;
 }
@@ -142,10 +132,10 @@ PUBLIC void task_yield()
 {
     intr_status_t intr_status = intr_disable();
     task_struct_t *task = running_task();
-    spinlock_lock(&tm->task_list_lock[task->cpu_id]);
+    spinlock_lock(&tm->core[task->cpu_id].task_list_lock);
     task->status = TASK_READY;
-    task_list_insert(&tm->task_list[task->cpu_id],task);
-    spinlock_unlock(&tm->task_list_lock[task->cpu_id]);
+    task_list_insert(&tm->core[task->cpu_id].task_list,task);
+    spinlock_unlock(&tm->core[task->cpu_id].task_list_lock);
     do_schedule();
     intr_set_status(intr_status);
 }

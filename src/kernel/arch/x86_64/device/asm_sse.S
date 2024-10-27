@@ -28,38 +28,25 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 你应该随程序获得一份 GNU 通用公共许可证的复本。如果没有，请看
 <https://www.gnu.org/licenses/>。  */
 
-#include <kernel/global.h>
-#include <device/spinlock.h>
-#include <task/task.h> // running_task
+.text
 
-#include <log.h>
+.global sse_init
+sse_init:
+    movq %cr0, %rax
+    andw $0xfffb, %ax
+    orw $0x2, %ax
+    movq %rax, %cr0
+    movq %cr4, %rax
+    orw $(3 << 9), %ax
+    movq %rax, %cr4
+    ret
 
-PUBLIC void init_spinlock(spinlock_t *spinlock)
-{
-    spinlock->lock = 1;
-    return;
-}
+.global asm_fxsave
+asm_fxsave:
+    fxsave (%rdi)
+    ret
 
-PUBLIC void spinlock_lock(spinlock_t *spinlock)
-{
-    running_task()->spinlock_count++;
-    __asm__ __volatile__ (
-        ".try_lock: \n\t"
-        "lock decq %0 \n\t"
-        "jz done \n\t"
-        "wait: \n\t"
-        "pause \n\t"
-        "cmpq $1,%0 \n\t"
-        "jne wait \n\t"
-        "jmp .try_lock \n\t"
-        "done: \n\t"
-        :
-        :"m"(spinlock->lock));
-}
-
-PUBLIC void spinlock_unlock(spinlock_t *spinlock)
-{
-    spinlock->lock = 1;
-    running_task()->spinlock_count--;
-    return;
-}
+.global asm_fxrstor
+asm_fxrstor:
+    fxrstor (%rdi)
+    ret

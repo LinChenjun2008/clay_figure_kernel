@@ -32,6 +32,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #include <task/task.h>      // include sse,spinlock
 #include <mem/mem.h>        // pmalloc,to_physical_address,init_alloc_physical_page
 #include <intr.h>           // intr functions
+#include <io.h>             // get_cr3 get_rsp
 #include <device/cpu.h>     // apic_id
 #include <std/string.h>     // memset,strlen,strcpy
 #include <service.h>        // MM_EXIT
@@ -72,7 +73,7 @@ PUBLIC bool task_exist(pid_t pid)
 PUBLIC task_struct_t* running_task()
 {
     wordsize_t rsp;
-    __asm__ __volatile__ ("movq %%rsp,%0":"=g"(rsp)::);
+    rsp = get_rsp();
     intr_status_t intr_status = intr_disable();
     task_struct_t *res = NULL;
     int i;
@@ -99,8 +100,8 @@ PUBLIC task_struct_t* running_prog()
 {
     wordsize_t rsp;
     wordsize_t pml4t;
-    __asm__ __volatile__ ("movq %%rsp,%0 \n\t"
-                          "movq %%cr3,%1":"=g"(rsp),"=g"(pml4t)::);
+    rsp = get_rsp();
+    pml4t = get_cr3();
     rsp = (wordsize_t)to_physical_address((void*)pml4t,(void*)rsp);
     intr_status_t intr_status = intr_disable();
     task_struct_t *res = NULL;
@@ -212,7 +213,7 @@ PUBLIC void task_free(pid_t pid)
 
 PUBLIC status_t init_task_struct(
     task_struct_t* task,
-    char* name,
+    const char* name,
     uint64_t priority,
     addr_t kstack_base,
     size_t kstack_size)
@@ -229,11 +230,9 @@ PUBLIC status_t init_task_struct(
     task->pid         = ((addr_t)task - (addr_t)tm->task_table) / sizeof(*task);
     task->ppid        = running_task()->pid;
 
-    if (strlen(name) > 31)
-    {
-        name[31] = 0;
-    }
-    strcpy(task->name,name);
+    strncpy(task->name,name,31);
+    task->name[31] = '\0';
+
     task->status         = TASK_READY;
     task->spinlock_count = 0;
     task->priority       = priority;
@@ -275,7 +274,7 @@ PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg)
 }
 
 PUBLIC task_struct_t* task_start(
-    char* name,
+    const char* name,
     uint64_t priority,
     size_t kstack_size,
     void* func,
@@ -308,9 +307,9 @@ PUBLIC task_struct_t* task_start(
                      kstack_size);
     create_task_struct(task,func,arg);
 
-    spinlock_lock(&tm->task_list_lock[apic_id()]);
-    task_list_insert(&tm->task_list[apic_id()],task);
-    spinlock_unlock(&tm->task_list_lock[apic_id()]);
+    spinlock_lock(&tm->core[apic_id()].task_list_lock);
+    task_list_insert(&tm->core[apic_id()].task_list,task);
+    spinlock_unlock(&tm->core[apic_id()].task_list_lock);
     return task;
 }
 
@@ -323,10 +322,10 @@ PRIVATE void make_main_task(void)
                      DEFAULT_PRIORITY,
                      (addr_t)KADDR_P2V(KERNEL_STACK_BASE),
                      KERNEL_STACK_SIZE);
-    tm->idle_task[apic_id()] = main_task->pid;
-    spinlock_lock(&tm->task_list_lock[apic_id()]);
-    task_list_insert(&tm->task_list[apic_id()],main_task);
-    spinlock_unlock(&tm->task_list_lock[apic_id()]);
+    tm->core[apic_id()].idle_task = main_task->pid;
+    spinlock_lock(&tm->core[apic_id()].task_list_lock);
+    task_list_insert(&tm->core[apic_id()].task_list,main_task);
+    spinlock_unlock(&tm->core[apic_id()].task_list_lock);
 
     return;
 }
@@ -349,8 +348,9 @@ PUBLIC void task_init()
     }
     for (i = 0;i < NR_CPUS;i++)
     {
-        list_init(&tm->task_list[i]);
-        init_spinlock(&tm->task_list_lock[i]);
+        list_init(&tm->core[i].task_list);
+        tm->core[i].min_vruntime = 0;
+        init_spinlock(&tm->core[i].task_list_lock);
     }
     init_spinlock(&tm->task_table_lock);
 

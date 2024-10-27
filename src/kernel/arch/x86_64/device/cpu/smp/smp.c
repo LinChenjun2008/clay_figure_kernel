@@ -34,6 +34,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #include <mem/mem.h>    // alloc_physical_page
 #include <std/string.h> // memcpy
 #include <intr.h>       // register_handle
+#include <io.h>         // io_hlt
 #include <task/task.h>  // init_task_struct,spinlock,list
 #include <std/stdio.h>  // sprintf
 
@@ -75,7 +76,8 @@ PRIVATE void ipi_timer_handler()
 PRIVATE void ipi_panic_handler()
 {
     eoi(0x81);
-    while (1) __asm__ __volatile("cli\n\t""hlt":::);
+    intr_disable();
+    while (1) io_hlt();
     return;
 }
 
@@ -111,19 +113,19 @@ PUBLIC status_t smp_start()
             free_physical_page(apu_stack_base,((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1);
             return K_ERROR;
         }
-        task_struct_t *main_task   = pid2task(ap_main_pid);
+        task_struct_t *idle_task   = pid2task(ap_main_pid);
         addr_t         kstack_base;
         kstack_base = (addr_t)
                       KADDR_P2V(apu_stack_base + (i - 1) * KERNEL_STACK_SIZE);
-        init_task_struct(main_task,
+        init_task_struct(idle_task,
                          name,
                          DEFAULT_PRIORITY,
                          kstack_base,
                          KERNEL_STACK_SIZE);
-        tm->idle_task[i] = main_task->pid;
-        spinlock_lock(&tm->task_list_lock[i]);
-        list_append(&tm->task_list[i],&main_task->general_tag);
-        spinlock_unlock(&tm->task_list_lock[i]);
+        tm->core[i].idle_task = idle_task->pid;
+        spinlock_lock(&tm->core[i].task_list_lock);
+        list_append(&tm->core[i].task_list,&idle_task->general_tag);
+        spinlock_unlock(&tm->core[i].task_list_lock);
 
     }
 

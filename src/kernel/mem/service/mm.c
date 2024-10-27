@@ -182,12 +182,12 @@ PRIVATE void mm_exit(message_t *msg)
 {
     task_struct_t *src = pid2task(msg->src);
     intr_status_t intr_status = intr_disable();
-    spinlock_lock(&tm->task_list_lock[src->cpu_id]);
-    if (list_find(&tm->task_list[src->cpu_id],&src->general_tag))
+    spinlock_lock(&tm->core[src->cpu_id].task_list_lock);
+    if (list_find(&tm->core[src->cpu_id].task_list,&src->general_tag))
     {
         list_remove(&src->general_tag);
     }
-    spinlock_unlock(&tm->task_list_lock[src->cpu_id]);
+    spinlock_unlock(&tm->core[src->cpu_id].task_list_lock);
     intr_set_status(intr_status);
     if (src->page_dir != NULL)
     {
