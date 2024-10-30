@@ -190,6 +190,23 @@ PUBLIC void basic_put_char(unsigned char c,uint32_t col)
     return;
 }
 
+PRIVATE void clear_line(position_t *pos)
+{
+    int i;
+    for (i = 0;i < CHAR_Y_SIZE;i++)
+    {
+        uint32_t j;
+        for (j = 0;j < g_boot_info->graph_info.horizontal_resolution;j++)
+        {
+            uint32_t *pixel =
+                (uint32_t*)g_boot_info->graph_info.frame_buffer_base
+                + (i + pos->y) * g_boot_info->graph_info.horizontal_resolution
+                + j;
+            *pixel = 0x00000000;
+        }
+    }
+}
+
 PUBLIC void basic_print(uint32_t col,const char *str)
 {
     const char *s = str;
@@ -205,6 +222,8 @@ PUBLIC void basic_print(uint32_t col,const char *str)
             pos.y > g_boot_info->graph_info.vertical_resolution - CHAR_Y_SIZE ?
                  pos.y = Y_START : 0;
             s++;
+            // clear line
+            clear_line(&pos);
             basic_put_char(255,0x00ffffff);
             continue;
         }

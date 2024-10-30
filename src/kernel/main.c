@@ -65,49 +65,42 @@ PRIVATE void ktask()
     };
 }
 
-// extern taskmgr_t *tm;
-// PRIVATE bool print_task_vrun_time(list_node_t *node,uint64_t arg)
-// {
-//     task_struct_t *task = CONTAINER_OF(task_struct_t,general_tag,node);
-//     if (task != NULL)
-//     {
-//         pr_log("| %s: %d",task->name,task->vrun_time);
-//     }
-//     return arg;
-// }
-// PRIVATE void print_vrun_time()
-// {
-//     pr_log("\1");
-//     list_traversal(&tm->core[0].task_list,print_task_vrun_time,0);
-//     pr_log(" | \n");
-//     pr_log("\1");
-//     list_traversal(&tm->core[1].task_list,print_task_vrun_time,0);
-//     pr_log(" | \n");
-// }
+extern taskmgr_t *tm;
+PRIVATE bool print_task_vrun_time(list_node_t *node,uint64_t arg)
+{
+    task_struct_t *task = CONTAINER_OF(task_struct_t,general_tag,node);
+    if (task != NULL)
+    {
+        pr_log("| %s: %d",task->name,task->vrun_time);
+    }
+    return arg;
+}
+PRIVATE void print_vrun_time()
+{
+    pr_log("\1");
+    list_traversal(&tm->core[0].task_list,print_task_vrun_time,0);
+    pr_log(" | \n");
+}
 
-// extern volatile uint64_t global_ticks;
+extern volatile uint64_t global_ticks;
 
-// PRIVATE void print_ticks()
-// {
-//     message_t msg;
-//     msg.type = TICK_SLEEP;
-//     msg.m3.l1 = 10000;
-//     sys_send_recv(NR_BOTH,TICK,&msg);
-//     while(1)
-//     {
-//         uint64_t ticks = global_ticks + 1000;
-//         while (ticks > global_ticks);
-//         print_vrun_time();
-//         __asm__ ("sti\n\t""hlt");
-//     };
-// }
+PRIVATE void print_ticks()
+{
+    while(1)
+    {
+        uint64_t ticks = global_ticks + 1000;
+        while (ticks > global_ticks);
+        print_vrun_time();
+        __asm__ ("sti\n\t""hlt");
+    };
+}
 
 PUBLIC void kernel_main()
 {
     init_all();
 
     prog_execute("k task",DEFAULT_PRIORITY,4096,ktask);
-
+    task_start("vrtime",DEFAULT_PRIORITY,4096,print_ticks,0);
     while(1)
     {
         task_block(TASK_BLOCKED);
