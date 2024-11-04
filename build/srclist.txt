@@ -1,6 +1,6 @@
 SRC_PATH                := ../src/
-BOOTLOADER_SRC_PATH     := $(SRC_PATH)/bootloader/
-KERNEL_SRC_PATH         := $(SRC_PATH)/kernel/
+BOOTLOADER_SRC_PATH     := $(SRC_PATH)/arch/$(TARGET_ARCH)/bootloader/
+KERNEL_SRC_PATH         := $(SRC_PATH)/
 
 BOOTLOADER_SRC          := \
 $(BOOTLOADER_SRC_PATH)/main.c \
