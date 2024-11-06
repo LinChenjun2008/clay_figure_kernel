@@ -33,9 +33,12 @@ $(TARGET_BOOTLOADER): $(BOOTLOADER_SRC)
 	@$(ECHO) compiling $^
 	@"$(MINGW64_GCC)" $(BOOTLOADER_FLAGS) -o $@ $^
 
-%.o: %.c $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include/kernel/global.h
+%.o: %.c
 	@$(ECHO) compiling $*.c
-	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -c -o $*.o $*.c
+	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -M $*.c > $*.rule
+	@$(ECHO)\	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -c -o $*.o $*.c >> $*.rule
+	@$(MAKE) -s -f $*.rule
+	@"$(RM)" $*.rule
 
 %.o: %.S
 	@$(ECHO) compiling $*.S
@@ -47,5 +50,5 @@ $(TARGET_KERNEL): $(TMP_KERNEL_TARGET)
 	@"$(OBJCOPY)" -I elf64-x86-64 --strip-debug -S -R ".eh_frame" -R ".comment" -O binary $^ $@
 
 $(TMP_KERNEL_TARGET): $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o)
-	@$(ECHO) link
+	@$(ECHO) linking
 	@"$(X86_64-ELF-LD)" -T $(KERNEL_LINKER_SCRIPT) -o $@ $^
