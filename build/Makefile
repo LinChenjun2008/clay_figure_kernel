@@ -6,6 +6,8 @@ TMP_KERNEL_TARGET := .tmp_kernel
 KERNEL_ASM_SRC    := $(filter %.S,$(KERNEL_SRC))
 KERNEL_C_SRC      := $(filter %.c,$(KERNEL_SRC))
 
+-include $(KERNEL_C_SRC:c=dep)
+
 .PHONY: all
 all: $(TARGET_BOOTLOADER) $(TARGET_KERNEL)
 
@@ -19,7 +21,7 @@ debug: all
 
 .PHONY: clean
 clean:
-	-@"$(RM)" $(KERNEL_C_SRC:c=o) $(KERNEL_ASM_SRC:S=o) $(TMP_KERNEL_TARGET) $(TARGET_BOOTLOADER)
+	-@"$(RM)" $(KERNEL_C_SRC:c=o) $(KERNEL_C_SRC:c=dep) $(KERNEL_ASM_SRC:S=o) $(TMP_KERNEL_TARGET) $(TARGET_BOOTLOADER)
 
 .PHONY: init
 init:
@@ -35,10 +37,7 @@ $(TARGET_BOOTLOADER): $(BOOTLOADER_SRC)
 
 %.o: %.c
 	@$(ECHO) compiling $*.c
-	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -M $*.c > $*.rule
-	@$(ECHO)\	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -c -o $*.o $*.c >> $*.rule
-	@$(MAKE) -s -f $*.rule
-	@"$(RM)" $*.rule
+	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -MP -MD -MF $*.dep -c -o $*.o $*.c
 
 %.o: %.S
 	@$(ECHO) compiling $*.S
