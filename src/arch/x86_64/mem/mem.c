@@ -105,7 +105,7 @@ PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
         case EfiLoaderCode:
             return FREE_MEMORY;
             break;
-        case EfiLoaderData: ///
+        case EfiLoaderData:
         case EfiRuntimeServicesCode:
         case EfiRuntimeServicesData:
         case EfiMemoryMappedIO:
