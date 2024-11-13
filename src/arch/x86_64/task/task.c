@@ -238,7 +238,9 @@ PUBLIC status_t init_task_struct(
     task->priority       = priority;
     task->jiffies        = 0;
     task->ideal_runtime  = priority;
-    task->vrun_time      = running_task()->vrun_time;
+
+    task->vrun_time      = 0;
+    update_vruntime(task);
 
     task->cpu_id         = apic_id();
     task->page_dir       = NULL;

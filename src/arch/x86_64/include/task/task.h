@@ -191,6 +191,11 @@ PUBLIC void task_init();
 /// schedule.c
 
 /**
+ * 更新vrun_time,以确保vruntime不会过小.
+ */
+PUBLIC void update_vruntime(task_struct_t *task);
+
+/**
  * 更新vrun_time,并判断是否需要调度.
  */
 PUBLIC void schedule();
