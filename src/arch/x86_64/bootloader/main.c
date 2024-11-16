@@ -146,12 +146,12 @@ UefiMain
     }
     gBS->SetMem(boot_info,sizeof(*boot_info),0);
     boot_info->magic = 0x5a42cb1613d4a62f;
+    boot_info->graph_info.frame_buffer_base     = 0xffff807fc0000000;
     boot_info->graph_info.horizontal_resolution = Gop->Mode->
                                                   Info->HorizontalResolution;
     boot_info->graph_info.vertical_resolution   = Gop->Mode->
                                                   Info->VerticalResolution;
-    boot_info->graph_info.frame_buffer_base     = 0xffff807fc0000000;
-
+    boot_info->graph_info.pixel_per_scanline    = Gop->Mode->Info->PixelsPerScanLine;
     // load file
     DISPLAY_INFO(L"Load Files ...\r\n");
     uint8_t file_index;
