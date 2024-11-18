@@ -133,7 +133,7 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
         msg.m1.i1 = K_ERROR;
         sys_send_recv(NR_BOTH,MM,&msg);
     }
-    PANIC("Kernel Error.");
+    while (1) continue;
 }
 
 PUBLIC void ASMLINKAGE do_irq(uint8_t nr,intr_stack_t *stack)

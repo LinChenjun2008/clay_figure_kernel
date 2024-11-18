@@ -163,6 +163,15 @@ VOID
     UINT8    Value
 );
 
+typedef 
+VOID
+(EFIAPI *EFI_RESET_SYSTEM)
+(
+    EFI_RESET_TYPE ResetType,
+    EFI_STATUS     ResetStatus,
+    UINTN          DataSize,
+    VOID           *ResetData 
+);
 
 /// Uefi Runtime services
 typedef struct
@@ -188,13 +197,7 @@ typedef struct
     // Miscellaneous Services
     //
     UINTN _buf_rs5;
-    void (*ResetSystem)
-    (
-        EFI_RESET_TYPE ResetType,
-        UINTN ResetStatus,
-        UINTN DataSize,
-        VOID *ResetData
-    );
+    EFI_RESET_SYSTEM ResetSystem;
 } EFI_RUNTIME_SERVICES;
 
 

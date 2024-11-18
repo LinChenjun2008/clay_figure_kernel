@@ -33,7 +33,6 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #include <std/stdio.h>
 #include <io.h>         // io_hlt,io_cli
 #include <device/cpu.h>
-#include <device/spinlock.h>
 
 #include <log.h>
 
@@ -65,7 +64,7 @@ static inline void serial_pr_log(const char *log,va_list ap)
     char msg[256];
     char *buf;
     uint16_t port = 0x3f8;
-    char *level[] =
+    const char *level[] =
     {
         "\033[32m[ INFO  ]\033[0m ",
         "\033[33m[ DEBUG ]\033[0m ",
@@ -73,7 +72,7 @@ static inline void serial_pr_log(const char *log,va_list ap)
     };
     if (*log >= 1 && *log <= 3)
     {
-        buf = level[*log - 1];
+        buf = (char*)level[*log - 1];
         while (IS_TRANSMIT_EMPTY(port) == 0);
         if(*buf != 0)
         {
@@ -150,7 +149,7 @@ PUBLIC void basic_put_char(unsigned char c,uint32_t col)
         uint8_t data = character[i];
         uint32_t *pixel = \
             (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
-            + (pos.y + i) * g_boot_info->graph_info.horizontal_resolution \
+            + (pos.y + i) * g_boot_info->graph_info.pixel_per_scanline \
             + pos.x;
         int j;
         for (j = 0;j < 8;j++){ pixel[j] = 0x00000000; }
@@ -172,7 +171,7 @@ PUBLIC void basic_put_char(unsigned char c,uint32_t col)
             uint8_t data = character[i];
             uint32_t *pixel = \
                 (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
-                + (pos.y + i) * g_boot_info->graph_info.horizontal_resolution \
+                + (pos.y + i) * g_boot_info->graph_info.pixel_per_scanline \
                 + pos.x + CHAR_X_SIZE;
             int j;
             for (j = 0;j < 8;j++){ pixel[j] = 0x00000000; }
@@ -196,11 +195,11 @@ PRIVATE void clear_line(position_t *pos)
     for (i = 0;i < CHAR_Y_SIZE;i++)
     {
         uint32_t j;
-        for (j = 0;j < g_boot_info->graph_info.horizontal_resolution;j++)
+        for (j = 0;j < g_boot_info->graph_info.pixel_per_scanline;j++)
         {
             uint32_t *pixel =
                 (uint32_t*)g_boot_info->graph_info.frame_buffer_base
-                + (i + pos->y) * g_boot_info->graph_info.horizontal_resolution
+                + (i + pos->y) * g_boot_info->graph_info.pixel_per_scanline
                 + j;
             *pixel = 0x00000000;
         }
@@ -214,7 +213,7 @@ PUBLIC void basic_print(uint32_t col,const char *str)
     {
         if (*s == '\n'
             || pos.x
-                 >= g_boot_info->graph_info.horizontal_resolution - CHAR_X_SIZE)
+                 >= g_boot_info->graph_info.pixel_per_scanline - CHAR_X_SIZE)
         {
             basic_put_char(255,0);
             pos.x = X_START;
@@ -250,7 +249,7 @@ PUBLIC void basic_print(uint32_t col,const char *str)
         {
             uint32_t *pixel =
                 (uint32_t*)g_boot_info->graph_info.frame_buffer_base
-                + (pos.y + i) * g_boot_info->graph_info.horizontal_resolution;
+                + (pos.y + i) * g_boot_info->graph_info.pixel_per_scanline;
             uint32_t j;
             for (j = pos.x;j < pos.x + CHAR_X_SIZE;j++)
             {

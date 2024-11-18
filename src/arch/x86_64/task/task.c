@@ -218,7 +218,8 @@ PUBLIC status_t init_task_struct(
     addr_t kstack_base,
     size_t kstack_size)
 {
-    memset(task,0,sizeof(*task));
+    // 不要在这里使用memset,否则会出现数据错误
+    // memset(task,0,sizeof(*task)); 
     addr_t kstack      = kstack_base + kstack_size;
     task->context     = (task_context_t*)kstack;
     task->kstack_base = kstack_base;
@@ -264,6 +265,7 @@ PUBLIC status_t init_task_struct(
 
 PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg)
 {
+    ASSERT(task->context != NULL);
     addr_t kstack = (addr_t)task->context;
     kstack -= sizeof(intr_stack_t);
     kstack -= sizeof(addr_t);

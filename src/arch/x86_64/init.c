@@ -125,7 +125,7 @@ PUBLIC void init_all()
     spinlock_lock(&schedule_lock);
     pr_log("\1 SMP initializing ...");
     detect_cores();
-    smp_start();
+    smp_init();
     pr_log(" OK.\n");
 
     pr_log("\1 PIC initializing ...");
@@ -164,6 +164,8 @@ PUBLIC void init_all()
     msg.m3.i1 = g_boot_info->graph_info.horizontal_resolution;
     msg.m3.i2 = g_boot_info->graph_info.vertical_resolution;
     sys_send_recv(NR_SEND,VIEW,&msg);
+
+    smp_start();
 
     return;
 }

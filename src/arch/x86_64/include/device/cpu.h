@@ -78,6 +78,7 @@ PUBLIC uint64_t make_icr(
     uint8_t  des_shorthand,
     uint32_t destination);
 
+PUBLIC status_t smp_init();
 PUBLIC status_t smp_start();
 PUBLIC void send_IPI(uint64_t icr);
 

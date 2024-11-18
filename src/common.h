@@ -46,6 +46,7 @@ typedef struct
     addr_t   frame_buffer_base;
     uint32_t horizontal_resolution;
     uint32_t vertical_resolution;
+    uint32_t pixel_per_scanline;
 } graph_info_t;
 
 typedef struct

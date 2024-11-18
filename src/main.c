@@ -97,8 +97,8 @@ PRIVATE void print_ticks()
 
 PUBLIC void kernel_main()
 {
+    pr_log(K_NAME " - " K_VERSION "\n");
     init_all();
-
     prog_execute("k task",DEFAULT_PRIORITY,4096,ktask);
     task_start("vrtime",DEFAULT_PRIORITY,4096,print_ticks,0);
     while(1)
@@ -113,6 +113,8 @@ PUBLIC void ap_kernel_main()
     ap_init_all();
     char name[31];
     sprintf(name,"k task %d",apic_id());
+    uint64_t ticks = global_ticks + 1000 * apic_id();
+    while (global_ticks > ticks) continue;
     prog_execute(name,DEFAULT_PRIORITY,4096,ktask);
     while (1)
     {
