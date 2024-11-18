@@ -33,7 +33,6 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #include <std/stdio.h>
 #include <io.h>         // io_hlt,io_cli
 #include <device/cpu.h>
-#include <device/spinlock.h>
 
 #include <log.h>
 

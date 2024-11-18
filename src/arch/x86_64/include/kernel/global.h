@@ -34,7 +34,7 @@ GNU 通用公共许可证修改之，无论是版本 3 许可证，还是（按�
 #define K_NAME "Clay Figure Kernel"
 #define K_VERSION "v0.0.0"
 
-// #define __DISABLE_SERIAL_LOG__
+#define __DISABLE_SERIAL_LOG__
 
 // #define __DISABLE_ASSERT__
 

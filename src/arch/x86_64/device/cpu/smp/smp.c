@@ -81,7 +81,7 @@ PRIVATE void ipi_panic_handler()
     return;
 }
 
-PUBLIC status_t smp_start()
+PUBLIC status_t smp_init()
 {
     // copy ap_boot
     size_t ap_boot_size = (addr_t)AP_BOOT_END - (addr_t)AP_BOOT_BASE;
@@ -143,7 +143,12 @@ PUBLIC status_t smp_start()
         ICR_ALL_EXCLUDE_SELF,
         0);
     send_IPI(icr);
+    return K_SUCCESS;
+}
 
+PUBLIC status_t smp_start()
+{
+    uint64_t icr;
     icr = make_icr(
         0x10,
         ICR_DELIVER_MODE_START_UP,
@@ -155,7 +160,6 @@ PUBLIC status_t smp_start()
         0);
     send_IPI(icr);
     send_IPI(icr);
-
     return K_SUCCESS;
 }
 
