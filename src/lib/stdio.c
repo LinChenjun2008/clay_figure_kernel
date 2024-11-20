@@ -32,14 +32,34 @@ GNU 宽通用公共许可证修改之，无论是版本 3 许可证，还是（�
 #include <std/string.h>
 #include <std/stdarg.h>
 
-#define FORMAT_LEFT 0
-#define FORMAT_RIGHT 1
-#define FORMAT_SPACE 0
-#define FORMAT_ZERO 1
+#define FORMAT_SPACE   0
+#define FORMAT_LEFT    (1 << 0)
+#define FORMAT_ZERO    (1 << 1)
+#define FORMAT_SIGN    (1 << 2)
+#define FORMAT_SPECIAL (1 << 3)
+#define FORMAT_SMALL   (1 << 4)
+#define FORMAT_LONG    (1 << 5)
+#define FORMAT_SHORT   (1 << 6)
 
-PRIVATE void itoa(int64_t a,char* str,int base)
+#define IS_DIGIT(c) ((c) >= '0' && (c) <= '9')
+
+PRIVATE int skip_atoi(const char **s)
 {
-    static char digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    int i = 0;
+    while (IS_DIGIT(**s))
+    {
+        i = i * 10 + *((*s)++) - '0';
+    }
+    return i;
+}
+
+PRIVATE void signed_int_to_string(int64_t a,char* str,int base,int small)
+{
+    const char *digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if (small)
+    {
+        digits = "0123456789abcdefghijklmnopqrstuvwxyz";
+    }
     int i;
     int is_negative;
     is_negative = a;
@@ -79,9 +99,13 @@ PRIVATE void itoa(int64_t a,char* str,int base)
     return;
 }
 
-PRIVATE void utoa(uint64_t a,char* str,int base)
+PRIVATE void unsigned_int_to_string(uint64_t a,char* str,int base,int small)
 {
-    static char digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const char *digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if (small)
+    {
+        digits = "0123456789abcdefghijklmnopqrstuvwxyz";
+    }
     int i;
     i = 0;
     do
@@ -110,59 +134,60 @@ PRIVATE void utoa(uint64_t a,char* str,int base)
     return;
 }
 
-PUBLIC int vsprintf(char* buf,const char* fmt,va_list ap)
+PRIVATE int get_flag(const char **fmt)
+{
+    int flag = 0;
+    repeat:
+        (*fmt)++;
+    /* %后可以加'-',' ','0','#' */
+    switch(**fmt)
+    {
+    case '-':
+        flag |= FORMAT_LEFT;
+        goto repeat;
+        break;
+    case '0':
+        flag |= FORMAT_ZERO;
+        goto repeat;
+    case ' ':
+        goto repeat;
+        break;
+    case '#':
+        flag |= FORMAT_SPECIAL;
+        goto repeat;
+        break;
+    case 'l':
+        flag |= FORMAT_LONG;
+        goto repeat;
+    case 'h':
+        flag |= FORMAT_SHORT;
+        goto repeat;
+    default:
+        break;
+    }
+    return flag;
+}
+
+PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
 {
     char* str,*s = 0,digits[69];
-    int repeat;
-    int flage;
-    int align;
+    int flag;
     int width;
     for (str = buf;*fmt != '\0';fmt++)
     {
         if (*fmt != '%')
         {
-            *str = *fmt;
-            str++;
+            *str++ = *fmt;
             continue;
         }
-        fmt++;/* %后面的字符 */
         digits[0] = 0;
-        flage = 0;
-        align = FORMAT_RIGHT;
-        repeat = 1;
-        while (repeat)
-        {
-            /* %后可以加'+','-',' ','0','#' */
-            switch(*fmt)
-            {
-            case '+':
-                align = FORMAT_RIGHT;
-                break;
-            case '-':
-                align = FORMAT_LEFT;
-                break;
-            case '0':
-                flage |= FORMAT_ZERO;
-            case ' ':
-                break;
-            case '#':
-                break;
-            default:
-                fmt--; /* 与后面的fmt++抵消 */
-                repeat = 0;
-                break;
-            }
-            fmt++;
-        }
+        flag = get_flag(&fmt);
+
         width = 0;
-        while (*fmt >= '0' && *fmt <= '9')
-        {
-            width = width * 10 + (*fmt - '0');
-            fmt++;
-        }
+        width = skip_atoi(&fmt);
         if (width == 0)
         {
-            align = FORMAT_LEFT;
+            flag |= FORMAT_LEFT;
         }
         switch(*fmt)
         {
@@ -175,18 +200,19 @@ PUBLIC int vsprintf(char* buf,const char* fmt,va_list ap)
             str++;
             break;
         case 'd': /* %d */
+        case 'i':
             s = digits;
-            itoa(va_arg(ap,uint64_t),s,10);
+            signed_int_to_string(va_arg(ap,uint64_t),s,10,0);
             break;
         case 'o': /* %o */
             s = digits;
-            itoa(va_arg(ap,uint64_t),s,8);
+            unsigned_int_to_string(va_arg(ap,uint64_t),s,8,0);
             break;
         case 'p':
             s = digits;
             digits[0] = '0';
             digits[1] = 'x';
-            utoa((addr_t)va_arg(ap,addr_t),digits+2,16);
+            unsigned_int_to_string((addr_t)va_arg(ap,addr_t),digits+2,16,0);
             break;
         case 's': /* %s */
             s = va_arg(ap,char*);
@@ -194,24 +220,41 @@ PUBLIC int vsprintf(char* buf,const char* fmt,va_list ap)
             break;
         case 'u': /* %u */
             s = digits;
-            utoa(va_arg(ap,uint64_t),s,10);
+            unsigned_int_to_string(va_arg(ap,uint64_t),s,10,0);
             break;
         case 'x': /* %x */
             s = digits;
-            utoa(va_arg(ap,uint64_t),s,16);
+            unsigned_int_to_string(va_arg(ap,uint64_t),s,16,1);
+            break;
+        case 'X':
+            s = digits;
+            unsigned_int_to_string(va_arg(ap,uint64_t),s,16,0);
             break;
         }
         width -= strlen(s);
-        while (width > 0 && align == FORMAT_RIGHT)
+        if (flag & FORMAT_SPECIAL)
         {
-            *str = (flage & FORMAT_ZERO ? '0' : ' ');
-            str++;
+            width -= 2;
+        }
+        if ((flag & FORMAT_SPECIAL) && (flag & FORMAT_ZERO))
+        {
+            *str++ = '0';
+            *str++ = 'x';
+        }
+        while (width > 0 && !(flag & FORMAT_LEFT))
+        {
+            *str++ = (flag & FORMAT_ZERO ? '0' : ' ');
             width--;
+        }
+        if ((flag & FORMAT_SPECIAL) && !(flag & FORMAT_ZERO))
+        {
+            *str++ = '0';
+            *str++ = 'x';
         }
         strcpy(str,s);
         str += strlen(s);
         /* 左对齐的情况 */
-        while (width > 0 && align == FORMAT_LEFT)
+        while (width > 0 && flag & FORMAT_LEFT)
         {
             *str = ' ';
             str++;
