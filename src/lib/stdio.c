@@ -165,12 +165,13 @@ PRIVATE int get_flag(const char **fmt)
     default:
         break;
     }
+    if (flag & FORMAT_LEFT) { flag &= ~FORMAT_LEFT; }
     return flag;
 }
 
 PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
 {
-    char* str,*s = 0,digits[69];
+    char* str,*s = 0,digits[69],qualifier;
     int flag;
     int width;
     for (str = buf;*fmt != '\0';fmt++)
@@ -183,11 +184,16 @@ PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
         digits[0] = 0;
         flag = get_flag(&fmt);
 
-        width = 0;
-        width = skip_atoi(&fmt);
-        if (width == 0)
+        width = -1;
+        if (IS_DIGIT(*fmt))
         {
-            flag |= FORMAT_LEFT;
+            width = skip_atoi(&fmt);
+        }
+        qualifier = 0;
+        if(*fmt == 'h' || *fmt == 'l' || *fmt == 'L' || *fmt == 'Z')
+        {
+            qualifier = *fmt;
+            fmt++;
         }
         switch(*fmt)
         {
@@ -196,8 +202,12 @@ PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
             str++;
             break;
         case 'c':/* %c */
-            *str = va_arg(ap,uint64_t);
-            str++;
+            if (!(flag & FORMAT_LEFT))
+            {
+                while (--width > 0) {*str++ = ' ';}
+            };
+            *str++ = va_arg(ap,uint64_t);
+            while (--width > 0) {*str++ = ' ';}
             break;
         case 'd': /* %d */
         case 'i':
@@ -206,13 +216,18 @@ PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
             break;
         case 'o': /* %o */
             s = digits;
-            unsigned_int_to_string(va_arg(ap,uint64_t),s,8,0);
+            if (qualifier == 'l')
+            {
+                unsigned_int_to_string(va_arg(ap,uint64_t),s,8,0);
+            }
+            else
+            {
+                unsigned_int_to_string(va_arg(ap,int),s,8,0);
+            }
             break;
         case 'p':
             s = digits;
-            digits[0] = '0';
-            digits[1] = 'x';
-            unsigned_int_to_string((addr_t)va_arg(ap,addr_t),digits+2,16,0);
+            unsigned_int_to_string((addr_t)va_arg(ap,addr_t),digits,16,0);
             break;
         case 's': /* %s */
             s = va_arg(ap,char*);
@@ -224,11 +239,31 @@ PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
             break;
         case 'x': /* %x */
             s = digits;
-            unsigned_int_to_string(va_arg(ap,uint64_t),s,16,1);
+            if (qualifier == 'l')
+            {
+                unsigned_int_to_string(va_arg(ap,uint64_t),s,16,1);
+            }
+            else
+            {
+                unsigned_int_to_string(va_arg(ap,int),s,16,1);
+            }
             break;
         case 'X':
             s = digits;
+            if (qualifier == 'l')
+            {
+                unsigned_int_to_string(va_arg(ap,uint64_t),s,16,1);
+            }
+            else
+            {
+                unsigned_int_to_string(va_arg(ap,int),s,16,1);
+            }
             unsigned_int_to_string(va_arg(ap,uint64_t),s,16,0);
+            break;
+        default:
+            *str++ = '%';
+            if(*fmt) { *str++ = *fmt; }
+            else     { fmt--; }
             break;
         }
         width -= strlen(s);
