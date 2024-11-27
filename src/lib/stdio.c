@@ -32,137 +32,145 @@ GNU 宽通用公共许可证修改之，无论是版本 3 许可证，还是（�
 #include <std/string.h>
 #include <std/stdarg.h>
 
-#define FORMAT_LEFT 0
-#define FORMAT_RIGHT 1
-#define FORMAT_SPACE 0
-#define FORMAT_ZERO 1
 
-PRIVATE void itoa(int64_t a,char* str,int base)
+#define FORMAT_LEFT    (1 << 0)
+#define FORMAT_SPACE   (1 << 1)
+#define FORMAT_ZERO    (1 << 2)
+#define FORMAT_SIGN    (1 << 3)
+#define FORMAT_PLUS    (1 << 4)
+#define FORMAT_SPECIAL (1 << 5)
+#define FORMAT_SMALL   (1 << 6)
+
+#define IS_DIGIT(c) ((c) >= '0' && (c) <= '9')
+
+PRIVATE int skip_atoi(const char **s)
 {
-    static char digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    int i;
-    int is_negative;
-    is_negative = a;
-    if (a < 0)
+    int i = 0;
+    while (IS_DIGIT(**s))
     {
-        a = -a;
+        i = i * 10 + *((*s)++) - '0';
     }
-    i = 0;
-    do
-    {
-        str[i] = digits[a % base];
-        i++;
-        a = a / base;
-    } while (a > 0);
-    if (is_negative < 0)
-    {
-        str[i] = '-';
-        i++;
-    }
-    str[i] = '\0';
-    char* p = str;
-    char* q = str;
-    char tmp;
-    while (*q != '\0')
-    {
-        q++;
-    }
-    q--;
-    while (q > p)
-    {
-        tmp = *p;
-        *p = *q;
-        p++;
-        *q = tmp;
-        q--;
-    }
-    return;
+    return i;
 }
 
-PRIVATE void utoa(uint64_t a,char* str,int base)
+PRIVATE char * number_to_string(char * str,uint64_t num,int base,int width,int precision,int flag)
 {
-    static char digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    int i;
-    i = 0;
-    do
+	char pad,sign,tmp[50];
+	const char *digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	if (flag & FORMAT_SMALL)
     {
-        str[i] = digits[a % base];
-        i++;
-        a = a / base;
-    } while (a > 0);
-    str[i] = '\0';
-    char* p = str;
-    char* q = str;
-    char tmp;
-    while (*q != '\0')
-    {
-        q++;
+        digits = "0123456789abcdefghijklmnopqrstuvwxyz";
     }
-    q--;
-    while (q > p)
+	if (base < 2 || base > 36)
+		return 0;
+	pad = (flag & FORMAT_ZERO) ? '0' : ' ' ;
+	sign = 0;
+	if (flag & FORMAT_SIGN && (int64_t)num < 0)
     {
-        tmp = *p;
-        *p = *q;
-        p++;
-        *q = tmp;
-        q--;
+		sign = '-';
+		num = -num;
+	} 
+    else
+	{
+        sign=(flag & FORMAT_PLUS) ? '+' : ((flag & FORMAT_SPACE) ? ' ' : 0);
     }
-    return;
+	if (sign) width--;
+	if (flag & FORMAT_SPECIAL)
+	{
+        if (base == 16) width -= 2;
+		if (base ==  8) width -= 1;
+    }
+	int i = 0;
+	if (num == 0) { tmp[i++]='0'; }
+	else 
+    {
+        while (num != 0)
+        {
+            tmp[i++]=digits[num % base];
+            num /= base;
+        }
+    }
+	if (i > precision) { precision=i; }
+	width -= precision;
+	if (!(flag & (FORMAT_ZERO | FORMAT_LEFT)))
+	{
+        while(width-- > 0) *str++ = ' ';
+    }
+	if (sign) { *str++ = sign; }
+	if (flag & FORMAT_SPECIAL)
+	{
+        if (base == 8) { *str++ = '0'; }
+		if (base==16) 
+		{
+			*str++ = '0';
+			*str++ = digits[33];
+		}
+    }
+	if (!(flag & FORMAT_LEFT))
+    {
+        while(width-- > 0) *str++ = pad;
+    }
+
+	while(i < precision--) *str++ = '0';
+	while(i-- > 0) *str++ = tmp[i];
+	while(width-- > 0) *str++ = ' ';
+	return str;
 }
 
-PUBLIC int vsprintf(char* buf,const char* fmt,va_list ap)
+PRIVATE int get_flag(const char **fmt)
 {
-    char* str,*s = 0,digits[69];
-    int repeat;
-    int flage;
-    int align;
+    int flag = 0;
+    repeat:
+        (*fmt)++;
+    /* %后可以加'-',' ','0','#' */
+    switch(**fmt)
+    {
+    case '-':
+        flag |= FORMAT_LEFT;
+        goto repeat;
+        break;
+    case '0':
+        flag |= FORMAT_ZERO;
+        goto repeat;
+    case ' ':
+        flag |= FORMAT_SPACE;
+        goto repeat;
+        break;
+    case '#':
+        flag |= FORMAT_SPECIAL;
+        goto repeat;
+        break;
+    default:
+        break;
+    }
+    if (flag & FORMAT_LEFT) { flag &= ~FORMAT_ZERO; }
+    return flag;
+}
+
+PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
+{
+    char* str,*s,qualifier;
+    int flag;
     int width;
     for (str = buf;*fmt != '\0';fmt++)
     {
         if (*fmt != '%')
         {
-            *str = *fmt;
-            str++;
+            *str++ = *fmt;
             continue;
         }
-        fmt++;/* %后面的字符 */
-        digits[0] = 0;
-        flage = 0;
-        align = FORMAT_RIGHT;
-        repeat = 1;
-        while (repeat)
+        flag = get_flag(&fmt);
+
+        width = -1;
+        if (IS_DIGIT(*fmt))
         {
-            /* %后可以加'+','-',' ','0','#' */
-            switch(*fmt)
-            {
-            case '+':
-                align = FORMAT_RIGHT;
-                break;
-            case '-':
-                align = FORMAT_LEFT;
-                break;
-            case '0':
-                flage |= FORMAT_ZERO;
-            case ' ':
-                break;
-            case '#':
-                break;
-            default:
-                fmt--; /* 与后面的fmt++抵消 */
-                repeat = 0;
-                break;
-            }
-            fmt++;
+            width = skip_atoi(&fmt);
         }
-        width = 0;
-        while (*fmt >= '0' && *fmt <= '9')
+        qualifier = 0;
+        if(*fmt == 'h' || *fmt == 'l' || *fmt == 'L' || *fmt == 'Z')
         {
-            width = width * 10 + (*fmt - '0');
+            qualifier = *fmt;
             fmt++;
-        }
-        if (width == 0)
-        {
-            align = FORMAT_LEFT;
         }
         switch(*fmt)
         {
@@ -170,52 +178,71 @@ PUBLIC int vsprintf(char* buf,const char* fmt,va_list ap)
             *str = '%';
             str++;
             break;
+
         case 'c':/* %c */
-            *str = va_arg(ap,uint64_t);
-            str++;
+            if (!(flag & FORMAT_LEFT))
+            {
+                while (--width > 0) {*str++ = ' ';}
+            };
+            *str++ = va_arg(ap,uint64_t);
+            while (--width > 0) {*str++ = ' ';}
             break;
+
         case 'd': /* %d */
-            s = digits;
-            itoa(va_arg(ap,uint64_t),s,10);
+        case 'i':
+            flag |= FORMAT_SIGN;
+        case 'u':
+            if (qualifier == 'l')
+            {
+                str = number_to_string(str,va_arg(ap,long long int),10,width,-1,flag);
+            }
+            else
+            {
+                str = number_to_string(str,va_arg(ap,int),10,width,-1,flag);
+            }
             break;
+
         case 'o': /* %o */
-            s = digits;
-            itoa(va_arg(ap,uint64_t),s,8);
+            if (qualifier == 'l')
+            {
+                str = number_to_string(str,va_arg(ap,long long int),8,width,-1,flag);
+            }
+            else
+            {
+                str = number_to_string(str,va_arg(ap,int),8,width,-1,flag);
+            }
             break;
+
         case 'p':
-            s = digits;
-            digits[0] = '0';
-            digits[1] = 'x';
-            utoa((addr_t)va_arg(ap,addr_t),digits+2,16);
+            width = 2 * sizeof(void*);
+            flag |= FORMAT_ZERO;
+            str = number_to_string(str,va_arg(ap,addr_t),16,width,16,flag);
             break;
+
         case 's': /* %s */
             s = va_arg(ap,char*);
             strcpy(str,s);
+            str += strlen(s);
             break;
-        case 'u': /* %u */
-            s = digits;
-            utoa(va_arg(ap,uint64_t),s,10);
-            break;
+
         case 'x': /* %x */
-            s = digits;
-            utoa(va_arg(ap,uint64_t),s,16);
+            flag |= FORMAT_SMALL;
+        case 'X':
+            if (qualifier == 'l')
+            {
+                str = number_to_string(str,va_arg(ap,long long int),16,width,-1,flag);
+            }
+            else
+            {
+                str = number_to_string(str,va_arg(ap,int),16,width,-1,flag);
+            }
             break;
-        }
-        width -= strlen(s);
-        while (width > 0 && align == FORMAT_RIGHT)
-        {
-            *str = (flage & FORMAT_ZERO ? '0' : ' ');
-            str++;
-            width--;
-        }
-        strcpy(str,s);
-        str += strlen(s);
-        /* 左对齐的情况 */
-        while (width > 0 && align == FORMAT_LEFT)
-        {
-            *str = ' ';
-            str++;
-            width--;
+
+        default:
+            *str++ = '%';
+            if(*fmt) { *str++ = *fmt; }
+            else     { fmt--; }
+            break;
         }
     }
     *str = '\0';
