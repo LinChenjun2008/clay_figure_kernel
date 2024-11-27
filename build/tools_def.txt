@@ -16,6 +16,7 @@ KERNEL_FLAGS     := -I$(KERNEL_ARCH_INCLUDE_PATH) -I$(SRC_PATH) -I$(KERNEL_INCLU
  -Wredundant-decls -Wnested-externs \
  -Winline \
  -Wno-long-long \
+ -Wno-implicit-fallthrough \
  -nostdlib -nostdinc \
  -finput-charset=UTF-8 -fexec-charset=UTF-8 \
  -fno-builtin -fno-strict-aliasing -ffreestanding \
