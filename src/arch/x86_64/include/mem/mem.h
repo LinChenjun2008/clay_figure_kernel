@@ -1,9 +1,9 @@
 /*
    Copyright 2024 LinChenjun
 
- * 本文件是Clay Figure Kernel的一部分。
- * 修改和/或分发遵循GNU GPL version 3 (or any later version)
-
+   本文件是Clay Figure Kernel的一部分。
+   修改和/或再分发遵循GNU GPL version 3 (or any later version)
+  
 */
 
 #ifndef __MEM_H__
