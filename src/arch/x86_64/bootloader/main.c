@@ -111,8 +111,7 @@ UefiMain
 
     // gST->ConOut->SetAttribute(gST->ConOut,  0x0F | 0x00);
     DISPLAY_INFO(L"\r---------------------------------------------------------\r\n"
-                    "----- Clay Figure Boot v1.0                         -----\r\n"
-                    "----- Copyright (c) LinChenjun,All Rights Reserved. -----\r\n"
+                    "----- CLFG Boot v1.0                                -----\r\n"
                     "---------------------------------------------------------\r\n");
 
     // prepare boot info
