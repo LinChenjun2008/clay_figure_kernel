@@ -73,45 +73,6 @@ PUBLIC task_struct_t* running_task()
     return res;
 }
 
-// running_prog() can only be called in syscall
-PUBLIC task_struct_t* running_prog()
-{
-    wordsize_t rsp;
-    wordsize_t pml4t;
-    rsp = get_rsp();
-    pml4t = get_cr3();
-    rsp = (wordsize_t)to_physical_address((void*)pml4t,(void*)rsp);
-    intr_status_t intr_status = intr_disable();
-    task_struct_t *res = NULL;
-    int i;
-    for (i = 0;i < MAX_TASK;i++)
-    {
-        if (tm->task_table[i].status == TASK_NO_TASK)
-        {
-            continue;
-        }
-        if (rsp >= tm->task_table[i].ustack_base
-            &&   rsp <= tm->task_table[i].ustack_base
-               + tm->task_table[i].ustack_size)
-        {
-            res = &tm->task_table[i];
-            break;
-        }
-    }
-    if (i == MAX_TASK)
-    {
-        PANIC("running program not found.\n");
-    }
-    intr_set_status(intr_status);
-    return res;
-}
-
-PUBLIC addr_t get_running_prog_kstack()
-{
-    task_struct_t *cur = running_prog();
-    return cur->kstack_base + cur->kstack_size;
-}
-
 PUBLIC status_t task_alloc(pid_t *pid)
 {
     status_t res = K_ERROR;
