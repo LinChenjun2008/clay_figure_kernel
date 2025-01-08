@@ -112,9 +112,9 @@ PUBLIC void pr_log(const char *log,...)
     vsprintf(msg,log,ap);
     buf = msg;
     basic_print(0x00c5c5c5,buf);
-
-    va_start(ap,log);
     serial_pr_log(log,ap);
+
+    va_end(ap);
     return;
 }
 
