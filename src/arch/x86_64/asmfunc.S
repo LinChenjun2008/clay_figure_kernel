@@ -147,38 +147,6 @@ wrmsr:
     popq %rcx
     ret
 
-/*
-.global asm_cpuid
-asm_cpuid:
-    pushq %rbx
-    subq $44, %rsp
-    movl %edi, (%rsp)
-    movl %esi, 4(%rsp)
-    movq %rdx, 12(%rsp)
-    movq %rcx, 20(%rsp)
-    movq %r8, 28(%rsp)
-    movq %r9, 36(%rsp)
-
-    movl (%rsp), %eax
-    movl 4(%rsp), %edx
-    movl %edx, %ebx
-    cpuid
-    movl %ebx, %esi
-    movl %eax, %edi
-    movq 12(%rsp), %rax
-    movl %edi, (%rax)
-    movq 20(%rsp), %rax
-    movl %esi, (%rax)
-    movq 28(%rsp), %rax
-    movl %ecx, (%rax)
-    movq 36(%rsp), %rax
-    movl %edx, (%rax)
-
-    addq $44, %rsp
-    popq %rbx
-    retq
-    */
-
 .global asm_cpuid
 asm_cpuid:
     pushq %rbx
