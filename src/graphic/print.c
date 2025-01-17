@@ -9,8 +9,8 @@
 #include <kernel/global.h>
 #include <std/stdarg.h>
 #include <std/stdio.h>
-#include <io.h>         // io_hlt,io_cli
-#include <device/timer.h>      // IRQ0_FREQUENCY
+#include <io.h>           // io_hlt,io_cli
+#include <device/timer.h> // IRQ0_FREQUENCY
 #include <device/cpu.h>
 
 #include <log.h>
