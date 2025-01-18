@@ -63,7 +63,7 @@ static void CleanBlock(UINT32 x,UINT32 y,UINT32 x1,UINT32 y1)
     {
         for (j = y;j < y1;j++)
         {
-            *((UINT32*)vram + j * Gop->Mode->Info->HorizontalResolution + i) = 0;
+            *((UINT32*)vram + j * Gop->Mode->Info->PixelsPerScanLine + i) = 0;
         }
     }
 }
@@ -76,7 +76,8 @@ static void DisplayBlock(UINT32 x,UINT32 y,UINT32 x1,UINT32 y1,UINT32 color)
     {
         for (j = y;j < y1;j++)
         {
-            *((UINT32*)vram + j * Gop->Mode->Info->HorizontalResolution + i) = color;
+            *((UINT32*)vram
+               + j * Gop->Mode->Info->PixelsPerScanLine + i) = color;
         }
     }
 }

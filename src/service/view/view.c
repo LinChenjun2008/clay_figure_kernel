@@ -18,6 +18,7 @@ PRIVATE struct
     uint32_t *vram;
     uint32_t xsize;
     uint32_t ysize;
+    uint32_t pixel_per_scanline;
 } gi;
 
 PRIVATE void view_put_pixel(message_t *msg)
@@ -44,7 +45,8 @@ PRIVATE void view_fill(message_t *msg)
         for (x = 0;x < msg->m3.i1;x++)
         {
             uint32_t pixel = *(buf + y * msg->m3.i1 + x);
-            *(gi.vram + (msg->m3.i4 + y) * gi.xsize + msg->m3.i3 + x) = pixel;
+            *( gi.vram + (msg->m3.i4 + y) * gi.pixel_per_scanline
+              + msg->m3.i3 + x) = pixel;
         }
     }
     free_page(buf,msg->m3.l1 / PG_SIZE + 1);
@@ -59,6 +61,7 @@ PUBLIC void view_main()
     gi.vram  = msg.m3.p1;
     gi.xsize = msg.m3.i1;
     gi.ysize = msg.m3.i2;
+    gi.pixel_per_scanline = msg.m3.i3;
     while(1)
     {
         send_recv(NR_RECV,RECV_FROM_ANY,&msg);
