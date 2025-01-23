@@ -140,10 +140,8 @@ PUBLIC list_node_t* get_next_task(list_t *list)
 
 PUBLIC void task_free(pid_t pid)
 {
-    if (pid >= MAX_TASK)
-    {
-        PANIC("Invailable pid");
-    }
+    PANIC(pid >= MAX_TASK,"Invailable pid");
+
     spinlock_lock(&tm->task_table_lock);
     tm->task_table[pid].status = TASK_NO_TASK;
     spinlock_unlock(&tm->task_table_lock);
@@ -158,7 +156,7 @@ PUBLIC status_t init_task_struct(
     size_t kstack_size)
 {
     // 不要在这里使用memset,否则会出现数据错误
-    // memset(task,0,sizeof(*task)); 
+    // memset(task,0,sizeof(*task));
     addr_t kstack      = kstack_base + kstack_size;
     task->context     = (task_context_t*)kstack;
     task->kstack_base = kstack_base;
@@ -278,10 +276,9 @@ PUBLIC void task_init()
     addr_t addr;
     status_t status;
     status = init_alloc_physical_page(sizeof(*tm) / PG_SIZE + 1,&addr);
-    if (ERROR(status))
-    {
-        PANIC("Can not allocate memory for task manager.");
-    }
+
+    PANIC(ERROR(status),"Can not allocate memory for task manager.");
+
     tm = KADDR_P2V(addr);
     memset(tm,0,sizeof(*tm));
     pid_t i;

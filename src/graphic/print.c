@@ -255,7 +255,7 @@ PUBLIC void panic_spin(
     const char* filename,
     int line,
     const char* func,
-    const char* condition)
+    const char* message)
 {
     uint64_t icr;
     icr = make_icr(
@@ -272,6 +272,6 @@ PUBLIC void panic_spin(
     pr_log("\n");
     pr_log("\3 >>> PANIC <<<\n");
     pr_log("\3 %s: In function '%s':\n",filename,func);
-    pr_log("\3 %s:%d: %s\n",filename,line,condition);
+    pr_log("\3 %s:%d: %s\n",filename,line,message);
     while (1) io_hlt();
 }

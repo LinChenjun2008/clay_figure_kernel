@@ -97,10 +97,9 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     asm_cpuid(1,0,&a,&b,&c,&d);
     b >>= 24;
     pr_log("CPUID: %x\n",b);
-    if (running_task() == NULL)
-    {
-        PANIC("Can not Get Running Task.");
-    }
+
+    PANIC(running_task() == NULL,"Can not Get Running Task.");
+
     task_struct_t *running = running_task();
     pr_log("running task: %s\n",running->name);
     pr_log("task context: %p\n",running->context);

@@ -22,9 +22,13 @@ PUBLIC void panic_spin(
     const char* filename,
     int line,
     const char* func,
-    const char* condition);
+    const char* message);
 
-#define PANIC(...) panic_spin (__FILE__,__LINE__,__FUNCTION__,__VA_ARGS__)
+#define PANIC(CONDITION,MESSAGE) \
+    do \
+    { \
+        if (CONDITION) {panic_spin (__FILE__,__LINE__,__FUNCTION__,MESSAGE);} \
+    } while (0)
 
 #if __DISABLE_ASSERT__
 
@@ -35,7 +39,7 @@ PUBLIC void panic_spin(
 #define ASSERT(X) \
     do \
     { \
-        if (!(X)) { PANIC("ASSERT("#X")"); } \
+        if (!(X)) { PANIC(#X,"ASSERT("#X")"); } \
     } while (0)
 
 #endif /* __DISABLE_ASSERT__ */
