@@ -9,7 +9,8 @@
 #include <kernel/global.h>
 #include <std/stdarg.h>
 #include <std/stdio.h>
-#include <io.h>         // io_hlt,io_cli
+#include <io.h>           // io_hlt,io_cli
+#include <device/timer.h> // IRQ0_FREQUENCY
 #include <device/cpu.h>
 
 #include <log.h>
@@ -30,13 +31,34 @@ typedef struct position_s
 
 PRIVATE position_t pos = {X_START,Y_START};
 
+extern uint64_t global_ticks;
 
+PRIVATE char *print_time(char *buf,uint64_t msec)
+{
+    sprintf(buf,"[%8u.%03u]",msec / IRQ0_FREQUENCY,msec % IRQ0_FREQUENCY);
+    return buf;
+}
 
 #define IS_TRANSMIT_EMPTY(port) (io_in8(port + 5) & 0x20)
 
 #ifdef __DISABLE_SERIAL_LOG__
 #define serial_pr_log(...) (void)0
 #else
+
+static void serial_pr_log_sub(uint16_t port,char *buf)
+{
+    while (IS_TRANSMIT_EMPTY(port) == 0);
+    if(*buf != 0)
+    {
+        do
+        {
+            while (IS_TRANSMIT_EMPTY(port) == 0);
+            io_out8(port,*buf);
+        } while (*buf++);
+    }
+    return;
+}
+
 static inline void serial_pr_log(const char *log,va_list ap)
 {
     char msg[256];
@@ -50,31 +72,16 @@ static inline void serial_pr_log(const char *log,va_list ap)
     };
     if (*log >= 1 && *log <= 3)
     {
+        serial_pr_log_sub(port,print_time(msg,global_ticks));
         buf = (char*)level[*log - 1];
-        while (IS_TRANSMIT_EMPTY(port) == 0);
-        if(*buf != 0)
-        {
-            do
-            {
-                while (IS_TRANSMIT_EMPTY(port) == 0);
-                io_out8(port,*buf);
-            } while (*buf++);
-        }
+        serial_pr_log_sub(port,buf);
     }
     vsprintf(msg,log,ap);
     buf = msg;
-    while (IS_TRANSMIT_EMPTY(port) == 0);
-    if(*buf != 0)
-    {
-        do
-        {
-            while (IS_TRANSMIT_EMPTY(port) == 0);
-            io_out8(port,*buf++);
-        } while (*buf);
-
-    }
+    serial_pr_log_sub(port,buf);
     return;
 }
+
 #endif /* __DISABLE_SERIAL_LOG__ */
 
 #undef IS_TRANSMIT_EMPTY
@@ -83,6 +90,7 @@ PUBLIC void pr_log(const char *log,...)
 {
     char msg[256];
     char *buf;
+    va_list ap;
     const char *level[] =
     {
         "[ INFO  ]",
@@ -90,8 +98,13 @@ PUBLIC void pr_log(const char *log,...)
         "[ ERROR ]"
 
     };
+
+    va_start(ap,log);
+    serial_pr_log(log,ap);
+
     if (*log >= 1 && *log <= 3)
     {
+        basic_print(0x00c5c5c5,print_time(msg,global_ticks));
         buf = (char*)level[*log - 1];
         if (*log - 1 == 0)
         {
@@ -107,14 +120,12 @@ PUBLIC void pr_log(const char *log,...)
         }
         log = log + 1;
     }
-    va_list ap;
     va_start(ap,log);
     vsprintf(msg,log,ap);
     buf = msg;
     basic_print(0x00c5c5c5,buf);
 
-    va_start(ap,log);
-    serial_pr_log(log,ap);
+    va_end(ap);
     return;
 }
 
@@ -244,7 +255,7 @@ PUBLIC void panic_spin(
     const char* filename,
     int line,
     const char* func,
-    const char* condition)
+    const char* message)
 {
     uint64_t icr;
     icr = make_icr(
@@ -261,6 +272,6 @@ PUBLIC void panic_spin(
     pr_log("\n");
     pr_log("\3 >>> PANIC <<<\n");
     pr_log("\3 %s: In function '%s':\n",filename,func);
-    pr_log("\3 %s:%d: %s\n",filename,line,condition);
+    pr_log("\3 %s:%d: %s\n",filename,line,message);
     while (1) io_hlt();
 }

@@ -86,8 +86,8 @@ PUBLIC status_t pmalloc(size_t size,void *addr)
         if (ERROR(status))
         {
             spinlock_unlock(&mem_groups[i].lock);
-            PANIC("Out Of Memory");
-            return K_ERROR;
+            ASSERT(!ERROR(status));
+            return -ENOMEM;
         }
         c = KADDR_P2V(c);
         memset(c,0,PG_SIZE);

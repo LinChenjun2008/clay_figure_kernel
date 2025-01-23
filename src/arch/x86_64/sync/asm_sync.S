@@ -10,16 +10,17 @@
 
 .global asm_spinlock_lock
 asm_spinlock_lock:
-    lock decq (%rdi)
-    jz .down
+    movq $0,%rax
+    lock xchgq (%rdi),%rax
+    cmpq $1,%rax
+    je .done
     .wait:
     pause
     cmpq $1,(%rdi)
     jne .wait
     jmp asm_spinlock_lock
-    .down:
+    .done:
     ret
-
 
 .global asm_atomic_add
 asm_atomic_add:

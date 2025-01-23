@@ -90,7 +90,7 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
         pr_log("\3'%s' -> '%s' dead lock\n",
                sender->name,
                receiver->name);
-        return SYSCALL_DEADLOCK;
+        return -EDEADLK;
     }
     memcpy(&sender->msg,msg,sizeof(message_t));
     wait_recevice();
@@ -111,7 +111,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
     task_struct_t *sender;
     if (src == receiver->pid)
     {
-        return SYSCALL_DEADLOCK;
+        return -EDEADLK;
     }
     receiver->recv_from = src;
     if (src == RECV_FROM_ANY || src == RECV_FROM_INT)

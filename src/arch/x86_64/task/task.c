@@ -73,45 +73,6 @@ PUBLIC task_struct_t* running_task()
     return res;
 }
 
-// running_prog() can only be called in syscall
-PUBLIC task_struct_t* running_prog()
-{
-    wordsize_t rsp;
-    wordsize_t pml4t;
-    rsp = get_rsp();
-    pml4t = get_cr3();
-    rsp = (wordsize_t)to_physical_address((void*)pml4t,(void*)rsp);
-    intr_status_t intr_status = intr_disable();
-    task_struct_t *res = NULL;
-    int i;
-    for (i = 0;i < MAX_TASK;i++)
-    {
-        if (tm->task_table[i].status == TASK_NO_TASK)
-        {
-            continue;
-        }
-        if (rsp >= tm->task_table[i].ustack_base
-            &&   rsp <= tm->task_table[i].ustack_base
-               + tm->task_table[i].ustack_size)
-        {
-            res = &tm->task_table[i];
-            break;
-        }
-    }
-    if (i == MAX_TASK)
-    {
-        PANIC("running program not found.\n");
-    }
-    intr_set_status(intr_status);
-    return res;
-}
-
-PUBLIC addr_t get_running_prog_kstack()
-{
-    task_struct_t *cur = running_prog();
-    return cur->kstack_base + cur->kstack_size;
-}
-
 PUBLIC status_t task_alloc(pid_t *pid)
 {
     status_t res = K_ERROR;
@@ -179,10 +140,8 @@ PUBLIC list_node_t* get_next_task(list_t *list)
 
 PUBLIC void task_free(pid_t pid)
 {
-    if (pid >= MAX_TASK)
-    {
-        PANIC("Invailable pid");
-    }
+    PANIC(pid >= MAX_TASK,"Invailable pid");
+
     spinlock_lock(&tm->task_table_lock);
     tm->task_table[pid].status = TASK_NO_TASK;
     spinlock_unlock(&tm->task_table_lock);
@@ -197,7 +156,7 @@ PUBLIC status_t init_task_struct(
     size_t kstack_size)
 {
     // 不要在这里使用memset,否则会出现数据错误
-    // memset(task,0,sizeof(*task)); 
+    // memset(task,0,sizeof(*task));
     addr_t kstack      = kstack_base + kstack_size;
     task->context     = (task_context_t*)kstack;
     task->kstack_base = kstack_base;
@@ -317,10 +276,9 @@ PUBLIC void task_init()
     addr_t addr;
     status_t status;
     status = init_alloc_physical_page(sizeof(*tm) / PG_SIZE + 1,&addr);
-    if (ERROR(status))
-    {
-        PANIC("Can not allocate memory for task manager.");
-    }
+
+    PANIC(ERROR(status),"Can not allocate memory for task manager.");
+
     tm = KADDR_P2V(addr);
     memset(tm,0,sizeof(*tm));
     pid_t i;

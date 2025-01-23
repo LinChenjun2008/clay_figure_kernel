@@ -144,6 +144,36 @@ PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
         {
             width = skip_atoi(&fmt);
         }
+        else if (*fmt == '*')
+        {
+            fmt++;
+            width = va_arg(ap,int);
+            if (width < 0)
+            {
+                width = -width;
+                flag |= FORMAT_LEFT;
+            }
+        }
+
+        int precision = -1;
+        if(*fmt == '.')
+        {
+            fmt++;
+            if(IS_DIGIT(*fmt))
+            {
+                precision = skip_atoi(&fmt);
+            }
+            else if(*fmt == '*')
+            {	
+                fmt++;
+                precision = va_arg(ap, int);
+            }
+            if(precision < 0)
+            {
+                precision = 0;
+            }
+        }
+
         qualifier = 0;
         if(*fmt == 'h' || *fmt == 'l' || *fmt == 'L' || *fmt == 'Z')
         {
@@ -172,29 +202,32 @@ PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
         case 'u':
             if (qualifier == 'l')
             {
-                str = number_to_string(str,va_arg(ap,long long int),10,width,-1,flag);
+                str = number_to_string(str,va_arg(ap,long long int),10,width,precision,flag);
             }
             else
             {
-                str = number_to_string(str,va_arg(ap,int),10,width,-1,flag);
+                str = number_to_string(str,va_arg(ap,int),10,width,precision,flag);
             }
             break;
 
         case 'o': /* %o */
             if (qualifier == 'l')
             {
-                str = number_to_string(str,va_arg(ap,long long int),8,width,-1,flag);
+                str = number_to_string(str,va_arg(ap,long long int),8,width,precision,flag);
             }
             else
             {
-                str = number_to_string(str,va_arg(ap,int),8,width,-1,flag);
+                str = number_to_string(str,va_arg(ap,int),8,width,precision,flag);
             }
             break;
 
         case 'p':
-            width = 2 * sizeof(void*);
-            flag |= FORMAT_ZERO;
-            str = number_to_string(str,va_arg(ap,addr_t),16,width,16,flag);
+            if (width == -1)
+            {
+                width = 2 * sizeof(void*);
+                flag |= FORMAT_ZERO;
+            }
+            str = number_to_string(str,va_arg(ap,addr_t),16,width,precision,flag);
             break;
 
         case 's': /* %s */
@@ -208,11 +241,11 @@ PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
         case 'X':
             if (qualifier == 'l')
             {
-                str = number_to_string(str,va_arg(ap,long long int),16,width,-1,flag);
+                str = number_to_string(str,va_arg(ap,long long int),16,width,precision,flag);
             }
             else
             {
-                str = number_to_string(str,va_arg(ap,int),16,width,-1,flag);
+                str = number_to_string(str,va_arg(ap,int),16,width,precision,flag);
             }
             break;
 

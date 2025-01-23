@@ -111,8 +111,6 @@ PUBLIC bool task_exist(pid_t pid);
  * 获取当前正在运行的任务的结构体.
  */
 PUBLIC task_struct_t* running_task();
-PUBLIC task_struct_t* running_prog();
-PUBLIC addr_t get_running_prog_kstack();
 
 /**
  * 在任务表中分配一个任务.
@@ -199,6 +197,7 @@ PUBLIC void task_yield();
 /// tss.c
 PUBLIC void init_tss(uint8_t nr_cpu);
 PUBLIC void update_tss_rsp0(task_struct_t *task);
+PUBLIC addr_t get_running_prog_kstack();
 
 /// prog.c
 PUBLIC void prog_activate(task_struct_t *task);

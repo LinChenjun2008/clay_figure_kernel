@@ -26,6 +26,7 @@
 
 #include <kernel/def.h>
 #include <kernel/const.h>
+#include <errno.h>
 
 #include <common.h>
 

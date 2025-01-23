@@ -18,6 +18,13 @@
 
 extern taskmgr_t *tm;
 
+typedef struct 
+{
+    uint64_t page_index;
+    uint32_t page_count;
+    pid_t    owner;
+} page_t;
+
 PRIVATE void mm_allocate_page(message_t *msg)
 {
     void *paddr;
