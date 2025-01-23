@@ -23,7 +23,6 @@ typedef struct semaphore_s
 } semaphore_t;
 
 PUBLIC void init_semaphore(semaphore_t *sema,uint32_t value);
-PUBLIC status_t sema_free(semaphore_t *sema);
 PUBLIC status_t sema_down(semaphore_t *sema);
 PUBLIC status_t sema_up(semaphore_t *sema);
 

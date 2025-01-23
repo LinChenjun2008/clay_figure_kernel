@@ -192,7 +192,7 @@ PUBLIC status_t alloc_physical_page(uint64_t number_of_pages,void *addr)
     {
         spinlock_unlock(&mem.lock);
         pr_log("\3 %s:Out of Memory.\n",__func__);
-        return K_ERROR;
+        return K_NOMEM;
     }
     phy_addr_t paddr = 0;
 

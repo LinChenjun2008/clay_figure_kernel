@@ -87,7 +87,7 @@ PUBLIC status_t pmalloc(size_t size,void *addr)
         {
             spinlock_unlock(&mem_groups[i].lock);
             ASSERT(!ERROR(status));
-            return -ENOMEM;
+            return K_NOMEM;
         }
         c = KADDR_P2V(c);
         memset(c,0,PG_SIZE);

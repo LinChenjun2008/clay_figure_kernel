@@ -45,7 +45,7 @@ PRIVATE status_t add_timer(message_t *msg)
             return K_SUCCESS;
         }
     }
-    return K_ERROR;
+    return K_OUT_OF_RESOURCE;
 }
 
 PRIVATE void wake_up()

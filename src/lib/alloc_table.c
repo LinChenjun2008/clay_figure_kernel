@@ -26,7 +26,7 @@ PUBLIC status_t allocate_units(
 {
     if (index == NULL)
     {
-        return K_ERROR;
+        return K_INVAILD_PARAM;
     }
     uint64_t i;
     uint64_t j;
@@ -50,7 +50,7 @@ PUBLIC status_t allocate_units(
             return K_SUCCESS;
         }
     }
-    return K_ERROR;
+    return K_OUT_OF_RESOURCE;
 }
 
 PUBLIC void free_units(

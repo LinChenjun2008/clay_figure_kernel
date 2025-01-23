@@ -313,7 +313,7 @@ PUBLIC status_t xhci_setup()
     if (number_of_xhci == 0)
     {
         pr_log("\3xhci_dev not found.\n");
-        return K_ERROR;
+        return K_NOT_FOUND;
     }
 
     register_handle(IRQ_XHCI,intr_xHCI_handler);
@@ -324,7 +324,7 @@ PUBLIC status_t xhci_setup()
     if (ERROR(status))
     {
         pr_log("\3 Can not alloc memory for xHCI set.\n");
-        return K_ERROR;
+        return K_NOMEM;
     }
     xhci_set = KADDR_P2V(addr);
     pr_log("\1 xhci_set at: %p.\n",xhci_set);
@@ -417,7 +417,7 @@ PUBLIC status_t xhci_init(xhci_t *xhci)
     if (hci_ver < 0x0090 || hci_ver > 0x0120)
     {
         pr_log("\3 Unsupported HCI version.\n");
-        return K_ERROR;
+        return K_NOSUPPORT;
     }
 
     // halt xHCI
@@ -430,7 +430,7 @@ PUBLIC status_t xhci_init(xhci_t *xhci)
     pr_log("\1 HCCPARAM1: %08x\n",hccp1);
     if (hccp1 == 0xffffffff)
     {
-        return K_ERROR;
+        return K_INVAILD_PARAM;
     }
     xhci->cxt_size    = GET_FIELD(hccp1,HCCP1_CSZ) == 1 ? 64 : 32;
     xhci->xecp_offset = GET_FIELD(hccp1,HCCP1_XECP) << 2;

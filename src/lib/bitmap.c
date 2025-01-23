@@ -10,6 +10,8 @@
 #include <lib/bitmap.h>
 #include <std/string.h> // memset
 
+#include <log.h>        // PANIC
+
 PUBLIC void init_bitmap(bitmap_t *btmp)
 {
     memset(btmp->map,0,btmp->btmp_bytes_len);
@@ -27,7 +29,7 @@ PUBLIC status_t bitmap_alloc(bitmap_t *btmp,int32_t cnt,uint32_t *index)
 {
     if (index == NULL)
     {
-        return K_ERROR;
+        return K_INVAILD_PARAM;
     }
     int32_t byte_index = 0;
     while ((byte_index < btmp->btmp_bytes_len)
@@ -37,7 +39,7 @@ PUBLIC status_t bitmap_alloc(bitmap_t *btmp,int32_t cnt,uint32_t *index)
     }
     if (byte_index >= btmp->btmp_bytes_len)
     {
-        return K_ERROR;
+        return K_OUT_OF_RESOURCE;
     }
     int32_t bit_index;
     for (bit_index = byte_index * 8;bit_index < btmp->btmp_bytes_len;bit_index++)
@@ -57,7 +59,8 @@ PUBLIC status_t bitmap_alloc(bitmap_t *btmp,int32_t cnt,uint32_t *index)
         }
         bit_index += free_bits;
     }
-    return K_ERROR;
+    PANIC(TRUE,"bitmap alloctor: Allocation failed!");
+    return K_OUT_OF_RESOURCE;
 }
 
 PUBLIC void bitmap_set(bitmap_t *btmp,int32_t bit_index,uint8_t value)
