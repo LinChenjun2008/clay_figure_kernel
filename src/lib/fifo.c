@@ -38,12 +38,12 @@ PUBLIC status_t fifo_put(fifo_t *fifo,void* data)
 {
     if (data == NULL)
     {
-        return K_ERROR;
+        return K_INVAILD_ADDR;
     }
 
     if (fifo->free == 0) /* 没有空余 */
     {
-        return K_ERROR;
+        return K_OUT_OF_RESOURCE;
     }
     fifo->free--;
     switch(fifo->type)
@@ -69,11 +69,11 @@ PUBLIC status_t fifo_get(fifo_t *fifo,void* data)
 {
     if (data == NULL)
     {
-        return K_ERROR;
+        return K_INVAILD_ADDR;
     }
     if (fifo->free == fifo->size)
     {
-        return K_ERROR;
+        return K_OUT_OF_RESOURCE;
     }
     fifo->free++;
     switch(fifo->type)

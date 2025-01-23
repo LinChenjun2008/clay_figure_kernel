@@ -24,11 +24,6 @@ PUBLIC void init_semaphore(semaphore_t *sema,uint32_t value)
     return;
 }
 
-PUBLIC status_t sema_free(semaphore_t *sema)
-{
-    return sema->value.value != 0 ? K_SUCCESS : K_ERROR;
-}
-
 PUBLIC status_t sema_down(semaphore_t *sema)
 {
     intr_status_t intr_status = intr_disable();

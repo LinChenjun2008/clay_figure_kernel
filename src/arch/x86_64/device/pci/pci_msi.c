@@ -123,7 +123,7 @@ PUBLIC status_t pci_dev_configure_msi(pci_device_t *dev,uint32_t irq,uint32_t co
                dev->bus,
                dev->device,
                dev->func);
-        return K_ERROR;
+        return K_HW_NOSUPPORT;
     }
     pci_msi_struct_t *msi = & dev->msi;
     if (count > 32 || count > msi->msg_cnt || ((count - 1) & count) != 0)
@@ -165,7 +165,7 @@ PUBLIC status_t pci_dev_enable_msi(pci_device_t *dev)
     if (msi->configured_count == 0)
     {
         pr_log("\3 No MSI configured.\n");
-        return K_ERROR;
+        return K_HW_NOSUPPORT;
     }
     uint32_t pci_command = pci_dev_config_read(dev,0x04);
     pci_command |= 1 << 10; // interrupt disable

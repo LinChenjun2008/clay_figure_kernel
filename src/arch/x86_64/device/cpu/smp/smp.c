@@ -74,7 +74,7 @@ PUBLIC status_t smp_init()
     if (ERROR(status))
     {
         pr_log("\3 fatal: can not alloc memory for apu. \n");
-        return K_ERROR;
+        return K_NOMEM;
     }
     *(phy_addr_t*)AP_STACK_BASE_PTR = (phy_addr_t)apu_stack_base;
 
@@ -89,7 +89,7 @@ PUBLIC status_t smp_init()
         {
             pr_log("\3 Alloc task for AP error.\n");
             free_physical_page(apu_stack_base,((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1);
-            return K_ERROR;
+            return K_NOMEM;
         }
         task_struct_t *idle_task   = pid2task(ap_main_pid);
         addr_t         kstack_base;

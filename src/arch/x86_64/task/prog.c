@@ -47,7 +47,7 @@ PRIVATE void start_process(void *process)
         pr_log("\3 Alloc User Stack error.\n");
         message_t msg;
         msg.type = MM_EXIT;
-        msg.m1.i1 = K_ERROR;
+        msg.m1.i1 = K_NOMEM;
         sys_send_recv(NR_BOTH,MM,&msg);
         pr_log("\3 %s: Shuold not be here.",__func__);
         while (1) continue;

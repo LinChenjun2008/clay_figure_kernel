@@ -76,7 +76,6 @@ PRIVATE void print_ticks()
 PUBLIC void kernel_main()
 {
     pr_log(K_NAME " - " K_VERSION "\n");
-    PANIC(1,"ERROR");
     init_all();
     prog_execute("k task",DEFAULT_PRIORITY,4096,ktask);
     task_start("vrtime",DEFAULT_PRIORITY,4096,print_ticks,0);

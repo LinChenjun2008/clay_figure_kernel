@@ -15,5 +15,5 @@ PUBLIC status_t check_sse()
     uint32_t a,b,c,d;
     asm_cpuid(1,0,&a,&b,&c,&d);
     // SSE & FXSR
-    return d & (3 << 24) ? K_SUCCESS : K_ERROR;
+    return d & (3 << 24) ? K_SUCCESS : K_HW_NOSUPPORT;
 }

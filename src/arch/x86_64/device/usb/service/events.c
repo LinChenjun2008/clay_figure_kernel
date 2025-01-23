@@ -33,7 +33,7 @@ PRIVATE status_t xhci_hub_port_reset(xhci_t *xhci,uint8_t port_id)
             xhci_write_opt(xhci,XHCI_OPT_PORTSC(port_id - 1),portsc | PORTSC_PR);
             break;
         default:
-            return K_ERROR;
+            return K_UDF_BEHAVIOR;
     }
     while (1)
     {

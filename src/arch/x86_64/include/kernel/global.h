@@ -21,12 +21,20 @@
 // #define __TIMER_HPET__
 
 #define ERROR(x) ((x) != K_SUCCESS)
-#define K_ERROR          0xc0000000
-#define K_SUCCESS        0x80000000
+#define K_ERROR           0xc0000000
+#define K_UDF_BEHAVIOR    0xc0000001
+#define K_NOMEM           0xc0000002
+#define K_NOSUPPORT       0xc0000003
+#define K_HW_NOSUPPORT    0xc0000004
+#define K_DEADLOCK        0xc0000005
+#define K_INVAILD_PARAM   0xc0000006
+#define K_INVAILD_ADDR    0xc0000007
+#define K_OUT_OF_RESOURCE 0xc0000008
+#define K_NOT_FOUND       0xc0000009
+#define K_SUCCESS         0x80000000
 
 #include <kernel/def.h>
 #include <kernel/const.h>
-#include <errno.h>
 
 #include <common.h>
 
