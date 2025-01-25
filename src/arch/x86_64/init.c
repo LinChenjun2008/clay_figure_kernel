@@ -124,15 +124,13 @@ PUBLIC void init_all()
 
     pr_log("\1 Service initializing ...");
     service_init();
-    intr_enable();
     pr_log(" OK.\n");
 
-    pr_log("\1 Memory: %d MB (%d GB), free: %d MB,using: %d%% .\n",
-        total_memory() >> 20,
-        total_memory() >> 30,
-        total_free_pages() * 2,
-        100 - (total_free_pages() * 100 / total_pages()));
+    intr_enable();
 
+    // Call apic_timer_init() after intr_enable()
+    // then we can use global_ticks to calibrate apic timer.
+    apic_timer_init();
     spinlock_unlock(&schedule_lock);
 
     do_schedule();
@@ -159,6 +157,8 @@ PUBLIC void ap_init_all()
 
     ap_intr_init();
     local_apic_init();
+    apic_timer_init();
+
     sse_init();
     syscall_init();
     intr_enable();

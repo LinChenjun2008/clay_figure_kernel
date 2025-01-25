@@ -31,7 +31,7 @@ PUBLIC void eoi(uint8_t irq)
 {
     (void)irq;
 #ifndef __PIC_8259A__
-    local_apic_write(0x0b0,0);
+    local_apic_write(APIC_REG_EOI,0);
 #else
     io_out8(PIC_M_CTRL,0x20);
 #endif

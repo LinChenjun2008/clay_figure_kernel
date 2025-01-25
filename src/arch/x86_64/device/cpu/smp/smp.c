@@ -43,14 +43,6 @@ PUBLIC uint64_t make_icr(
     return icr;
 }
 
-
-PRIVATE void ipi_timer_handler()
-{
-    eoi(0x80);
-    schedule();
-    return;
-}
-
 PRIVATE void ipi_panic_handler()
 {
     eoi(0x81);
@@ -108,8 +100,8 @@ PUBLIC status_t smp_init()
     }
 
     // register IPI
-    register_handle(0x80,ipi_timer_handler);
     register_handle(0x81,ipi_panic_handler);
+
     // init IPI
     uint64_t icr = make_icr(
         0,

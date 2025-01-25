@@ -17,5 +17,6 @@
 #define COUNTER0_VALUE_HI (((INPUT_FREQUENCY / IRQ0_FREQUENCY) >> 8) & 0xff)
 
 PUBLIC void pit_init();
+PUBLIC void apic_timer_init();
 
 #endif

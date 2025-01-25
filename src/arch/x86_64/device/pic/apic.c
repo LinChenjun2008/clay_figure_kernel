@@ -25,9 +25,13 @@
  0xfee000f0   | 0x80f       | SVR                | RW
  0xfee00300   | 0x830       | ICR (bit 31 :  0)  | RW
  0xfee00310   | 0x830       | ICR (bit 63 : 32)  | RW
+ 0xfee00320   | 0x832       | LVT Timer          | RW
  0xfee00350   | 0x835       | LVT LINT0          | RW
  0xfee00360   | 0x836       | LVT LINT1          | RW
  0xfee00370   | 0x837       | LVT Error          | RW
+ 0xfee00380   | 0x838       | Timer init count   | RW
+ 0xfee00390   | 0x839       | Timer current count| RO
+ 0xfee003e0   | 0x83e       | Timer div          | RW
 */
 
 
@@ -96,13 +100,13 @@ PUBLIC uint32_t local_apic_read(uint16_t index)
 PRIVATE void xapic_init()
 {
     // enable SVR[8]
-    uint32_t svr = local_apic_read(0x0f0);
+    uint32_t svr = local_apic_read(APIC_REG_SVR);
     svr |= 1 << 8;
-    if (local_apic_read(0x030) >> 24 & 1)
+    if (local_apic_read(APIC_REG_VERSION) >> 24 & 1)
     {
         svr |= 1 << 12;
     }
-    local_apic_write(0x0f0,svr);
+    local_apic_write(APIC_REG_SVR,svr);
 
     // Mask all LVT
     local_apic_write(0x2f0,0x10000);
@@ -221,5 +225,6 @@ PUBLIC void apic_init()
 
     local_apic_init();
     ioapic_init();
+
     return;
 }

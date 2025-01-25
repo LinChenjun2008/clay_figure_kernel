@@ -16,8 +16,7 @@
 
 // #define __DISABLE_ASSERT__
 
-// #define __PIC_8259A__
-
+// #define __DISABLE_APIC_TIMER__
 // #define __TIMER_HPET__
 
 #define ERROR(x) ((x) != K_SUCCESS)
