@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -115,14 +115,15 @@ PRIVATE bool task_ckeck(list_node_t *node,uint64_t arg)
 {
     (void)arg;
     task_struct_t *task = CONTAINER_OF(task_struct_t,general_tag,node);
-    if (task->recv_flag == 1)
+    if (atomic_read(&task->recv_flag) == 1)
     {
         return FALSE;
     }
-    else if (task->send_flag > 0)
+    else if ((int64_t)atomic_read(&task->send_flag) > 0)
     {
         task_struct_t *receiver = pid2task(task->send_to);
-        receiver->recv_flag = 0;
+        // receiver->recv_flag = 0;
+        atomic_set(&receiver->recv_flag,0);
         return FALSE;
     }
     return TRUE;
@@ -184,12 +185,14 @@ PUBLIC status_t init_task_struct(
     task->page_dir       = NULL;
 
     task->send_to        = MAX_TASK;
-    task->send_flag      = 0;
     task->recv_from      = MAX_TASK;
-    task->recv_flag      = 0;
+    atomic_set(&task->send_flag,0);
+    atomic_set(&task->recv_flag,0);
+
     task->has_intr_msg   = 0;
     init_spinlock(&task->send_lock);
     list_init(&task->sender_list);
+
     addr_t fxsave_region;
     status_t status = pmalloc(sizeof(*task->fxsave_region),&fxsave_region);
     if (ERROR(status))

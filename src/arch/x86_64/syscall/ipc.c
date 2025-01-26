@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -7,9 +7,11 @@
 */
 
 #include <kernel/global.h>
-#include <task/task.h>  // task_struct_t running_task,task block/unblock,list
-#include <service.h>    // is_service_id,service_id_to_pid
-#include <std/string.h> // memcpy
+#include <task/task.h>   // task_struct_t running_task,task block/unblock,list
+#include <service.h>     // is_service_id,service_id_to_pid
+#include <std/string.h>  // memcpy
+#include <intr.h>        // intr_disable,intr_enable
+#include <sync/atomic.h> // atomic_inc,atomic_dec
 
 #include <log.h>
 
@@ -52,7 +54,7 @@ PUBLIC void inform_intr(pid_t dest)
     task_struct_t *receiver = pid2task(dest);
     receiver->has_intr_msg++;
     update_vruntime(receiver);
-    receiver->recv_flag = 0;
+    atomic_set(&receiver->recv_flag,0);
     return;
 }
 
@@ -65,11 +67,15 @@ PRIVATE void wait_recevice()
     spinlock_lock(&receiver->send_lock);
     list_append(&receiver->sender_list,&sender->send_tag);
     update_vruntime(receiver);
-    receiver->recv_flag = 0;
+    atomic_set(&receiver->recv_flag,0);
     spinlock_unlock(&receiver->send_lock);
 
-    sender->send_flag++;
+    atomic_inc(&sender->send_flag);
+
+    intr_enable();
     task_yield();
+    intr_disable();
+    return;
 }
 
 PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
@@ -102,7 +108,8 @@ PRIVATE void inform_receive(pid_t sender_pid)
     task_struct_t *sender = pid2task(sender_pid);
     sender->send_to = MAX_TASK;
     update_vruntime(sender);
-    sender->send_flag--;
+    atomic_dec(&sender->send_flag);
+    return;
 }
 
 PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
@@ -121,7 +128,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
         spinlock_unlock(&receiver->send_lock);
         if (!has_msg_received && !receiver->has_intr_msg)
         {
-            receiver->recv_flag = 1;
+            atomic_set(&receiver->recv_flag,1);
             task_yield();
         }
         if (receiver->has_intr_msg)
@@ -154,7 +161,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src,message_t *msg)
                           &sender->send_tag))
         {
             spinlock_unlock(&receiver->send_lock);
-            receiver->recv_flag = 1;
+            atomic_set(&receiver->recv_flag,1);
             task_yield();
             spinlock_lock(&receiver->send_lock);
         }
