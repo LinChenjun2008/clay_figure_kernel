@@ -39,7 +39,7 @@ QEMU_FLAGS := -m 128M -bios $(OVMF) \
 # -device usb-kbd
 # -d cpu_reset
 
-# -chardev stdio,mux=on,id=com1
-# -serial chardev:com1
+# -chardev stdio,mux=on,id=com1 \
+ -serial chardev:com1
 
 # -monitor stdio

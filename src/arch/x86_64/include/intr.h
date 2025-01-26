@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -59,6 +59,7 @@ PUBLIC intr_status_t intr_get_status();
 PUBLIC intr_status_t intr_set_status(intr_status_t status);
 PUBLIC intr_status_t intr_enable();
 PUBLIC intr_status_t intr_disable();
+
 #else
 INTR_HANDLER(asm_intr0x00_handler,0x00, pushq $0)
 INTR_HANDLER(asm_intr0x01_handler,0x01, pushq $0)

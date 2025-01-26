@@ -16,23 +16,17 @@ EFI_STATUS SetVideoMode(UINT32 xsize,UINT32 ysize)
     EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Info;
     UINTN i;
     UINT32 Mode = 0;
-    UINTN sub = 0xffffffff;
     for(i = 0;i < Gop->Mode->MaxMode;i++)
     {
         Gop->QueryMode(Gop,i,&SizeOfInfo,&Info);
-        if(ABS(xsize - Info->HorizontalResolution)
-           + ABS(ysize -Info->VerticalResolution) < sub)
+        if (xsize == Info->HorizontalResolution && ysize == Info->VerticalResolution)
         {
-            sub =  ABS(xsize - Info->HorizontalResolution)
-                 + ABS(ysize - Info->VerticalResolution);
             Mode = i;
+            Gop->SetMode(Gop,Mode);
+            return EFI_SUCCESS;
         }
     }
-    if (Mode == Gop->Mode->MaxMode)
-    {
-        return EFI_ERR;
-    }
-    return Gop->SetMode(Gop,Mode);
+    return EFI_ERR;
 }
 
 // #define OLD_LOGO

@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -41,14 +41,6 @@ PUBLIC uint64_t make_icr(
             | (des_shorthand  & 0x03) << 18
             | ((uint64_t)destination) << 32;
     return icr;
-}
-
-
-PRIVATE void ipi_timer_handler()
-{
-    eoi(0x80);
-    schedule();
-    return;
 }
 
 PRIVATE void ipi_panic_handler()
@@ -108,8 +100,8 @@ PUBLIC status_t smp_init()
     }
 
     // register IPI
-    register_handle(0x80,ipi_timer_handler);
     register_handle(0x81,ipi_panic_handler);
+
     // init IPI
     uint64_t icr = make_icr(
         0,

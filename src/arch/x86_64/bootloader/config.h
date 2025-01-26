@@ -9,8 +9,22 @@
 #ifndef __BOOTLOADER_CONFIG_H__
 #define __BOOTLOADER_CONFIG_H__
 
-#define HORIZONTAL_RESOLUTION 1920
-#define VERTICAL_RESOLUTION   1080
+UINT32 VideoModes[12][2] =
+{
+    {2560, 1600},
+    {1920, 1200},
+    {1920, 1080},
+    {1680, 1050},
+    {1600, 1200},
+    {1440, 900},
+    {1280, 1024},
+    {1280, 800},
+    {1280, 720},
+    {1024, 768},
+    {800, 600},
+    {0,0},
+};
+
 
 struct Files
 {

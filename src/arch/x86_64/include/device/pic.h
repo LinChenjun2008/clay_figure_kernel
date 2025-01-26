@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -12,6 +12,21 @@
 #define SIGNATURE32(A,B,C,D) ( D << 24 | C << 16 | B << 8 | A)
 #define MADT_SIGNATURE SIGNATURE_32('A','P','I','C') //"APIC"
 
+#define APIC_REG_ID         0x020
+#define APIC_REG_VERSION    0x030
+#define APIC_REG_TPR        0x080
+#define APIC_REG_PPR        0x0a0
+#define APIC_REG_EOI        0x0b0
+#define APIC_REG_SVR        0x0f0
+#define APIC_REG_ICR_LO     0x300
+#define APIC_REG_ICR_HI     0x310
+#define APIC_REG_LVT_TIMER  0x320
+#define APIC_REG_LVT_LINT0  0x350
+#define APIC_REG_LVT_LINT1  0x360
+#define APIC_REG_LVT_ERROR  0x370
+#define APIC_REG_TIMER_ICNT 0x380
+#define APIC_REG_TIMER_CCNT 0x390
+#define APIC_REG_TIMER_DIV  0x3e0
 
 #pragma pack(1)
 typedef struct ACPI_DESCRIPTION_HEADER_s

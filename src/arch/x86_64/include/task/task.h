@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -70,9 +70,11 @@ typedef struct task_struct_s
 
     message_t              msg;
     pid_t                  send_to;
-    int8_t                 send_flag;
     pid_t                  recv_from;
-    uint8_t                recv_flag;
+
+    atomic_t               send_flag;
+    atomic_t               recv_flag;
+
     uint8_t                has_intr_msg;
     spinlock_t             send_lock;
     list_t                 sender_list;
