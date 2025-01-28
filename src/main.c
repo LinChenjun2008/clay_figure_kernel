@@ -43,8 +43,6 @@ PRIVATE void ktask()
     };
 }
 
-extern taskmgr_t *tm;
-
 PUBLIC void kernel_main()
 {
     pr_log(K_NAME " - " K_VERSION "\n");
