@@ -17,7 +17,7 @@ extern taskmgr_t *tm;
 
 PUBLIC void update_vruntime(task_struct_t *task)
 {
-    uint64_t ideal_vruntime = tm->core[task->cpu_id].min_vruntime - 1;
+    uint64_t ideal_vruntime = tm->core[task->cpu_id].min_vruntime;
     if ((int64_t)(task->vrun_time - ideal_vruntime) < 0)
     {
         task->vrun_time = ideal_vruntime;
@@ -85,11 +85,8 @@ PUBLIC void do_schedule()
     spinlock_lock(&tm->core[cpu_id].task_list_lock);
     next_task_tag = get_next_task(&tm->core[cpu_id].task_list);
     next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
-    if (next_task_tag != NULL)
-    {
-        update_min_vruntime(&tm->core[cpu_id],next->vrun_time);
-    }
-    else
+
+    if (next_task_tag == NULL)
     {
         task_unblock_without_spinlock(tm->core[cpu_id].idle_task);
         next_task_tag = get_next_task(&tm->core[cpu_id].task_list);
@@ -97,6 +94,7 @@ PUBLIC void do_schedule()
         ASSERT(next_task_tag != NULL);
     }
     spinlock_unlock(&tm->core[cpu_id].task_list_lock);
+    update_vruntime(next);
     next->status = TASK_RUNNING;
     prog_activate(next);
     asm_fxsave(cur_task->fxsave_region);

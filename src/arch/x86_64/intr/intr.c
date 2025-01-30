@@ -99,7 +99,7 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     uint32_t a,b,c,d;
     asm_cpuid(1,0,&a,&b,&c,&d);
     b >>= 24;
-    pr_log("CPUID: %x\n",b);
+    pr_log("CPUID: %d\n",b);
 
     PANIC(running_task() == NULL,"Can not Get Running Task.");
 

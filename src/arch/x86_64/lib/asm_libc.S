@@ -9,6 +9,7 @@
 .text
 
 .global memset
+.type memset,@function
 memset:
     pushq %rcx
     movw %si, %ax
@@ -19,6 +20,7 @@ memset:
     ret
 
 .global memcpy
+.type memcpy,@function
 memcpy:
     movq %rsi, %rax
     pushq %rcx
@@ -29,6 +31,7 @@ memcpy:
     ret
 
 .global memcmp
+.type memcmp,@function
 memcmp:
     pushq %rcx
     movq %rdx, %rcx
@@ -46,6 +49,7 @@ memcmp:
     ret
 
 .global strcpy
+.type strcpy,@function
 strcpy:
     pushq %rdi
     cld
@@ -58,6 +62,7 @@ strcpy:
     ret
 
 .global strncpy
+.type strncpy,@function
 strncpy:
     movq %rdi, %rax
     pushq %rcx
@@ -76,6 +81,7 @@ strncpy:
     ret
 
 .global strcmp
+.type strcmp,@function
 strcmp:
     cld
     .strcmp_loop:
@@ -99,6 +105,7 @@ strcmp:
 
 
 .global strncmp
+.type strncmp,@function
 strncmp:
     pushq %rcx
     movq %rdx, %rcx
@@ -129,6 +136,7 @@ strncmp:
 
 
 .global strlen
+.type strlen,@function
 strlen:
     pushq %rcx
     movq $-1, %rcx

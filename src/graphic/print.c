@@ -106,18 +106,20 @@ PUBLIC void pr_log(const char *log,...)
     {
         basic_print(0x00c5c5c5,print_time(msg,global_ticks));
         buf = (char*)level[*log - 1];
-        if (*log - 1 == 0)
+        uint32_t color;
+        switch (*log)
         {
-            basic_print(0x0000c500,buf);
+            case 1:
+                color = 0x0000c500;
+                break;
+            case 2:
+                color = 0x00c59900;
+                break;
+            case 3:
+                color = 0x00c50000;
+                break;
         }
-        else if (*log - 1 == 1)
-        {
-            basic_print(0x00c59900,buf);
-        }
-        else if (*log - 1 == 2)
-        {
-            basic_print(0x00c50000,buf);
-        }
+        basic_print(color,buf);
         log = log + 1;
     }
     va_start(ap,log);
