@@ -105,24 +105,25 @@ UefiMain
                                                   Info->HorizontalResolution;
     boot_info->graph_info.vertical_resolution   = Gop->Mode->
                                                   Info->VerticalResolution;
-    boot_info->graph_info.pixel_per_scanline    = Gop->Mode->Info->PixelsPerScanLine;
+    boot_info->graph_info.pixel_per_scanline    = Gop->Mode->
+                                                  Info->PixelsPerScanLine;
     // load file
     uint8_t file_index;
     boot_info->loaded_files = 0;
     for (file_index = 0;
-         file_index < sizeof(Files) / sizeof(Files[0]);
+         file_index < FILES_COUNT;
          file_index++)
     {
         UINT64 FileSize = 0;
-        boot_info->loaded_file[boot_info->loaded_files] = Files[file_index].Info;
         Status = ReadFile(Files[file_index].Name,
-                &boot_info->loaded_file[boot_info->loaded_files].base_address,
+                &Files[file_index].Info.base_address,
                 Files[file_index].FileBufferType,
                 &FileSize);
         if (EFI_ERROR(Status))
         {
             continue;
         }
+        boot_info->loaded_file[boot_info->loaded_files] = Files[file_index].Info;
         boot_info->loaded_file[boot_info->loaded_files].size = FileSize;
         boot_info->loaded_files++;
     }
@@ -172,8 +173,9 @@ UefiMain
                 (EFI_ACPI_DESCRIPTION_HEADER*)point_to_other_sdt[i];
         if (h->Signature == MADT_SIGNATURE)
         {
-            boot_info->madt_addr = (void*)((EFI_PHYSICAL_ADDRESS)boot_info
-                                    + sizeof(boot_info_t));
+            Status = gBS->AllocatePool(EfiLoaderData,
+                                        h->Length,
+                                        (VOID**)&boot_info->madt_addr);
             gBS->CopyMem(boot_info->madt_addr,h,h->Length);
             break;
         }

@@ -9,6 +9,12 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
+typedef struct position_s
+{
+    uint32_t x;
+    uint32_t y;
+} position_t;
+
 PUBLIC void basic_put_char(unsigned char c,uint32_t col);
 PUBLIC void basic_print(uint32_t col,const char *str);
 

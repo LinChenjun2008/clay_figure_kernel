@@ -17,12 +17,6 @@
 
 extern PUBLIC uint8_t ascii_character[][16];
 
-typedef struct position_s
-{
-    uint32_t x;
-    uint32_t y;
-} position_t;
-
 #define X_START (8  + 1)
 #define Y_START (16 + 2)
 

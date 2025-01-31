@@ -130,9 +130,11 @@ PUBLIC void init_all()
 
     // Call apic_timer_init() after intr_enable()
     // then we can use global_ticks to calibrate apic timer.
+    pr_log("\1 Setting up APIC timer ...");
     apic_timer_init();
+    pr_log(" OK.\n");
     spinlock_unlock(&schedule_lock);
-
+    pr_log("\1 Kernel initializing done.\n");
     do_schedule();
 
     message_t msg;
