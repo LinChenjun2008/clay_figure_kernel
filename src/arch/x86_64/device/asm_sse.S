@@ -9,6 +9,7 @@
 .text
 
 .global sse_init
+.type sse_init,@function
 sse_init:
     movq %cr0, %rax
     andw $0xfffb, %ax
@@ -20,11 +21,13 @@ sse_init:
     ret
 
 .global asm_fxsave
+.type asm_fxsave,@function
 asm_fxsave:
     fxsave (%rdi)
     ret
 
 .global asm_fxrstor
+.type asm_fxrstor,@function
 asm_fxrstor:
     fxrstor (%rdi)
     ret

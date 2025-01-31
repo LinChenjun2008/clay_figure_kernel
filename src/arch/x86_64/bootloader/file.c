@@ -112,6 +112,7 @@ EFI_STATUS ReadFile
         FilePageSize,
         FileBufferAddress
     );
+    gBS->SetMem((VOID*)*FileBufferAddress,FilePageSize * 0x1000,0);
     if (BufferType == AllocateAnyPages)
     {
         if (EFI_ERROR(Status))

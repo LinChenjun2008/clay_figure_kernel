@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -13,6 +13,7 @@
 #include <device/cpu.h>     // cpuid
 #include <service.h>        // MM_EXIT
 #include <kernel/syscall.h> // sys_send_recv
+#include <device/spinlock.h>  // spinlock_t,spinlock_lock,spinlock_unlock
 
 #include <log.h>
 
@@ -40,6 +41,7 @@ typedef struct
 #pragma pack()
 
 PRIVATE gate_desc_t idt[IRQ_CNT];
+PRIVATE spinlock_t intr_lock;
 
 PRIVATE void set_gatedesc(gate_desc_t *gd,void *func,int selector,int ar)
 {
@@ -54,6 +56,7 @@ PRIVATE void set_gatedesc(gate_desc_t *gd,void *func,int selector,int ar)
 
 PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
 {
+    spinlock_lock(&intr_lock);
     pr_log("\n");
     pr_log("\3 INTR : 0x%x ( %s )\n",nr,nr < 20 ? intr_name[nr] : "Unknow");
     uint64_t cr2,cr3;
@@ -96,13 +99,14 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     uint32_t a,b,c,d;
     asm_cpuid(1,0,&a,&b,&c,&d);
     b >>= 24;
-    pr_log("CPUID: %x\n",b);
+    pr_log("CPUID: %d\n",b);
 
     PANIC(running_task() == NULL,"Can not Get Running Task.");
 
     task_struct_t *running = running_task();
     pr_log("running task: %s\n",running->name);
     pr_log("task context: %p\n",running->context);
+    spinlock_unlock(&intr_lock);
     if (running->page_dir != NULL)
     {
         message_t msg;
@@ -154,6 +158,7 @@ PUBLIC void intr_init()
     uint128_t idt_ptr = (((uint128_t)0 + ((uint128_t)((uint64_t)idt))) << 16) \
                         | (sizeof(idt) - 1);
     asm_lidt(&idt_ptr);
+    init_spinlock(&intr_lock);
     return;
 }
 

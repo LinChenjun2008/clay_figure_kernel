@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -112,6 +112,16 @@ PUBLIC status_t pmalloc(size_t size,void *addr)
     spinlock_unlock(&mem_groups[i].lock);
     *(phy_addr_t*)addr = (phy_addr_t)KADDR_V2P(b);
     return K_SUCCESS;
+}
+
+PUBLIC status_t pmalloc_align(size_t size,void *addr,size_t align)
+{
+    ASSERT(addr != NULL);
+    ASSERT((align & (align - 1)) == 0);
+
+    size_t alloc_size = size > align ? size : align;
+    status_t status = pmalloc(alloc_size,addr);
+    return status;
 }
 
 PUBLIC void pfree(void *addr)

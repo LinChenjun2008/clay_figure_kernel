@@ -10,7 +10,7 @@
 #define __DEF_H__
 
 #ifndef NULL
-#define NULL ((void*)0)
+#define NULL ((void*)0xffff7fffffffffff)
 #endif
 
 #ifndef PUBLIC

@@ -36,6 +36,7 @@ PRIVATE void switch_to_xhci(pci_device_t *xhci_dev)
     pci_dev_config_write(xhci_dev, 0xd8, superspeed_ports); // USB3_PSSEN
     uint32_t ehci2xhci_ports = pci_dev_config_read(xhci_dev, 0xd4); // XUSB2PRM
     pci_dev_config_write(xhci_dev, 0xd0, ehci2xhci_ports); // XUSB2PR
+    return;
 }
 
 PRIVATE void xhci_halt(xhci_t *xhci)
@@ -43,7 +44,8 @@ PRIVATE void xhci_halt(xhci_t *xhci)
     uint32_t usbcmd = xhci_read_opt(xhci,XHCI_OPT_USBCMD);
     usbcmd &= ~USBCMD_RUN;
     xhci_write_opt(xhci,XHCI_OPT_USBCMD,usbcmd);
-    while((xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_HCH) == 0);
+    while((xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_HCH) == 0) continue;
+    return;
 }
 
 PRIVATE void xhci_read_xecp(xhci_t *xhci)
@@ -80,7 +82,8 @@ PRIVATE void xhci_read_xecp(xhci_t *xhci)
             uint8_t minor = GET_FIELD(cap,XECP_SUP_MINOR);
             uint8_t count = (ports >> 8) & 0xff;
             uint8_t start = (ports >> 0) & 0xff;
-            pr_log("\1 xHCI protocol %c%c%c%c %x.%02x ,%d ports (offset %d), def %x\n",
+            pr_log("\1 xHCI protocol %c%c%c%c"
+                   " %x.%02x ,%d ports (offset %d), def %x\n",
                     (name >>  0) & 0xff,
                     (name >>  8) & 0xff,
                     (name >> 16) & 0xff,
@@ -102,6 +105,7 @@ PRIVATE void xhci_read_xecp(xhci_t *xhci)
             }
         }
     } while (offset > 0);
+    return;
 }
 
 PRIVATE void xhci_reset(xhci_t *xhci)
@@ -114,8 +118,9 @@ PRIVATE void xhci_reset(xhci_t *xhci)
     msg.type = TICK_SLEEP;
     msg.m3.l1 = 1;
     sys_send_recv(NR_BOTH,TICK,&msg);
-    while((xhci_read_opt(xhci,XHCI_OPT_USBCMD) & USBCMD_HCRST));
-    while((xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_CNR));
+    while((xhci_read_opt(xhci,XHCI_OPT_USBCMD) & USBCMD_HCRST)) continue;
+    while((xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_CNR))   continue;
+    return;
 }
 
 PRIVATE void xhci_start(xhci_t *xhci)
@@ -137,7 +142,8 @@ PRIVATE void xhci_start(xhci_t *xhci)
                xhci->scrath_chapad_count);
         return;
     }
-    xhci_write_opt(xhci,XHCI_OPT_USBSTS,xhci_read_opt(xhci,XHCI_OPT_USBSTS));
+
+    // xhci_write_opt(xhci,XHCI_OPT_USBSTS,xhci_read_opt(xhci,XHCI_OPT_USBSTS));
     xhci_write_opt(xhci,XHCI_OPT_DNCTRL,0);
 
     uint8_t* buf;
@@ -240,7 +246,7 @@ PRIVATE void xhci_start(xhci_t *xhci)
         xhci_write_opt(xhci,XHCI_OPT_CRCR_HI,      0);
         xhci_write_opt(xhci,XHCI_OPT_CRCR_LO,CRCR_CA);
         xhci_write_opt(xhci,XHCI_OPT_CRCR_HI,      0);
-        while(xhci_read_opt(xhci,XHCI_OPT_CRCR_LO) & CRCR_CRR);
+        while(xhci_read_opt(xhci,XHCI_OPT_CRCR_LO) & CRCR_CRR) continue;
     }
     pr_log("\1 Setting CRCR = %p.\n",buf);
     uint32_t crcr_lo = ((phy_addr_t)buf & 0xffffffff) | CRCR_RCS;
@@ -272,9 +278,7 @@ PRIVATE void xhci_start(xhci_t *xhci)
     xhci_write_opt(xhci,XHCI_OPT_USBCMD,USBCMD_RUN | USBCMD_INTE | USBCMD_HSEE);
 
     // wait for start up.
-    while(xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_HCH);
-    pr_log("\1 xHCI is %s now.\n",
-           xhci_read_opt(xhci,XHCI_OPT_USBCMD) & USBCMD_RUN ? "Running" : "Stop");
+    while(xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_HCH) continue;
 
     pr_log("xHCI Cap Regs:\n");
     pr_log("CAPLENGTH  %08x\n",xhci_read_cap(xhci,XHCI_CAP_CAPLENGTH));
