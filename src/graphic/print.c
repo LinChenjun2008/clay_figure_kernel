@@ -17,12 +17,6 @@
 
 extern PUBLIC uint8_t ascii_character[][16];
 
-typedef struct position_s
-{
-    uint32_t x;
-    uint32_t y;
-} position_t;
-
 #define X_START (8  + 1)
 #define Y_START (16 + 2)
 
@@ -276,4 +270,164 @@ PUBLIC void panic_spin(
     pr_log("\3 %s: In function '%s':\n",filename,func);
     pr_log("\3 %s:%d: %s\n",filename,line,message);
     while (1) io_hlt();
+}
+
+
+
+/******************
+   TrueType Font
+******************/
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
+PUBLIC void init_ttf_info(ttf_info_t* ttf_info)
+{
+    ttf_info->has_ttf = 0;
+    int i;
+    for (i = 0;i < g_boot_info->loaded_files;i++)
+    {
+        if (g_boot_info->loaded_file[i].flag == 0x80000002)
+        {
+            stbtt_InitFont(&ttf_info->info,
+                          KADDR_P2V(g_boot_info->loaded_file[i].base_address),
+                          0);
+            status_t status = pmalloc(sizeof(char [512*512]),&ttf_info->bitmap);
+            if (ERROR(status))
+            {
+                pr_log("\3Failed to allocate memory for ttf bitmap.\n");
+                return;
+            }
+            ttf_info->has_ttf = 1;
+            break;
+        }
+    }
+    return;
+}
+
+
+PUBLIC void pr_ch(graph_info_t* graph_info,ttf_info_t *ttf_info,position_t* pos,uint32_t col,
+                  uint64_t ch,float font_size,uint8_t* bitmap)
+{
+    if (!ttf_info->has_ttf)
+    {
+        return;
+    }
+    float scale = stbtt_ScaleForPixelHeight(&ttf_info->info, font_size); /* scale = font_size / (ascent - descent) */
+    int ascent = 0;
+    int descent = 0;
+    int lineGap = 0;
+    stbtt_GetFontVMetrics(&ttf_info->info, &ascent, &descent, &lineGap);
+    ascent = ceil(ascent * scale);
+    descent = ceil(descent * scale);
+
+    int advanceWidth = 0;
+    int leftSideBearing = 0;
+    stbtt_GetCodepointHMetrics(&ttf_info->info, ch, &advanceWidth, &leftSideBearing);
+    int c_x1, c_y1, c_x2, c_y2;
+    stbtt_GetCodepointBitmapBox(&ttf_info->info, ch, scale, scale, &c_x1, &c_y1, &c_x2,
+                                &c_y2);
+
+    int y = ascent + c_y1;
+
+    int x = 0;
+    int byteOffset = x + ceil(leftSideBearing * scale) + (y * font_size);
+    stbtt_MakeCodepointBitmap(&ttf_info->info, bitmap + byteOffset, c_x2 - c_x1,
+                              c_y2 - c_y1, (int)font_size, scale, scale, ch);
+    uint32_t* frame_buffer = (uint32_t*)graph_info->frame_buffer_base;
+    unsigned int xsize = graph_info->pixel_per_scanline;
+
+    int x0,y0;
+    for (x0 = 0;x0 < font_size;x0++)
+    {
+        for (y0 = 0;y0 < font_size;y0++)
+        {
+            if (bitmap[y0 * (int)font_size + x0])
+            {
+                uint8_t r,g,b;
+                uint8_t alpha = bitmap[y0 * (int)font_size + x0];
+                r = alpha * GET_FIELD(col,RED) / 255;
+                g = alpha * GET_FIELD(col,GREEN) / 255;
+                b = alpha * GET_FIELD(col,BLUE) / 255;
+                *(frame_buffer + (pos->y + y0) * xsize + pos->x + x0) = RGB(r,g,b);
+            }
+        }
+    }
+}
+
+PRIVATE uint64_t utf8_decode(const char** _str)
+{
+    unsigned char* str = *((unsigned char**)_str);
+    uint64_t code = 0;
+    if ((*str >> 7) == 0)
+    {
+        code = *str;
+        str++;
+    }
+    else if (((*str >> 5) & 0x0f) == 0x6) /* 0x110 开头,2字节 */
+    {
+        code = (*str & 0x1f) << 6;
+        str++;
+        code |= (*str & 0x3f);
+        str++;
+    }
+    else if (((*str >> 4) & 0xf) == 0xe) /* 0x1110 开头,3字节 */
+    {
+        code = (*str & 0x0f) << 12;
+        str++;
+        code |= (*str & 0x3f) << 6;
+        str++;
+        code |= (*str & 0x3f) << 0;
+        str++;
+    }
+    *_str = (char*)str;
+    return code;
+}
+
+PUBLIC void pr_ttf_str(graph_info_t* graph_info,ttf_info_t *ttf_info,position_t* vpos,uint32_t color,
+                       const char* str,float font_size)
+{
+    if (!ttf_info->has_ttf)
+    {
+        return;
+    }
+    font_size *= 2;
+    float scale = stbtt_ScaleForPixelHeight(&ttf_info->info, font_size);
+    int ascent = 0;
+    int descent = 0;
+    int lineGap = 0;
+    stbtt_GetFontVMetrics(&ttf_info->info, &ascent, &descent, &lineGap);
+    ascent = ceil(ascent * scale);
+    descent = ceil(descent * scale);
+    uint64_t code = 0;
+    position_t pos = *vpos;
+    while (*str)
+    {
+        code = utf8_decode(&str);
+        int advanceWidth = 0;
+        int leftSideBearing = 0;
+        const char* next = str;
+        stbtt_GetCodepointHMetrics(&ttf_info->info, code, &advanceWidth,
+                                   &leftSideBearing);
+        int kern = stbtt_GetCodepointKernAdvance(&ttf_info->info, code,
+                                                 utf8_decode(&next));
+        if (code == '\n')
+        {
+            pos.x = vpos->x;
+            pos.y += ascent - descent + lineGap;
+            continue;
+        }
+        if (code == ' ')
+        {
+            pos.x += ceil(advanceWidth * scale);
+            pos.x += ceil(kern * scale);
+            continue;
+        }
+        memset(ttf_info->bitmap,0,sizeof(char [512*512]));
+        pr_ch(graph_info,ttf_info,&pos,color,code,font_size,ttf_info->bitmap);
+        pos.x += ceil(advanceWidth * scale);
+        pos.x += ceil(kern * scale);
+    }
+    *vpos = pos;
+    return;
 }

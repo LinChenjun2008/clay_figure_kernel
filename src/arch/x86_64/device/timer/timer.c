@@ -76,9 +76,7 @@ PUBLIC void apic_timer_init()
     local_apic_write(APIC_REG_TPR,0); // Set TPR
     local_apic_write(APIC_REG_TIMER_DIV,0x00000003);
 
-    // map APIC timer to an interrupt, and by that enable it in one-shot mode
-    // Interrupt 0x27 is ignored vector.
-    local_apic_write(APIC_REG_LVT_TIMER,0x27);
+    // map APIC timer to an interrupt, and by that enable it in one-shot mode.
     local_apic_write(APIC_REG_TIMER_ICNT,0xffffffff);
     uint32_t apic_ticks = 0;
     volatile uint32_t ticks = global_ticks + (1 << 7);

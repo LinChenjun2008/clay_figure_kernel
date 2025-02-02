@@ -47,7 +47,7 @@ PRIVATE char * number_to_string(char * str,uint64_t num,int base,int width,int p
     {
 		sign = '-';
 		num = -num;
-	} 
+	}
     else
 	{
         sign=(flag & FORMAT_PLUS) ? '+' : ((flag & FORMAT_SPACE) ? ' ' : 0);
@@ -60,7 +60,7 @@ PRIVATE char * number_to_string(char * str,uint64_t num,int base,int width,int p
     }
 	int i = 0;
 	if (num == 0) { tmp[i++]='0'; }
-	else 
+	else
     {
         while (num != 0)
         {
@@ -78,7 +78,7 @@ PRIVATE char * number_to_string(char * str,uint64_t num,int base,int width,int p
 	if (flag & FORMAT_SPECIAL)
 	{
         if (base == 8) { *str++ = '0'; }
-		if (base==16) 
+		if (base==16)
 		{
 			*str++ = '0';
 			*str++ = digits[33];
@@ -164,7 +164,7 @@ PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
                 precision = skip_atoi(&fmt);
             }
             else if(*fmt == '*')
-            {	
+            {
                 fmt++;
                 precision = va_arg(ap, int);
             }
@@ -241,11 +241,11 @@ PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
         case 'X':
             if (qualifier == 'l')
             {
-                str = number_to_string(str,va_arg(ap,long long int),16,width,precision,flag);
+                str = number_to_string(str,va_arg(ap,unsigned long long int),16,width,precision,flag);
             }
             else
             {
-                str = number_to_string(str,va_arg(ap,int),16,width,precision,flag);
+                str = number_to_string(str,va_arg(ap,unsigned int),16,width,precision,flag);
             }
             break;
 

@@ -198,7 +198,7 @@ PUBLIC intr_status_t intr_enable()
     else
     {
         old_status = INTR_OFF;
-        __asm__ ("sti \n\t");
+        io_sti();
         return old_status;
     }
 }
@@ -209,7 +209,7 @@ PUBLIC intr_status_t intr_disable()
     if (intr_get_status() == INTR_ON)
     {
         old_status = INTR_ON;
-        __asm__ ("cli \n\t");
+        io_cli();
         return old_status;
     }
     else
