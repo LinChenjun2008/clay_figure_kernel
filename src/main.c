@@ -15,6 +15,7 @@
 #include <device/cpu.h>
 #include <service.h>
 #include <std/stdio.h>
+#include <io.h>
 
 #include <log.h>
 
@@ -48,10 +49,11 @@ PUBLIC void kernel_main()
     pr_log(K_NAME " - " K_VERSION "\n");
     init_all();
     prog_execute("k task",DEFAULT_PRIORITY,4096,ktask);
+
     while(1)
     {
         task_block(TASK_BLOCKED);
-        __asm__ ("sti\n\t""hlt");
+        io_stihlt();
     };
 }
 
@@ -64,6 +66,6 @@ PUBLIC void ap_kernel_main()
     while (1)
     {
         task_block(TASK_BLOCKED);
-        __asm__ ("sti\n\t""hlt");
+        io_stihlt();
     };
 }
