@@ -10,7 +10,7 @@
 #define __DEF_H__
 
 #ifndef NULL
-#define NULL ((void*)0xffff7fffffffffff)
+#define NULL ((void*)0)
 #endif
 
 #ifndef PUBLIC
@@ -31,7 +31,8 @@ typedef int bool;
 #endif
 
 #define GET_FIELD(X,FIELD)       (((X) >> FIELD##_SHIFT) & FIELD##_MASK)
-#define SET_FIELD(X,FIELD,VALUE) (((X) & ~(FIELD##_MASK << FIELD##_SHIFT) | ((VALUE) << FILED##_SHIFT)))
+#define SET_FIELD(X,FIELD,VALUE) ((((X) & ~(FIELD##_MASK << FIELD##_SHIFT)) \
+                                 | ((VALUE) << FIELD##_SHIFT)))
 
 #define KERNEL_VMA_BASE           0xffff800000000000
 

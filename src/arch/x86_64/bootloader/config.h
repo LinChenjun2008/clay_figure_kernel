@@ -33,9 +33,10 @@ struct Files
     file_info_t       Info;
 };
 
-struct Files Files[] =
+struct Files Files[FILES_COUNT] =
 {
     {L"Kernel\\kernel.sys",AllocateAddress,{0x100000,0,0x80000001}},
+    {L"Kernel\\typeface.ttf",AllocateAnyPages,{0,0,0x80000002}},
 };
 
 #endif

@@ -9,6 +9,8 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#define FILES_COUNT 2
+
 #ifdef __BOOTLOADER__
 typedef unsigned char          uint8_t;
 typedef unsigned short         uint16_t;
@@ -45,11 +47,11 @@ typedef struct
 
 typedef struct
 {
-    uint64_t     magic;               // 5a 42 cb 16 13 d4 a6 2f
-    memory_map_t memory_map;          // 内存描述符
-    graph_info_t graph_info;          // 图形信息
-    uint8_t      loaded_files;        // 已加载的文件数
-    file_info_t *loaded_file;         // 已加载的文件
+    uint64_t     magic;                    // 5a 42 cb 16 13 d4 a6 2f
+    memory_map_t memory_map;               // 内存描述符
+    graph_info_t graph_info;               // 图形信息
+    uint8_t      loaded_files;             // 已加载的文件数
+    file_info_t  loaded_file[FILES_COUNT]; // 已加载的文件
     void        *madt_addr;
 } boot_info_t;
 

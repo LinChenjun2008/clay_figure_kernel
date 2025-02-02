@@ -130,6 +130,7 @@ PUBLIC void pfree(void *addr)
     mem_cache_t *c;
     mem_block_t *b;
     b = KADDR_P2V(addr);
+    ASSERT(b != NULL);
     c = block2cache(b);
     mem_group_t *g = c->group;
     spinlock_lock(&g->lock);

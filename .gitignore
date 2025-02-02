@@ -1,3 +1,4 @@
 *.o
 *.dep
 build/.tmp_kernel
+.vscode/settings.json

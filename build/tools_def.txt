@@ -6,6 +6,7 @@ endif
 
 BOOTLOADER_FLAGS := -Wall -Wextra -I$(BOOTLOADER_INCLUDE_PATH) -I$(SRC_PATH) -I$(BOOTLOADER_SRC_PATH) \
  -e UefiMain -nostdinc -nostdlib \
+ -Werror \
  -fno-stack-protector \
  -m64 -mcmodel=small -fpic -fpie \
  -fno-builtin -Wl,--subsystem,10
