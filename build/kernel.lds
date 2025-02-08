@@ -39,13 +39,4 @@ SECTIONS
     {
         *(.eh_frame)
     }
-    . = 0;
-
-    _debug = .;
-    .debug_aranges :{*(.debug_aranges)}
-    .debug_abbrev :{*(.debug_abbrev)}
-    .debug_line :{*(.debug_line)}
-    .debug_frame :{*(.debug_frame)}
-    .debug_str :{*(.debug_str)}
-    _edebug = .;
 }

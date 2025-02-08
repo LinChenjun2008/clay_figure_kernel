@@ -49,6 +49,7 @@ typedef int bool;
 #define ADDR_OFFSET_MASK 0x1fffff
 
 #define ASMLINKAGE __attribute__((sysv_abi))
+#define WEAK __attribute__((weak))
 
 #define DIV_ROUND_UP(X ,STEP) (((X) + (STEP - 1)) / STEP)
 

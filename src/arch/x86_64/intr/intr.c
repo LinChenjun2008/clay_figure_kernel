@@ -8,12 +8,13 @@
 
 #include <kernel/global.h>
 #include <intr.h>
-#include <io.h>             // get_flags
-#include <task/task.h>      // task_struct_t,running_task
-#include <device/cpu.h>     // cpuid
-#include <service.h>        // MM_EXIT
-#include <kernel/syscall.h> // sys_send_recv
+#include <io.h>               // get_flags
+#include <task/task.h>        // task_struct_t,running_task
+#include <device/cpu.h>       // cpuid
+#include <service.h>          // MM_EXIT
+#include <kernel/syscall.h>   // sys_send_recv
 #include <device/spinlock.h>  // spinlock_t,spinlock_lock,spinlock_unlock
+#include <kernel/symbols.h>   // addr_to_symbol
 
 #include <log.h>
 
@@ -62,28 +63,10 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     uint64_t cr2,cr3;
     cr2 = get_cr2();
     cr3 = get_cr3();
-    pr_log("CS:RIP %04x:%016x\n"
+    pr_log("CS:RIP %04x:%p\n"
            "ERROR CODE: %016x "
         ,stack->cs,stack->rip,
         stack->error_code);
-    if (stack->error_code != 0)
-    {
-        pr_log("(");
-        if (stack->error_code & (1 << 2))
-        {
-            pr_log(" TI");
-        }
-        if (stack->error_code & (1 << 1))
-        {
-            pr_log(" IDT");
-        }
-        if (stack->error_code & (1 << 0))
-        {
-            pr_log(" EXT");
-        }
-        pr_log(" ) ");
-        pr_log("Selector: %04x",stack->error_code & 0xfff8);
-    }
     pr_log("\n");
     pr_log("CR2 - %016x, CR3 - %016x\n",cr2,cr3);
     pr_log("DS  - %016x, ES  - %016x, FS  - %016x, GS  - %016x\n",
@@ -106,6 +89,35 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     task_struct_t *running = running_task();
     pr_log("running task: %s\n",running->name);
     pr_log("task context: %p\n",running->context);
+
+    // Backtrace
+    pr_log("==============================\n");
+    pr_log("kernel stack backtrace\n");
+    pr_log("==============================\n");
+    int sym_idx;
+    get_symbol_index_by_addr((void*)stack->rip,&sym_idx);
+    pr_log("              At address: %p [ %s + %#x ]\n",
+           stack->rip,
+           addr_to_symbol((void*)stack->rip),
+           stack->rip - (addr_t)index_to_addr(sym_idx));
+    addr_t *rbp = (addr_t*)stack->rbp;
+    int i;
+    for (i = 0;i < 12;i++)
+    {
+        status_t status = get_symbol_index_by_addr((void*)*(rbp + 1),&sym_idx);
+        pr_log("traceback %2d: ",i + 1);
+        if (ERROR(status))
+        {
+            pr_log("At address: %p [ Invaild Symbol ]\n",*(rbp + 1));
+            break;
+        }
+        pr_log("At address: %p [ %s + %#x ]\n",
+                *(rbp + 1),
+                index_to_symbol(sym_idx),
+                *(rbp + 1) - (addr_t)index_to_addr(sym_idx));
+        rbp = (addr_t*)*rbp;
+    }
+
     spinlock_unlock(&intr_lock);
     if (running->page_dir != NULL)
     {

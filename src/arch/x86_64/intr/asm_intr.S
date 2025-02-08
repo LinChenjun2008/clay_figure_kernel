@@ -30,7 +30,7 @@ pushq %rcx; \
 pushq %rbx; \
 pushq %rax; \
 \
-movq  $0, %rax; \
+xorq  %rax, %rax; \
 movw  %gs, %ax; \
 pushq %rax; \
 movw  %fs, %ax; \
