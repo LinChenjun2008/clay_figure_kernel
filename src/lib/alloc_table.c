@@ -21,7 +21,8 @@ PUBLIC void allocate_table_init(
 }
 
 PUBLIC status_t allocate_units(
-    allocate_table_t *table,uint64_t number_of_units,
+    allocate_table_t *table,
+    uint64_t number_of_units,
     uint64_t *index)
 {
     if (index == NULL)

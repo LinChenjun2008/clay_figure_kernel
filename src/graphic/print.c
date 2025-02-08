@@ -23,7 +23,7 @@ extern PUBLIC uint8_t ascii_character[][16];
 #define CHAR_X_SIZE (8  + 1)
 #define CHAR_Y_SIZE (16 + 2)
 
-PRIVATE position_t pos = {X_START,Y_START};
+PRIVATE position_t g_pos = {X_START,Y_START,X_START,Y_START};
 
 extern uint64_t global_ticks;
 
@@ -80,6 +80,9 @@ static inline void serial_pr_log(const char *log,va_list ap)
 
 #undef IS_TRANSMIT_EMPTY
 
+PRIVATE void basic_put_char(position_t *pos,unsigned char c,uint32_t col);
+PRIVATE void basic_print(position_t *pos,uint32_t col,const char *str);
+
 PUBLIC void pr_log(const char *log,...)
 {
     char msg[256];
@@ -98,7 +101,7 @@ PUBLIC void pr_log(const char *log,...)
 
     if (*log >= 1 && *log <= 3)
     {
-        basic_print(0x00c5c5c5,print_time(msg,global_ticks));
+        basic_print(&g_pos,0x00c5c5c5,print_time(msg,global_ticks));
         buf = (char*)level[*log - 1];
         uint32_t color;
         switch (*log)
@@ -113,19 +116,19 @@ PUBLIC void pr_log(const char *log,...)
                 color = 0x00c50000;
                 break;
         }
-        basic_print(color,buf);
+        basic_print(&g_pos,color,buf);
         log = log + 1;
     }
     va_start(ap,log);
     vsprintf(msg,log,ap);
     buf = msg;
-    basic_print(0x00c5c5c5,buf);
+    basic_print(&g_pos,0x00c5c5c5,buf);
 
     va_end(ap);
     return;
 }
 
-PUBLIC void basic_put_char(unsigned char c,uint32_t col)
+PRIVATE void basic_put_char(position_t *pos,unsigned char c,uint32_t col)
 {
     uint8_t *character = ascii_character[(uint32_t)c];
     int i;
@@ -134,8 +137,8 @@ PUBLIC void basic_put_char(unsigned char c,uint32_t col)
         uint8_t data = character[i];
         uint32_t *pixel = \
             (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
-            + (pos.y + i) * g_boot_info->graph_info.pixel_per_scanline \
-            + pos.x;
+            + (pos->y + i) * g_boot_info->graph_info.pixel_per_scanline \
+            + pos->x;
         int j;
         for (j = 0;j < 8;j++){ pixel[j] = 0x00000000; }
         if ((data & 0x80) != 0){ pixel[0] = col; }
@@ -156,8 +159,8 @@ PUBLIC void basic_put_char(unsigned char c,uint32_t col)
             uint8_t data = character[i];
             uint32_t *pixel = \
                 (uint32_t*)g_boot_info->graph_info.frame_buffer_base \
-                + (pos.y + i) * g_boot_info->graph_info.pixel_per_scanline \
-                + pos.x + CHAR_X_SIZE;
+                + (pos->y + i) * g_boot_info->graph_info.pixel_per_scanline \
+                + pos->x + CHAR_X_SIZE;
             int j;
             for (j = 0;j < 8;j++){ pixel[j] = 0x00000000; }
             if ((data & 0x80) != 0){ pixel[0] = col; }
@@ -191,42 +194,48 @@ PRIVATE void clear_line(position_t *pos)
     }
 }
 
-PUBLIC void basic_print(uint32_t col,const char *str)
+PRIVATE void basic_print(position_t *pos,uint32_t col,const char *str)
 {
     const char *s = str;
     while(*s)
     {
-        if (*s == '\n'
-            || pos.x
-                 >= g_boot_info->graph_info.pixel_per_scanline - CHAR_X_SIZE)
+        uint32_t max_x,max_y;
+        max_x = g_boot_info->graph_info.pixel_per_scanline - CHAR_X_SIZE;
+        max_y = g_boot_info->graph_info.vertical_resolution - CHAR_Y_SIZE;
+        if (*s == '\n' || pos->x >= max_x)
         {
-            basic_put_char(255,0);
-            pos.x = X_START;
-            pos.y += CHAR_Y_SIZE;
-            pos.y > g_boot_info->graph_info.vertical_resolution - CHAR_Y_SIZE ?
-                 pos.y = Y_START : 0;
+            basic_put_char(pos,255,0);
+            pos->x = g_pos.xstart;
+            pos->y += CHAR_Y_SIZE;
+            if (pos->y > max_y)
+            {
+                pos->y = pos->ystart;
+            }
             s++;
             // clear line
-            clear_line(&pos);
-            basic_put_char(255,0x00ffffff);
+            clear_line(pos);
+            basic_put_char(pos,255,0x00ffffff);
             continue;
         }
         if (*s == '\b')
         {
             s++;
-            pos.x -= CHAR_X_SIZE;
-            if (pos.x < X_START)
+            pos->x -= CHAR_X_SIZE;
+            if (pos->x < pos->xstart)
             {
-                pos.x = X_START;
-                pos.y -= CHAR_Y_SIZE;
+                pos->x = pos->xstart;
+                pos->y -= CHAR_Y_SIZE;
             }
-            pos.y < Y_START ? pos.y = Y_START : 0;
+            if (pos->y < pos->ystart)
+            {
+                pos->y = pos->ystart;
+            }
             continue;
         }
         if (*s == '\r')
         {
             s++;
-            pos.x = X_START;
+            pos->x = pos->xstart;
             continue;
         }
         int i;
@@ -234,15 +243,15 @@ PUBLIC void basic_print(uint32_t col,const char *str)
         {
             uint32_t *pixel =
                 (uint32_t*)g_boot_info->graph_info.frame_buffer_base
-                + (pos.y + i) * g_boot_info->graph_info.pixel_per_scanline;
+                + (pos->y + i) * g_boot_info->graph_info.pixel_per_scanline;
             uint32_t j;
-            for (j = pos.x;j < pos.x + CHAR_X_SIZE;j++)
+            for (j = pos->x;j < pos->x + CHAR_X_SIZE;j++)
             {
                 pixel[j] = 0x00000000;
             }
         }
-        basic_put_char(*s++,col);
-        pos.x += CHAR_X_SIZE;
+        basic_put_char(pos,*s++,col);
+        pos->x += CHAR_X_SIZE;
     }
     return;
 }
@@ -305,15 +314,113 @@ PUBLIC void init_ttf_info(ttf_info_t* ttf_info)
     return;
 }
 
+PUBLIC void free_ttf_info(ttf_info_t* ttf_info)
+{
+    if (ttf_info->has_ttf)
+    {
+        pfree(ttf_info->bitmap);
+        ttf_info->has_ttf = 0;
+    }
+    return;
+}
 
-PUBLIC void pr_ch(graph_info_t* graph_info,ttf_info_t *ttf_info,position_t* pos,uint32_t col,
-                  uint64_t ch,float font_size,uint8_t* bitmap)
+PUBLIC void pr_log_ttf(const char *log,...)
+{
+    ttf_info_t ttf_info;
+    init_ttf_info(&ttf_info);
+
+    char msg[256];
+    char *buf;
+    va_list ap;
+    const char *level[] =
+    {
+        "[ INFO  ]",
+        "[ DEBUG ]",
+        "[ ERROR ]"
+
+    };
+
+    va_start(ap,log);
+    serial_pr_log(log,ap);
+
+    if (*log >= 1 && *log <= 3)
+    {
+        if (ttf_info.has_ttf)
+        {
+            pr_ttf_str(&g_boot_info->graph_info,
+                       &ttf_info,
+                       &g_pos,
+                       0x00c5c5c5,
+                       print_time(msg,global_ticks),
+                       16.0);
+        }
+        else
+        {
+            basic_print(&g_pos,0x00c5c5c5,print_time(msg,global_ticks));
+        }
+        buf = (char*)level[*log - 1];
+        uint32_t color;
+        switch (*log)
+        {
+            case 1:
+                color = 0x0000c500;
+                break;
+            case 2:
+                color = 0x00c59900;
+                break;
+            case 3:
+                color = 0x00c50000;
+                break;
+        }
+        if (ttf_info.has_ttf)
+        {
+            pr_ttf_str(&g_boot_info->graph_info,
+                       &ttf_info,
+                       &g_pos,
+                       color,
+                       buf,
+                       16.0);
+        }
+        else
+        {
+            basic_print(&g_pos,color,buf);
+        }
+        log = log + 1;
+    }
+    va_start(ap,log);
+    vsprintf(msg,log,ap);
+    buf = msg;
+    if (ttf_info.has_ttf)
+    {
+        pr_ttf_str(&g_boot_info->graph_info,
+                    &ttf_info,
+                    &g_pos,
+                    0x00c5c5c5,
+                    buf,
+                    16.0);
+    }
+    else
+    {
+        basic_print(&g_pos,0x00c5c5c5,buf);
+    }
+    free_ttf_info(&ttf_info);
+    va_end(ap);
+    return;
+}
+
+PUBLIC void pr_ch(graph_info_t* graph_info,
+                  ttf_info_t *ttf_info,
+                  position_t* pos,
+                  uint32_t col,
+                  uint64_t ch,
+                  float font_size)
 {
     if (!ttf_info->has_ttf)
     {
         return;
     }
-    float scale = stbtt_ScaleForPixelHeight(&ttf_info->info, font_size); /* scale = font_size / (ascent - descent) */
+    /* scale = font_size / (ascent - descent) */
+    float scale = stbtt_ScaleForPixelHeight(&ttf_info->info, font_size);
     int ascent = 0;
     int descent = 0;
     int lineGap = 0;
@@ -323,17 +430,32 @@ PUBLIC void pr_ch(graph_info_t* graph_info,ttf_info_t *ttf_info,position_t* pos,
 
     int advanceWidth = 0;
     int leftSideBearing = 0;
-    stbtt_GetCodepointHMetrics(&ttf_info->info, ch, &advanceWidth, &leftSideBearing);
+    stbtt_GetCodepointHMetrics(&ttf_info->info,
+                               ch,
+                               &advanceWidth,
+                               &leftSideBearing);
     int c_x1, c_y1, c_x2, c_y2;
-    stbtt_GetCodepointBitmapBox(&ttf_info->info, ch, scale, scale, &c_x1, &c_y1, &c_x2,
+    stbtt_GetCodepointBitmapBox(&ttf_info->info,
+                                ch,
+                                scale,
+                                scale,
+                                &c_x1,
+                                &c_y1,
+                                &c_x2,
                                 &c_y2);
 
     int y = ascent + c_y1;
 
     int x = 0;
     int byteOffset = x + ceil(leftSideBearing * scale) + (y * font_size);
-    stbtt_MakeCodepointBitmap(&ttf_info->info, bitmap + byteOffset, c_x2 - c_x1,
-                              c_y2 - c_y1, (int)font_size, scale, scale, ch);
+    stbtt_MakeCodepointBitmap(&ttf_info->info,
+                              ttf_info->bitmap + byteOffset,
+                              c_x2 - c_x1,
+                              c_y2 - c_y1,
+                              (int)font_size,
+                              scale,
+                              scale,
+                              ch);
     uint32_t* frame_buffer = (uint32_t*)graph_info->frame_buffer_base;
     unsigned int xsize = graph_info->pixel_per_scanline;
 
@@ -342,14 +464,16 @@ PUBLIC void pr_ch(graph_info_t* graph_info,ttf_info_t *ttf_info,position_t* pos,
     {
         for (y0 = 0;y0 < font_size;y0++)
         {
-            if (bitmap[y0 * (int)font_size + x0])
+            if (ttf_info->bitmap[y0 * (int)font_size + x0])
             {
                 uint8_t r,g,b;
-                uint8_t alpha = bitmap[y0 * (int)font_size + x0];
-                r = alpha * GET_FIELD(col,RED) / 255;
-                g = alpha * GET_FIELD(col,GREEN) / 255;
-                b = alpha * GET_FIELD(col,BLUE) / 255;
-                *(frame_buffer + (pos->y + y0) * xsize + pos->x + x0) = RGB(r,g,b);
+                uint8_t alpha = ttf_info->bitmap[y0 * (int)font_size + x0];
+                r = (alpha * GET_FIELD(col,RED)) >> 8;
+                g = (alpha * GET_FIELD(col,GREEN)) >> 8;
+                b = (alpha * GET_FIELD(col,BLUE)) >> 8;
+                uint32_t *buf;
+                buf = frame_buffer + (pos->y + y0) * xsize + pos->x + x0;
+                *buf = RGB(r,g,b);
             }
         }
     }
@@ -364,14 +488,14 @@ PRIVATE uint64_t utf8_decode(const char** _str)
         code = *str;
         str++;
     }
-    else if (((*str >> 5) & 0x0f) == 0x6) /* 0x110 开头,2字节 */
+    else if (((*str >> 5) & 0x0f) == 0x6)
     {
         code = (*str & 0x1f) << 6;
         str++;
         code |= (*str & 0x3f);
         str++;
     }
-    else if (((*str >> 4) & 0xf) == 0xe) /* 0x1110 开头,3字节 */
+    else if (((*str >> 4) & 0xf) == 0xe)
     {
         code = (*str & 0x0f) << 12;
         str++;
@@ -384,11 +508,16 @@ PRIVATE uint64_t utf8_decode(const char** _str)
     return code;
 }
 
-PUBLIC void pr_ttf_str(graph_info_t* graph_info,ttf_info_t *ttf_info,position_t* vpos,uint32_t color,
-                       const char* str,float font_size)
+PUBLIC void pr_ttf_str(graph_info_t* graph_info,
+                       ttf_info_t *ttf_info,
+                       position_t* pos,
+                       uint32_t color,
+                       const char* str,
+                       float font_size)
 {
     if (!ttf_info->has_ttf)
     {
+        basic_print(pos,color,str);
         return;
     }
     font_size *= 2;
@@ -400,34 +529,40 @@ PUBLIC void pr_ttf_str(graph_info_t* graph_info,ttf_info_t *ttf_info,position_t*
     ascent = ceil(ascent * scale);
     descent = ceil(descent * scale);
     uint64_t code = 0;
-    position_t pos = *vpos;
     while (*str)
     {
         code = utf8_decode(&str);
         int advanceWidth = 0;
         int leftSideBearing = 0;
         const char* next = str;
-        stbtt_GetCodepointHMetrics(&ttf_info->info, code, &advanceWidth,
+        stbtt_GetCodepointHMetrics(&ttf_info->info,
+                                   code,
+                                   &advanceWidth,
                                    &leftSideBearing);
-        int kern = stbtt_GetCodepointKernAdvance(&ttf_info->info, code,
+        int kern = stbtt_GetCodepointKernAdvance(&ttf_info->info,
+                                                 code,
                                                  utf8_decode(&next));
         if (code == '\n')
         {
-            pos.x = vpos->x;
-            pos.y += ascent - descent + lineGap;
+            pos->x = pos->xstart;
+            pos->y += ascent - descent + lineGap;
             continue;
         }
         if (code == ' ')
         {
-            pos.x += ceil(advanceWidth * scale);
-            pos.x += ceil(kern * scale);
+            pos->x += ceil(advanceWidth * scale);
+            pos->x += ceil(kern * scale);
+            continue;
+        }
+        if (code == '\r')
+        {
+            pos->x = pos->xstart;
             continue;
         }
         memset(ttf_info->bitmap,0,sizeof(char [512*512]));
-        pr_ch(graph_info,ttf_info,&pos,color,code,font_size,ttf_info->bitmap);
-        pos.x += ceil(advanceWidth * scale);
-        pos.x += ceil(kern * scale);
+        pr_ch(graph_info,ttf_info,pos,color,code,font_size);
+        pos->x += ceil(advanceWidth * scale);
+        pos->x += ceil(kern * scale);
     }
-    *vpos = pos;
     return;
 }

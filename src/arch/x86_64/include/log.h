@@ -35,6 +35,8 @@ typedef struct position_s
 {
     uint32_t x;
     uint32_t y;
+    uint32_t xstart;
+    uint32_t ystart;
 } position_t;
 
 #include "stb_truetype.h"
@@ -45,14 +47,12 @@ typedef struct
     uint8_t *bitmap;
 } ttf_info_t;
 
-PUBLIC void basic_put_char(unsigned char c,uint32_t col);
-PUBLIC void basic_print(uint32_t col,const char *str);
-
 #if defined __DISABLE_SERIAL_LOG__
 #define serial_pr_log(...) (void)0
 #endif /* __DISABLE_SERIAL_LOG__ */
 
 PUBLIC void pr_log(const char* str,...);
+PUBLIC void pr_log_ttf(const char* str,...);
 
 PUBLIC void panic_spin(
     const char* filename,
@@ -79,5 +79,22 @@ PUBLIC void panic_spin(
     } while (0)
 
 #endif /* __DISABLE_ASSERT__ */
+
+PUBLIC void init_ttf_info(ttf_info_t* ttf_info);
+PUBLIC void free_ttf_info(ttf_info_t* ttf_info);
+
+PUBLIC void pr_ch(graph_info_t* graph_info,
+                  ttf_info_t *ttf_info,
+                  position_t* pos,
+                  uint32_t col,
+                  uint64_t ch,
+                  float font_size);
+
+PUBLIC void pr_ttf_str(graph_info_t* graph_info,
+                       ttf_info_t *ttf_info,
+                       position_t* pos,
+                       uint32_t color,
+                       const char* str,
+                       float font_size);
 
 #endif

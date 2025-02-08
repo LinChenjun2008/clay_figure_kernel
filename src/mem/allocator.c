@@ -143,8 +143,8 @@ PUBLIC void pfree(void *addr)
         {
             b = cache2block(c,idx);
             list_remove(b);
-            g->total_free--;
         }
+        g->total_free -= c->number_of_blocks;
         free_physical_page(KADDR_V2P(c),1);
     }
     spinlock_unlock(&g->lock);

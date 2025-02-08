@@ -12,7 +12,7 @@
 .text
 .code16
 
-// 0x7c00
+// 0x10000
 .global AP_BOOT_BASE
 AP_BOOT_BASE:
     cli
