@@ -12,9 +12,8 @@ typedef struct
 static void read_symbol(FILE *fp,symbol_entry_t *sym_entry)
 {
     char string[100];
-    int rc;
 
-    rc = fscanf(fp,"%llx %c %100s\n",&sym_entry->address,&sym_entry->type,string);
+    fscanf(fp,"%llx %c %99s\n",&sym_entry->address,&sym_entry->type,string);
 
     sym_entry->symbol = strdup(string);
 }

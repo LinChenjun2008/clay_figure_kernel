@@ -20,15 +20,14 @@
 
 extern taskmgr_t *tm;
 
-PUBLIC void prog_exit(addr_t func,wordsize_t arg)
+PUBLIC void prog_exit(int (*func)(void*),wordsize_t arg)
 {
-    int ret_value = ((int (*)(void*))func)((void*)arg);
+    int ret_value = func((void*)arg);
 
     message_t msg;
     msg.type = MM_EXIT;
     msg.m1.i1 = ret_value;
     send_recv(NR_SEND,MM,&msg);
-    pr_log("\3 %s: Shuold not be here.",__func__);
     while (1) continue;
 }
 
@@ -79,12 +78,11 @@ PRIVATE void start_process(void *process)
     proc_stack->fs  = SELECTOR_DATA64_U;
     proc_stack->es  = SELECTOR_DATA64_U;
     proc_stack->ds  = SELECTOR_DATA64_U;
-    proc_stack->rip = (void*)prog_exit;
+    proc_stack->rip = (void (*)(void))prog_exit;
     proc_stack->cs  = SELECTOR_CODE64_U;
     proc_stack->rflags = (EFLAGS_IOPL_0 | EFLAGS_MBS | EFLAGS_IF_1);
     proc_stack->rsp = USER_STACK_VADDR_BASE + PG_SIZE;
     proc_stack->ss = SELECTOR_DATA64_U;
-
     asm_process_start((void*)proc_stack);
 }
 
