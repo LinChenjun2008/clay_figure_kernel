@@ -4,7 +4,7 @@
 
 typedef struct
 {
-    void *address;
+    unsigned long long int address;
     char type;
     char *symbol;
 } symbol_entry_t;
@@ -14,7 +14,7 @@ static void read_symbol(FILE *fp,symbol_entry_t *sym_entry)
     char string[100];
     int rc;
 
-    rc = fscanf(fp,"%p %c %100s\n",&sym_entry->address,&sym_entry->type,string);
+    rc = fscanf(fp,"%llx %c %100s\n",&sym_entry->address,&sym_entry->type,string);
 
     sym_entry->symbol = strdup(string);
 }
@@ -41,7 +41,7 @@ void write_src(symbol_entry_t *table,int *count)
     int i;
     for(i = 0;i < *count;i++)
     {
-        printf("\n\t(void*)%#llx,",table[i].address);
+        printf("\n\t(void*)%lld,",(unsigned long long int)table[i].address);
     }
     printf("\n};\n");
     printf("const char *kallsyms_symbols[] =\n{");

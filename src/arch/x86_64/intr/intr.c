@@ -68,16 +68,16 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
         ,stack->cs,stack->rip,
         stack->error_code);
     pr_log("\n");
-    pr_log("CR2 - %016x, CR3 - %016x\n",cr2,cr3);
-    pr_log("DS  - %016x, ES  - %016x, FS  - %016x, GS  - %016x\n",
+    pr_log("CR2 - %016lx, CR3 - %016lx\n",cr2,cr3);
+    pr_log("DS  - %016lx, ES  - %016lx, FS  - %016lx, GS  - %016lx\n",
             stack->ds,stack->es,stack->fs,stack->gs);
-    pr_log("RAX - %016x, RBX - %016x, RCX - %016x, RDX - %016x\n",
+    pr_log("RAX - %016lx, RBX - %016lx, RCX - %016lx, RDX - %016lx\n",
             stack->rax,stack->rbx,stack->rcx,stack->rdx);
-    pr_log("RSP - %016x, RBP - %016x, RSI - %016x, RDI - %016x\n",
+    pr_log("RSP - %016lx, RBP - %016lx, RSI - %016lx, RDI - %016lx\n",
             stack->rsp,stack->rbp,stack->rsi,stack->rdi);
-    pr_log("R8  - %016x, R9  - %016x, R10 - %016x, R11 - %016x\n",
+    pr_log("R8  - %016lx, R9  - %016lx, R10 - %016lx, R11 - %016lx\n",
         stack->r8,stack->r9,stack->r10,stack->r11);
-    pr_log("R12 - %016x, R13 - %016x, R14 - %016x, R15 - %016x\n",
+    pr_log("R12 - %016lx, R13 - %016lx, R14 - %016lx, R15 - %016lx\n",
            stack->r12,stack->r13,stack->r14,stack->r15);
     uint32_t a,b,c,d;
     asm_cpuid(1,0,&a,&b,&c,&d);
