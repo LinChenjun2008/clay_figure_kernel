@@ -8,7 +8,6 @@
 
 #include <kernel/global.h>
 #include <lib/list.h>
-#include <intr.h> // intr functions
 
 PUBLIC void list_init(list_t *list)
 {
@@ -21,16 +20,12 @@ PUBLIC void list_init(list_t *list)
 
 PUBLIC void list_in(list_node_t *node,list_node_t *in_before)
 {
-    intr_status_t intr_status= intr_disable();
-
     in_before->prev->next = node;
 
     node->prev = in_before->prev;
     node->next = in_before;
 
     in_before->prev = node;
-
-    intr_set_status(intr_status);
     return;
 }
 
@@ -48,27 +43,22 @@ PUBLIC void list_append(list_t *list,list_node_t *node)
 
 PUBLIC void list_remove(list_node_t *node)
 {
-    intr_status_t intr_status = intr_disable();
     node->prev->next = node->next;
     node->next->prev = node->prev;
     node->next = NULL;
     node->prev = NULL;
-    intr_set_status(intr_status);
     return;
 }
 
 PUBLIC list_node_t* list_pop(list_t *list)
 {
-    intr_status_t intr_status = intr_disable();
     list_node_t *node = list->head.next;
     list_remove(node);
-    intr_set_status(intr_status);
     return node;
 }
 
 PUBLIC bool list_find(list_t *list,list_node_t *objnode)
 {
-    intr_status_t intr_status = intr_disable();
     list_node_t *node = list->head.next;
     bool res = FALSE;
     while (node != &(list->tail))
@@ -80,13 +70,11 @@ PUBLIC bool list_find(list_t *list,list_node_t *objnode)
         }
         node = node->next;
     }
-    intr_set_status(intr_status);
     return res;
 }
 
 PUBLIC list_node_t* list_traversal(list_t *list,func function,int arg)
 {
-    intr_status_t intr_status = intr_disable();
     list_node_t *node = list->head.next;
     list_node_t *res = NULL;
     while (node != &list->tail)
@@ -98,13 +86,11 @@ PUBLIC list_node_t* list_traversal(list_t *list,func function,int arg)
         }
         node = node->next;
     }
-    intr_set_status(intr_status);
     return res;
 }
 
 PUBLIC int list_len(list_t *list)
 {
-    intr_status_t intr_status = intr_disable();
     list_node_t *node = list->head.next;
     int len = 0;
     while (node != &list->tail)
@@ -112,7 +98,6 @@ PUBLIC int list_len(list_t *list)
         len++;
         node = node->next;
     }
-    intr_set_status(intr_status);
     return len;
 }
 

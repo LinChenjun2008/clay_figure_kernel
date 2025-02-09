@@ -7,4 +7,5 @@ QEMU             := qemu-system-x86_64
 ECHO             := echo
 MKDIR            := mkdir
 RM               := rm
+NM               := nm
 OVMF             := OVMF.fd

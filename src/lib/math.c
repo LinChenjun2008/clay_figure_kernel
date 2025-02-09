@@ -9,6 +9,11 @@
 #include <kernel/global.h>
 #include <lib/math.h>
 
+#define PI 3.14159265358979323846
+#define TWO_PI (2.0 * PI)
+#define HALF_PI (PI / 2.0)
+#define INFINITY 1e308
+
 PUBLIC double floor(double x)
 {
     return (double)((long)x);
@@ -47,31 +52,40 @@ PUBLIC double fmod(double x,double y)
 
 PUBLIC double sin(double x)
 {
-    return x - pow(x,3)/6 + pow(x,5)/120;
+    x = fmod(x + PI, TWO_PI) - PI;
+    double x2 = x * x;
+    double x3 = x2 * x;
+    double x5 = x3 * x2;
+    double x7 = x5 * x2;
+    return x - x3/6 + x5/120 - x7/5040;
 }
 
 PUBLIC double cos(double x)
 {
-    return 1 - pow(x,2)/2 + pow(x,4)/24 - pow(x,6)/720;
+    return sin(x + HALF_PI);
 }
 
 PUBLIC double asin(double x)
 {
-    return x + pow(x,3)/6 + pow(x,5) * 3/40;
+    return atan(x / sqrt(1 - x*x));
 }
 
 PUBLIC double acos(double x)
 {
-    return 1.570795 - asin(x);
+    return HALF_PI - asin(x);
 }
 
 PUBLIC double atan(double x)
 {
     if (x > 1 || x < -1)
     {
-        return 1.570795 - atan(1/x);
+        return HALF_PI - atan(1/x);
     }
-    return x - pow(x,3)/3 + pow(x,5)/5;
+    double x2 = x * x;
+    double x3 = x2 * x;
+    double x5 = x3 * x2;
+    double x7 = x5 * x2;
+    return x - x3/3 + x5/5 - x7/7;
 }
 
 PUBLIC double atan2(double y,double x)
@@ -84,22 +98,22 @@ PUBLIC double atan2(double y,double x)
     {
         if (y >= 0)
         {
-            return atan(y/x) + 3.1415926;
+            return atan(y/x) + PI;
         }
         else
         {
-            return atan(y/x) - 3.1415926;
+            return atan(y/x) - PI;
         }
     }
     if (y > 0)
     {
-        return 1.570795;
+        return HALF_PI;
     }
     if (y < 0)
     {
-        return -1.570795;
+        return -HALF_PI;
     }
-    return 0.0 / 0.0;
+    return INFINITY;
 }
 
 PUBLIC double fabs(double x)

@@ -33,34 +33,34 @@ PRIVATE int skip_atoi(const char **s)
 
 PRIVATE char * number_to_string(char * str,uint64_t num,int base,int width,int precision,int flag)
 {
-	char pad,sign,tmp[50];
-	const char *digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	if (flag & FORMAT_SMALL)
+    char pad,sign,tmp[50];
+    const char *digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if (flag & FORMAT_SMALL)
     {
         digits = "0123456789abcdefghijklmnopqrstuvwxyz";
     }
-	if (base < 2 || base > 36)
-		return 0;
-	pad = (flag & FORMAT_ZERO) ? '0' : ' ' ;
-	sign = 0;
-	if (flag & FORMAT_SIGN && (int64_t)num < 0)
+    if (base < 2 || base > 36)
+        return 0;
+    pad = (flag & FORMAT_ZERO) ? '0' : ' ' ;
+    sign = 0;
+    if (flag & FORMAT_SIGN && (int64_t)num < 0)
     {
-		sign = '-';
-		num = -num;
-	}
+        sign = '-';
+        num = -num;
+    }
     else
-	{
+    {
         sign=(flag & FORMAT_PLUS) ? '+' : ((flag & FORMAT_SPACE) ? ' ' : 0);
     }
-	if (sign) width--;
-	if (flag & FORMAT_SPECIAL)
-	{
+    if (sign) width--;
+    if (flag & FORMAT_SPECIAL)
+    {
         if (base == 16) width -= 2;
-		if (base ==  8) width -= 1;
+        if (base ==  8) width -= 1;
     }
-	int i = 0;
-	if (num == 0) { tmp[i++]='0'; }
-	else
+    int i = 0;
+    if (num == 0) { tmp[i++]='0'; }
+    else
     {
         while (num != 0)
         {
@@ -68,31 +68,31 @@ PRIVATE char * number_to_string(char * str,uint64_t num,int base,int width,int p
             num /= base;
         }
     }
-	if (i > precision) { precision=i; }
-	width -= precision;
-	if (!(flag & (FORMAT_ZERO | FORMAT_LEFT)))
-	{
+    if (i > precision) { precision=i; }
+    width -= precision;
+    if (!(flag & (FORMAT_ZERO | FORMAT_LEFT)))
+    {
         while(width-- > 0) *str++ = ' ';
     }
-	if (sign) { *str++ = sign; }
-	if (flag & FORMAT_SPECIAL)
-	{
+    if (sign) { *str++ = sign; }
+    if (flag & FORMAT_SPECIAL)
+    {
         if (base == 8) { *str++ = '0'; }
-		if (base==16)
-		{
-			*str++ = '0';
-			*str++ = digits[33];
-		}
+        if (base==16)
+        {
+            *str++ = '0';
+            *str++ = digits[33];
+        }
     }
-	if (!(flag & FORMAT_LEFT))
+    if (!(flag & FORMAT_LEFT))
     {
         while(width-- > 0) *str++ = pad;
     }
 
-	while(i < precision--) *str++ = '0';
-	while(i-- > 0) *str++ = tmp[i];
-	while(width-- > 0) *str++ = ' ';
-	return str;
+    while(i < precision--) *str++ = '0';
+    while(i-- > 0) *str++ = tmp[i];
+    while(width-- > 0) *str++ = ' ';
+    return str;
 }
 
 PRIVATE int get_flag(const char **fmt)

@@ -28,6 +28,12 @@ git clone https://github.com/linchenjun2008/clay_figure_kernel.git
 
 编辑`target.txt`，将其中的`ESP_PATH`设为一个正确的路径，用于保存编译结果。
 
+进入`build`目录，编译其中的`kallsyms.c`
+```bash
+cd build/
+gcc ./kallsyms.c -o kallsyms
+```
+
 3. 开始编译
 
 进入`build`目录，首次编译先执行`make init`，完成后执行`make`开始编译。
@@ -38,7 +44,7 @@ make all
 如果一切顺利，你将在`ESP_PATH`对应的路径中找到编译结果。
 
 # 运行
-进入`build`目录,执行`make run`，将通过qemu模拟器运行:
+进入`build`目录，执行`make run`，将通过qemu模拟器运行:
 ```bash
 make run
 ```

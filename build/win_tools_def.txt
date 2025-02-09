@@ -8,4 +8,5 @@ QEMU             := $(TOOL_PATH)/qemu/qemu-system-x86_64.exe
 ECHO             := echo
 MKDIR            := mkdir
 RM               := $(TOOL_PATH)/rm
+NM               := $(TOOL_PATH)/x86_64-elf-tools/x86_64-elf/bin/nm.exe
 OVMF             := $(ESP_PATH)/../bios.bin

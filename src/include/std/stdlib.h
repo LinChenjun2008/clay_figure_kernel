@@ -15,6 +15,7 @@ static inline void* malloc(size_t size)
     }
     return KADDR_P2V(addr);
 }
+
 #define free(addr) pfree(KADDR_V2P(addr))
 
 #endif

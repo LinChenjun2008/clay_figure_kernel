@@ -174,8 +174,8 @@ UefiMain
         if (h->Signature == MADT_SIGNATURE)
         {
             Status = gBS->AllocatePool(EfiLoaderData,
-                                        h->Length,
-                                        (VOID**)&boot_info->madt_addr);
+                                       h->Length,
+                                       (VOID**)&boot_info->madt_addr);
             gBS->CopyMem(boot_info->madt_addr,h,h->Length);
             break;
         }
