@@ -41,7 +41,7 @@ void write_src(symbol_entry_t *table,int *count)
     int i;
     for(i = 0;i < *count;i++)
     {
-        printf("\n\t(void*)%p,",table[i].address);
+        printf("\n\t(void*)%#llx,",table[i].address);
     }
     printf("\n};\n");
     printf("const char *kallsyms_symbols[] =\n{");
