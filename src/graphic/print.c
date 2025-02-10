@@ -103,7 +103,7 @@ PUBLIC void pr_log(const char *log,...)
     {
         basic_print(&g_pos,0x00c5c5c5,print_time(msg,global_ticks));
         buf = (char*)level[*log - 1];
-        uint32_t color;
+        uint32_t color = 0;
         switch (*log)
         {
             case 1:
@@ -359,7 +359,7 @@ PUBLIC void pr_log_ttf(const char *log,...)
             basic_print(&g_pos,0x00c5c5c5,print_time(msg,global_ticks));
         }
         buf = (char*)level[*log - 1];
-        uint32_t color;
+        uint32_t color = 0;
         switch (*log)
         {
             case 1:

@@ -55,8 +55,13 @@ PRIVATE void set_gatedesc(gate_desc_t *gd,void *func,int selector,int ar)
     return;
 }
 
-PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
+PRIVATE void default_irq_handler(intr_stack_t *stack)
 {
+    int nr = stack->nr;
+    if (nr == 0x27)
+    {
+        return;
+    }
     spinlock_lock(&intr_lock);
     pr_log("\n");
     pr_log("\3 INTR : 0x%x ( %s )\n",nr,nr < 20 ? intr_name[nr] : "Unknow");
@@ -129,20 +134,11 @@ PRIVATE void default_irq_handler(uint8_t nr,intr_stack_t *stack)
     while (1) continue;
 }
 
-PUBLIC void ASMLINKAGE do_irq(uint8_t nr,intr_stack_t *stack)
+PUBLIC void ASMLINKAGE do_irq(intr_stack_t *stack)
 {
-    if (nr == 0x27)
-    {
-        return;
-    }
-    if (irq_handler[nr] != NULL)
-    {
-        irq_handler[nr](stack);
-    }
-    else
-    {
-        default_irq_handler(nr,stack);
-    }
+    int nr = stack->nr;
+    if (irq_handler[nr]) { irq_handler[nr](stack); }
+    else { default_irq_handler(stack); }
     return;
 }
 

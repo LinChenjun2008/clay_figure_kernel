@@ -23,7 +23,7 @@ syscall_entry:
     pushq %r11 // origin rflags
     movq %r10, %rcx // restore rcx
 
-// switch to kernel stack
+    // switch to kernel stack
     pushq %rdi
     pushq %rsi
     pushq %rdx
@@ -43,9 +43,9 @@ syscall_entry:
     leaq sys_send_recv(%rip), %rax
     callq *%rax
 
-// switch to user stack
-    popq %rbx
-    movq %rbx, %rsp
+    // switch to user stack
+    popq %rbp
+    movq %rbp, %rsp
 
     popq %r11
     popq %rcx
