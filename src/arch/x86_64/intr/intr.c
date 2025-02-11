@@ -55,16 +55,16 @@ PRIVATE void set_gatedesc(gate_desc_t *gd,void *func,int selector,int ar)
     return;
 }
 
-PRIVATE void default_irq_handler(intr_stack_t *stack)
+PRIVATE void pr_debug_info(intr_stack_t *stack)
 {
-    int nr = stack->nr;
-    if (nr == 0x27)
-    {
-        return;
-    }
-    spinlock_lock(&intr_lock);
     pr_log("\n");
-    pr_log("\3 INTR : 0x%x ( %s )\n",nr,nr < 20 ? intr_name[nr] : "Unknow");
+    int i;
+    for (i = 0;i < 19;i++)
+    {
+        pr_log("=====");
+    }
+    pr_log("\n");
+    pr_log("Registers:\n\n");
     uint64_t cr2,cr3;
     cr2 = get_cr2();
     cr3 = get_cr3();
@@ -96,34 +96,49 @@ PRIVATE void default_irq_handler(intr_stack_t *stack)
     pr_log("task context: %p\n",running->context);
 
     // Backtrace
-    pr_log("==============================\n");
-    pr_log("kernel stack backtrace\n");
-    pr_log("==============================\n");
+    for (i = 0;i < 19;i++)
+    {
+        pr_log("=====");
+    }
+    pr_log("\nKernel Stack Backtrace:\n\n");
     int sym_idx;
     get_symbol_index_by_addr((void*)stack->rip,&sym_idx);
-    pr_log("              At address: %p [ %s + %#x ]\n",
-           stack->rip,
-           addr_to_symbol((void*)stack->rip),
-           stack->rip - (addr_t)index_to_addr(sym_idx));
+    addr_t *rip = (addr_t*)stack->rip;
     addr_t *rbp = (addr_t*)stack->rbp;
-    int i;
-    for (i = 0;i < 12;i++)
+    for (i = 0;i < 8;i++)
     {
-        status_t status = get_symbol_index_by_addr((void*)*(rbp + 1),&sym_idx);
-        pr_log("traceback %2d: ",i + 1);
+        status_t status = get_symbol_index_by_addr(rip,&sym_idx);
         if (ERROR(status))
         {
-            pr_log("At address: %p [ Invaild Symbol ]\n",*(rbp + 1));
             break;
         }
-        pr_log("At address: %p [ %s + %#x ]\n",
-                *(rbp + 1),
+        pr_log("    At address: %p [ %s + %#x ]\n",
+                rip,
                 index_to_symbol(sym_idx),
-                *(rbp + 1) - (addr_t)index_to_addr(sym_idx));
+                (addr_t)rip - (addr_t)index_to_addr(sym_idx));
+        rip = (addr_t*)*(rbp + 1);
         rbp = (addr_t*)*rbp;
     }
+    for (i = 0;i < 19;i++)
+    {
+        pr_log("=====");
+    }
+    pr_log("\n");
+}
 
+PRIVATE void default_irq_handler(intr_stack_t *stack)
+{
+    int nr = stack->nr;
+    if (nr == 0x27)
+    {
+        return;
+    }
+    spinlock_lock(&intr_lock);
+    pr_log("\n");
+    pr_log("\3 INTR : 0x%x ( %s )\n",nr,nr < 20 ? intr_name[nr] : "Unknow");
     spinlock_unlock(&intr_lock);
+    pr_debug_info(stack);
+    task_struct_t *running = running_task();
     if (running->page_dir != NULL)
     {
         message_t msg;
@@ -137,6 +152,7 @@ PRIVATE void default_irq_handler(intr_stack_t *stack)
 PUBLIC void ASMLINKAGE do_irq(intr_stack_t *stack)
 {
     int nr = stack->nr;
+    if (nr == 0x82) { pr_debug_info(stack); return; }
     if (irq_handler[nr]) { irq_handler[nr](stack); }
     else { default_irq_handler(stack); }
     return;

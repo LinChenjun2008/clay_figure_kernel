@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -19,10 +19,10 @@ kernel_entry:
     rdmsr
     andl $(1 << 8), %eax
     jz ap_kernel_main
-    movq $0x5f9000,%rax
-    movq %rax,%cr3
-    movq $0xffff800000310000,%rsp
-    leaq kernel_main(%rip),%rax
-    movq $0xffff800000000000,%rdi
-    orq %rdi,%rax
+    movq $0x5f9000, %rax
+    movq %rax, %cr3
+    movq $0xffff800000310000, %rsp
+    leaq kernel_main(%rip), %rax
+    movq $0xffff800000000000, %rdi
+    orq %rdi, %rax
     jmpq *%rax

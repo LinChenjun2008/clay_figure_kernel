@@ -123,6 +123,7 @@ INTR_HANDLER(asm_intr0x30_handler,IRQ_XHCI,ZERO)
 INTR_HANDLER(asm_intr0x80_handler,0x80, ZERO) // Timer
 INTR_HANDLER(asm_intr0x81_handler,0x81, ZERO) // Kernel Panic
 
+INTR_HANDLER(asm_intr0x82_handler,0x82, ZERO) // Debug
 #endif
 
 #endif
