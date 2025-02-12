@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -395,7 +395,7 @@ PUBLIC status_t xhci_setup()
 
         // configure and enable MSI
         configure_msi(device,1,0,interrupt_line,0);
-        uint32_t status = pci_dev_configure_msi(device,IRQ_XHCI,1);
+        status = pci_dev_configure_msi(device,IRQ_XHCI,1);
         if (ERROR(status))
         {
             pr_log("\3 xHCI: can not configure MSI.\n");

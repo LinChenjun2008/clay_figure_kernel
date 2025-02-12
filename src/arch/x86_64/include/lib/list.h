@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -29,7 +29,7 @@ typedef struct list_s
     list_node_t tail;
 } list_t;
 
-typedef bool (func) (list_node_t *,uint64_t);
+typedef bool (func_t) (list_node_t *,uint64_t);
 
 PUBLIC void list_init(list_t *list);
 PUBLIC void list_in(list_node_t *node,list_node_t *in_before);
@@ -38,7 +38,7 @@ PUBLIC void list_append(list_t *list,list_node_t *node);
 PUBLIC void list_remove(list_node_t *node);
 PUBLIC list_node_t* list_pop(list_t *list);
 PUBLIC bool list_find(list_t *list,list_node_t *objnode);
-PUBLIC list_node_t* list_traversal(list_t *list,func function,int arg);
+PUBLIC list_node_t* list_traversal(list_t *list,func_t function,int arg);
 PUBLIC int list_len(list_t *list);
 PUBLIC bool list_empty(list_t *list);
 

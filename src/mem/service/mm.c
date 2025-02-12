@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -18,7 +18,7 @@
 
 extern taskmgr_t *tm;
 
-typedef struct 
+typedef struct
 {
     uint64_t page_index;
     uint32_t page_count;
@@ -35,8 +35,8 @@ PRIVATE void mm_allocate_page(message_t *msg)
         msg->m2.p1 = NULL;
         return;
     }
-
-    status_t status = allocate_units(&src->vaddr_table,msg->m1.i1,&vaddr_start);
+    status_t status;
+    status = allocate_units(&src->vaddr_table,msg->m1.i1,&vaddr_start);
     if (ERROR(status))
     {
         msg->m2.p1 = NULL;
@@ -47,7 +47,7 @@ PRIVATE void mm_allocate_page(message_t *msg)
     uint32_t i;
     for (i = 0;i < msg->m1.i1;i++)
     {
-        status_t status = alloc_physical_page(1,&paddr);
+        status = alloc_physical_page(1,&paddr);
         if (ERROR(status))
         {
             while (i > 0)

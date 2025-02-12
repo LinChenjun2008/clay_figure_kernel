@@ -4,9 +4,7 @@ ENTRY(kernel_entry)
 
 SECTIONS
 {
-    KERNEL_VMA_BASE = 0xffff800000000000;
-    . = 0x0000000000100000;
-    . += KERNEL_VMA_BASE;
+    . = 0xffff800000100000;
     _kernel_start = .;
     _text = .;
     .text :

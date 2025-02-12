@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -256,6 +256,7 @@ PRIVATE void basic_print(position_t *pos,uint32_t col,const char *str)
     return;
 }
 
+extern void asm_debug_intr();
 PUBLIC void panic_spin(
     const char* filename,
     int line,
@@ -278,6 +279,7 @@ PUBLIC void panic_spin(
     pr_log("\3 >>> PANIC <<<\n");
     pr_log("\3 %s: In function '%s':\n",filename,func);
     pr_log("\3 %s:%d: %s\n",filename,line,message);
+    asm_debug_intr();
     while (1) io_hlt();
 }
 

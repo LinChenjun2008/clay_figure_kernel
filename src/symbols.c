@@ -1,3 +1,11 @@
+/*
+   Copyright 2025 LinChenjun
+
+   本程序是自由软件
+   修改和/或再分发依照 GNU GPL version 3 (or any later version)
+
+*/
+
 #include <kernel/global.h>
 
 extern void *kallsyms_address[] WEAK;
@@ -29,7 +37,7 @@ PUBLIC const char *index_to_symbol(int index)
     {
         return kallsyms_symbols[index];
     }
-    return "[Invalid Symbol]";
+    return "Invalid";
 }
 
 PUBLIC void *index_to_addr(int index)
@@ -45,13 +53,13 @@ PUBLIC const char *addr_to_symbol(void *addr)
 {
     if (!is_available_symbol_address(addr))
     {
-        return "[Invalid Symbol]";
+        return "Invalid";
     }
     int i;
     status_t status = get_symbol_index_by_addr(addr, &i);
     if (ERROR(status))
     {
-        return "[Unknown Symbol]";
+        return "Invalid";
     }
     return kallsyms_symbols[i];
 }

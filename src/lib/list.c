@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -73,7 +73,7 @@ PUBLIC bool list_find(list_t *list,list_node_t *objnode)
     return res;
 }
 
-PUBLIC list_node_t* list_traversal(list_t *list,func function,int arg)
+PUBLIC list_node_t* list_traversal(list_t *list,func_t function,int arg)
 {
     list_node_t *node = list->head.next;
     list_node_t *res = NULL;

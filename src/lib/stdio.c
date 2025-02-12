@@ -68,7 +68,7 @@ PRIVATE char * number_to_string(char * str,uint64_t num,int base,int width,int p
             num /= base;
         }
     }
-    if (i > precision) { precision=i; }
+    if (i > precision) { precision = i; }
     width -= precision;
     if (!(flag & (FORMAT_ZERO | FORMAT_LEFT)))
     {
@@ -91,6 +91,47 @@ PRIVATE char * number_to_string(char * str,uint64_t num,int base,int width,int p
 
     while(i < precision--) *str++ = '0';
     while(i-- > 0) *str++ = tmp[i];
+    while(width-- > 0) *str++ = ' ';
+    return str;
+}
+
+PRIVATE char *float_to_string(char * str,double num,int base,int width,int precision,int flag)
+{
+    char pad,integer_part[50],fract_part[50];
+    const char *digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    int i,integer_width,fract_width;
+    int integer = (int)num;
+    double mantissa = (num - integer);
+    pad = (flag & FORMAT_ZERO) ? '0' : ' ' ;
+
+    integer_width = 0;
+    do
+    {
+        integer_part[integer_width++] = digits[integer % base];
+        integer /= base;
+    } while (integer != 0);
+    width -= integer_width;
+
+    fract_width = 0;
+    if (precision == -1) { precision = 6; }
+    if (precision > 16) { precision = 16; }
+    if (precision != 0) { fract_part[fract_width++] = '.'; }
+    for (i = 0; i < precision; i++)
+    {
+        mantissa *= base;
+        integer = (int)mantissa;
+        fract_part[fract_width++] = digits[integer];
+        mantissa -= integer;
+    }
+    width -= fract_width;
+
+    if (!(flag & FORMAT_LEFT))
+    {
+        while(width-- > 0) *str++ = pad;
+    }
+
+    while(integer_width-- > 0) *str++ = integer_part[integer_width];
+    while (fract_width-- > 0) *str++ = fract_part[i - fract_width];
     while(width-- > 0) *str++ = ' ';
     return str;
 }
@@ -159,23 +200,23 @@ PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
         if(*fmt == '.')
         {
             fmt++;
-            if(IS_DIGIT(*fmt))
+            if (IS_DIGIT(*fmt))
             {
                 precision = skip_atoi(&fmt);
             }
-            else if(*fmt == '*')
+            else if (*fmt == '*')
             {
                 fmt++;
                 precision = va_arg(ap, int);
             }
-            if(precision < 0)
+            if (precision < 0)
             {
                 precision = 0;
             }
         }
 
         qualifier = 0;
-        if(*fmt == 'h' || *fmt == 'l' || *fmt == 'L' || *fmt == 'Z')
+        while (*fmt == 'h' || *fmt == 'l' || *fmt == 'L' || *fmt == 'Z')
         {
             qualifier = *fmt;
             fmt++;
@@ -247,6 +288,9 @@ PUBLIC int vsprintf(char *buf,const char *fmt,va_list ap)
             {
                 str = number_to_string(str,va_arg(ap,unsigned int),16,width,precision,flag);
             }
+            break;
+        case 'f':
+            str = float_to_string(str,va_arg(ap,double),10,width,precision,flag);
             break;
 
         default:
