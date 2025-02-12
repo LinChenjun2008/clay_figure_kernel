@@ -6,8 +6,6 @@ TMP_KERNEL_TARGET := .tmp_kernel
 KERNEL_ASM_SRC    := $(filter %.S,$(KERNEL_SRC))
 KERNEL_C_SRC      := $(filter %.c,$(KERNEL_SRC))
 
--include $(KERNEL_C_SRC:c=dep)
-
 .PHONY: all
 all: $(TARGET_BOOTLOADER) $(TARGET_KERNEL)
 
@@ -55,3 +53,5 @@ $(TMP_KERNEL_TARGET): $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o) $(KERNEL_LINKER_
 	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -c -o $@_sym.o $@_sym.c
 	@"$(X86_64-ELF-LD)" -T $(KERNEL_LINKER_SCRIPT) -pie -o $@ $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o) $@_sym.o
 	@"$(RM)" $@_sym.c $@_sym.o
+
+-include $(KERNEL_C_SRC:c=dep)

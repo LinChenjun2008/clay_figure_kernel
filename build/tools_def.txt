@@ -26,6 +26,7 @@ KERNEL_FLAGS     := -I$(KERNEL_ARCH_INCLUDE_PATH) -I$(SRC_PATH) -I$(KERNEL_INCLU
  -fPIE -fwrapv \
  -fno-use-linker-plugin \
  -mno-red-zone -m64 -mcmodel=large -march=x86-64 \
+ -mstackrealign \
  -O0 \
  -g3 -gdwarf-2 -gstrict-dwarf
 
