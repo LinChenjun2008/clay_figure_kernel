@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -34,7 +34,7 @@ PRIVATE void update_min_vruntime(core_taskmgr_t *taskmgr,uint64_t vruntime)
     return;
 }
 
-PUBLIC void schedule()
+PUBLIC void schedule(void)
 {
     ASSERT(intr_get_status() == INTR_OFF);
     task_struct_t *cur_task = running_task();
@@ -63,7 +63,7 @@ PRIVATE void task_unblock_without_spinlock(pid_t pid)
 }
 
 extern void ASMLINKAGE asm_switch_to(task_context_t **cur,task_context_t **next);
-PUBLIC void do_schedule()
+PUBLIC void do_schedule(void)
 {
     task_struct_t *cur_task = running_task();
     uint32_t cpu_id = apic_id();
@@ -130,7 +130,7 @@ PUBLIC void task_unblock(pid_t pid)
     return;
 }
 
-PUBLIC void task_yield()
+PUBLIC void task_yield(void)
 {
     intr_status_t intr_status = intr_disable();
     task_struct_t *task = running_task();

@@ -4,31 +4,42 @@ else
     include win_tools_def.txt
 endif
 
-BOOTLOADER_FLAGS := -Wall -Wextra -I$(BOOTLOADER_INCLUDE_PATH) -I$(SRC_PATH) -I$(BOOTLOADER_SRC_PATH) \
- -e UefiMain -nostdinc -nostdlib \
- -Werror \
- -fno-stack-protector \
- -m64 -mcmodel=small -fpic -fpie \
- -fno-builtin -Wl,--subsystem,10
+BOOTLOADER_FLAGS := -Wall -Wextra -Werror \
+                    -I$(BOOTLOADER_INCLUDE_PATH) \
+                    -I$(SRC_PATH) \
+                    -I$(BOOTLOADER_SRC_PATH) \
+                    -e UefiMain \
+                    -nostdinc -nostdlib \
+                    -fno-stack-protector \
+                    -m64 -mcmodel=small -fpic -fpie \
+                    -fno-builtin -Wl,--subsystem,10
 
-KERNEL_FLAGS     := -I$(KERNEL_ARCH_INCLUDE_PATH) -I$(SRC_PATH) -I$(KERNEL_INCLUDE_PATH) \
- -Wall -Wextra -Werror \
- -Wcast-align -Wwrite-strings \
- -Wredundant-decls -Wnested-externs \
- -Winline \
- -Wshadow \
- -Wno-long-long \
- -Wno-implicit-fallthrough \
- -nostdlib -nostdinc \
- -finput-charset=UTF-8 -fexec-charset=UTF-8 \
- -fno-builtin -fno-strict-aliasing -ffreestanding \
- -fstrength-reduce -falign-loops -falign-jumps \
- -fPIE -fwrapv \
- -fno-use-linker-plugin \
- -mno-red-zone -m64 -mcmodel=large -march=x86-64 \
- -mstackrealign \
- -O0 \
- -g3 -gdwarf-2 -gstrict-dwarf
+KERNEL_FLAGS  = -I$(KERNEL_ARCH_INCLUDE_PATH) \
+                -I$(SRC_PATH) \
+                -I$(KERNEL_INCLUDE_PATH) \
+                -O0 \
+                -g3 -gdwarf-2 -gstrict-dwarf \
+                -nostdlib -nostdinc
+
+KERNEL_FLAGS += -Wall -Wextra -Werror \
+                -Wcast-align -Wwrite-strings \
+                -Wredundant-decls -Wnested-externs \
+                -Winline \
+                -Wshadow \
+                -Wpointer-arith \
+                -Wmissing-prototypes \
+                -Wmissing-declarations \
+                -Wno-long-long \
+                -Wno-implicit-fallthrough
+
+KERNEL_FLAGS += -finput-charset=UTF-8 -fexec-charset=UTF-8 \
+                -fno-builtin -fno-strict-aliasing -ffreestanding \
+                -fstrength-reduce -falign-loops -falign-jumps \
+                -fPIE -fwrapv \
+                -fno-use-linker-plugin
+
+KERNEL_FLAGS += -mno-red-zone -m64 -mcmodel=large -march=x86-64 \
+                -mstackrealign \
 
 QEMU_FLAGS := -m 128M -bios $(OVMF) \
  -smp $(SMP_CORES),cores=$(SMP_CORES),threads=1,sockets=1 \

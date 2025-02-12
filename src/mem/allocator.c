@@ -34,7 +34,7 @@ typedef list_node_t mem_block_t;
 
 PRIVATE mem_group_t mem_groups[NUMBER_OF_MEMORY_BLOCK_TYPES];
 
-PUBLIC void mem_allocator_init()
+PUBLIC void mem_allocator_init(void)
 {
     ASSERT(MIN_ALLOCATE_MEMORY_SIZE >= sizeof(mem_block_t));
     size_t block_size = MIN_ALLOCATE_MEMORY_SIZE;

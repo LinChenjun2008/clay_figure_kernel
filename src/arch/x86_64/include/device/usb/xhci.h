@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -501,7 +501,7 @@ typedef struct xhci_s
     uint8_t                max_address;
 } xhci_t;
 
-PUBLIC status_t xhci_setup();
+PUBLIC status_t xhci_setup(void);
 PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb);
 PUBLIC status_t xhci_init(xhci_t *xhci);
 PUBLIC bool xhci_ring_busy(xhci_ring_t *ring);

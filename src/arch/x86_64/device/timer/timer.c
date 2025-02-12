@@ -20,9 +20,9 @@
 
 PUBLIC volatile uint64_t global_ticks;
 
-PRIVATE void pit_timer_handler()
+PRIVATE void pit_timer_handler(intr_stack_t *stack)
 {
-    eoi(0x20);
+    eoi(stack->nr);
     inform_intr(TICK);
     global_ticks++;
 #ifdef __DISABLE_APIC_TIMER__
@@ -42,14 +42,14 @@ PRIVATE void pit_timer_handler()
     return;
 }
 
-PRIVATE void apic_timer_handler()
+PRIVATE void apic_timer_handler(intr_stack_t *stack)
 {
-    eoi(0x80);
+    eoi(stack->nr);
     schedule();
     return;
 }
 
-PUBLIC void pit_init()
+PUBLIC void pit_init(void)
 {
     global_ticks = 0;
     register_handle(0x20,pit_timer_handler);

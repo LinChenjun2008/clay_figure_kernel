@@ -37,14 +37,14 @@
 
 PUBLIC apic_t apic;
 
-PUBLIC bool support_apic()
+PUBLIC bool support_apic(void)
 {
     uint32_t a,b,c,d;
     asm_cpuid(1,0,&a,&b,&c,&d);
     return (d & (1 << 9)) && (rdmsr(IA32_APIC_BASE) & (1 << 11));
 }
 
-PUBLIC void detect_cores()
+PUBLIC void detect_cores(void)
 {
     apic.local_apic_address   = 0;
     apic.number_of_cores      = 0;

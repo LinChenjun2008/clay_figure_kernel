@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -50,8 +50,8 @@ PUBLIC syscall_status_t ASMLINKAGE sys_send_recv(
     return res;
 }
 
-PUBLIC void syscall_entry();
-PUBLIC void syscall_init()
+PUBLIC void syscall_entry(void);
+PUBLIC void syscall_init(void)
 {
     wordsize_t val;
     val = rdmsr(IA32_EFER);

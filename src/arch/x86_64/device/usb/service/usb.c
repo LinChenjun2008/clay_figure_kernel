@@ -100,7 +100,7 @@ PRIVATE void process_intr(xhci_t *xhci)
     }
 }
 
-PRIVATE void usb_event_task()
+PRIVATE void usb_event_task(void)
 {
     uint32_t number_of_xhci = pci_dev_count(0x0c,0x03,0x30);
     while(1)
@@ -115,7 +115,7 @@ PRIVATE void usb_event_task()
     };
 }
 
-PUBLIC void usb_main()
+PUBLIC void usb_main(void)
 {
     pr_log("\1 USB Service Start.\n");
     xhci_setup();

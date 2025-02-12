@@ -304,14 +304,14 @@ PRIVATE void xhci_start(xhci_t *xhci)
     return;
 }
 
-PRIVATE void intr_xHCI_handler()
+PRIVATE void intr_xHCI_handler(intr_stack_t *stack)
 {
-    eoi(IRQ_XHCI);
+    eoi(stack->nr);
     inform_intr(USB_SRV);
     return;
 }
 
-PUBLIC status_t xhci_setup()
+PUBLIC status_t xhci_setup(void)
 {
     uint32_t number_of_xhci = pci_dev_count(0x0c,0x03,0x30);
     if (number_of_xhci == 0)

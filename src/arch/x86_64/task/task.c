@@ -48,7 +48,7 @@ PUBLIC bool task_exist(pid_t pid)
 }
 
 // running_task() can only be called in ring 0
-PUBLIC task_struct_t* running_task()
+PUBLIC task_struct_t* running_task(void)
 {
     wordsize_t rsp;
     rsp = get_rsp();
@@ -274,7 +274,7 @@ PRIVATE void make_main_task(void)
     return;
 }
 
-PUBLIC void task_init()
+PUBLIC void task_init(void)
 {
     addr_t addr;
     status_t status;

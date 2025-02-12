@@ -1,8 +1,9 @@
 #include <kernel/global.h>
 #include <service.h>
 #include <kernel/syscall.h>
+#include <ulib.h>
 
-PUBLIC uint64_t get_ticks()
+PUBLIC uint64_t get_ticks(void)
 {
     message_t msg;
     msg.type = TICK_GET_TICKS;

@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -9,10 +9,10 @@
 #ifndef __MEM_H__
 #define __MEM_H__
 
-PUBLIC void mem_init();
-PUBLIC size_t total_memory();
-PUBLIC uint32_t total_pages();
-PUBLIC uint32_t total_free_pages();
+PUBLIC void mem_init(void);
+PUBLIC size_t total_memory(void);
+PUBLIC uint32_t total_pages(void);
+PUBLIC uint32_t total_free_pages(void);
 
 /**
  * 分配number_of_pages个连续的大小为PG_SIZE的物理页
@@ -52,7 +52,7 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr);
  */
 PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr);
 
-PUBLIC void mem_allocator_init();
+PUBLIC void mem_allocator_init(void);
 
 /**
  * 在内存池中分配size大小的内存块.
@@ -61,7 +61,7 @@ PUBLIC void mem_allocator_init();
  * 返回的地址按 (1 << n) 字节对齐,满足 size <= (1 << n),n为整数.
  */
 PUBLIC status_t pmalloc(size_t size,void *addr);
-
+PUBLIC status_t pmalloc_align(size_t size,void *addr,size_t align);
 /**
  * 在内存池中归还addr处的内存块.
  * 此处的addr应为pmalloc所返回的地址.

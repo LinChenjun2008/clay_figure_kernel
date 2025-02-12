@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -47,7 +47,7 @@ PUBLIC uint8_t pci_dev_read_secondary_bus_number(pci_device_t *dev);
 PUBLIC uint64_t pci_dev_read_bar(pci_device_t *dev,uint8_t bar_index);
 PUBLIC uint8_t pci_dev_read_cap_point(pci_device_t *dev);
 
-PUBLIC void pci_scan_all_bus();
+PUBLIC void pci_scan_all_bus(void);
 
 PUBLIC uint32_t pci_dev_count(
     uint8_t base_class,

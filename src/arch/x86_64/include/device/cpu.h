@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -56,8 +56,8 @@ PUBLIC uint64_t make_icr(
     uint8_t  des_shorthand,
     uint32_t destination);
 
-PUBLIC status_t smp_init();
-PUBLIC status_t smp_start();
+PUBLIC status_t smp_init(void);
+PUBLIC status_t smp_start(void);
 PUBLIC void send_IPI(uint64_t icr);
 
 extern uint8_t AP_BOOT_BASE[];

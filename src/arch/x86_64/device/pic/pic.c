@@ -12,12 +12,9 @@
 
 #include <log.h>
 
-PUBLIC void init_8259a();
-PUBLIC void apic_init();
-
 extern apic_t apic;
 
-PUBLIC void pic_init()
+PUBLIC void pic_init(void)
 {
 #ifndef __PIC_8259A__
     apic_init();

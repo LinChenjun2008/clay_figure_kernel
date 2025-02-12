@@ -50,4 +50,7 @@ extern char _bss[];
 extern char _ebss[];
 extern char _kernel_end[];
 
+PUBLIC void kernel_main(void);
+PUBLIC void ap_kernel_main(void);
+
 #endif
