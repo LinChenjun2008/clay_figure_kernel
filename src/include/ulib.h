@@ -1,7 +1,7 @@
 #ifndef __ULIB_H__
 #define __ULIB_H__
 
-PUBLIC uint64_t get_ticks();
+PUBLIC uint64_t get_ticks(void);
 
 PUBLIC void* allocate_page(uint32_t count);
 PUBLIC void free_page(void *addr,uint32_t count);

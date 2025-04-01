@@ -7,6 +7,7 @@
 */
 
 #include <kernel/global.h>
+#include <kernel/symbols.h>
 
 extern void *kallsyms_address[] WEAK;
 extern const char * const kallsyms_symbols[] WEAK;

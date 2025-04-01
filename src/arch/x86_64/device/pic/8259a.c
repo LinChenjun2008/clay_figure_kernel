@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -7,9 +7,10 @@
 */
 
 #include <kernel/global.h>
+#include <device/pic.h>
 #include <io.h> // io_out8
 
-PUBLIC void init_8259a()
+PUBLIC void init_8259a(void)
 {
     io_out8(PIC_M_DATA, 0xff ); /* 11111111 禁止所有中断 */
     io_out8(PIC_S_DATA, 0xff ); /* 11111111 禁止所有中断 */

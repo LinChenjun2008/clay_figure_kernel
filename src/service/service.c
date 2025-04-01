@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -26,13 +26,7 @@ PUBLIC pid_t service_id_to_pid(uint32_t sid)
     return MAX_TASK;
 }
 
-PUBLIC void tick_main();
-PUBLIC void mm_main();
-PUBLIC void view_main();
-PUBLIC void usb_main();
-PUBLIC void keyboard_main();
-
-PUBLIC void service_init()
+PUBLIC void service_init(void)
 {
     service_pid_table[TICK    - SERVICE_ID_BASE] = prog_execute(
                                                     "TICK",

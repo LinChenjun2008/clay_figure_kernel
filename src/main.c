@@ -23,7 +23,7 @@
 
 PUBLIC boot_info_t *g_boot_info = (boot_info_t*)0xffff800000310000;
 
-PRIVATE void ktask()
+PRIVATE void ktask(void)
 {
     uint32_t color = 0x00000000;
     uint32_t xsize = 10;
@@ -44,7 +44,7 @@ PRIVATE void ktask()
     };
 }
 
-PUBLIC void kernel_main()
+PUBLIC void kernel_main(void)
 {
     pr_log(K_NAME " - " K_VERSION "\n");
     init_all();
@@ -57,7 +57,7 @@ PUBLIC void kernel_main()
     };
 }
 
-PUBLIC void ap_kernel_main()
+PUBLIC void ap_kernel_main(void)
 {
     ap_init_all();
     char name[31];

@@ -112,7 +112,7 @@ PUBLIC bool task_exist(pid_t pid);
 /**
  * 获取当前正在运行的任务的结构体.
  */
-PUBLIC task_struct_t* running_task();
+PUBLIC task_struct_t* running_task(void);
 
 /**
  * 在任务表中分配一个任务.
@@ -164,7 +164,7 @@ PUBLIC task_struct_t* task_start(
     void* func,
     uint64_t arg);
 
-PUBLIC void task_init();
+PUBLIC void task_init(void);
 
 /// schedule.c
 
@@ -176,13 +176,13 @@ PUBLIC void update_vruntime(task_struct_t *task);
 /**
  * 更新vrun_time,并判断是否需要调度.
  */
-PUBLIC void schedule();
+PUBLIC void schedule(void);
 
 /**
  * 进行任务调度.
  * 如果进程持有自旋锁,则不会触发调度.
  */
-PUBLIC void do_schedule();
+PUBLIC void do_schedule(void);
 
 /**
  * 阻塞当前任务,并将任务状态设为status.
@@ -194,12 +194,12 @@ PUBLIC void task_block(task_status_t status);
  */
 PUBLIC void task_unblock(pid_t pid);
 
-PUBLIC void task_yield();
+PUBLIC void task_yield(void);
 
 /// tss.c
 PUBLIC void init_tss(uint8_t nr_cpu);
 PUBLIC void update_tss_rsp0(task_struct_t *task);
-PUBLIC addr_t get_running_prog_kstack();
+PUBLIC addr_t get_running_prog_kstack(void);
 
 /// prog.c
 PUBLIC void prog_activate(task_struct_t *task);

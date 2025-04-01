@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -109,7 +109,7 @@ PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
     return MAX_MEMORY_TYPE;
 }
 
-PUBLIC void mem_init()
+PUBLIC void mem_init(void)
 {
     mem.page_bitmap.map            = page_bitmap_map;
     mem.page_bitmap.btmp_bytes_len = PAGE_BITMAP_BYTES_LEN;
@@ -165,17 +165,17 @@ PUBLIC void mem_init()
     return;
 }
 
-PUBLIC size_t total_memory()
+PUBLIC size_t total_memory(void)
 {
     return mem.mem_size;
 }
 
-PUBLIC uint32_t total_pages()
+PUBLIC uint32_t total_pages(void)
 {
     return mem.total_pages;
 }
 
-PUBLIC uint32_t total_free_pages()
+PUBLIC uint32_t total_free_pages(void)
 {
     return mem.free_pages;
 }

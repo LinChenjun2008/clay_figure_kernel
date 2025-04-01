@@ -171,7 +171,7 @@ PRIVATE void idt_desc_init(void)
 }
 
 extern void asm_lidt(void *idt_ptr);
-PUBLIC void intr_init()
+PUBLIC void intr_init(void)
 {
     idt_desc_init();
     int i;
@@ -186,7 +186,7 @@ PUBLIC void intr_init()
     return;
 }
 
-PUBLIC void ap_intr_init()
+PUBLIC void ap_intr_init(void)
 {
     uint128_t idt_ptr = (((uint128_t)0 + ((uint128_t)((uint64_t)idt))) << 16) \
                         | (sizeof(idt) - 1);
@@ -199,7 +199,7 @@ PUBLIC void register_handle(uint8_t nr,void (*handle)(intr_stack_t*))
     return;
 }
 
-PUBLIC intr_status_t intr_get_status()
+PUBLIC intr_status_t intr_get_status(void)
 {
     wordsize_t flags;
     flags = get_flags();
@@ -211,7 +211,7 @@ PUBLIC intr_status_t intr_set_status(intr_status_t status)
     return (status == INTR_ON ? intr_enable() : intr_disable());
 }
 
-PUBLIC intr_status_t intr_enable()
+PUBLIC intr_status_t intr_enable(void)
 {
     intr_status_t old_status;
     if (intr_get_status() == INTR_ON)
@@ -227,7 +227,7 @@ PUBLIC intr_status_t intr_enable()
     }
 }
 
-PUBLIC intr_status_t intr_disable()
+PUBLIC intr_status_t intr_disable(void)
 {
     intr_status_t old_status;
     if (intr_get_status() == INTR_ON)

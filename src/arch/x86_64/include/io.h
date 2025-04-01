@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -22,7 +22,7 @@ extern void io_out8(uint32_t port,uint32_t data);
 extern void io_out16(uint32_t port,uint32_t data);
 extern void io_out32(uint32_t port,uint32_t data);
 
-extern wordsize_t get_flags();
+extern wordsize_t get_flags(void);
 
 extern wordsize_t get_rsp();
 extern wordsize_t get_cr2();

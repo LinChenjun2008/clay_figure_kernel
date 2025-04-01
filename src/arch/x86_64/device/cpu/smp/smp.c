@@ -43,15 +43,15 @@ PUBLIC uint64_t make_icr(
     return icr;
 }
 
-PRIVATE void ipi_panic_handler()
+PRIVATE void ipi_panic_handler(intr_stack_t *stack)
 {
-    eoi(0x81);
+    eoi(stack->nr);
     intr_disable();
     while (1) io_hlt();
     return;
 }
 
-PUBLIC status_t smp_init()
+PUBLIC status_t smp_init(void)
 {
     // copy ap_boot
     size_t ap_boot_size = (addr_t)AP_BOOT_END - (addr_t)AP_BOOT_BASE;
@@ -59,7 +59,7 @@ PUBLIC status_t smp_init()
 
     // allocate stack for apu
     status_t status;
-    void *apu_stack_base;
+    uint8_t *apu_stack_base;
     status = alloc_physical_page(
                 ((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1,
                 &apu_stack_base);
@@ -116,7 +116,7 @@ PUBLIC status_t smp_init()
     return K_SUCCESS;
 }
 
-PUBLIC status_t smp_start()
+PUBLIC status_t smp_start(void)
 {
     uint64_t icr;
     icr = make_icr(

@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -86,6 +86,12 @@ typedef struct service_task_s service_task_t;
 
 PUBLIC bool is_service_id(uint32_t sid);
 PUBLIC pid_t service_id_to_pid(uint32_t sid);
-PUBLIC void service_init();
+PUBLIC void service_init(void);
+
+PUBLIC void tick_main(void);
+PUBLIC void mm_main(void);
+PUBLIC void view_main(void);
+PUBLIC void usb_main(void);
+PUBLIC void keyboard_main(void);
 
 #endif

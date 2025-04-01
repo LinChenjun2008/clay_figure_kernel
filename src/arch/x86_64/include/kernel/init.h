@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -20,7 +20,7 @@ typedef struct segmdesc_s
 } segmdesc_t;
 
 PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access);
-PUBLIC void init_all();
-PUBLIC void ap_init_all();
+PUBLIC void init_all(void);
+PUBLIC void ap_init_all(void);
 
 #endif

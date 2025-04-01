@@ -54,13 +54,13 @@ typedef enum intr_status_e
 } intr_status_t;
 
 PUBLIC void ASMLINKAGE do_irq(intr_stack_t *stack);
-PUBLIC void intr_init();
-PUBLIC void ap_intr_init();
+PUBLIC void intr_init(void);
+PUBLIC void ap_intr_init(void);
 PUBLIC void register_handle(uint8_t nr,void (*handle)(intr_stack_t*));
-PUBLIC intr_status_t intr_get_status();
+PUBLIC intr_status_t intr_get_status(void);
 PUBLIC intr_status_t intr_set_status(intr_status_t status);
-PUBLIC intr_status_t intr_enable();
-PUBLIC intr_status_t intr_disable();
+PUBLIC intr_status_t intr_enable(void);
+PUBLIC intr_status_t intr_disable(void);
 
 #else
 

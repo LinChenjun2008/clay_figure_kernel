@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -106,7 +106,7 @@ PRIVATE bool alt_status;
 PRIVATE bool capslock_status;
 PRIVATE bool ext_scandcode;
 
-PRIVATE void analysis_key()
+PRIVATE void analysis_key(void)
 {
     // bool ctrl_down = ctrl_status;
     bool shift_down = shift_status;
@@ -213,7 +213,7 @@ PRIVATE void analysis_key()
     }
 }
 
-PUBLIC void keyboard_main()
+PUBLIC void keyboard_main(void)
 {
     ctrl_status     = 0;
     shift_status    = 0;

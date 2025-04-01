@@ -1,5 +1,5 @@
 /*
-   Copyright 2024 LinChenjun
+   Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
    修改和/或再分发依照 GNU GPL version 3 (or any later version)
@@ -48,7 +48,7 @@ PRIVATE status_t add_timer(message_t *msg)
     return K_OUT_OF_RESOURCE;
 }
 
-PRIVATE void wake_up()
+PRIVATE void wake_up(void)
 {
     int i;
     for (i = 0;i < MAX_TIMERS;i++)
@@ -65,7 +65,7 @@ PRIVATE void wake_up()
     }
 }
 
-PUBLIC void tick_main()
+PUBLIC void tick_main(void)
 {
     time_manager.ticks        = 0;
     time_manager.using_timers = 0;

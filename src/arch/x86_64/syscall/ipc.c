@@ -12,6 +12,7 @@
 #include <std/string.h>  // memcpy
 #include <intr.h>        // intr_disable,intr_enable
 #include <sync/atomic.h> // atomic_inc,atomic_dec
+#include <kernel/syscall.h>
 
 #include <log.h>
 
@@ -58,7 +59,7 @@ PUBLIC void inform_intr(pid_t dest)
     return;
 }
 
-PRIVATE void wait_recevice()
+PRIVATE void wait_recevice(void)
 {
 
     task_struct_t *sender = running_task();

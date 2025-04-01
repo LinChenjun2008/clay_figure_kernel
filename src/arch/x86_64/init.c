@@ -37,7 +37,7 @@ PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access)
 PUBLIC segmdesc_t gdt_table[8192];
 
 extern void asm_load_gdt(void *gdt_ptr,uint16_t code,uint16_t data);
-PRIVATE void load_gdt()
+PRIVATE void load_gdt(void)
 {
     uint128_t gdt_ptr = (((uint128_t)0
                         + ((uint128_t)((uint64_t)gdt_table))) << 16)
@@ -53,7 +53,7 @@ PRIVATE void load_tss(uint8_t nr_cpu)
     return;
 }
 
-PRIVATE void init_desc()
+PRIVATE void init_desc(void)
 {
     gdt_table[0] = make_segmdesc(0,      0,             0);
     gdt_table[1] = make_segmdesc(0,      0,     AR_CODE64);
@@ -69,7 +69,7 @@ PRIVATE spinlock_t schedule_lock;
 
 extern uint64_t global_ticks;
 
-PUBLIC void init_all()
+PUBLIC void init_all(void)
 {
     init_spinlock(&schedule_lock);
     intr_disable();
@@ -150,7 +150,7 @@ PUBLIC void init_all()
 }
 
 extern taskmgr_t *tm;
-PUBLIC void ap_init_all()
+PUBLIC void ap_init_all(void)
 {
     intr_disable();
     init_tss(apic_id());
