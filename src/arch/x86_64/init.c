@@ -138,10 +138,10 @@ PUBLIC void init_all(void)
     do_schedule();
 
     message_t msg;
-    msg.m3.p1 = (void*)g_boot_info->graph_info.frame_buffer_base;
-    msg.m3.i1 = g_boot_info->graph_info.horizontal_resolution;
-    msg.m3.i2 = g_boot_info->graph_info.vertical_resolution;
-    msg.m3.i3 = g_boot_info->graph_info.pixel_per_scanline;
+    msg.m3.p1 = (void*)g_graph_info->frame_buffer_base;
+    msg.m3.i1 = g_graph_info->horizontal_resolution;
+    msg.m3.i2 = g_graph_info->vertical_resolution;
+    msg.m3.i3 = g_graph_info->pixel_per_scanline;
     sys_send_recv(NR_SEND,VIEW,&msg);
 
     smp_start();

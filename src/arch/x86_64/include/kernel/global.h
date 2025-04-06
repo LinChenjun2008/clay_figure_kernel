@@ -38,6 +38,7 @@
 #include <common.h>
 
 extern boot_info_t *g_boot_info;
+extern graph_info_t *g_graph_info;
 
 extern char _kernel_start[];
 extern char _text[];

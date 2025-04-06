@@ -102,7 +102,6 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
     }
     pr_log("\nKernel Stack Backtrace:\n\n");
     int sym_idx;
-    get_symbol_index_by_addr((void*)stack->rip,&sym_idx);
     addr_t *rip = (addr_t*)stack->rip;
     addr_t *rbp = (addr_t*)stack->rbp;
     for (i = 0;i < 8;i++)

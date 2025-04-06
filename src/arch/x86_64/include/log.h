@@ -35,8 +35,12 @@ typedef struct position_s
 {
     uint32_t x;
     uint32_t y;
-    uint32_t xstart;
-    uint32_t ystart;
+    uint32_t bx;
+    uint32_t by;
+    uint32_t xsize;
+    uint32_t ysize;
+    uint32_t char_xsize;
+    uint32_t char_ysize;
 } position_t;
 
 #include "stb_truetype.h"
