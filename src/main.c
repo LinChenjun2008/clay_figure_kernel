@@ -23,7 +23,7 @@
 
 PUBLIC boot_info_t *g_boot_info = (boot_info_t*)0xffff800000310000;
 PUBLIC graph_info_t *g_graph_info;
-extern position_t g_pos;
+extern textbox_t g_tb;
 
 PRIVATE void ktask(void)
 {
@@ -50,14 +50,14 @@ PUBLIC void kernel_main(void)
 {
     g_graph_info = &g_boot_info->graph_info;
 
-    g_pos.x = 0;
-    g_pos.y = 0;
-    g_pos.bx = g_graph_info->pixel_per_scanline - 100 * 9;
-    g_pos.by = 16;
-    g_pos.xsize = 100 * 9;
-    g_pos.ysize = g_graph_info->vertical_resolution / 2;
-    g_pos.char_xsize = 9;
-    g_pos.char_ysize = 16;
+    g_tb.cur_pos.x = 0;
+    g_tb.cur_pos.y = 0;
+    g_tb.box_pos.x = g_graph_info->pixel_per_scanline - 100 * 9;
+    g_tb.box_pos.y = 16;
+    g_tb.xsize = 100 * 9;
+    g_tb.ysize = g_graph_info->vertical_resolution / 2;
+    g_tb.char_xsize = 9;
+    g_tb.char_ysize = 16;
 
     pr_log(K_NAME " - " K_VERSION "\n");
     init_all();

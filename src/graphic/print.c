@@ -17,7 +17,7 @@
 
 extern PUBLIC uint8_t ascii_character[][16];
 
-PUBLIC position_t g_pos;
+PUBLIC textbox_t g_tb;
 
 extern uint64_t global_ticks;
 
@@ -74,8 +74,8 @@ static inline void serial_pr_log(const char *log,va_list ap)
 
 #undef IS_TRANSMIT_EMPTY
 
-PRIVATE void basic_put_char(position_t *pos,unsigned char c,uint32_t col);
-PRIVATE void basic_print(position_t *pos,uint32_t col,const char *str);
+PRIVATE void basic_put_char(textbox_t *tb,unsigned char c,uint32_t col);
+PRIVATE void basic_print(textbox_t *tb,uint32_t col,const char *str);
 
 PUBLIC void pr_log(const char *log,...)
 {
@@ -95,7 +95,7 @@ PUBLIC void pr_log(const char *log,...)
 
     if (*log >= 1 && *log <= 3)
     {
-        basic_print(&g_pos,0x00c5c5c5,print_time(msg,global_ticks));
+        basic_print(&g_tb,0x00c5c5c5,print_time(msg,global_ticks));
         buf = (char*)level[*log - 1];
         uint32_t color = 0;
         switch (*log)
@@ -110,19 +110,19 @@ PUBLIC void pr_log(const char *log,...)
                 color = 0x00c50000;
                 break;
         }
-        basic_print(&g_pos,color,buf);
+        basic_print(&g_tb,color,buf);
         log = log + 1;
     }
     va_start(ap,log);
     vsprintf(msg,log,ap);
     buf = msg;
-    basic_print(&g_pos,0x00c5c5c5,buf);
+    basic_print(&g_tb,0x00c5c5c5,buf);
 
     va_end(ap);
     return;
 }
 
-PRIVATE void basic_put_char(position_t *pos,unsigned char c,uint32_t col)
+PRIVATE void basic_put_char(textbox_t *tb,unsigned char c,uint32_t col)
 {
     uint8_t *character = ascii_character[(uint32_t)c];
     int i;
@@ -131,8 +131,8 @@ PRIVATE void basic_put_char(position_t *pos,unsigned char c,uint32_t col)
         uint8_t data = character[i];
         uint32_t *pixel = \
             (uint32_t*)g_graph_info->frame_buffer_base \
-            + (pos->y + pos->by + i) * g_graph_info->pixel_per_scanline \
-            + pos->x + pos->bx;
+            + (tb->box_pos.y + tb->cur_pos.y + i) * g_graph_info->pixel_per_scanline \
+            + tb->box_pos.x + tb->cur_pos.x;
         int j;
         for (j = 0;j < 8;j++){ pixel[j] = 0x00000000; }
         if ((data & 0x80) != 0){ pixel[0] = col; }
@@ -153,8 +153,8 @@ PRIVATE void basic_put_char(position_t *pos,unsigned char c,uint32_t col)
             uint8_t data = character[i];
             uint32_t *pixel = \
                 (uint32_t*)g_graph_info->frame_buffer_base \
-                + (pos->y + pos->by + i) * g_graph_info->pixel_per_scanline \
-                + pos->x + pos->bx + pos->char_xsize;
+                + (tb->box_pos.y + tb->cur_pos.y + i) * g_graph_info->pixel_per_scanline \
+                + tb->box_pos.x + tb->cur_pos.x + tb->char_xsize;
             int j;
             for (j = 0;j < 8;j++){ pixel[j] = 0x00000000; }
             if ((data & 0x80) != 0){ pixel[0] = col; }
@@ -171,63 +171,63 @@ PRIVATE void basic_put_char(position_t *pos,unsigned char c,uint32_t col)
     return;
 }
 
-PRIVATE void clear_line(position_t *pos)
+PRIVATE void clear_line(textbox_t *tb)
 {
     uint32_t i;
-    for (i = 0;i < pos->char_ysize;i++)
+    for (i = 0;i < tb->char_ysize;i++)
     {
         uint32_t j;
-        for (j = 0;j < pos->xsize;j++)
+        for (j = 0;j < tb->xsize;j++)
         {
             uint32_t *pixel =
             (uint32_t*)g_graph_info->frame_buffer_base
-            + (pos->y + pos->by + i) * g_graph_info->pixel_per_scanline
-            + (j + pos->bx);
+            + (tb->box_pos.y + tb->cur_pos.y + i) * g_graph_info->pixel_per_scanline
+            + (j + tb->box_pos.x);
             *pixel = 0x00000000;
         }
     }
 }
 
-PRIVATE void basic_print(position_t *pos,uint32_t col,const char *str)
+PRIVATE void basic_print(textbox_t *tb,uint32_t col,const char *str)
 {
     const char *s = str;
     while(*s)
     {
         uint32_t max_x,max_y;
-        max_x = pos->xsize;
-        max_y = pos->ysize;
-        if (*s == '\n' || pos->x >= max_x)
+        max_x = tb->xsize - tb->char_xsize;
+        max_y = tb->ysize - tb->char_ysize;
+        if (*s == '\n' || tb->cur_pos.x >= max_x)
         {
-            basic_put_char(pos,255,0);
-            pos->x = 0;
-            pos->y += pos->char_ysize;
-            if (pos->y > max_y)
+            basic_put_char(tb,255,0);
+            tb->cur_pos.x = 0;
+            tb->cur_pos.y += tb->char_ysize;
+            if (tb->cur_pos.y > max_y)
             {
-                pos->y = 0;
+                tb->cur_pos.y = 0;
             }
             s++;
             // clear line
-            clear_line(pos);
-            basic_put_char(pos,255,0x00ffffff);
+            clear_line(tb);
+            basic_put_char(tb,255,0x00ffffff);
             continue;
         }
         if (*s == '\b')
         {
             s++;
-            if (pos->x >= pos->char_xsize)
+            if (tb->cur_pos.x >= tb->char_xsize)
             {
-                pos->x -= pos->char_xsize;
+                tb->cur_pos.x -= tb->char_xsize;
             }
             else
             {
-                pos->x = 0;
-                if (pos->y >= pos->char_ysize)
+                tb->cur_pos.x = 0;
+                if (tb->cur_pos.y >= tb->char_ysize)
                 {
-                    pos->y -= pos->char_ysize;
+                    tb->cur_pos.y -= tb->char_ysize;
                 }
                 else
                 {
-                    pos->y = 0;
+                    tb->cur_pos.y = 0;
                 }
             }
             continue;
@@ -235,23 +235,11 @@ PRIVATE void basic_print(position_t *pos,uint32_t col,const char *str)
         if (*s == '\r')
         {
             s++;
-            pos->x = 0;
+            tb->cur_pos.x = 0;
             continue;
         }
-        uint32_t i;
-        for (i = 0;i < pos->char_ysize;i++)
-        {
-            uint32_t *pixel =
-                (uint32_t*)g_graph_info->frame_buffer_base
-                + (pos->y + i) * g_graph_info->pixel_per_scanline;
-            uint32_t j;
-            for (j = pos->x;j < pos->x + pos->char_xsize;j++)
-            {
-                pixel[j] = 0x00000000;
-            }
-        }
-        basic_put_char(pos,*s++,col);
-        pos->x += pos->char_xsize;
+        basic_put_char(tb,*s++,col);
+        tb->cur_pos.x += tb->char_xsize;
     }
     return;
 }
@@ -351,14 +339,14 @@ PUBLIC void pr_log_ttf(const char *log,...)
         {
             pr_ttf_str(g_graph_info,
                        &ttf_info,
-                       &g_pos,
+                       &g_tb,
                        0x00c5c5c5,
                        print_time(msg,global_ticks),
                        16.0);
         }
         else
         {
-            basic_print(&g_pos,0x00c5c5c5,print_time(msg,global_ticks));
+            basic_print(&g_tb,0x00c5c5c5,print_time(msg,global_ticks));
         }
         buf = (char*)level[*log - 1];
         uint32_t color = 0;
@@ -378,14 +366,14 @@ PUBLIC void pr_log_ttf(const char *log,...)
         {
             pr_ttf_str(g_graph_info,
                        &ttf_info,
-                       &g_pos,
+                       &g_tb,
                        color,
                        buf,
                        16.0);
         }
         else
         {
-            basic_print(&g_pos,color,buf);
+            basic_print(&g_tb,color,buf);
         }
         log = log + 1;
     }
@@ -396,14 +384,14 @@ PUBLIC void pr_log_ttf(const char *log,...)
     {
         pr_ttf_str(g_graph_info,
                     &ttf_info,
-                    &g_pos,
+                    &g_tb,
                     0x00c5c5c5,
                     buf,
                     16.0);
     }
     else
     {
-        basic_print(&g_pos,0x00c5c5c5,buf);
+        basic_print(&g_tb,0x00c5c5c5,buf);
     }
     free_ttf_info(&ttf_info);
     va_end(ap);
@@ -412,7 +400,7 @@ PUBLIC void pr_log_ttf(const char *log,...)
 
 PUBLIC void pr_ch(graph_info_t* graph_info,
                   ttf_info_t *ttf_info,
-                  position_t* pos,
+                  textbox_t* tb,
                   uint32_t col,
                   uint64_t ch,
                   float font_size)
@@ -474,7 +462,9 @@ PUBLIC void pr_ch(graph_info_t* graph_info,
                 g = (alpha * GET_FIELD(col,GREEN)) >> 8;
                 b = (alpha * GET_FIELD(col,BLUE)) >> 8;
                 uint32_t *buf;
-                buf = frame_buffer + (pos->y + y0) * xsize + pos->x + x0;
+                buf = frame_buffer
+                      + (tb->box_pos.y + tb->cur_pos.y + y0) * xsize
+                      + tb->box_pos.x + tb->cur_pos.x + x0;
                 *buf = RGB(r,g,b);
             }
         }
@@ -512,14 +502,14 @@ PRIVATE uint64_t utf8_decode(const char** _str)
 
 PUBLIC void pr_ttf_str(graph_info_t* graph_info,
                        ttf_info_t *ttf_info,
-                       position_t* pos,
+                       textbox_t* tb,
                        uint32_t color,
                        const char* str,
                        float font_size)
 {
     if (!ttf_info->has_ttf)
     {
-        basic_print(pos,color,str);
+        basic_print(tb,color,str);
         return;
     }
     font_size *= 2;
@@ -544,27 +534,42 @@ PUBLIC void pr_ttf_str(graph_info_t* graph_info,
         int kern = stbtt_GetCodepointKernAdvance(&ttf_info->info,
                                                  code,
                                                  utf8_decode(&next));
+
+        uint32_t char_xsize = ceil(advanceWidth * scale) + ceil(kern * scale);
+        uint32_t char_ysize = (ascent - descent + lineGap);
         if (code == '\n')
         {
-            pos->x = 0;
-            pos->y += ascent - descent + lineGap;
+            tb->cur_pos.x = 0;
+            tb->cur_pos.y += char_ysize;
             continue;
         }
         if (code == ' ')
         {
-            pos->x += ceil(advanceWidth * scale);
-            pos->x += ceil(kern * scale);
+            tb->cur_pos.x += char_xsize;
             continue;
         }
         if (code == '\r')
         {
-            pos->x = 0;
+            tb->cur_pos.x = 0;
             continue;
         }
         memset(ttf_info->bitmap,0,sizeof(char [512*512]));
-        pr_ch(graph_info,ttf_info,pos,color,code,font_size);
-        pos->x += ceil(advanceWidth * scale);
-        pos->x += ceil(kern * scale);
+        pr_ch(graph_info,ttf_info,tb,color,code,font_size);
+
+        tb->cur_pos.x += char_xsize;
+
+        uint32_t max_x,max_y;
+        max_x = tb->xsize - char_xsize;
+        max_y = tb->ysize - char_ysize;
+        if (tb->cur_pos.x >= max_x)
+        {
+            tb->cur_pos.x = 0;
+            tb->cur_pos.y += char_ysize;
+            if (tb->cur_pos.y > max_y)
+            {
+                tb->cur_pos.y = 0;
+            }
+        }
     }
     return;
 }
