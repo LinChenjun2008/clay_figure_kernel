@@ -22,6 +22,8 @@
 #include <ulib.h>
 
 PUBLIC boot_info_t *g_boot_info = (boot_info_t*)0xffff800000310000;
+PUBLIC graph_info_t *g_graph_info;
+extern textbox_t g_tb;
 
 PRIVATE void ktask(void)
 {
@@ -46,6 +48,17 @@ PRIVATE void ktask(void)
 
 PUBLIC void kernel_main(void)
 {
+    g_graph_info = &g_boot_info->graph_info;
+
+    g_tb.cur_pos.x = 0;
+    g_tb.cur_pos.y = 0;
+    g_tb.box_pos.x = g_graph_info->pixel_per_scanline - 100 * 9;
+    g_tb.box_pos.y = 16;
+    g_tb.xsize = 100 * 9;
+    g_tb.ysize = g_graph_info->vertical_resolution / 2;
+    g_tb.char_xsize = 9;
+    g_tb.char_ysize = 16;
+
     pr_log(K_NAME " - " K_VERSION "\n");
     init_all();
     prog_execute("k task",DEFAULT_PRIORITY,4096,ktask);

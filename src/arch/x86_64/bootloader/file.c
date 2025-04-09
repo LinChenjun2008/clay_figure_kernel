@@ -35,12 +35,13 @@ EFI_STATUS ReadFile
     }
     EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *FileSystem;
     EFI_FILE_PROTOCOL *Root;
-    UINTN Nr;
-    for (Nr = 0;Nr < HandleCount;Nr++)
+    UINTN i;
+    i = 0;
+    do
     {
         Status = gBS->OpenProtocol
         (
-            HandleBuffer[Nr],
+            HandleBuffer[i++],
             &gEfiSimpleFileSystemProtocolGuid,
             (VOID**)&FileSystem,
             gImageHandle,
@@ -68,17 +69,11 @@ EFI_STATUS ReadFile
             EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE,
             EFI_OPEN_PROTOCOL_GET_PROTOCOL
         );
-        if (EFI_ERROR(Status))
-        {
-            if (Nr == HandleCount - 1)
-                return Status;
-        }
-        else
-        {
-            break;
-        }
+    } while (EFI_ERROR(Status) && i < HandleCount);
+    if (EFI_ERROR(Status))
+    {
+        return Status;
     }
-
     EFI_FILE_INFO *FileInfo;
     UINTN InfoSize = sizeof(EFI_FILE_INFO) + sizeof(*FileName) * 256;
     Status = gBS->AllocatePool

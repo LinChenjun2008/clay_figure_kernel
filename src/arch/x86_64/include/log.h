@@ -35,9 +35,17 @@ typedef struct position_s
 {
     uint32_t x;
     uint32_t y;
-    uint32_t xstart;
-    uint32_t ystart;
 } position_t;
+
+typedef struct textbox_s
+{
+    position_t cur_pos;
+    position_t box_pos;
+    uint32_t   xsize;
+    uint32_t   ysize;
+    uint32_t   char_xsize; // VGA Fonts
+    uint32_t   char_ysize; // VGA Fonts
+} textbox_t;
 
 #include "stb_truetype.h"
 typedef struct
@@ -85,14 +93,14 @@ PUBLIC void free_ttf_info(ttf_info_t* ttf_info);
 
 PUBLIC void pr_ch(graph_info_t* graph_info,
                   ttf_info_t *ttf_info,
-                  position_t* pos,
+                  textbox_t* tb,
                   uint32_t col,
                   uint64_t ch,
                   float font_size);
 
 PUBLIC void pr_ttf_str(graph_info_t* graph_info,
                        ttf_info_t *ttf_info,
-                       position_t* pos,
+                       textbox_t* tb,
                        uint32_t color,
                        const char* str,
                        float font_size);
