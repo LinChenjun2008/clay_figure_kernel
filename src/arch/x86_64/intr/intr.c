@@ -127,14 +127,19 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
 
 PRIVATE void default_irq_handler(intr_stack_t *stack)
 {
-    int nr = stack->nr;
-    if (nr == 0x27)
+    int int_vector = stack->int_vector;
+    if (int_vector == 0x27)
     {
         return;
     }
     spinlock_lock(&intr_lock);
     pr_log("\n");
-    pr_log("\3 INTR : 0x%x ( %s )\n",nr,nr < 20 ? intr_name[nr] : "Unknow");
+    pr_log("\3 INTR : 0x%x",int_vector);
+    if (int_vector < 20)
+    {
+        pr_log(": %s",intr_name[int_vector]);
+    }
+    pr_log("\n");
     spinlock_unlock(&intr_lock);
     pr_debug_info(stack);
     task_struct_t *running = running_task();
@@ -150,9 +155,9 @@ PRIVATE void default_irq_handler(intr_stack_t *stack)
 
 PUBLIC void ASMLINKAGE do_irq(intr_stack_t *stack)
 {
-    int nr = stack->nr;
-    if (nr == 0x82) { pr_debug_info(stack); return; }
-    if (irq_handler[nr]) { irq_handler[nr](stack); }
+    int int_vector = stack->int_vector;
+    if (int_vector == 0x82) { pr_debug_info(stack); return; }
+    if (irq_handler[int_vector]) { irq_handler[int_vector](stack); }
     else { default_irq_handler(stack); }
     return;
 }
@@ -192,9 +197,9 @@ PUBLIC void ap_intr_init(void)
     asm_lidt(&idt_ptr);
 }
 
-PUBLIC void register_handle(uint8_t nr,void (*handle)(intr_stack_t*))
+PUBLIC void register_handle(uint8_t int_vector,void (*handle)(intr_stack_t*))
 {
-    irq_handler[nr] = handle;
+    irq_handler[int_vector] = handle;
     return;
 }
 

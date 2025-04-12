@@ -45,7 +45,7 @@ PUBLIC uint64_t make_icr(
 
 PRIVATE void ipi_panic_handler(intr_stack_t *stack)
 {
-    eoi(stack->nr);
+    send_eoi(stack->int_vector);
     intr_disable();
     while (1) io_hlt();
     return;

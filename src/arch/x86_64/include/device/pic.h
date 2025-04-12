@@ -73,17 +73,56 @@ typedef struct apic_s
     ioapic_t  ioapic[8];
 } apic_t;
 
-PUBLIC bool support_apic(void);
+/**
+ * @brief 解析MADT,获取apic信息和cpu核心数
+ */
 PUBLIC void detect_cores(void);
 
+/**
+ * @brief 写入local apic寄存器
+ * @param index 寄存器索引(MMIO偏移量)
+ * @param value 写入值
+ */
 PUBLIC void local_apic_write(uint16_t index,uint32_t value);
+
+/**
+ * @brief 读取local apic寄存器
+ * @param index 寄存器索引(MMIO偏移量)
+ * @return 寄存器值
+ */
 PUBLIC uint32_t local_apic_read(uint16_t index);
 
+/**
+ * @brief 初始化设定的可编程中断控制器
+ */
 PUBLIC void pic_init(void);
+
+/**
+ * @brief 初始化8259A中断控制器
+ */
 PUBLIC void init_8259a(void);
+
+/**
+ * @brief 禁用8259A并初始化local apic和ioapic
+ */
 PUBLIC void apic_init(void);
+
+/**
+ * @brief 对local apic进行初始化
+ */
 PUBLIC void local_apic_init(void);
-PUBLIC void eoi(uint8_t irq);
+
+/**
+ * @brief 向中断控制器发送EOI
+ * @param irq 中断向量号
+ */
+PUBLIC void send_eoi(uint8_t irq);
+
+/**
+ * @brief 启用IO apic对应引脚的中断
+ * @param pin 中断引脚
+ * @param vector 向量号
+ */
 PUBLIC void ioapic_enable(uint64_t pin,uint64_t vector);
 
 #endif

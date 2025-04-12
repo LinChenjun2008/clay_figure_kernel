@@ -25,12 +25,11 @@ static __inline__ void cpu_name(char *s)
     uint32_t i;
     for (i = 0x80000002; i < 0x80000005;i++)
     {
-        asm_cpuid(i,
-              0,
-              (uint32_t*)s + (i - 0x80000002) * 4,
-              (uint32_t*)s + (i - 0x80000002) * 4 + 1,
-              (uint32_t*)s + (i - 0x80000002) * 4 + 2,
-              (uint32_t*)s + (i - 0x80000002) * 4 + 3);
+        asm_cpuid(i,0,
+                  (uint32_t*)s + (i - 0x80000002) * 4,
+                  (uint32_t*)s + (i - 0x80000002) * 4 + 1,
+                  (uint32_t*)s + (i - 0x80000002) * 4 + 2,
+                  (uint32_t*)s + (i - 0x80000002) * 4 + 3);
     }
 }
 

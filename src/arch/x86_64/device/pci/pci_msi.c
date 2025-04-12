@@ -105,7 +105,7 @@ PUBLIC void configure_msi(
             // msi mask bits
             pci_dev_config_write(dev,msg_data_addr + 4,msi_mask_bits);
             // msi pending bits
-            pci_dev_config_write(dev,msg_data_addr + 4,msi_pending_bits);
+            pci_dev_config_write(dev,msg_data_addr + 8,msi_pending_bits);
         }
         return;
     }
@@ -168,7 +168,7 @@ PUBLIC status_t pci_dev_enable_msi(pci_device_t *dev)
         return K_HW_NOSUPPORT;
     }
     uint32_t pci_command = pci_dev_config_read(dev,0x04);
-    pci_command |= 1 << 10; // interrupt disable
+    pci_command &= ~(1 << 10); // clear interrupt disable
     pci_dev_config_write(dev,0x04,pci_command);
 
     msi->msg_ctrl |= 0x01;

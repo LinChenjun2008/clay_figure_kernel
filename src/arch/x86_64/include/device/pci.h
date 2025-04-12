@@ -49,10 +49,24 @@ PUBLIC uint8_t pci_dev_read_cap_point(pci_device_t *dev);
 
 PUBLIC void pci_scan_all_bus(void);
 
+/**
+ * @brief 获取满足条件的PCI设备个数
+ * @param base_class Base class code
+ * @param sub_class Sub class code
+ * @param prog_if Programming Interface byte
+ */
 PUBLIC uint32_t pci_dev_count(
     uint8_t base_class,
     uint8_t sub_class,
     uint8_t prog_if);
+
+/**
+ * @brief 匹配满足条件的PCI设备
+ * @param base_class Base class code
+ * @param sub_class Sub class code
+ * @param prog_if Programming Interface byte
+ * @param index PCI设备索引(满足条件的第几个PCI设备)
+ */
 PUBLIC pci_device_t* pci_dev_match(
     uint8_t base_class,
     uint8_t sub_class,
@@ -61,9 +75,19 @@ PUBLIC pci_device_t* pci_dev_match(
 
 PUBLIC const char* pci_dev_type_str(pci_device_t *dev);
 
+
+
 // pci_msi.c
+
+/**
+ * @brief 读取PCI设备的MSI信息
+ * @param dev 读取这个设备的MSI信息
+ */
 PUBLIC void pci_dev_read_msi_info(pci_device_t *dev);
 
+/**
+ * @brief 配置PCI设备的MSI信息
+ */
 PUBLIC void configure_msi
 (
     pci_device_t *dev,
@@ -73,10 +97,17 @@ PUBLIC void configure_msi
     uint8_t num_vector_exponent
 );
 
+/**
+ * @brief 配置PCI设备的MSI中断
+ */
 PUBLIC status_t pci_dev_configure_msi(
     pci_device_t *dev,
     uint32_t irq,
     uint32_t count);
+
+/**
+ * @brief 开启MSI
+ */
 PUBLIC status_t pci_dev_enable_msi(pci_device_t *dev);
 
 #endif

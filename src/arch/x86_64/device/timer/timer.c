@@ -22,7 +22,7 @@ PUBLIC volatile uint64_t global_ticks;
 
 PRIVATE void pit_timer_handler(intr_stack_t *stack)
 {
-    eoi(stack->nr);
+    send_eoi(stack->int_vector);
     inform_intr(TICK);
     global_ticks++;
 #ifdef __DISABLE_APIC_TIMER__
@@ -44,7 +44,7 @@ PRIVATE void pit_timer_handler(intr_stack_t *stack)
 
 PRIVATE void apic_timer_handler(intr_stack_t *stack)
 {
-    eoi(stack->nr);
+    send_eoi(stack->int_vector);
     schedule();
     return;
 }

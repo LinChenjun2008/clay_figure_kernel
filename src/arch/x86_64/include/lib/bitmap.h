@@ -18,20 +18,27 @@ typedef struct bitmap_s
 PUBLIC void init_bitmap(bitmap_t *btmp);
 
 /**
- * 检查btmp中的bit_index位是否为1.
- * 当bit_index位为1时返回true.
+ * @brief 检查btmp中的bit_index位是否为1
+ * @param btmp 位图结构指针
+ * @param bit_index 索引(以bit为单位)
+ * @return 当bit_index位为1时返回true
 */
 PUBLIC bool bitmap_scan_test(bitmap_t *btmp,int32_t bit_index);
 
 /**
- * 在位图中分配cnt个bit.
- * 如果成功,index指针处保存了分配到的位.
+ * @brief 在位图中分配连续cnt个bit.
+ * @param btmp 位图结构指针
+ * @param cnt 要分配的bit数
+ * @param index 如果成功,index指针处保存了分配到的位
 */
 PUBLIC status_t bitmap_alloc(bitmap_t *btmp,int32_t cnt,uint32_t *index);
 
 /**
- * 设置位图中的位
- * value的取值为0或1.
+ * @brief 设置位图中的位
+ * @param btmp 位图结构指针
+ * @param bit_index 索引(以bit为单位)
+ * @param value 位值
+ * @note value的取值为0或1
  */
 PUBLIC void bitmap_set(bitmap_t *btmp,int32_t bit_index,uint8_t value);
 

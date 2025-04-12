@@ -36,7 +36,7 @@ typedef struct intr_stack_s
     wordsize_t r14;
     wordsize_t r15;
 
-    wordsize_t nr;
+    wordsize_t int_vector;
 
     wordsize_t error_code;
     void       (*rip)(void);
@@ -56,7 +56,7 @@ typedef enum intr_status_e
 PUBLIC void ASMLINKAGE do_irq(intr_stack_t *stack);
 PUBLIC void intr_init(void);
 PUBLIC void ap_intr_init(void);
-PUBLIC void register_handle(uint8_t nr,void (*handle)(intr_stack_t*));
+PUBLIC void register_handle(uint8_t int_vector,void (*handle)(intr_stack_t*));
 PUBLIC intr_status_t intr_get_status(void);
 PUBLIC intr_status_t intr_set_status(intr_status_t status);
 PUBLIC intr_status_t intr_enable(void);
