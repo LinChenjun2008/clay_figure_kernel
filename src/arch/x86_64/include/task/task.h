@@ -99,40 +99,58 @@ typedef struct taskmgr_s
 } taskmgr_t;
 
 /**
- * 将pid转换为task结构体.
- * 其中0 <= pid <= MAX_TASK
+ * @brief 将pid转换为task结构体
+ * @param pid pid
+ * @note 0 <= pid <= MAX_TASK
  */
 PUBLIC task_struct_t* pid2task(pid_t pid);
 
 /**
- * 判断pid对应的任务是否存在.
+ * @brief 判断pid对应的任务是否存在
+ * @param pid pid
  */
 PUBLIC bool task_exist(pid_t pid);
 
 /**
- * 获取当前正在运行的任务的结构体.
+ * @brief 获取当前正在运行的任务的结构体
+ * @return 当前正在运行的任务的结构体
  */
 PUBLIC task_struct_t* running_task(void);
 
 /**
- * 在任务表中分配一个任务.
+ * @brief 在任务表中分配一个任务
+ * @param pid 如果成功,pid指针处将写入分配的pid
+ * @return 成功将返回K_SUCCESS,失败则返回错误码
  */
 PUBLIC status_t task_alloc(pid_t *pid);
 
 /**
- * 将任务添加到队列中.
- * 队列按vrun_time由小到大排序.
+ * @brief 将任务添加到列表中
+ * @param list 任务列表
+ * @param task 要添加的任务结构体指针
  */
 PUBLIC void task_list_insert(list_t *list,task_struct_t *task);
+
+/**
+ * @brief 在列表中获取下一个可以运行的任务节点
+ * @param list 任务列表
+ * @return 成功将返回下一个任务节点地址,失败则返回NULL
+ */
 PUBLIC list_node_t* get_next_task(list_t *list);
 
 /**
- * 将pid对应的任务结构体标记为未使用.
+ * @brief 将pid对应的任务结构体标记为未使用
+ * @param pid pid
  */
 PUBLIC void task_free(pid_t pid);
 
 /**
- * 初始化一个任务结构体.
+ * @brief 初始化一个任务结构体
+ * @param task 任务结构体指针
+ * @param name 任务名称
+ * @param priority 优先级
+ * @param kstack_base 任务内核态下的栈基址
+ * @param kstack_size 任务内核态下的栈大小
  */
 PUBLIC status_t init_task_struct(
     task_struct_t* task,
@@ -142,20 +160,21 @@ PUBLIC status_t init_task_struct(
     size_t kstack_size);
 
 /**
- * 创建任务的上下文结构.
+ * @brief 创建任务的上下文结构
+ * @param task 任务结构体指针
+ * @param func 在任务中运行的函数
+ * @param arg 给任务的参数
  */
 PUBLIC void create_task_struct(task_struct_t *task,void *func,uint64_t arg);
 
 /**
- * 启动一个任务.
- * 输入:
- *  name 任务名称.
- *  priority 优先级.
- *  kstack_size 任务内核态下的栈大小.
- *  func 在任务中运行的函数.
- *  arg 给任务的参数.
- * 输出:
- *  返回对应的任务结构体,失败则返回NULL.
+ * @brief 启动一个任务
+ * @param name 任务名称
+ * @param priority 优先级
+ * @param kstack_size 任务内核态下的栈大小
+ * @param func 在任务中运行的函数
+ * @param arg 给任务的参数
+ * @return 成功将返回对应的任务结构体,失败则返回NULL
  */
 PUBLIC task_struct_t* task_start(
     const char* name,
@@ -169,28 +188,31 @@ PUBLIC void task_init(void);
 /// schedule.c
 
 /**
- * 更新vrun_time,以确保vruntime不会过小.
+ * @brief 更新vrun_time,以确保vruntime不会过小
+ * @param task 任务结构体指针
  */
 PUBLIC void update_vruntime(task_struct_t *task);
 
 /**
- * 更新vrun_time,并判断是否需要调度.
+ * @brief 更新vrun_time,并判断是否需要调度
  */
 PUBLIC void schedule(void);
 
 /**
- * 进行任务调度.
- * 如果进程持有自旋锁,则不会触发调度.
+ * @brief 进行任务调度
+ * @note 如果进程持有自旋锁,则不会触发调度
  */
 PUBLIC void do_schedule(void);
 
 /**
- * 阻塞当前任务,并将任务状态设为status.
+ * @brief 阻塞当前任务,并将任务状态设为status
+ * @param status 阻塞后的任务状态
  */
 PUBLIC void task_block(task_status_t status);
 
 /**
- * 将pid对应的进程解除阻塞.
+ * @brief 将pid对应的进程解除阻塞
+ * @param pid pid
  */
 PUBLIC void task_unblock(pid_t pid);
 
@@ -205,15 +227,13 @@ PUBLIC addr_t get_running_prog_kstack(void);
 PUBLIC void prog_activate(task_struct_t *task);
 
 /**
- * 启动一个任务,运行在用户态下.
- * 输入:
- *  name 任务名称.
- *  priority 优先级.
- *  kstack_size 任务内核态下的栈大小.
- *  func 在任务中运行的函数.
- *  arg 给任务的参数.
- * 输出:
- *  返回对应的任务结构体,失败则返回NULL.
+ * @brief 启动一个任务,运行在用户态下
+ * @param name 任务名称
+ * @param priority 优先级
+ * @param kstack_size 任务内核态下的栈大小
+ * @param func 在任务中运行的函数
+ * @param arg 给任务的参数
+ * @return 成功将返回对应的任务结构体,失败则返回NULL
  */
 PUBLIC task_struct_t *prog_execute(
     const char *name,

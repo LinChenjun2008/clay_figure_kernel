@@ -501,19 +501,91 @@ typedef struct xhci_s
     uint8_t                max_address;
 } xhci_t;
 
+/**
+ * @brief 对所有xHCI进行初始化
+ */
 PUBLIC status_t xhci_setup(void);
+
+/**
+ * @brief 向xHCI发出命令
+ * @param xhci xhci结构体指针
+ * @param trb 命令的TRB结构体指针
+ * @return 成功将返回K_SUCCESS,若失败则返回对应的错误码
+ */
 PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb);
+
+/**
+ * @brief 对xHCI进行初始化,并启用xHCI
+ * @param xhci 将要被初始化的xhci控制器结构体指针
+ * @return 成功将返回K_SUCCESS,若失败则返回对应的错误码
+ */
 PUBLIC status_t xhci_init(xhci_t *xhci);
+
+/**
+ * @brief 判断xHCI Ring是否空闲
+ * @param ring 将判断这个ring是否空闲
+ * @return 空闲将返回0,否则返回1
+ */
 PUBLIC bool xhci_ring_busy(xhci_ring_t *ring);
+
+
 
 // registers.c
 
+/**
+ * @brief 读取xHCI能力寄存器(Capability Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @return 寄存器值
+ */
 PUBLIC uint32_t xhci_read_cap(xhci_t *xhci,uint32_t reg);
+
+/**
+ * @brief 读取xHCI操作寄存器(Operational Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @return 寄存器值
+ */
 PUBLIC uint32_t xhci_read_opt(xhci_t *xhci,uint32_t reg);
-PUBLIC void xhci_write_opt(xhci_t *xhci,uint32_t reg,uint32_t value);
+
+/**
+ * @brief 写入xHCI操作寄存器(Operational Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @param val 写入值
+ */
+PUBLIC void xhci_write_opt(xhci_t *xhci,uint32_t reg,uint32_t val);
+
+/**
+ * @brief 读取xHCI运行时寄存器(Runtine Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @return 寄存器值
+ */
 PUBLIC uint32_t xhci_read_run(xhci_t *xhci,uint32_t reg);
+
+/**
+ * @brief 写入xHCI运行时寄存器(Runtine Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @param value 写入值
+ */
 PUBLIC void xhci_write_run(xhci_t *xhci,uint32_t reg,uint32_t val);
+
+/**
+ * @brief 读取xHCI门铃寄存器(Doorbell Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @return 寄存器值
+ */
 PUBLIC uint32_t xhci_read_doorbell(xhci_t *xhci,uint32_t reg);
+
+/**
+ * @brief 写入xHCI门铃寄存器(Doorbell Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @param value 写入值
+ */
 PUBLIC void xhci_write_doorbell(xhci_t *xhci,uint32_t reg,uint32_t val);
 
 #endif

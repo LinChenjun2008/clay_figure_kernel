@@ -19,9 +19,9 @@ PUBLIC uint32_t xhci_read_opt(xhci_t *xhci,uint32_t reg)
     return *(volatile uint32_t*)(xhci->opt_regs + reg);
 }
 
-PUBLIC void xhci_write_opt(xhci_t *xhci,uint32_t reg,uint32_t value)
+PUBLIC void xhci_write_opt(xhci_t *xhci,uint32_t reg,uint32_t val)
 {
-    *(volatile uint32_t*)(xhci->opt_regs + reg) = value;
+    *(volatile uint32_t*)(xhci->opt_regs + reg) = val;
     return;
 }
 

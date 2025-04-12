@@ -30,7 +30,7 @@ PRIVATE void wait_keyboard_write(void)
 
 PRIVATE void intr_keyboard_handler(intr_stack_t *stack)
 {
-    eoi(stack->nr);
+    send_eoi(stack->int_vector);
     do
     {
         uint8_t scancode = io_in8(KEYBOARD_DATA_PORT);

@@ -69,10 +69,6 @@ PRIVATE void xhci_read_xecp(xhci_t *xhci)
                 cap &= ~(1 << 16); // HC Bios owned.
                 xcap->cap = cap;
             }
-            else
-            {
-                pr_log("\1 xHCI is OS owned.\n");
-            }
         }
         if (GET_FIELD(cap,XECP_CAP_ID) == 0x02)
         {
@@ -279,34 +275,12 @@ PRIVATE void xhci_start(xhci_t *xhci)
 
     // wait for start up.
     while(xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_HCH) continue;
-
-    pr_log("xHCI Cap Regs:\n");
-    pr_log("CAPLENGTH  %08x\n",xhci_read_cap(xhci,XHCI_CAP_CAPLENGTH));
-    pr_log("HCIVERSION %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCIVERSION));
-    pr_log("HCSPARAM1  %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCSPARAM1));
-    pr_log("HCSPARAM2  %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCSPARAM2));
-    pr_log("HCSPARAM3  %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCSPARAM3));
-    pr_log("HCCPARAM1  %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCCPARAM1));
-    pr_log("DBOFF      %08x\n",xhci_read_cap(xhci,XHCI_CAP_DBOFF));
-    pr_log("RSTOFF     %08x\n",xhci_read_cap(xhci,XHCI_CAP_RSTOFF));
-    pr_log("HCCPARAM2  %08x\n",xhci_read_cap(xhci,XHCI_CAP_HCCPARAM2));
-
-    pr_log("xHCI Opt Regs:\n");
-    pr_log("USBCMD:    %08x\n",xhci_read_opt(xhci,XHCI_OPT_USBCMD));
-    pr_log("USBSTS:    %08x\n",xhci_read_opt(xhci,XHCI_OPT_USBSTS));
-    pr_log("PAGESIZE:  %08x\n",xhci_read_opt(xhci,XHCI_OPT_PAGESIZE));
-    pr_log("DNCTRL:    %08x\n",xhci_read_opt(xhci,XHCI_OPT_DNCTRL));
-    pr_log("CRCR LO:   %08x\n",xhci_read_opt(xhci,XHCI_OPT_CRCR_LO));
-    pr_log("CRCR HI:   %08x\n",xhci_read_opt(xhci,XHCI_OPT_CRCR_HI));
-    pr_log("DCBAPP LO: %08x\n",xhci_read_opt(xhci,XHCI_OPT_DCBAPP_LO));
-    pr_log("DCBAPP HI: %08x\n",xhci_read_opt(xhci,XHCI_OPT_DCBAPP_HI));
-    pr_log("CONFIG:    %08x\n",xhci_read_opt(xhci,XHCI_OPT_CONFIG));
     return;
 }
 
 PRIVATE void intr_xHCI_handler(intr_stack_t *stack)
 {
-    eoi(stack->nr);
+    send_eoi(stack->int_vector);
     inform_intr(USB_SRV);
     return;
 }

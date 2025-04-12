@@ -65,6 +65,7 @@ PRIVATE status_t xhci_configure_port(xhci_t *xhci,uint8_t port_id)
     status_t status = xhci_hub_port_reset(xhci,port_id);
     if (ERROR(status))
     {
+        pr_log("\3 Port Reset Failed.\n");
         return status;
     }
     // TODO: configure slot

@@ -24,7 +24,7 @@ PUBLIC void pic_init(void)
     return;
 }
 
-PUBLIC void eoi(uint8_t irq)
+PUBLIC void send_eoi(uint8_t irq)
 {
     (void)irq;
 #ifndef __PIC_8259A__
