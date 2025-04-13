@@ -92,7 +92,7 @@ UefiMain
     DisplayLogo();
 
     // prepare boot info
-    boot_info_t *boot_info = (boot_info_t*)0x310000;
+    boot_info_t *boot_info = (boot_info_t*)0x410000;
     gBS->AllocatePages(AllocateAddress,
                        EfiLoaderData,
                        1,
@@ -100,7 +100,7 @@ UefiMain
 
     gBS->SetMem(boot_info,sizeof(*boot_info),0);
     boot_info->magic = 0x5a42cb1613d4a62f;
-    boot_info->graph_info.frame_buffer_base     = 0xffff807fc0000000;
+    boot_info->graph_info.frame_buffer_base     = Gop->Mode->FrameBufferBase;
     boot_info->graph_info.horizontal_resolution = Gop->Mode->
                                                   Info->HorizontalResolution;
     boot_info->graph_info.vertical_resolution   = Gop->Mode->
@@ -190,10 +190,10 @@ UefiMain
     }
 
     // Create Page
-    UINTN PML4T_POS = 0x5f9000;
-    gBS->AllocatePages(AllocateAddress,EfiLoaderData,7,&PML4T_POS);
+    UINTN PG_TABLE_POS = 0x510000;
+    gBS->AllocatePages(AllocateAddress,EfiLoaderData,8,&PG_TABLE_POS);
 
-    CreatePage(PML4T_POS);
+    CreatePage(PG_TABLE_POS);
 
     gBS->ExitBootServices(gImageHandle,boot_info->memory_map.map_key);
     UINT64 (*kernel_main)(void) = (void*)0x100000;

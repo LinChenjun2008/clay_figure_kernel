@@ -130,6 +130,11 @@ PUBLIC status_t smp_start(void)
         0);
     send_IPI(icr);
     send_IPI(icr);
+
+    // waiting for AP start.
+    uint64_t cores = apic.number_of_cores;
+    while (*(uint64_t*)AP_START_FLAG != cores - 1);
+
     return K_SUCCESS;
 }
 

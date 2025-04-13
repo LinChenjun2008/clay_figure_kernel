@@ -4,7 +4,7 @@ ENTRY(kernel_entry)
 
 SECTIONS
 {
-    . = 0xffff800000100000;
+    . = 0xffffffff80100000;
     _kernel_start = .;
     _text = .;
     .text :

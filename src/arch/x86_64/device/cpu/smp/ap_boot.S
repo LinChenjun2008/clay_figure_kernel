@@ -23,8 +23,6 @@ AP_BOOT_BASE:
     mov %ax, %fs
     mov %ax, %gs
 
-    mov $0x7c00, %sp
-
     mov %cs, %ax
     mov $0, %ebp
     mov %ax, %bp
@@ -102,6 +100,9 @@ AP_CODE64_BASE:
     movq $0xffff800000000000, %rax
     addq %rax, %rbx
     movq %rbx, %rsp
+
+    movq $AP_START_FLAG, %rax
+    lock incq (%rax)
 
     movq $0xffff800000100000, %rax
     jmpq *%rax
