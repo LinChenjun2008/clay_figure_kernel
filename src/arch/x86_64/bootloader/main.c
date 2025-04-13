@@ -100,7 +100,7 @@ UefiMain
 
     gBS->SetMem(boot_info,sizeof(*boot_info),0);
     boot_info->magic = 0x5a42cb1613d4a62f;
-    boot_info->graph_info.frame_buffer_base     = Gop->Mode->FrameBufferBase;
+    boot_info->graph_info.frame_buffer_base     = 0xffffffffc0000000;
     boot_info->graph_info.horizontal_resolution = Gop->Mode->
                                                   Info->HorizontalResolution;
     boot_info->graph_info.vertical_resolution   = Gop->Mode->
@@ -191,7 +191,7 @@ UefiMain
 
     // Create Page
     UINTN PG_TABLE_POS = 0x510000;
-    gBS->AllocatePages(AllocateAddress,EfiLoaderData,8,&PG_TABLE_POS);
+    gBS->AllocatePages(AllocateAddress,EfiLoaderData,9,&PG_TABLE_POS);
 
     CreatePage(PG_TABLE_POS);
 

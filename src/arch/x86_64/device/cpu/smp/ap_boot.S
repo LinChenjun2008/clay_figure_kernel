@@ -55,8 +55,6 @@ AP_CODE32_BASE:
     mov %ax, %fs
     mov %ax, %gs
 
-    mov $0x7c00, %esp
-
     // PAE
     movl %cr4, %eax
     bts $5, %eax
@@ -97,14 +95,14 @@ AP_CODE64_BASE:
     shlq $16, %rbx
     movq $AP_STACK_BASE_PTR, %rax
     addq (%rax), %rbx
-    movq $0xffff800000000000, %rax
+    movq $KERNEL_VMA_BASE, %rax
     addq %rax, %rbx
     movq %rbx, %rsp
 
     movq $AP_START_FLAG, %rax
     lock incq (%rax)
 
-    movq $0xffff800000100000, %rax
+    movq $(KERNEL_TEXT_BASE + 0x100000), %rax
     jmpq *%rax
 
 

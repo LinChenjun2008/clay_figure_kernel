@@ -55,13 +55,11 @@ PRIVATE void view_fill(message_t *msg)
 
 PUBLIC void view_main()
 {
+    gi.vram               = (uint32_t*)g_graph_info->frame_buffer_base;
+    gi.xsize              = g_graph_info->horizontal_resolution;
+    gi.ysize              = g_graph_info->vertical_resolution;
+    gi.pixel_per_scanline = g_graph_info->pixel_per_scanline;
     message_t msg;
-    // receive param
-    send_recv(NR_RECV,0,&msg);
-    gi.vram  = msg.m3.p1;
-    gi.xsize = msg.m3.i1;
-    gi.ysize = msg.m3.i2;
-    gi.pixel_per_scanline = msg.m3.i3;
     while(1)
     {
         send_recv(NR_RECV,RECV_FROM_ANY,&msg);
