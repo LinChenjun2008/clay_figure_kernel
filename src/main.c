@@ -48,7 +48,6 @@ PRIVATE void ktask(void)
 
 PUBLIC void kernel_main(void)
 {
-    g_boot_info->graph_info.frame_buffer_base += KERNEL_VMA_BASE;
     g_graph_info = &g_boot_info->graph_info;
 
     g_tb.cur_pos.x = 0;
