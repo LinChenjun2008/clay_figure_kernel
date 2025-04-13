@@ -38,56 +38,73 @@ EFI_STATUS GetMemoryMap(memory_map_t *memmap)
     return Status;
 }
 
-VOID CreatePage(EFI_PHYSICAL_ADDRESS PML4T)
+VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
 {
     /*
     * 系统内存分配:
-    * 0x100000 - 0x2fffff ( 2MB) -内核
-    * 0x300000 - 0x30ffff (64KB) -内核栈
-    * 0x310000 - 0x5f8fff ( 2MB) -bootinfo
-    * 0x5f9000 - 0x5fffff (28KB) -内核页表(部分)
+    * 0x100000 - 0x3fffff ( 3MB) - 内核
+    * 0x400000 - 0x40ffff (64KB) - 内核栈
+    * 0x410000 - 0x50ffff ( 1MB) - bootinfo
+    * 0x510000 - 0x58ffff (32KB) - 内核页表(部分)
+    * 0x590000 - 0x5fffff ( 6KB) - 空闲
     * 0x600000 - ...             -空闲内存
     映射:
     0x0000000000000000 - 0x00000000ffffffff ==> 0x0000000000000000 - 0x00000000ffffffff
     0x0000000000000000 - 0x00000000ffffffff ==> 0xffff800000000000 - 0xffff8000ffffffff
-    0xffff807fc0000000 - 显存
+    0xffffffff80000000 - kernel
     PML4E 0         PDPTE 3       PDE 511       offset
     0(1)000 0000 0 | 000 0000 11 | 11 1111 111 | 1 1111 1111 1111 1111 1111
     0(8)    0    0       0    f       f    f       f    f    f    f    f
-       1000 0000 0 | 111 1111 11 | 00 0000 000 | 0 0000 0000 0000 0000 0000
-       8    0    7       f    c       0    0       0    0    0    0    0
+    PML4E 511       PDPTE 510     PDE 2         offset
+       1111 1111 1 | 111 1111 10 | 00 0000 010 | 0 0000 0000 0000 0000 0000
+       f    f    f       f    8       0    4       0    0    0    0    0
     */
+    EFI_PHYSICAL_ADDRESS PML4T;
     EFI_PHYSICAL_ADDRESS PDPT;
     EFI_PHYSICAL_ADDRESS PDT;
-    EFI_PHYSICAL_ADDRESS FB_PDT; // 用于显存
 
-    gBS->SetMem((void*)PML4T,7 * 0x1000,0);
-    PDPT  = PML4T + 1 * 0x1000;
-
-    *((UINTN*)(PML4T + 0x000)) = PDPT | PG_US_U | PG_RW_W | PG_P; // 0x00000...
-    *((UINTN*)(PML4T + 0x800)) = PDPT | PG_US_U | PG_RW_W | PG_P; // 0xffff8...
-
-    EFI_PHYSICAL_ADDRESS Addr = 0;
-    UINTN i;
-    for (i = 0;i <= 3;i++)
+    gBS->SetMem((void*)PG_TABLE,8 * 0x1000,0);
+    PML4T = PG_TABLE; // 0x1000-> PML4T
+    PG_TABLE += 0x1000;
+    /*
+    * 进行以下映射:
+    0x0000000000000000 - 0x00000000ffffffff ==> 0x0000000000000000 - 0x00000000ffffffff
+    0x0000000000000000 - 0x00000000ffffffff ==> 0xffff800000000000 - 0xffff8000ffffffff
+    */
+    EFI_PHYSICAL_ADDRESS addr = 0;
+    PDPT  = PG_TABLE;
+    PG_TABLE += 0x1000;
+    ((UINTN*)PML4T)[000] = PDPT | PG_US_U | PG_RW_W | PG_P; // 0x00000...
+    ((UINTN*)PML4T)[256] = PDPT | PG_US_U | PG_RW_W | PG_P; // 0xffff8...
+    UINTN pdpt_index,pdt_index;
+    for (pdpt_index = 0;pdpt_index < 4;pdpt_index++)
     {
-        PDT = PML4T + (2 + i) * 0x1000;
-        *((UINTN*)PDPT + i) = PDT | PG_US_U | PG_RW_W | PG_P;
-        UINTN j;
-        for (j = 0;j < 512;j++)
+        PDT = PG_TABLE;
+        PG_TABLE += 0x1000;
+        ((UINTN*)PDPT)[pdpt_index] = PDT | PG_US_U | PG_RW_W | PG_P;
+        for (pdt_index = 0;pdt_index < 512;pdt_index++)
         {
-            *((UINTN*)PDT + j) = Addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
-            Addr += 0x200000;
+            UINTN PDT_entry = addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
+            ((UINTN*)PDT)[pdt_index] = PDT_entry;
+            addr += 0x200000;
         }
     }
-    FB_PDT   = PDT + 0x1000;
-    *((UINTN*)(PDPT + 0xff8)) = FB_PDT | PG_US_U | PG_RW_W | PG_P;
-    Addr = Gop->Mode->FrameBufferBase;
-    for(i = 0;i < (Gop->Mode->FrameBufferSize + 0x1fffff) / 0x200000;i++)
+
+    /*
+    * 0 - 0x400000 ==> 0xffffffff80000000 - 0xffffffff80400000
+    */
+    addr = 0;
+    PDPT = PG_TABLE;
+    PG_TABLE += 0x1000;
+    ((UINTN*)PML4T)[511] = PDPT | PG_US_U | PG_RW_W | PG_P; // kernel
+    PDT = PG_TABLE;
+    PG_TABLE += 0x1000;
+    ((UINTN*)PDPT)[510] = PDT | PG_US_U | PG_RW_W | PG_P;
+    for (pdt_index = 0;pdt_index < 2;pdt_index++)
     {
-        *((UINTN*)FB_PDT + i) =
-                                   Addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
-        Addr += 0x200000;
+        UINTN PDT_entry = addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
+        ((UINTN*)PDT)[pdt_index] = PDT_entry;
+        addr += 0x200000;
     }
     return;
 }

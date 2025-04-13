@@ -19,6 +19,7 @@
 #include <task/task.h>
 #include <kernel/syscall.h>
 #include <service.h>
+#include <io.h>              // get_cr3,set_cr3
 
 #include <log.h>
 
@@ -146,6 +147,8 @@ PUBLIC void init_all(void)
 
     smp_start();
 
+    *((uint64_t*)KERNEL_PAGE_DIR_TABLE_POS) = 0;
+    set_cr3(get_cr3());
     return;
 }
 

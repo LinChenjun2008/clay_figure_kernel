@@ -21,7 +21,7 @@
 
 #include <ulib.h>
 
-PUBLIC boot_info_t *g_boot_info = (boot_info_t*)0xffff800000310000;
+PUBLIC boot_info_t *g_boot_info = (boot_info_t*)0xffff800000410000;
 PUBLIC graph_info_t *g_graph_info;
 extern textbox_t g_tb;
 
@@ -48,6 +48,7 @@ PRIVATE void ktask(void)
 
 PUBLIC void kernel_main(void)
 {
+    g_boot_info->graph_info.frame_buffer_base += KERNEL_VMA_BASE;
     g_graph_info = &g_boot_info->graph_info;
 
     g_tb.cur_pos.x = 0;

@@ -71,6 +71,7 @@ PUBLIC void do_schedule(void)
     {
         return;
     }
+    intr_status_t intr_status = intr_disable();
     if (cur_task->status == TASK_RUNNING)
     {
         spinlock_lock(&tm->core[cpu_id].task_list_lock);
@@ -102,6 +103,8 @@ PUBLIC void do_schedule(void)
     next->cpu_id = cpu_id;
     update_min_vruntime(&tm->core[cpu_id],next->vrun_time);
     asm_switch_to(&cur_task->context,&next->context);
+
+    intr_set_status(intr_status);
     return;
 }
 

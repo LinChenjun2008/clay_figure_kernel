@@ -19,10 +19,10 @@ kernel_entry:
     rdmsr
     andl $(1 << 8), %eax
     jz ap_kernel_main
-    movq $0x5f9000, %rax
+    movq $KERNEL_PAGE_DIR_TABLE_POS , %rax
     movq %rax, %cr3
-    movq $0xffff800000310000, %rsp
+    movq $(KERNEL_VMA_BASE + KERNEL_STACK_BASE + KERNEL_STACK_SIZE), %rsp
     leaq kernel_main(%rip), %rax
-    movq $0xffff800000000000, %rdi
+    movq $KERNEL_TEXT_BASE, %rdi
     orq %rdi, %rax
     jmpq *%rax

@@ -150,7 +150,7 @@ PRIVATE void xhci_start(xhci_t *xhci)
         pr_log("\3 Can not alloc addr for DCBA.\n");
         return;
     }
-    xhci->dev_cxt_arr = (xhci_device_cxt_arr_t*)buf;
+    xhci->dev_cxt_arr = (xhci_device_cxt_arr_t*)KADDR_P2V(buf);
 
     xhci->dev_cxt_arr->base_addr[0] =
                          (addr_t)buf + OFFSET(xhci_device_cxt_arr_t,scratchpad);
