@@ -291,7 +291,9 @@ PUBLIC void init_ttf_info(ttf_info_t* ttf_info)
             stbtt_InitFont(&ttf_info->info,
                           KADDR_P2V(g_boot_info->loaded_file[i].base_address),
                           0);
-            status_t status = pmalloc(sizeof(char [512*512]),&ttf_info->bitmap);
+            uint8_t *btmp;
+            status_t status = pmalloc(sizeof(char [512*512]),&btmp);
+            ttf_info->bitmap = KADDR_P2V(btmp);
             if (ERROR(status))
             {
                 pr_log("\3Failed to allocate memory for ttf bitmap.\n");

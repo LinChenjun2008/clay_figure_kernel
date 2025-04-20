@@ -12,6 +12,7 @@
 typedef uint8_t fxsave_region_t[512];
 
 PUBLIC status_t check_sse(void);
+extern void sse_enable(void);
 extern void sse_init(void);
 
 extern void asm_fxsave(fxsave_region_t *fxsave_region);

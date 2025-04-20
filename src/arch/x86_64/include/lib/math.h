@@ -11,9 +11,12 @@
 
 PUBLIC double floor(double x);
 PUBLIC double ceil(double x);
+PUBLIC double round(double x);
 
 PUBLIC double sqrt(double x);
 PUBLIC double pow(double x,double y);
+PUBLIC double exp(double x);
+PUBLIC double ln(double x);
 PUBLIC double fmod(double x,double y);
 PUBLIC double sin(double x);
 PUBLIC double cos(double x);
