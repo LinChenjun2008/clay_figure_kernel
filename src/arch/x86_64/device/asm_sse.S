@@ -8,9 +8,9 @@
 
 .text
 
-.global sse_init
-.type sse_init,@function
-sse_init:
+.global sse_enable
+.type sse_enable,@function
+sse_enable:
     movq %cr0, %rax
     andw $0xfffb, %ax
     orw $0x2, %ax
@@ -18,6 +18,15 @@ sse_init:
     movq %cr4, %rax
     orw $(3 << 9), %ax
     movq %rax, %cr4
+    ret
+
+.global sse_init
+.type sse_init,@function
+sse_init:
+    subq $16,%rsp
+    movq $0x1f80,(%rsp)
+    ldmxcsr (%rsp)
+    addq $16,%rsp
     ret
 
 .global asm_fxsave

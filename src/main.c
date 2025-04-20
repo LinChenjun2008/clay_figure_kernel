@@ -33,7 +33,12 @@ PRIVATE void ktask(void)
     uint32_t *buf = allocate_page(xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1);
     while (1)
     {
-        fill(buf,xsize * ysize * sizeof(uint32_t),xsize,ysize,apic_id() * 10,0);
+        fill(buf,
+             xsize * ysize * sizeof(uint32_t),
+             xsize,
+             ysize,
+             (apic_id() - 1) * 10,
+             0);
         color = color ? color << 8 : 0xff;
         uint32_t x,y;
         for (y = 0;y < ysize;y++)
@@ -59,9 +64,7 @@ PUBLIC void kernel_main(void)
     g_tb.char_xsize = 9;
     g_tb.char_ysize = 16;
 
-    pr_log(K_NAME " - " K_VERSION "\n");
     init_all();
-    prog_execute("k task",DEFAULT_PRIORITY,4096,ktask);
 
     while(1)
     {

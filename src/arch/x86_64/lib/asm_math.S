@@ -11,6 +11,5 @@
 .global asm_sqrt
 .type asm_sqrt,@function
 asm_sqrt:
-    shufpd $0,%xmm0,%xmm0
-    sqrtpd %xmm0,%xmm0
+    sqrtsd %xmm0,%xmm0
     ret

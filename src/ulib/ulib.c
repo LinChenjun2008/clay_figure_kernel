@@ -39,6 +39,7 @@ PUBLIC void read_prog_addr(pid_t pid,void *addr,size_t size,void *buffer)
     msg.m3.l1 = size;
     msg.m3.p2 = buffer;
     send_recv(NR_BOTH,MM,&msg);
+    return;
 }
 
 PUBLIC void put_pixel(uint32_t x,uint32_t y,uint32_t color)

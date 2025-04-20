@@ -24,6 +24,7 @@ PUBLIC taskmgr_t *tm;
 PRIVATE void kernel_task(addr_t  func,wordsize_t arg)
 {
     intr_enable();
+    sse_init();
     ((void (*)(void*))func)((void*)arg);
     message_t msg;
     msg.type = MM_EXIT;

@@ -72,6 +72,7 @@ extern uint64_t global_ticks;
 
 PUBLIC void init_all(void)
 {
+    pr_log(K_NAME " - " K_VERSION "\n");
     init_spinlock(&schedule_lock);
     intr_disable();
     pr_log("\1 Segment initializing ...");
@@ -88,7 +89,7 @@ PUBLIC void init_all(void)
         pr_log("\3 HW no support SSE.\n");
         while (1) continue;
     }
-
+    sse_enable();
     sse_init();
     pr_log(" OK.\n");
 
@@ -156,7 +157,7 @@ PUBLIC void ap_init_all(void)
     local_apic_init();
     apic_timer_init();
 
-    sse_init();
+    sse_enable();
     syscall_init();
     intr_enable();
     return;
