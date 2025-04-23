@@ -64,9 +64,41 @@ PRIVATE mem_cache_t* block2cache(mem_block_t *b)
     return ((mem_cache_t*)((uintptr_t)b & 0xffffffffffe00000));
 }
 
-PUBLIC status_t pmalloc(size_t size,void *addr)
+PRIVATE mem_block_t *pmalloc_find_block(list_t *list,
+                                        size_t size,
+                                        size_t alignment,
+                                        size_t boundary)
+{
+    list_node_t *res = list->head.next;
+    if (alignment <= size && boundary == 0)
+    {
+        list_remove(res);
+        return res;
+    }
+    for (;res != &list->tail;res = list_next(res))
+    {
+        addr_t addr = (addr_t)res;
+        if ((addr & (alignment - 1)) != 0)
+        {
+            continue;
+        }
+        if (addr / boundary != (addr + size - 1) / boundary)
+        {
+            continue;
+        }
+        list_remove(res);
+        return res;
+    }
+    return NULL;
+}
+
+PUBLIC status_t pmalloc(size_t size,size_t alignment,size_t boundary,void *addr)
 {
     ASSERT(addr != NULL);
+    if (alignment < size)
+    {
+        alignment = size;
+    }
     int i;
     mem_cache_t *c;
     mem_block_t *b;
@@ -79,6 +111,7 @@ PUBLIC status_t pmalloc(size_t size,void *addr)
             break;
         }
     }
+
     spinlock_lock(&mem_groups[i].lock);
     if (list_empty(&mem_groups[i].free_block_list))
     {
@@ -104,7 +137,15 @@ PUBLIC status_t pmalloc(size_t size,void *addr)
             list_append(&c->group->free_block_list,b);
         }
     }
-    b = list_pop(&mem_groups[i].free_block_list);
+
+    b = pmalloc_find_block(&mem_groups[i].free_block_list,
+                           size,
+                           alignment,
+                           boundary);
+    if (b == NULL)
+    {
+        return K_NOT_FOUND;
+    }
     memset(b,0,mem_groups[i].block_size);
     c = block2cache(b);
     c->cnt--;
@@ -112,16 +153,6 @@ PUBLIC status_t pmalloc(size_t size,void *addr)
     spinlock_unlock(&mem_groups[i].lock);
     *(phy_addr_t*)addr = (phy_addr_t)KADDR_V2P(b);
     return K_SUCCESS;
-}
-
-PUBLIC status_t pmalloc_align(size_t size,void *addr,size_t align)
-{
-    ASSERT(addr != NULL);
-    ASSERT((align & (align - 1)) == 0);
-
-    size_t alloc_size = size > align ? size : align;
-    status_t status = pmalloc(alloc_size,addr);
-    return status;
 }
 
 PUBLIC void pfree(void *addr)

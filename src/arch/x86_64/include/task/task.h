@@ -235,7 +235,7 @@ PUBLIC void prog_activate(task_struct_t *task);
  * @param arg 给任务的参数
  * @return 成功将返回对应的任务结构体,失败则返回NULL
  */
-PUBLIC task_struct_t *prog_execute(
+PUBLIC task_struct_t* prog_execute(
     const char *name,
     uint64_t priority,
     size_t kstack_size,

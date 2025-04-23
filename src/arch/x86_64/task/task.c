@@ -195,7 +195,7 @@ PUBLIC status_t init_task_struct(
     list_init(&task->sender_list);
 
     addr_t fxsave_region;
-    status_t status = pmalloc(sizeof(*task->fxsave_region),&fxsave_region);
+    status_t status = pmalloc(sizeof(*task->fxsave_region),0,0,&fxsave_region);
     if (ERROR(status))
     {
         return status;
@@ -238,7 +238,7 @@ PUBLIC task_struct_t* task_start(
         return NULL;
     }
     void *kstack_base;
-    status = pmalloc(kstack_size,&kstack_base);
+    status = pmalloc(kstack_size,0,0,&kstack_base);
     if (ERROR(status))
     {
         task_free(pid);

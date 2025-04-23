@@ -8,7 +8,7 @@ static inline void* malloc(size_t size)
 {
     void *addr;
     status_t ret;
-    ret = pmalloc(size,&addr);
+    ret = pmalloc(size,0,0,&addr);
     if (ret != K_SUCCESS)
     {
         return NULL;
