@@ -483,22 +483,45 @@ typedef struct xhci_s
     uint8_t               *run_regs;
     uint8_t               *doorbell_regs;
 
-    uint32_t               max_ports;
-    uint32_t               max_slots;
-    uint32_t               cxt_size;
+    // Capability Register
+    // caplength
+    uint8_t                cap_len;
+
+    // hcsparam1
+    uint8_t                max_slots;
+    uint8_t                max_intr;
+    uint8_t                max_ports;
+
+    // hcsparam2
+    uint8_t                isoc_sched_thre; // Isochronous Scheduling Threshold
+    uint8_t                erst_max;
+    uint8_t                max_scratchpad_buffer;
+
+    // hccparam1
+    uint8_t                ac64; // 64-bit addressing capibility
+    uint8_t                bnc;  // bandwidth_negotiation_capability
+    uint8_t                csz;  // 64-byte context size
+    uint8_t                ppc;  // port power control
+    uint8_t                pind; // port indicators
+    uint8_t                lhrc; // light reset capability
+
     uint32_t               xecp_offset;
-    uint32_t               msi_vector;
-    uint32_t               scrath_chapad_count;
+    // uint32_t               max_ports;
+    // uint32_t               max_slots;
+    // uint32_t               cxt_size;
+    // uint32_t               xecp_offset;
+    // uint32_t               msi_vector;
+    // uint32_t               scrath_chapad_count;
 
-    xhci_portmap_t         usb2;
-    xhci_portmap_t         usb3;
+    // xhci_portmap_t         usb2;
+    // xhci_portmap_t         usb3;
 
-    xhci_ring_t            event_ring;
-    xhci_ring_t            command_ring;
-    xhci_erst_t           *erst;
-    xhci_device_cxt_arr_t *dev_cxt_arr;
+    // xhci_ring_t            event_ring;
+    // xhci_ring_t            command_ring;
+    // xhci_erst_t           *erst;
+    // xhci_device_cxt_arr_t *dev_cxt_arr;
 
-    uint8_t                max_address;
+    // uint8_t                max_address;
 } xhci_t;
 
 /**
