@@ -430,12 +430,12 @@ typedef struct xhci_erst_s
 
 #pragma pack()
 
-typedef struct xhci_device_cxt_arr_s
-{
-    uint64_t base_addr[XHCI_MAX_SLOTS];
-    uint64_t padding;
-    uint64_t scratchpad[XHCI_MAX_SCRATCHPADS];
-} xhci_device_cxt_arr_t;
+// typedef struct xhci_device_cxt_arr_s
+// {
+//     uint64_t base_addr[XHCI_MAX_SLOTS];
+//     uint64_t padding;
+//     uint64_t scratchpad[XHCI_MAX_SCRATCHPADS];
+// } xhci_device_cxt_arr_t;
 
 typedef struct xhci_ring_s
 {
@@ -475,6 +475,16 @@ typedef struct xhci_portmap_s
     uint8_t count;
 } xhci_portmap_t;
 
+typedef struct xhci_device_s
+{
+    uint8_t port_id; // 1-based
+    uint8_t slot_id; // slots index in DCBAA
+    uint8_t speed;   // Speed
+    uint8_t using_64byte_csz; // 64-byte context size
+    void   *input_cxt;
+    addr_t  dma_input_cxt;
+} xhci_device_t;
+
 typedef struct xhci_s
 {
     uint8_t               *mmio_base;
@@ -513,9 +523,10 @@ typedef struct xhci_s
     // uint32_t               msi_vector;
     // uint32_t               scrath_chapad_count;
 
-    // xhci_portmap_t         usb2;
-    // xhci_portmap_t         usb3;
+    xhci_portmap_t         usb2;
+    xhci_portmap_t         usb3;
 
+    xhci_device_t         *connected_devices[]; // size = max_slots
     // xhci_ring_t            event_ring;
     // xhci_ring_t            command_ring;
     // xhci_erst_t           *erst;

@@ -104,20 +104,42 @@ PRIVATE void switch_to_xhci(pci_device_t *xhci_dev)
 //     return;
 // }
 
-// PRIVATE void xhci_reset(xhci_t *xhci)
-// {
-//     uint32_t usbcmd = xhci_read_opt(xhci,XHCI_OPT_USBCMD);
-//     usbcmd |= USBCMD_HCRST;
-//     xhci_write_opt(xhci,XHCI_OPT_USBCMD,usbcmd);
-//     // Wait 1ms
-//     message_t msg;
-//     msg.type = TICK_SLEEP;
-//     msg.m3.l1 = 1;
-//     sys_send_recv(NR_BOTH,TICK,&msg);
-//     while((xhci_read_opt(xhci,XHCI_OPT_USBCMD) & USBCMD_HCRST)) continue;
-//     while((xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_CNR))   continue;
-//     return;
-// }
+PRIVATE status_t xhci_reset(xhci_t *xhci)
+{
+    uint32_t usbcmd = xhci_read_opt(xhci,XHCI_OPT_USBCMD);
+    usbcmd |= USBCMD_HCRST;
+    xhci_write_opt(xhci,XHCI_OPT_USBCMD,usbcmd);
+    // Wait 1ms
+    message_t msg;
+    msg.type = TICK_SLEEP;
+    msg.m3.l1 = 1;
+    sys_send_recv(NR_BOTH,TICK,&msg);
+    while((xhci_read_opt(xhci,XHCI_OPT_USBCMD) & USBCMD_HCRST)) continue;
+    while((xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_CNR))   continue;
+    if (xhci_read_opt(xhci,XHCI_OPT_USBCMD) != 0)
+    {
+        return K_ERROR;
+    }
+    if (xhci_read_opt(xhci,XHCI_OPT_DNCTRL) != 0)
+    {
+        return K_ERROR;
+    }
+
+    // Assume CRCR_HI,DCBAPP_HI has been cleared
+    if (xhci_read_opt(xhci,XHCI_OPT_CRCR_LO) != 0)
+    {
+        return K_ERROR;
+    }
+    if (xhci_read_opt(xhci,XHCI_OPT_DCBAPP_LO) != 0)
+    {
+        return K_ERROR;
+    }
+    if (xhci_read_opt(xhci,XHCI_OPT_CONFIG) != 0)
+    {
+        return K_ERROR;
+    }
+    return K_SUCCESS;
+}
 
 // PRIVATE void xhci_start(xhci_t *xhci)
 // {
@@ -310,6 +332,88 @@ PRIVATE void xhci_parse_cap_reg(xhci_t *xhci)
     xhci->pind = GET_FIELD(hccp1,HCCP1_PIND);
     xhci->lhrc = GET_FIELD(hccp1,HCCP1_LHRC);
     xhci->xecp_offset = GET_FIELD(hccp1,HCCP1_XECP) << 2;
+
+    xhci->opt_regs      = xhci->cap_regs + xhci->cap_len;
+    xhci->doorbell_regs = xhci->cap_regs + xhci_read_cap(xhci,XHCI_CAP_DBOFF);
+    xhci->run_regs      = xhci->cap_regs + xhci_read_cap(xhci,XHCI_CAP_RSTOFF);
+
+    // Log
+    pr_log("\1 xHCI: Capability registers (%p)\n",xhci->cap_regs);
+    pr_log("    Legnth                 %d\n",xhci->cap_len);
+    pr_log("    Max Slots              %d\n",xhci->max_slots);
+    pr_log("    Max Interrupts         %d\n",xhci->max_intr);
+    pr_log("    Max Ports              %d\n",xhci->max_ports);
+
+    pr_log("    IST                    %d\n",xhci->isoc_sched_thre);
+    pr_log("    ERST Max               %d\n",xhci->erst_max);
+    pr_log("    Max SC buf             %d\n",xhci->max_scratchpad_buffer);
+
+    pr_log("    64-bits addressing     %s\n",xhci->ac64 ? "yes" : "no");
+    pr_log("    bandwidth negotiation  %d\n",xhci->bnc);
+    pr_log("    64-byte context size   %s\n",xhci->csz ? "yes" : "no");
+    pr_log("    Port Power Control     %d\n",xhci->ppc);
+    pr_log("    Port Indicators        %d\n",xhci->pind);
+    pr_log("    Light Reset Capability %d\n",xhci->lhrc);
+    return;
+}
+
+PRIVATE void xhci_parse_xecp_reg(xhci_t *xhci)
+{
+    uint32_t offset;
+    addr_t addr = (addr_t)xhci->cap_regs + xhci->xecp_offset;
+    do
+    {
+        xhci_xcap_regs_t *xcap = (void*)addr;
+        uint32_t cap = xcap->cap;
+        uint32_t name;
+        uint32_t ports;
+        offset = GET_FIELD(cap,XECP_NEXT_POINT) << 2;
+        addr += offset;
+
+        // Legacy Support
+        if (GET_FIELD(cap,XECP_CAP_ID) == 0x01)
+        {
+            if (GET_FIELD(cap,XECP_CAP_SPEC) & 1)
+            {
+                pr_log(" xHCI is bios owner. switch to this system.\n");
+                cap |=  (1 << 24); // HC OS owned.
+                cap &= ~(1 << 16); // HC Bios owned.
+                xcap->cap = cap;
+            }
+        }
+
+        // Supported Protocol
+        if (GET_FIELD(cap,XECP_CAP_ID) == 0x02)
+        {
+            name = xcap->data[0];
+            ports = xcap->data[1];
+            uint8_t major = GET_FIELD(cap,XECP_SUP_MAJOR);
+            uint8_t minor = GET_FIELD(cap,XECP_SUP_MINOR);
+            uint8_t count = (ports >> 8) & 0xff;
+            uint8_t start = (ports >> 0) & 0xff;
+            pr_log(" xHCI protocol %c%c%c%c"
+                   " %x.%02x ,%d ports (offset %d), def %x\n",
+                    (name >>  0) & 0xff,
+                    (name >>  8) & 0xff,
+                    (name >> 16) & 0xff,
+                    (name >> 24) & 0xff,
+                    major,minor,count,start,ports >> 16);
+            if (strncmp((const char*)&name,"USB ",4) != 0)
+            {
+                continue;
+            }
+            if (major == 2)
+            {
+                xhci->usb2.start = start;
+                xhci->usb2.count = count;
+            }
+            if (major == 3)
+            {
+                xhci->usb3.start = start;
+                xhci->usb3.count = count;
+            }
+        }
+    } while (offset > 0);
     return;
 }
 
@@ -325,11 +429,12 @@ PUBLIC status_t xhci_setup()
     // register_handle(IRQ_XHCI,intr_xHCI_handler);
 
     addr_t addr;
-    status_t status = pmalloc(sizeof(xhci_set[0]) * number_of_xhci,0,0,&addr);
+    status_t status;
+    status = pmalloc(sizeof(xhci_set[0]) * number_of_xhci,0,0,&addr);
     if (ERROR(status))
     {
         pr_log("\3 Can not alloc memory for xHCI set.\n");
-        return K_NOMEM;
+        return status;
     }
     xhci_set = KADDR_P2V(addr);
     // init for each xhci
@@ -356,6 +461,28 @@ PUBLIC status_t xhci_setup()
 
         // Parse xHCI Capability Register space
         xhci_parse_cap_reg(xhci);
+        xhci_parse_xecp_reg(xhci);
+
+        status = pmalloc(sizeof(*xhci->connected_devices) * xhci->max_slots,
+                         0,
+                         0,
+                         &addr);
+        if (ERROR(status))
+        {
+            pr_log("\3 Faild to alloc memory for xhci->connected_devices.\n");
+            return status;
+        }
+        int slot_id;
+        for (slot_id = 0;slot_id < xhci->max_slots;slot_id++)
+        {
+            xhci->connected_devices[i] = NULL;
+        }
+        // Reset Host Controller
+        status = xhci_reset(xhci);
+        if (ERROR(status))
+        {
+            pr_log("\3 Failed to reset host controller.\n");
+        }
     }
     return K_SUCCESS;
 }
