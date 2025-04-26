@@ -1,21 +1,25 @@
-// /*
-//    Copyright 2024-2025 LinChenjun
+/*
+   Copyright 2024-2025 LinChenjun
 
-//    本程序是自由软件
-//    修改和/或再分发依照 GNU GPL version 3 (or any later version)
+   本程序是自由软件
+   修改和/或再分发依照 GNU GPL version 3 (or any later version)
 
-// */
+*/
 
 #include <kernel/global.h>
-#include <device/pci.h>      // pci_device_t,pci functions
-#include <device/usb/xhci.h> // xhci_t,xhci registers
-#include <mem/mem.h>         // pmalloc
-#include <device/pic.h>      // eoi
-#include <intr.h>            // register_handle
-#include <kernel/syscall.h>  // sys_send_recv,inform_intr
-#include <lib/list.h>        // OFFSET
-#include <service.h>         // TICK_SLEEP
-#include <std/string.h>      // strncmp,memset
+#include <device/pci.h>           // pci_device_t,pci functions
+#include <mem/mem.h>              // pmalloc
+#include <device/pic.h>           // eoi
+#include <intr.h>                 // register_handle
+#include <kernel/syscall.h>       // sys_send_recv,inform_intr
+#include <lib/list.h>             // OFFSET
+#include <service.h>              // TICK_SLEEP
+#include <std/string.h>           // strncmp,memset
+
+#include <device/usb/xhci.h>      // xhci_t,xhci_ring_t
+#include <device/usb/xhci_regs.h> // xhci registers
+#include <device/usb/xhci_mem.h>  // xhci memory alignment and boundary
+#include <device/usb/xhci_trb.h>  // xhci_trb_t
 
 #include <log.h>
 
@@ -48,62 +52,6 @@ PRIVATE void switch_to_xhci(pci_device_t *xhci_dev)
 //     return;
 // }
 
-// PRIVATE void xhci_read_xecp(xhci_t *xhci)
-// {
-//     uint32_t offset;
-//     addr_t addr = (addr_t)xhci->cap_regs + xhci->xecp_offset;
-//     do
-//     {
-//         xhci_xcap_regs_t *xcap = (void*)addr;
-//         uint32_t cap = xcap->cap;
-//         uint32_t name;
-//         uint32_t ports;
-//         offset = GET_FIELD(cap,XECP_NEXT_POINT) << 2;
-//         addr += offset;
-//         if (GET_FIELD(cap,XECP_CAP_ID) == 0x01)
-//         {
-//             if (GET_FIELD(cap,XECP_CAP_SPEC) & 1)
-//             {
-//                 pr_log("\1 xHCI is bios owner. switch to this system.\n");
-//                 cap |=  (1 << 24); // HC OS owned.
-//                 cap &= ~(1 << 16); // HC Bios owned.
-//                 xcap->cap = cap;
-//             }
-//         }
-//         if (GET_FIELD(cap,XECP_CAP_ID) == 0x02)
-//         {
-//             name = xcap->data[0];
-//             ports = xcap->data[1];
-//             uint8_t major = GET_FIELD(cap,XECP_SUP_MAJOR);
-//             uint8_t minor = GET_FIELD(cap,XECP_SUP_MINOR);
-//             uint8_t count = (ports >> 8) & 0xff;
-//             uint8_t start = (ports >> 0) & 0xff;
-//             pr_log("\1 xHCI protocol %c%c%c%c"
-//                    " %x.%02x ,%d ports (offset %d), def %x\n",
-//                     (name >>  0) & 0xff,
-//                     (name >>  8) & 0xff,
-//                     (name >> 16) & 0xff,
-//                     (name >> 24) & 0xff,
-//                     major,minor,count,start,ports >> 16);
-//             if (strncmp((const char*)&name,"USB ",4) != 0)
-//             {
-//                 continue;
-//             }
-//             if (major == 2)
-//             {
-//                 xhci->usb2.start = start;
-//                 xhci->usb2.count = count;
-//             }
-//             if (major == 3)
-//             {
-//                 xhci->usb3.start = start;
-//                 xhci->usb3.count = count;
-//             }
-//         }
-//     } while (offset > 0);
-//     return;
-// }
-
 PRIVATE status_t xhci_reset(xhci_t *xhci)
 {
     uint32_t usbcmd = xhci_read_opt(xhci,XHCI_OPT_USBCMD);
@@ -125,12 +73,12 @@ PRIVATE status_t xhci_reset(xhci_t *xhci)
         return K_ERROR;
     }
 
-    // Assume CRCR_HI,DCBAPP_HI has been cleared
+    // Assume CRCR_HI,DCBAAP_HI has been cleared
     if (xhci_read_opt(xhci,XHCI_OPT_CRCR_LO) != 0)
     {
         return K_ERROR;
     }
-    if (xhci_read_opt(xhci,XHCI_OPT_DCBAPP_LO) != 0)
+    if (xhci_read_opt(xhci,XHCI_OPT_DCBAAP_LO) != 0)
     {
         return K_ERROR;
     }
@@ -193,8 +141,8 @@ PRIVATE status_t xhci_reset(xhci_t *xhci)
 //     // Program the Device Context Base Address Array Point (DCBAPP) register
 //     // with a 64-bit address pointing to where the Device Context Base Address
 //     // Array is located.
-//     xhci_write_opt(xhci,XHCI_OPT_DCBAPP_LO,(phy_addr_t)buf & 0xffffffff);
-//     xhci_write_opt(xhci,XHCI_OPT_DCBAPP_HI,(phy_addr_t)buf >> 32);
+//     xhci_write_opt(xhci,XHCI_OPT_DCBAAP_LO,(phy_addr_t)buf & 0xffffffff);
+//     xhci_write_opt(xhci,XHCI_OPT_DCBAAP_HI,(phy_addr_t)buf >> 32);
 
 //     // Event Ring
 
@@ -302,12 +250,24 @@ PRIVATE status_t xhci_reset(xhci_t *xhci)
 //     return;
 // }
 
-// PRIVATE void intr_xHCI_handler(intr_stack_t *stack)
-// {
-//     send_eoi(stack->int_vector);
-//     inform_intr(USB_SRV);
-//     return;
-// }
+PRIVATE void xhci_ack_intr(xhci_t *xhci,uint8_t intr)
+{
+    uint32_t iman = xhci_read_run(xhci,XHCI_IRS_IMAN(intr));
+    iman |= IMAN_INTR_PENDING;
+    xhci_write_run(xhci,XHCI_IRS_IMAN(intr),iman);
+
+    xhci_write_opt(xhci,XHCI_OPT_USBSTS,USBSTS_EINT);
+    return;
+}
+
+PRIVATE void intr_xHCI_handler(intr_stack_t *stack)
+{
+    /// TODO: Process event
+    /// TODO: xhci_ack_intr(0);
+    send_eoi(stack->int_vector);
+    inform_intr(USB_SRV);
+    return;
+}
 
 PRIVATE void xhci_parse_cap_reg(xhci_t *xhci)
 {
@@ -417,6 +377,210 @@ PRIVATE void xhci_parse_xecp_reg(xhci_t *xhci)
     return;
 }
 
+PRIVATE status_t xhci_setup_dcbaa(xhci_t *xhci)
+{
+    size_t dcbaa_size = sizeof(addr_t) * (xhci->max_slots + 1);
+    uint64_t *dcbaa;
+    uint64_t *dcbaa_vaddr;
+    status_t status;
+    status = pmalloc(dcbaa_size,
+                     XHCI_DEVICE_CONTEXT_ALIGNMENT,
+                     XHCI_DEVICE_CONTEXT_BOUNDARY,
+                     &dcbaa);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc memory for DCBAA.\n");
+        return status;
+    }
+    xhci->dcbaa = KADDR_P2V(dcbaa);
+
+    status = pmalloc(dcbaa_size,0,0,&dcbaa_vaddr);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc memory for DCBAA vaddr.\n");
+        return status;
+    }
+    xhci->dcbaa_vaddr = KADDR_P2V(dcbaa_vaddr);
+
+    if (xhci->max_scratchpad_buffer > 0)
+    {
+        uint64_t *sc_buffer_array;
+        status = pmalloc(xhci->max_scratchpad_buffer * sizeof(uint64_t),
+                         XHCI_DEVICE_CONTEXT_ALIGNMENT,
+                         XHCI_DEVICE_CONTEXT_BOUNDARY,
+                         &sc_buffer_array);
+        if (ERROR(status))
+        {
+            pr_log("Faild to alloc memory for sc_buffer.\n");
+            return status;
+        }
+
+        // Create Scratchpad pages
+        uint8_t i;
+        for (i = 0;i < xhci->max_scratchpad_buffer;i++)
+        {
+            void *sc;
+            status = pmalloc(XHCI_PG_SZIE,
+                             XHCI_SCRATCHPAD_BUFFER_ARRAY_ALIGNMENT,
+                             XHCI_SCRATCHPAD_BUFFER_ARRAY_BOUNDARY,
+                            &sc);
+            if (ERROR(status))
+            {
+                pr_log("\3 Failed to alloc sc buffer page.\n");
+                return status;
+            }
+            ((uint64_t*)KADDR_P2V(sc_buffer_array))[i] = (uint64_t)sc;
+        }
+        xhci->dcbaa[0] = (uint64_t)sc_buffer_array;
+        xhci->dcbaa_vaddr[0] = (uint64_t)KADDR_P2V(sc_buffer_array);
+    }
+
+    // Set DCBAA in the operational registers
+    uint32_t dcbaa_lo = (phy_addr_t)dcbaa & 0xffffffff;
+    uint32_t dcbaa_hi = (phy_addr_t)dcbaa >> 32;
+    xhci_write_opt(xhci,XHCI_OPT_DCBAAP_LO,dcbaa_lo);
+    xhci_write_opt(xhci,XHCI_OPT_DCBAAP_HI,dcbaa_hi);
+    return K_SUCCESS;
+}
+
+PRIVATE status_t xhci_setup_command_ring(xhci_t *xhci)
+{
+    xhci->command_ring.trb_count     = XHCI_COMMAND_RING_TRB_COUNT;
+    xhci->command_ring.cycle_bit     = 1;
+    xhci->command_ring.enqueue_index = 0;
+    size_t ring_size =   sizeof(xhci->command_ring.ring[0])
+                       * xhci->command_ring.trb_count;
+    void *cr;
+    status_t status;
+    status = pmalloc(ring_size,
+                     XHCI_COMMAND_RING_SEGMENTS_ALIGNMENT,
+                     XHCI_COMMAND_RING_SEGMENTS_BOUNDARY,
+                     &cr);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed alloc memory for CR.\n");
+        return status;
+    }
+    xhci->command_ring.ring       = KADDR_P2V(cr);
+    xhci->command_ring.ring_paddr = (phy_addr_t)cr;
+    // Set link trb
+    uint8_t cycle_bit = xhci->command_ring.cycle_bit;
+    xhci->command_ring.ring[xhci->command_ring.trb_count - 1].addr  =
+                        (uint64_t)cr;
+    xhci->command_ring.ring[xhci->command_ring.trb_count - 1].flags =
+                        TRB_3_TYPE(TRB_TYPE_LINK) | TRB_3_TC_BIT | cycle_bit;
+    // write CRCR
+    uint32_t crcr_lo = ((phy_addr_t)cr & 0xffffffff) | cycle_bit;
+    uint32_t crcr_hi = (phy_addr_t)cr >> 32;
+    xhci_write_opt(xhci,XHCI_OPT_CRCR_LO,crcr_lo);
+    xhci_write_opt(xhci,XHCI_OPT_CRCR_HI,crcr_hi);
+    return K_SUCCESS;
+}
+
+PRIVATE status_t xhci_configure_opt_reg(xhci_t *xhci)
+{
+    uint64_t pagesize = xhci_read_opt(xhci,XHCI_OPT_PAGESIZE);
+    xhci->pagesize = (pagesize & 0xffff) << 12;
+
+    // Enable device notifications
+    xhci_write_opt(xhci,XHCI_OPT_DNCTRL,0xffff);
+
+    // Configure USBCONFIG field
+    xhci_write_opt(xhci,XHCI_OPT_CONFIG,xhci->max_slots);
+
+    // Setup DCBAA
+    xhci_setup_dcbaa(xhci);
+
+    // Setup command ring and write CRCR
+    xhci_setup_command_ring(xhci);
+
+    pr_log("\1 xHCI Operational Registers (%p)\n",xhci->opt_regs);
+    pr_log("    USBCMD    %08x\n",xhci_read_opt(xhci,XHCI_OPT_USBCMD));
+    pr_log("    USBSTS    %08x\n",xhci_read_opt(xhci,XHCI_OPT_USBSTS));
+    pr_log("    PAGESIZE  %08x\n",xhci_read_opt(xhci,XHCI_OPT_PAGESIZE));
+    pr_log("    DNCTRL    %08x\n",xhci_read_opt(xhci,XHCI_OPT_DNCTRL));
+    pr_log("    CRCR LO   %08x\n",xhci_read_opt(xhci,XHCI_OPT_CRCR_LO));
+    pr_log("    CRCR HI   %08x\n",xhci_read_opt(xhci,XHCI_OPT_CRCR_HI));
+    pr_log("    DCBAAP LO %08x\n",xhci_read_opt(xhci,XHCI_OPT_DCBAAP_LO));
+    pr_log("    DCBAAP HI %08x\n",xhci_read_opt(xhci,XHCI_OPT_DCBAAP_HI));
+    pr_log("    CONFIG    %08x\n",xhci_read_opt(xhci,XHCI_OPT_CONFIG));
+
+    return K_SUCCESS;
+}
+
+PRIVATE status_t xhci_setup_event_ring(xhci_t *xhci)
+{
+    xhci->event_ring.trb_count     = XHCI_EVENT_RING_TRB_COUNT;
+    xhci->event_ring.erst_count    = 1;
+    xhci->event_ring.cycle_bit     = 1;
+    xhci->event_ring.dequeue_index = 0;
+    size_t ring_size =   sizeof(xhci->event_ring.ring[0])
+                       * xhci->event_ring.trb_count;
+    size_t erst_size =   sizeof(xhci_erst_t) * xhci->event_ring.erst_count;
+    void *er;
+    status_t status;
+    status = pmalloc(ring_size,
+                     XHCI_EVENT_RING_SEGMENTS_ALIGNMENT,
+                     XHCI_EVENT_RING_SEGMENTS_BOUNDARY,
+                     &er);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed alloc memory for ER.\n");
+        return status;
+    }
+    xhci->event_ring.ring       = KADDR_P2V(er);
+    xhci->event_ring.ring_paddr = (phy_addr_t)er;
+
+    void *erst;
+    status = pmalloc(erst_size,
+                     XHCI_EVENT_RING_SEGMENT_TABLE_ALIGNMENT,
+                     XHCI_EVENT_RING_SEGMENT_TABLE_BOUNDARY,
+                     &erst);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc memory for ERST.\n");
+        return status;
+    }
+    xhci->event_ring.erst = KADDR_P2V(erst);
+
+    xhci_erst_t erst_entry =
+    {
+        xhci->event_ring.ring_paddr,
+        xhci->event_ring.trb_count,
+        0,
+    };
+    xhci->event_ring.erst[0] = erst_entry;
+
+    xhci_write_run(xhci,XHCI_IRS_ERSTSZ(0),ERSTSZ_SET(1));
+
+    // ERDP
+    uint32_t erdp_lo = erst_entry.rs_addr & 0xffffffff;
+    uint32_t erdp_hi = erst_entry.rs_addr >> 32;
+    xhci_write_run(xhci,XHCI_IRS_ERDP_LO(0),erdp_lo);
+    xhci_write_run(xhci,XHCI_IRS_ERDP_HI(0),erdp_hi);
+
+    // ERSTBA
+    xhci_write_run(xhci,XHCI_IRS_ERSTBA_LO(0),(phy_addr_t)erst & 0xffffffff);
+    xhci_write_run(xhci,XHCI_IRS_ERSTBA_HI(0),((phy_addr_t)erst) >> 32);
+    return K_SUCCESS;
+}
+
+PRIVATE status_t xhci_configure_run_reg(xhci_t *xhci)
+{
+    // Enable interrupts
+    uint32_t iman = xhci_read_run(xhci,XHCI_IRS_IMAN(0));
+    iman |= IMAN_INTR_ENABLE;
+    xhci_write_run(xhci,XHCI_IRS_IMAN(0),iman);
+    status_t status = xhci_setup_event_ring(xhci);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to setup event ring.\n");
+        return status;
+    }
+    xhci_ack_intr(xhci,0);
+    return K_SUCCESS;
+}
+
 PUBLIC status_t xhci_setup()
 {
     uint32_t number_of_xhci = pci_dev_count(0x0c,0x03,0x30);
@@ -426,7 +590,7 @@ PUBLIC status_t xhci_setup()
         return K_NOT_FOUND;
     }
 
-    // register_handle(IRQ_XHCI,intr_xHCI_handler);
+    register_handle(IRQ_XHCI,intr_xHCI_handler);
 
     addr_t addr;
     status_t status;
@@ -472,6 +636,7 @@ PUBLIC status_t xhci_setup()
             pr_log("\3 Faild to alloc memory for xhci->connected_devices.\n");
             return status;
         }
+        xhci->connected_devices = (xhci_device_t**)KADDR_P2V(addr);
         int slot_id;
         for (slot_id = 0;slot_id < xhci->max_slots;slot_id++)
         {
@@ -483,6 +648,9 @@ PUBLIC status_t xhci_setup()
         {
             pr_log("\3 Failed to reset host controller.\n");
         }
+
+        xhci_configure_opt_reg(xhci);
+        xhci_configure_run_reg(xhci);
     }
     return K_SUCCESS;
 }
