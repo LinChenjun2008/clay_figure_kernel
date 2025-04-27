@@ -128,26 +128,17 @@ typedef struct xhci_s
 PUBLIC status_t xhci_setup(void);
 
 /**
+ * @brief 启动xHCI控制器
+ */
+PUBLIC status_t xhci_start(void);
+
+/**
  * @brief 向xHCI发出命令
  * @param xhci xhci结构体指针
  * @param trb 命令的TRB结构体指针
  * @return 成功将返回K_SUCCESS,若失败则返回对应的错误码
  */
-// PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb);
-
-/**
- * @brief 对xHCI进行初始化,并启用xHCI
- * @param xhci 将要被初始化的xhci控制器结构体指针
- * @return 成功将返回K_SUCCESS,若失败则返回对应的错误码
- */
-PUBLIC status_t xhci_init(xhci_t *xhci);
-
-/**
- * @brief 判断xHCI Ring是否空闲
- * @param ring 将判断这个ring是否空闲
- * @return 空闲将返回0,否则返回1
- */
-// PUBLIC bool xhci_ring_busy(xhci_ring_t *ring);
+PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb);
 
 
 

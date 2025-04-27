@@ -1,19 +1,21 @@
-// /*
-//    Copyright 2024 LinChenjun
+/*
+   Copyright 2024 LinChenjun
 
-//    本程序是自由软件
-//    修改和/或再分发依照 GNU GPL version 3 (or any later version)
+   本程序是自由软件
+   修改和/或再分发依照 GNU GPL version 3 (or any later version)
 
-// */
+*/
 
-// #include <kernel/global.h>
-// #include <device/usb/xhci.h> // xhci_t,xhci registers
-// #include <device/usb/usb.h>  // trb_type_str
-// #include <std/string.h>      // memset
+#include <kernel/global.h>
+#include <device/usb/xhci.h>      // xhci_t,xhci registers
+#include <device/usb/xhci_trb.h>  // xhci_trb
+#include <device/usb/xhci_regs.h> // xhci registers
+#include <device/usb/usb.h>       // trb_type_str
+#include <std/string.h>           // memset
 
-// #include <log.h>
+#include <log.h>
 
-// extern xhci_t *xhci_set;
+extern xhci_t *xhci_set;
 
 // PRIVATE status_t xhci_hub_port_reset(xhci_t *xhci,uint8_t port_id)
 // {
@@ -110,41 +112,85 @@
 //     return;
 // }
 
-// PUBLIC void process_event(xhci_t *xhci)
-// {
-//     uint16_t i         = xhci->event_ring.dequeue_index;
-//     uint8_t  cycle_bit = xhci->event_ring.cycle_bit;
-//     while(1)
-//     {
-//         uint32_t temp = xhci->event_ring.ring[i].flags;
-//         uint8_t event_type = GET_FIELD(temp,TRB_3_TYPE);
-//         if (cycle_bit != (temp & 1))
-//         {
-//             return;
-//         }
-//         switch (event_type)
-//         {
-//             case TRB_TYPE_PORT_STATUS_CHANGE:
-//                 port_change_event(xhci,&xhci->event_ring.ring[i]);
-//                 break;
-//             case TRB_TYPE_COMMAND_COMPLETION:
-//                 command_completion_event(xhci,&xhci->event_ring.ring[i]);
-//                 break;
-//             default:
-//                 pr_log("\2 Event type: %s.\n",trb_type_str(event_type));
-//                 break;
-//         }
-//         i++;
-//         if (i == XHCI_MAX_EVENTS)
-//         {
-//             i = 0;
-//             cycle_bit ^= 1;
-//         }
-//         xhci->event_ring.dequeue_index = i;
-//         xhci->event_ring.cycle_bit = cycle_bit;
+PUBLIC const char* trb_type_str(uint8_t trb_type)
+{
+    switch(trb_type)
+    {
+        case TRB_TYPE_NORMAL: return "TRB_TYPE_NORMAL";
+        case TRB_TYPE_SETUP_STAGE: return "TRB_TYPE_SETUP_STAGE";
+        case TRB_TYPE_DATA_STAGE: return "TRB_TYPE_DATA_STAGE";
+        case TRB_TYPE_STATUS_STAGE: return "TRB_TYPE_STATUS_STAGE";
+        case TRB_TYPE_ISOCH: return "TRB_TYPE_ISOCH";
+        case TRB_TYPE_LINK: return "TRB_TYPE_LINK";
+        case TRB_TYPE_EVENT_DATA: return "TRB_TYPE_EVENT_DATA";
+        case TRB_TYPE_TR_NOOP: return "TRB_TYPE_TR_NOOP";
+        // Command
+        case TRB_TYPE_ENABLE_SLOT: return "TRB_TYPE_ENABLE_SLOT";
+        case TRB_TYPE_DISABLE_SLOT: return "TRB_TYPE_DISABLE_SLOT";
+        case TRB_TYPE_ADDRESS_DEVICE: return "TRB_TYPE_ADDRESS_DEVICE";
+        case TRB_TYPE_CONFIGURE_ENDPOINT: return "TRB_TYPE_CONFIGURE_ENDPOINT";
+        case TRB_TYPE_EVALUATE_CONTEXT: return "TRB_TYPE_EVALUATE_CONTEXT";
+        case TRB_TYPE_RESET_ENDPOINT: return "TRB_TYPE_RESET_ENDPOINT";
+        case TRB_TYPE_STOP_ENDPOINT: return "TRB_TYPE_STOP_ENDPOINT";
+        case TRB_TYPE_SET_TR_DEQUEUE: return "TRB_TYPE_SET_TR_DEQUEUE";
+        case TRB_TYPE_RESET_DEVICE: return "TRB_TYPE_RESET_DEVICE";
+        case TRB_TYPE_FORCE_EVENT: return "TRB_TYPE_FORCE_EVENT";
+        case TRB_TYPE_NEGOCIATE_BW: return "TRB_TYPE_NEGOCIATE_BW";
+        case TRB_TYPE_SET_LATENCY_TOLERANCE: return "TRB_TYPE_SET_LATENCY_TOLERANCE";
+        case TRB_TYPE_GET_PORT_BW: return "TRB_TYPE_GET_PORT_BW";
+        case TRB_TYPE_FORCE_HEADER: return "TRB_TYPE_FORCE_HEADER";
+        case TRB_TYPE_CMD_NOOP: return "TRB_TYPE_CMD_NOOP";
+        // Events
+        case TRB_TYPE_TRANSFER: return "TRB_TYPE_TRANSFER";
+        case TRB_TYPE_COMMAND_COMPLETION: return "TRB_TYPE_COMMAND_COMPLETION";
+        case TRB_TYPE_PORT_STATUS_CHANGE: return "TRB_TYPE_PORT_STATUS_CHANGE";
+        case TRB_TYPE_BANDWIDTH_REQUEST: return "TRB_TYPE_BANDWIDTH_REQUEST";
+        case TRB_TYPE_DOORBELL: return "TRB_TYPE_DOORBELL";
+        case TRB_TYPE_HOST_CONTROLLER: return "TRB_TYPE_HOST_CONTROLLER";
+        case TRB_TYPE_DEVICE_NOTIFICATION: return "TRB_TYPE_DEVICE_NOTIFICATION";
+        case TRB_TYPE_MFINDEX_WRAP: return "TRB_TYPE_MFINDEX_WRAP";
+    }
+    return "Unknow TRB type";
+}
 
-//         uint64_t addr = xhci->erst->rs_addr + i * sizeof(xhci_trb_t);
-//         xhci_write_run(xhci,XHCI_IRS_ERDP_LO(0),addr & 0xffffffff);
-//         xhci_write_run(xhci,XHCI_IRS_ERDP_HI(0),addr >> 32);
-//     }
-// }
+PUBLIC void process_event(xhci_t *xhci)
+{
+    uint16_t dequeue_index = xhci->event_ring.dequeue_index;
+    uint8_t  cycle_bit     = xhci->event_ring.cycle_bit;
+
+    xhci_trb_t trb = xhci->event_ring.ring[dequeue_index];
+    uint8_t event_type = GET_FIELD(trb.flags,TRB_3_TYPE);
+    while(cycle_bit == (trb.flags & TRB_3_CYCLE_BIT))
+    {
+        trb = xhci->event_ring.ring[dequeue_index];
+        event_type = GET_FIELD(trb.flags,TRB_3_TYPE);
+        switch (event_type)
+        {
+            // case TRB_TYPE_PORT_STATUS_CHANGE:
+            //     port_change_event(xhci,&xhci->event_ring.ring[dequeue_index]);
+            //     break;
+            // case TRB_TYPE_COMMAND_COMPLETION:
+            //     command_completion_event(xhci,&xhci->event_ring.ring[dequeue_index]);
+            //     break;
+            default:
+                pr_log("\2 Event type: %s.\n",trb_type_str(event_type));
+                break;
+        }
+        dequeue_index++;
+        if (dequeue_index == xhci->event_ring.trb_count)
+        {
+            dequeue_index = 0;
+            cycle_bit = !cycle_bit;
+        }
+        xhci->event_ring.dequeue_index = dequeue_index;
+        xhci->event_ring.cycle_bit     = cycle_bit;
+
+        uint64_t addr =   xhci->event_ring.erst->rs_addr
+                        + dequeue_index * sizeof(xhci_trb_t);
+
+        uint32_t erdp_lo = (addr & 0xffffffff) | (1 << 3);// clear EHB
+        uint32_t erdp_hi = addr >> 32;
+        xhci_write_run(xhci,XHCI_IRS_ERDP_LO(0),erdp_lo);
+        xhci_write_run(xhci,XHCI_IRS_ERDP_HI(0),erdp_hi);
+    }
+}
