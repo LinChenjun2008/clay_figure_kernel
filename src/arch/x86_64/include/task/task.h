@@ -132,11 +132,11 @@ PUBLIC status_t task_alloc(pid_t *pid);
 PUBLIC void task_list_insert(list_t *list,task_struct_t *task);
 
 /**
- * @brief 在列表中获取下一个可以运行的任务节点
+ * @brief 在列表中获取下一个可以运行的任务
  * @param list 任务列表
- * @return 成功将返回下一个任务节点地址,失败则返回NULL
+ * @return 成功将返回下一个任务结构,失败则返回NULL
  */
-PUBLIC list_node_t* get_next_task(list_t *list);
+PUBLIC task_struct_t* get_next_task(list_t *list);
 
 /**
  * @brief 将pid对应的任务结构体标记为未使用
@@ -188,11 +188,10 @@ PUBLIC void task_init(void);
 /// schedule.c
 
 /**
- * @brief 更新vrun_time,以确保vruntime不会过小
- * @param task 任务结构体指针
+ * @brief 获取cpu的最小vrun_time
+ * @param cpu_id cpu id
  */
-PUBLIC void update_vruntime(task_struct_t *task);
-
+PUBLIC uint64_t get_core_min_vruntime(uint32_t cpu_id);
 /**
  * @brief 更新vrun_time,并判断是否需要调度
  */

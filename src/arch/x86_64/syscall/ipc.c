@@ -54,7 +54,7 @@ PUBLIC void inform_intr(pid_t dest)
     }
     task_struct_t *receiver = pid2task(dest);
     receiver->has_intr_msg++;
-    update_vruntime(receiver);
+    // update_vruntime(receiver);
     atomic_set(&receiver->recv_flag,0);
     return;
 }
@@ -67,15 +67,15 @@ PRIVATE void wait_recevice(void)
 
     spinlock_lock(&receiver->send_lock);
     list_append(&receiver->sender_list,&sender->send_tag);
-    update_vruntime(receiver);
+    // update_vruntime(receiver);
     atomic_set(&receiver->recv_flag,0);
     spinlock_unlock(&receiver->send_lock);
 
     atomic_inc(&sender->send_flag);
 
-    intr_enable();
+    intr_status_t intr_status = intr_enable();
     task_yield();
-    intr_disable();
+    intr_set_status(intr_status);
     return;
 }
 
@@ -108,7 +108,7 @@ PRIVATE void inform_receive(pid_t sender_pid)
 {
     task_struct_t *sender = pid2task(sender_pid);
     sender->send_to = MAX_TASK;
-    update_vruntime(sender);
+    // update_vruntime(sender);
     atomic_dec(&sender->send_flag);
     return;
 }

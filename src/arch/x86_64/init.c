@@ -66,15 +66,14 @@ PRIVATE void init_desc(void)
     load_tss(0);
 }
 
-PRIVATE spinlock_t schedule_lock;
-
 extern uint64_t global_ticks;
 
 PUBLIC void init_all(void)
 {
     pr_log(K_NAME " - " K_VERSION "\n");
-    init_spinlock(&schedule_lock);
+
     intr_disable();
+
     pr_log("\1 Segment initializing ...");
     init_desc();
     pr_log(" OK.\n");
@@ -102,7 +101,6 @@ PUBLIC void init_all(void)
     task_init();
     pr_log(" OK.\n");
 
-    spinlock_lock(&schedule_lock);
     pr_log("\1 SMP initializing ...");
     detect_cores();
     smp_init();
@@ -124,10 +122,6 @@ PUBLIC void init_all(void)
     syscall_init();
     pr_log(" OK.\n");
 
-    pr_log("\1 Service initializing ...");
-    service_init();
-    pr_log(" OK.\n");
-
     intr_enable();
 
     // Call apic_timer_init() after intr_enable()
@@ -136,7 +130,10 @@ PUBLIC void init_all(void)
     apic_timer_init();
     pr_log(" OK.\n");
     pr_log("\1 Kernel initializing done.\n");
-    spinlock_unlock(&schedule_lock);
+
+    pr_log("\1 Service initializing ...");
+    service_init();
+    pr_log(" OK.\n");
 
     smp_start();
 

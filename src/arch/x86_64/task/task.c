@@ -120,22 +120,22 @@ PRIVATE bool task_ckeck(list_node_t *node,uint64_t arg)
     {
         return FALSE;
     }
-    else if ((int64_t)atomic_read(&task->send_flag) > 0)
+    if ((int64_t)atomic_read(&task->send_flag) > 0)
     {
         task_struct_t *receiver = pid2task(task->send_to);
-        // receiver->recv_flag = 0;
         atomic_set(&receiver->recv_flag,0);
         return FALSE;
     }
     return TRUE;
 }
 
-PUBLIC list_node_t* get_next_task(list_t *list)
+PUBLIC task_struct_t* get_next_task(list_t *list)
 {
-    list_node_t *next = list_traversal(list,task_ckeck,0);
-    if (next != NULL)
+    list_node_t *node = list_traversal(list,task_ckeck,0);
+    task_struct_t *next = NULL;
+    if (node != NULL)
     {
-        list_remove(next);
+        next = CONTAINER_OF(task_struct_t,general_tag,node);
     }
     return next;
 }
@@ -179,8 +179,7 @@ PUBLIC status_t init_task_struct(
     task->jiffies        = 0;
     task->ideal_runtime  = priority;
 
-    task->vrun_time      = 0;
-    update_vruntime(task);
+    task->vrun_time      = get_core_min_vruntime(apic_id());
 
     task->cpu_id         = apic_id();
     task->page_dir       = NULL;
