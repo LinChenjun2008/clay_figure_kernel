@@ -27,12 +27,23 @@
 #define MAX_ALLOCATE_MEMORY_SIZE 524288
 #define NUMBER_OF_MEMORY_BLOCK_TYPES 14
 
-#define PG_P       0b00000001
-#define PG_RW_R    0b00000000
-#define PG_RW_W    0b00000010
-#define PG_US_S    0b00000000
-#define PG_US_U    0b00000100
-#define PG_SIZE_2M 0b10000000
+// Present
+#define PG_P       (1 << 0)
+
+// Read/Write
+#define PG_RW_R    (0 << 1)
+#define PG_RW_W    (1 << 1)
+
+// User/Supervisor
+#define PG_US_S    (0 << 2)
+#define PG_US_U    (1 << 2)
+
+// Page Chace Disable
+#define PG_PCD     (1 << 4)
+
+#define PG_SIZE_2M (1 << 7)
+
+#define PG_DEFAULT_FLAGS (PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M)
 
 #define TSS_D_0 0
 #define AR_TSS32 (AR_G_4K | TSS_D_0 | AR_L | AR_AVL | AR_P | AR_DPL_0 | AR_S_SYS | AR_TYPE_TSS)

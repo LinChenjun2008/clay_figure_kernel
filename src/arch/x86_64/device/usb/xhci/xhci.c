@@ -144,7 +144,7 @@ PRIVATE void xhci_start(xhci_t *xhci)
 
     uint8_t* buf;
     status_t status;
-    status = pmalloc(sizeof(*xhci->dev_cxt_arr),&buf);
+    status = pmalloc(sizeof(*xhci->dev_cxt_arr),0,0,&buf);
     if (ERROR(status))
     {
         pr_log("\3 Can not alloc addr for DCBA.\n");
@@ -158,7 +158,7 @@ PRIVATE void xhci_start(xhci_t *xhci)
     for (i = 0;i < xhci->scrath_chapad_count;i++)
     {
         void *buf_arr;
-        status = pmalloc(4096,&buf_arr);
+        status = pmalloc(4096,0,0,&buf_arr);
         if (ERROR(status))
         {
             pr_log("\3 Can not alloc memory for scratchpad_buf_arr[%d].\n",i);
@@ -180,6 +180,8 @@ PRIVATE void xhci_start(xhci_t *xhci)
     status = pmalloc(sizeof(*xhci->erst)
                      + (XHCI_MAX_COMMANDS + XHCI_MAX_EVENTS)
                      * sizeof(xhci_trb_t),
+                     0,
+                     0,
                      &buf);
 
     if (ERROR(status))
@@ -298,7 +300,7 @@ PUBLIC status_t xhci_setup(void)
 
     pr_log("\1 this machine has %d xHCI in total.\n",number_of_xhci);
     addr_t addr;
-    status_t status = pmalloc(sizeof(xhci_set[0]) * number_of_xhci,&addr);
+    status_t status = pmalloc(sizeof(xhci_set[0]) * number_of_xhci,0,0,&addr);
     if (ERROR(status))
     {
         pr_log("\3 Can not alloc memory for xHCI set.\n");
@@ -329,6 +331,10 @@ PUBLIC status_t xhci_setup(void)
                  (void*)KADDR_P2V(xhci_mmio_base));
 
         xhci_mmio_base      = (addr_t)KADDR_P2V(xhci_mmio_base);
+        set_page_flags((uint64_t*)KERNEL_PAGE_DIR_TABLE_POS,
+                       (void*)xhci_mmio_base,
+                       PG_DEFAULT_FLAGS | PG_PCD);
+
         uint8_t cap_length  = *(uint8_t*)xhci_mmio_base & 0xff;
 
         xhci->mmio_base     = (void*)xhci_mmio_base;

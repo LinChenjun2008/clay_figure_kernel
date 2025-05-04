@@ -55,6 +55,7 @@ PUBLIC void* to_physical_address(void *pml4t,void *vaddr);
  * @param pml4t 页表地址
  * @param paddr 物理地址
  * @param vaddr 虚拟地址
+ * @param flags 页属性
  */
 PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr);
 
@@ -65,26 +66,27 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr);
  */
 PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr);
 
+
+/**
+ * @brief 修改页属性
+ * @param pml4t 页表地址
+ * @param vaddr 虚拟地址
+ * @param flags 页属性
+ */
+PUBLIC void set_page_flags(uint64_t *pml4t,void *vaddr,uint64_t flags);
+
 PUBLIC void mem_allocator_init(void);
 
 /**
  * @brief 在内存池中分配size大小的内存块
  * @param size 内存块大小
  * @note size <= MAX_ALLOCATE_MEMORY_SIZE
+ * @param alignment 对齐大小,为0则不对齐
+ * @param boundary 边界限制,为0则不限制
  * @param addr 如果成功,addr指针处存储了分配到的物理地址
  * @return 成功将返回K_SUCCESS,失败则返回错误码
  */
-PUBLIC status_t pmalloc(size_t size,void *addr);
-
-/**
- * @brief 在内存池中分配size大小的内存块
- * @param size 内存块大小
- * @note size <= MAX_ALLOCATE_MEMORY_SIZE
- * @param addr 如果成功,addr指针处存储了分配到的物理地址
- * @param align 分配到的物理地址将按align字节对齐
- * @return 成功将返回K_SUCCESS,失败则返回错误码
- */
-PUBLIC status_t pmalloc_align(size_t size,void *addr,size_t align);
+PUBLIC status_t pmalloc(size_t size,size_t alignment,size_t boundary,void *addr);
 
 /**
  * @brief 在内存池中释放addr处的内存块.

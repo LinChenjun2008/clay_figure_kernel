@@ -15,23 +15,40 @@
 
 extern taskmgr_t *tm;
 
-PUBLIC void update_vruntime(task_struct_t *task)
+PRIVATE void update_min_vruntime(core_taskmgr_t *taskmgr,uint64_t vruntime)
 {
-    uint64_t ideal_vruntime = tm->core[task->cpu_id].min_vruntime;
-    if ((int64_t)(task->vrun_time - ideal_vruntime) < 0)
+    uint64_t ideal_min_vruntime = vruntime;
+    // task_struct_t *task = get_next_task(&taskmgr->task_list);
+    // if (task != NULL)
+    // {
+    //     if (task->vrun_time < ideal_min_vruntime)
+    //     {
+    //         ideal_min_vruntime = task->vrun_time;
+    //     }
+    // }
+    if (taskmgr->min_vruntime < ideal_min_vruntime)
     {
-        task->vrun_time = ideal_vruntime;
+        taskmgr->min_vruntime = ideal_min_vruntime;
     }
     return;
 }
 
-PRIVATE void update_min_vruntime(core_taskmgr_t *taskmgr,uint64_t vruntime)
+PRIVATE void update_vruntime(task_struct_t *task)
 {
-    if (vruntime > taskmgr->min_vruntime)
+    uint32_t cpu_id         = apic_id();
+    if (task->jiffies >= task->ideal_runtime)
     {
-        taskmgr->min_vruntime = vruntime;
+        task->jiffies       = 0;
+        task->ideal_runtime = task->priority;
+        task->vrun_time++;
+        update_min_vruntime(&tm->core[cpu_id],task->vrun_time);
     }
     return;
+}
+
+PUBLIC uint64_t get_core_min_vruntime(uint32_t cpu_id)
+{
+    return tm->core[cpu_id].min_vruntime;
 }
 
 PUBLIC void schedule(void)
@@ -39,13 +56,8 @@ PUBLIC void schedule(void)
     ASSERT(intr_get_status() == INTR_OFF);
     task_struct_t *cur_task = running_task();
     cur_task->jiffies++;
-    if (cur_task->jiffies >= cur_task->ideal_runtime)
-    {
-        cur_task->jiffies       = 0;
-        cur_task->ideal_runtime = cur_task->priority;
-        cur_task->vrun_time++;
-        do_schedule();
-    }
+    update_vruntime(cur_task);
+    do_schedule();
     return;
 }
 
@@ -54,9 +66,6 @@ PRIVATE void task_unblock_without_spinlock(pid_t pid)
     task_struct_t *task = pid2task(pid);
     ASSERT(task != NULL);
     ASSERT(task->status != TASK_READY);
-
-    update_vruntime(task);
-
     ASSERT(!list_find(&tm->core[task->cpu_id].task_list,&task->general_tag));
     task_list_insert(&tm->core[task->cpu_id].task_list,task);
     task->status = TASK_READY;
@@ -81,27 +90,23 @@ PUBLIC void do_schedule(void)
         cur_task->status  = TASK_READY;
     }
     task_struct_t *next = NULL;
-    list_node_t *next_task_tag = NULL;
-
     spinlock_lock(&tm->core[cpu_id].task_list_lock);
-    next_task_tag = get_next_task(&tm->core[cpu_id].task_list);
-    next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
+    next = get_next_task(&tm->core[cpu_id].task_list);
 
-    if (next_task_tag == NULL)
+    if (next == NULL)
     {
         task_unblock_without_spinlock(tm->core[cpu_id].idle_task);
-        next_task_tag = get_next_task(&tm->core[cpu_id].task_list);
-        next = CONTAINER_OF(task_struct_t,general_tag,next_task_tag);
-        ASSERT(next_task_tag != NULL);
+        next = get_next_task(&tm->core[cpu_id].task_list);
+        ASSERT(next != NULL);
     }
+
+    list_remove(&next->general_tag);
     spinlock_unlock(&tm->core[cpu_id].task_list_lock);
-    update_vruntime(next);
     next->status = TASK_RUNNING;
     prog_activate(next);
     asm_fxsave(cur_task->fxsave_region);
     asm_fxrstor(next->fxsave_region);
     next->cpu_id = cpu_id;
-    update_min_vruntime(&tm->core[cpu_id],next->vrun_time);
     asm_switch_to(&cur_task->context,&next->context);
 
     intr_set_status(intr_status);
@@ -138,7 +143,8 @@ PUBLIC void task_yield(void)
     intr_status_t intr_status = intr_disable();
     task_struct_t *task = running_task();
     spinlock_lock(&tm->core[task->cpu_id].task_list_lock);
-    task->status = TASK_READY;
+    task->status    = TASK_READY;
+    task->vrun_time = get_core_min_vruntime(task->cpu_id);
     task_list_insert(&tm->core[task->cpu_id].task_list,task);
     spinlock_unlock(&tm->core[task->cpu_id].task_list_lock);
     do_schedule();

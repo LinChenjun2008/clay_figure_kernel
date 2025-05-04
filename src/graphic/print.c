@@ -292,7 +292,7 @@ PUBLIC void init_ttf_info(ttf_info_t* ttf_info)
                           KADDR_P2V(g_boot_info->loaded_file[i].base_address),
                           0);
             uint8_t *btmp;
-            status_t status = pmalloc(sizeof(char [512*512]),&btmp);
+            status_t status = pmalloc(sizeof(char [512*512]),0,0,&btmp);
             ttf_info->bitmap = KADDR_P2V(btmp);
             if (ERROR(status))
             {

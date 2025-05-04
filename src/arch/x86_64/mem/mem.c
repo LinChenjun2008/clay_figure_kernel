@@ -309,7 +309,7 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
     status_t status;
     if (!(*v_pml4e & PG_P))
     {
-        status = pmalloc(PT_SIZE,&pdpt);
+        status = pmalloc(PT_SIZE,0,PT_SIZE,&pdpt);
         ASSERT(!ERROR(status));
         (void)status;
         v_pdpt = KADDR_P2V(pdpt);
@@ -321,7 +321,7 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
     v_pdpte = KADDR_P2V(pdpte);
     if (!(*v_pdpte & PG_P))
     {
-        status = pmalloc(PT_SIZE,&pdt);
+        status = pmalloc(PT_SIZE,0,PT_SIZE,&pdt);
         ASSERT(!ERROR(status));
         (void)status;
         v_pdt = KADDR_P2V(pdt);
@@ -331,7 +331,8 @@ PUBLIC void page_map(uint64_t *pml4t,void *paddr,void *vaddr)
     pdt = (uint64_t*)(*v_pdpte & (~0xfff));
     pde = pdt + GET_FIELD((addr_t)vaddr,ADDR_PDT_INDEX);
     v_pde = KADDR_P2V(pde);
-    *v_pde = (uint64_t)paddr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
+    *v_pde = (uint64_t)paddr | PG_DEFAULT_FLAGS;
+    return;
 }
 
 PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
@@ -354,4 +355,28 @@ PUBLIC void page_unmap(uint64_t *pml4t,void *vaddr)
     v_pde = KADDR_P2V(pde);
     ASSERT(*v_pde & PG_P);
     *v_pde &= ~PG_P;
+    return;
+}
+
+PUBLIC void set_page_flags(uint64_t *pml4t,void *vaddr,uint64_t flags)
+{
+    vaddr = (void*)((addr_t)vaddr & ~(PG_SIZE - 1));
+    uint64_t *v_pml4t,*v_pml4e;
+    uint64_t *pdpt,*v_pdpte,*pdpte;
+    uint64_t *pdt,*v_pde,*pde;
+    v_pml4t = KADDR_P2V(pml4t);
+    v_pml4e = v_pml4t + GET_FIELD((addr_t)vaddr,ADDR_PML4T_INDEX);
+    ASSERT(*v_pml4e & PG_P);
+
+    pdpt = (uint64_t*)(*v_pml4e & (~0xfff));
+    pdpte = pdpt + GET_FIELD((addr_t)vaddr,ADDR_PDPT_INDEX);
+    v_pdpte = KADDR_P2V(pdpte);
+    ASSERT(*v_pdpte & PG_P);
+
+    pdt = (uint64_t*)(*v_pdpte & (~0xfff));
+    pde = pdt + GET_FIELD((addr_t)vaddr,ADDR_PDT_INDEX);
+    v_pde = KADDR_P2V(pde);
+    ASSERT(*v_pde & PG_P);
+    *v_pde = (*v_pde & ~0xfff) | flags;
+    return;
 }

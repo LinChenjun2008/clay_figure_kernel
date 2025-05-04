@@ -110,7 +110,7 @@ PUBLIC void prog_activate(task_struct_t *task)
 PRIVATE uint64_t *create_page_dir(void)
 {
     uint64_t *pgdir_v;
-    status_t status = pmalloc(PT_SIZE,&pgdir_v);
+    status_t status = pmalloc(PT_SIZE,0,PT_SIZE,&pgdir_v);
     if (ERROR(status))
     {
         return NULL;
@@ -127,7 +127,7 @@ PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
     size_t entry_size          = sizeof(*task->vaddr_table.entries);
     uint64_t number_of_entries = 1024;
     void *p;
-    status_t status = pmalloc(entry_size * number_of_entries,&p);
+    status_t status = pmalloc(entry_size * number_of_entries,0,0,&p);
     if (ERROR(status))
     {
         return status;
@@ -157,7 +157,7 @@ PUBLIC task_struct_t *prog_execute(
         return NULL;
     }
     void *kstack_base;
-    status = pmalloc(kstack_size,&kstack_base);
+    status = pmalloc(kstack_size,0,0,&kstack_base);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {

@@ -36,11 +36,10 @@ PRIVATE void intr_keyboard_handler(intr_stack_t *stack)
         uint8_t scancode = io_in8(KEYBOARD_DATA_PORT);
         pr_log("\n");
         pr_log("\1 Key: [%02x]\n",scancode);
-        if (scancode != 0xfa)
-        {
-            fifo_put(&key_fifo,&scancode);
-            inform_intr(KBD_SRV);
-        }
+        // if (scancode != 0xfa)
+        // {
+        //     inform_intr(KBD_SRV);
+        // }
     } while (io_in8(KEYBOARD_STA_PORT) & 0x01);
     return;
 }
