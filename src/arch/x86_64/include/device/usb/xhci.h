@@ -21,35 +21,59 @@
 
 #pragma pack(1)
 
-// // Section 6.2.2
-// typedef struct xhci_slot_ctx_s
-// {
-//     uint32_t slot0;
-//     uint32_t slot1;
-//     uint32_t slot2;
-//     uint32_t slot3;
-//     uint32_t RsvdO[4];
-// } xhci_slot_ctx_t;
+// Section 6.2.2
+typedef struct xhci_slot_ctx32_s
+{
+    uint32_t slot0;
+    uint32_t slot1;
+    uint32_t slot2;
+    uint32_t slot3;
+    uint32_t RsvdO[4];
+} xhci_slot_ctx32_t;
 
-// // Section 6.2.3
-// typedef struct xhci_endpoint_ctx_s
-// {
-//     uint32_t endpoint0;
-//     uint32_t endpoint1;
-//     uint64_t endpoint2;
-//     uint32_t endpoint4;
-//     uint32_t RsvdO[3];
-// } xhci_endpoint_ctx_t;
+// Section 6.2.3
+typedef struct xhci_endpoint_ctx32_s
+{
+    uint32_t endpoint0;
+    uint32_t endpoint1;
+    uint64_t endpoint2;
+    uint32_t endpoint4;
+    uint32_t RsvdO[3];
+} xhci_endpoint_ctx32_t;
 
-// // Section 6.2.1
-// typedef struct xhci_device_ctx_s
-// {
-//     uint32_t slot0;
-//     uint32_t slot1;
-//     uint32_t slot2;
-//     uint32_t slot3;
-//     uint32_t RsvdO[4];
-// } xhci_slot_ctx_t;
+typedef struct xhci_device_cxt32_s
+{
+    xhci_slot_ctx32_t     slot_context;
+    xhci_endpoint_ctx32_t control_ep_context;
+    xhci_endpoint_ctx32_t ep[30];
+} xhci_device_cxt32_t;
+
+// 64-byte device context
+
+typedef struct xhci_slot_ctx64_s
+{
+    uint32_t slot0;
+    uint32_t slot1;
+    uint32_t slot2;
+    uint32_t slot3;
+    uint32_t RsvdO[12];
+} xhci_slot_ctx64_t;
+
+typedef struct xhci_endpoint_ctx64_s
+{
+    uint32_t endpoint0;
+    uint32_t endpoint1;
+    uint64_t endpoint2;
+    uint32_t endpoint4;
+    uint32_t RsvdO[11];
+} xhci_endpoint_ctx64_t;
+
+typedef struct xhci_device_cxt64_s
+{
+    xhci_slot_ctx64_t     slot_context;
+    xhci_endpoint_ctx64_t control_ep_context;
+    xhci_endpoint_ctx64_t ep[30];
+} xhci_device_cxt64_t;
 
 #pragma pack()
 
@@ -117,9 +141,9 @@ typedef struct xhci_s
     xhci_device_t        **connected_devices; // size = max_slots
 
     // Device Context Base Address Array's virtual address
-    // dcbaa[i] = scratchpad buffer physical address
+    // dcbaa[0] = scratchpad buffer physical address
     uint64_t              *dcbaa;
-    // dcbaa_vaddr[i] = scratchpad buffer virtual address
+    // dcbaa_vaddr[0] = scratchpad buffer virtual address
     uint64_t              *dcbaa_vaddr;
 
     xhci_command_ring_t    command_ring;
