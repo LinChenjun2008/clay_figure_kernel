@@ -13,9 +13,11 @@
 #include <device/usb/xhci.h>      // xhci_t
 #include <device/usb/xhci_regs.h> // xhci registers
 #include <device/usb/xhci_trb.h>  // xhci_trb_t
+#include <device/usb/xhci_mem.h> // xhci memory
 #include <device/usb/usb.h>       // process_event
 #include <task/task.h>            // task_start
 #include <std/string.h>           // memset
+#include <mem/mem.h>              // pmalloc
 
 #include <log.h>
 
@@ -26,6 +28,7 @@ PRIVATE status_t xhci_hub_port_reset(xhci_t *xhci,uint8_t port_id)
     uint32_t portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port_id - 1));
     if (!GET_FIELD(portsc,PORTSC_CCS))
     {
+        xhci_write_opt(xhci,XHCI_OPT_PORTSC(port_id - 1),portsc | PORTSC_PR);
         return K_ERROR;
     }
     switch (GET_FIELD(portsc,PORTSC_PLS))
@@ -36,7 +39,8 @@ PRIVATE status_t xhci_hub_port_reset(xhci_t *xhci,uint8_t port_id)
             break;
         case PLS_POLLING:
             // USB 2 - Reset Port
-            xhci_write_opt(xhci,XHCI_OPT_PORTSC(port_id - 1),portsc | PORTSC_PR);
+            portsc |= PORTSC_PR;
+            xhci_write_opt(xhci,XHCI_OPT_PORTSC(port_id - 1),portsc);
             break;
         default:
             return K_UDF_BEHAVIOR;
@@ -127,6 +131,29 @@ PRIVATE status_t xhci_enable_slot(xhci_t *xhci,uint8_t *slot_id)
     return status;
 }
 
+PRIVATE status_t xhci_create_device_context(xhci_t *xhci,uint8_t slot_id)
+{
+    uint64_t dev_cxt_size = sizeof(xhci_device_cxt32_t);
+    if (xhci->csz)
+    {
+        dev_cxt_size = sizeof(xhci_device_cxt64_t);
+    }
+    void *cxt;
+    status_t status;
+    status = pmalloc(dev_cxt_size,
+                     XHCI_DEVICE_CONTEXT_ALIGNMENT,
+                     XHCI_DEVICE_CONTEXT_BOUNDARY,
+                     &cxt);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc device context.\n");
+        return status;
+    }
+    xhci->dcbaa[slot_id]       = (uint64_t)cxt;
+    xhci->dcbaa_vaddr[slot_id] = (uint64_t)KADDR_P2V(cxt);
+    return K_SUCCESS;
+}
+
 PRIVATE status_t xhci_setup_device(xhci_t *xhci,uint8_t port_id)
 {
     uint8_t port = port_id - 1;
@@ -147,8 +174,11 @@ PRIVATE status_t xhci_setup_device(xhci_t *xhci,uint8_t port_id)
         return status;
     }
     pr_log("\2 Slot ID: %d.\n",slot_id);
-
-    /// TODO: create device context
+    if (slot_id == 0)
+    {
+        pr_log("\3 Invalid slot id.\n");
+    }
+    xhci_create_device_context(xhci,slot_id);
     return K_SUCCESS;
 }
 
@@ -172,6 +202,11 @@ PRIVATE void process_connection_event(xhci_t *xhci)
         uint8_t speed = GET_FIELD(portsc,PORTSC_SPEED);
         pr_log("\1 Port Reset Successful: %s\n",usb_speed_to_string(speed));
         xhci_setup_device(xhci,port_id);
+    }
+    else
+    {
+        pr_log("\1 Port disconnected: %d.\n",port_id);
+        xhci_hub_port_reset(xhci,port_id);
     }
     return;
 }
