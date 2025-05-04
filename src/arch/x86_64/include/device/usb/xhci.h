@@ -10,46 +10,48 @@
 #define __XHCI_H__
 
 #include <device/usb/xhci_ring.h> // xhci_ring_t
+#include <lib/fifo.h>             // fifo_t
+
+#define XHCI_USB_SPEED_UNDEFINED            0
+#define XHCI_USB_SPEED_FULL_SPEED           1 // 12 MB/s USB 2.0
+#define XHCI_USB_SPEED_LOW_SPEED            2 // 1.5 Mb/s USB 2.0
+#define XHCI_USB_SPEED_HIGH_SPEED           3 // 480 Mb/s USB 2.0
+#define XHCI_USB_SPEED_SUPER_SPEED          4 // 5 Gb/s (Gen1 x1) USB 3.0
+#define XHCI_USB_SPEED_SUPER_SPEED_PLUS     5 // 10 Gb/s (Gen2 x1) USB 3.1
 
 #pragma pack(1)
 
-// Section 6.2.2
-typedef struct xhci_slot_ctx_s
-{
-    uint32_t slot0;
-    uint32_t slot1;
-    uint32_t slot2;
-    uint32_t slot3;
-    uint32_t RsvdO[4];
-} xhci_slot_ctx_t;
+// // Section 6.2.2
+// typedef struct xhci_slot_ctx_s
+// {
+//     uint32_t slot0;
+//     uint32_t slot1;
+//     uint32_t slot2;
+//     uint32_t slot3;
+//     uint32_t RsvdO[4];
+// } xhci_slot_ctx_t;
 
-// Section 6.2.3
-typedef struct xhci_endpoint_ctx_s
-{
-    uint32_t endpoint0;
-    uint32_t endpoint1;
-    uint64_t endpoint2;
-    uint32_t endpoint4;
-    uint32_t RsvdO[3];
-} xhci_endpoint_ctx_t;
+// // Section 6.2.3
+// typedef struct xhci_endpoint_ctx_s
+// {
+//     uint32_t endpoint0;
+//     uint32_t endpoint1;
+//     uint64_t endpoint2;
+//     uint32_t endpoint4;
+//     uint32_t RsvdO[3];
+// } xhci_endpoint_ctx_t;
 
 // // Section 6.2.1
 // typedef struct xhci_device_ctx_s
 // {
-//     xhci_slot_ctx_t slot;
-//     xhci_endpoint_ctx_t endpoint[XHCI_MAX_ENDPOINTS - 1];
-// } xhci_device_ctx_t;
-
+//     uint32_t slot0;
+//     uint32_t slot1;
+//     uint32_t slot2;
+//     uint32_t slot3;
+//     uint32_t RsvdO[4];
+// } xhci_slot_ctx_t;
 
 #pragma pack()
-
-// typedef struct xhci_device_cxt_arr_s
-// {
-//     uint64_t base_addr[XHCI_MAX_SLOTS];
-//     uint64_t padding;
-//     uint64_t scratchpad[XHCI_MAX_SCRATCHPADS];
-// } xhci_device_cxt_arr_t;
-
 
 typedef struct xhci_portmap_s
 {
@@ -66,6 +68,12 @@ typedef struct xhci_device_s
     void   *input_cxt;
     addr_t  dma_input_cxt;
 } xhci_device_t;
+
+typedef struct xhci_port_connection_event_s
+{
+    uint8_t port_id;
+    uint8_t is_connected;
+} xhci_port_connection_event_t;
 
 typedef struct xhci_s
 {
@@ -116,10 +124,11 @@ typedef struct xhci_s
 
     xhci_command_ring_t    command_ring;
     xhci_event_ring_t      event_ring;
-    // xhci_erst_t           *erst;
-    // xhci_device_cxt_arr_t *dev_cxt_arr;
 
-    // uint8_t                max_address;
+    fifo_t                 port_connection_events;
+    fifo_t                 port_status_change_events;
+    fifo_t                 command_completion_events;
+    fifo_t                 transfer_completion_events;
 } xhci_t;
 
 /**
@@ -135,7 +144,7 @@ PUBLIC status_t xhci_start(void);
 /**
  * @brief 向xHCI发出命令
  * @param xhci xhci结构体指针
- * @param trb 命令的TRB结构体指针
+ * @param trb 命令的TRB结构体指针,执行成功后为对应的COMMAND_COMPLETION_EVENT trb
  * @return 成功将返回K_SUCCESS,若失败则返回对应的错误码
  */
 PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb);
