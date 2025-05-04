@@ -20,6 +20,7 @@
 #include <device/usb/xhci_regs.h> // xhci registers
 #include <device/usb/xhci_mem.h>  // xhci memory alignment and boundary
 #include <device/usb/xhci_trb.h>  // xhci_trb_t
+#include <device/usb/usb.h>       // process_event
 
 #include <log.h>
 
@@ -490,6 +491,45 @@ PUBLIC status_t xhci_setup()
 
         xhci_configure_opt_reg(xhci);
         xhci_configure_run_reg(xhci);
+
+        void *pc_data;
+        size_t pc_event_size = sizeof(xhci_port_connection_event_t);
+        status = pmalloc(pc_event_size * 64,0,0,&pc_data);
+        if (ERROR(status))
+        {
+            pr_log("\3 Out of memory.\n");
+        }
+        pc_data = KADDR_P2V(pc_data);
+        init_fifo(&xhci->port_connection_events,pc_data,pc_event_size,64);
+
+        void *psc_data; // port status change events
+        void *cc_data;  // command completion events
+        void *tc_data;  // transfer completion events
+        size_t item_sz = sizeof(xhci_trb_t);
+        size_t fifo_sz = xhci->event_ring.trb_count;
+        status = pmalloc(item_sz * fifo_sz,0,0,&psc_data);
+        if (ERROR(status))
+        {
+            pr_log("\3 Out of memory.\n");
+        }
+        psc_data = KADDR_P2V(psc_data);
+        init_fifo(&xhci->port_status_change_events,psc_data,item_sz,fifo_sz);
+
+        status = pmalloc(item_sz * 64,0,0,&cc_data);
+        if (ERROR(status))
+        {
+            pr_log("\3 Out of memory.\n");
+        }
+        cc_data = KADDR_P2V(cc_data);
+        init_fifo(&xhci->command_completion_events,cc_data,item_sz,fifo_sz);
+
+        status = pmalloc(item_sz * 64,0,0,&tc_data);
+        if (ERROR(status))
+        {
+            pr_log("\3 Out of memory.\n");
+        }
+        tc_data = KADDR_P2V(tc_data);
+        init_fifo(&xhci->transfer_completion_events,tc_data,item_sz,fifo_sz);
     }
     return K_SUCCESS;
 }
@@ -567,5 +607,14 @@ PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb)
 {
     xhci_trb_queue(&xhci->command_ring,trb);
     xhci_doorbell_ring(xhci,0,0);
+
+    // Wait Host Controller Process the command.
+    while (fifo_empty(&xhci->command_completion_events)) continue;
+    // Success
+    fifo_read(&xhci->command_completion_events,trb);
+    if (GET_FIELD(trb->status,TRB_2_COMP_CODE) != COMP_SUCCESS)
+    {
+        pr_log("\3 Command Error %d.\n",GET_FIELD(trb->status,TRB_2_COMP_CODE));
+    }
     return K_SUCCESS;
 }

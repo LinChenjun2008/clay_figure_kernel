@@ -11,56 +11,13 @@
 #include <device/usb/xhci_trb.h>  // xhci_trb
 #include <device/usb/xhci_regs.h> // xhci registers
 #include <device/usb/usb.h>       // trb_type_str
-#include <std/string.h>           // memset
+#include <kernel/syscall.h>       // sys_send_recv
+#include <device/pci.h>           // pci_device_t,pci functions
+#include <task/task.h>            // task_yield
 
 #include <log.h>
 
 extern xhci_t *xhci_set;
-
-// PRIVATE status_t xhci_hub_port_reset(xhci_t *xhci,uint8_t port_id)
-// {
-//     uint32_t portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port_id - 1));
-//     if (!GET_FIELD(portsc,PORTSC_CCS))
-//     {
-//         return K_ERROR;
-//     }
-//     switch (GET_FIELD(portsc,PORTSC_PLS))
-//     {
-//         case PLS_U0:
-//             // Section 4.3
-//             // USB 3 - controller automatically performs reset
-//             break;
-//         case PLS_POLLING:
-//             // USB 2 - Reset Port
-//             xhci_write_opt(xhci,XHCI_OPT_PORTSC(port_id - 1),portsc | PORTSC_PR);
-//             break;
-//         default:
-//             return K_UDF_BEHAVIOR;
-//     }
-//     while (1)
-//     {
-//         portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port_id - 1));
-//         if (!GET_FIELD(portsc,PORTSC_CCS))
-//         {
-//             return K_ERROR;
-//         }
-//         if (GET_FIELD(portsc,PORTSC_PED))
-//         {
-//             // Success
-//             break;
-//         }
-//     }
-//     return K_SUCCESS;
-// }
-
-// PRIVATE status_t xhci_enable_slot(xhci_t *xhci)
-// {
-//     xhci_trb_t trb;
-//     memset(&trb,0,sizeof(trb));
-//     trb.flags = TRB_3_TYPE(TRB_TYPE_ENABLE_SLOT);
-//     xhci_submit_command(xhci,&trb);
-//     return K_SUCCESS;
-// }
 
 // PRIVATE status_t xhci_configure_port(xhci_t *xhci,uint8_t port_id)
 // {
@@ -104,14 +61,6 @@ extern xhci_t *xhci_set;
 //     return K_SUCCESS;
 // }
 
-// PRIVATE void command_completion_event(xhci_t *xhci,xhci_trb_t *trb)
-// {
-//     (void)xhci;
-//     xhci_trb_t *rtrb = (void*)(trb->addr & 0xffffffff);
-//     pr_log("\1 Command completion.rtrb: %p.\n",rtrb);
-//     return;
-// }
-
 PUBLIC const char* trb_type_str(uint8_t trb_type)
 {
     switch(trb_type)
@@ -153,25 +102,49 @@ PUBLIC const char* trb_type_str(uint8_t trb_type)
     return "Unknow TRB type";
 }
 
+PRIVATE void process_intr(xhci_t *xhci)
+{
+    uint32_t usbsts = xhci_read_opt(xhci,XHCI_OPT_USBSTS);
+    if (usbsts & (USBSTS_HCH | USBSTS_HCE | USBSTS_HSE))
+    {
+        if (usbsts & USBSTS_HCH)
+        {
+            pr_log("\3 xHCI Host Controller Halted.\n");
+        }
+        if (usbsts & USBSTS_HSE)
+        {
+            pr_log("\3 xHCI Host System Error.\n");
+        }
+        if (usbsts & USBSTS_HCE)
+        {
+            pr_log("\3 xHCI Host Controller Error.\n");
+        }
+    }
+}
+
 PUBLIC void process_event(xhci_t *xhci)
 {
     uint16_t dequeue_index = xhci->event_ring.dequeue_index;
     uint8_t  cycle_bit     = xhci->event_ring.cycle_bit;
 
-    xhci_trb_t trb = xhci->event_ring.ring[dequeue_index];
-    uint8_t event_type = GET_FIELD(trb.flags,TRB_3_TYPE);
-    while(cycle_bit == (trb.flags & TRB_3_CYCLE_BIT))
+    xhci_trb_t *trb;
+    uint8_t event_type;
+    while(1)
     {
-        trb = xhci->event_ring.ring[dequeue_index];
-        event_type = GET_FIELD(trb.flags,TRB_3_TYPE);
+        trb         = &xhci->event_ring.ring[dequeue_index];
+        event_type  = GET_FIELD(trb->flags,TRB_3_TYPE);
+        if (cycle_bit != (trb->flags & TRB_3_CYCLE_BIT))
+        {
+            break;
+        }
         switch (event_type)
         {
-            // case TRB_TYPE_PORT_STATUS_CHANGE:
-            //     port_change_event(xhci,&xhci->event_ring.ring[dequeue_index]);
-            //     break;
-            // case TRB_TYPE_COMMAND_COMPLETION:
-            //     command_completion_event(xhci,&xhci->event_ring.ring[dequeue_index]);
-            //     break;
+            case TRB_TYPE_PORT_STATUS_CHANGE:
+                fifo_write(&xhci->port_status_change_events,trb);
+                break;
+            case TRB_TYPE_COMMAND_COMPLETION:
+                fifo_write(&xhci->command_completion_events,trb);
+                break;
             default:
                 pr_log("\2 Event type: %s.\n",trb_type_str(event_type));
                 break;
@@ -193,4 +166,40 @@ PUBLIC void process_event(xhci_t *xhci)
         xhci_write_run(xhci,XHCI_IRS_ERDP_LO(0),erdp_lo);
         xhci_write_run(xhci,XHCI_IRS_ERDP_HI(0),erdp_hi);
     }
+    return;
+}
+
+PUBLIC void usb_event_task(void)
+{
+    uint32_t number_of_xhci = pci_dev_count(0x0c,0x03,0x30);
+    uint32_t i;
+    uint8_t  port;
+
+    for (i = 0;i < number_of_xhci;i++)
+    {
+        for (port = 0;port < xhci_set[i].max_ports;port++)
+        {
+            uint32_t portsc = xhci_read_opt(&xhci_set[i],XHCI_OPT_PORTSC(port));
+            if (portsc & PORTSC_CCS && portsc & PORTSC_CSC)
+            {
+                xhci_port_connection_event_t pc_event;
+                pc_event.port_id = port + 1;
+                pc_event.is_connected = ((portsc & PORTSC_CCS) == 1);
+                fifo_write(&xhci_set[i].port_connection_events,&pc_event);
+                // message_t msg;
+                // msg.m2.p1 = &xhci_set[i];
+                // sys_send_recv(NR_SEND,USB_SRV,&msg);
+            }
+        }
+    }
+
+    while(1)
+    {
+        for (i = 0;i < number_of_xhci;i++)
+        {
+            process_intr(&xhci_set[i]);
+            process_event(&xhci_set[i]);
+        }
+        task_yield();
+    };
 }

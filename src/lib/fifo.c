@@ -8,35 +8,25 @@
 
 #include <kernel/global.h>
 #include <lib/fifo.h>
+#include <std/string.h>
+#include <device/spinlock.h>
 
-PUBLIC void init_fifo(fifo_t *fifo,void *buf,int type,int size)
+PUBLIC void init_fifo(fifo_t *fifo,void *data,size_t item_size,int size)
 {
-    fifo->type = type;
-    switch(type)
-    {
-        case 8:
-            fifo->buf8 = buf;
-            break;
-        case 16:
-            fifo->buf16 = buf;
-            break;
-        case 32:
-            fifo->buf32 = buf;
-            break;
-        case 64:
-            fifo->buf64 = buf;
-            break;
-    }
-    fifo->size = size;
-    fifo->free = size;
-    fifo->nr = 0;
-    fifo->nw = 0;
+    fifo->data       = data;
+    fifo->item_size  = item_size;
+    fifo->size       = size;
+    fifo->free       = size;
+    fifo->next_read  = 0;
+    fifo->next_write = 0;
+    init_spinlock(&fifo->lock);
+    return;
 }
 
 
-PUBLIC status_t fifo_put(fifo_t *fifo,void* data)
+PUBLIC status_t fifo_write(fifo_t *fifo,void* item)
 {
-    if (data == NULL)
+    if (item == NULL)
     {
         return K_INVAILD_ADDR;
     }
@@ -45,29 +35,17 @@ PUBLIC status_t fifo_put(fifo_t *fifo,void* data)
     {
         return K_OUT_OF_RESOURCE;
     }
+    spinlock_lock(&fifo->lock);
     fifo->free--;
-    switch(fifo->type)
-    {
-        case 8:
-            fifo->buf8[fifo->nw] = *((uint8_t*)data);
-            break;
-        case 16:
-            fifo->buf16[fifo->nw] = *((uint16_t*)data);
-            break;
-        case 32:
-            fifo->buf32[fifo->nw] = *((uint32_t*)data);
-            break;
-        case 64:
-            fifo->buf64[fifo->nw] = *((uint64_t*)data);
-            break;
-    }
-    fifo->nw = (fifo->nw + 1) % fifo->size;
+    memcpy((uint8_t*)fifo->data + fifo->item_size,item,fifo->item_size);
+    fifo->next_write = (fifo->next_write + 1) % fifo->size;
+    spinlock_unlock(&fifo->lock);
     return K_SUCCESS;
 }
 
-PUBLIC status_t fifo_get(fifo_t *fifo,void* data)
+PUBLIC status_t fifo_read(fifo_t *fifo,void* item)
 {
-    if (data == NULL)
+    if (item == NULL)
     {
         return K_INVAILD_ADDR;
     }
@@ -75,33 +53,20 @@ PUBLIC status_t fifo_get(fifo_t *fifo,void* data)
     {
         return K_OUT_OF_RESOURCE;
     }
+    spinlock_lock(&fifo->lock);
     fifo->free++;
-    switch(fifo->type)
-    {
-        case 8:
-            *((uint8_t*)data) = fifo->buf8[fifo->nr];
-            break;
-        case 16:
-            *((uint16_t*)data) = fifo->buf16[fifo->nr];
-            break;
-        case 32:
-            *((uint32_t*)data) = fifo->buf32[fifo->nr];
-            break;
-        case 64:
-            *((uint64_t*)data) = fifo->buf64[fifo->nr];
-            break;
-    }
-    fifo->nr = (fifo->nr + 1) % fifo->size;
+    memcpy(item,(uint8_t*)fifo->data + fifo->item_size,fifo->item_size);
+    fifo->next_read = (fifo->next_read + 1) % fifo->size;
+    spinlock_unlock(&fifo->lock);
     return K_SUCCESS;
 }
-
 
 PUBLIC bool fifo_empty(fifo_t *fifo)
 {
     return (fifo->free == fifo->size);
 }
 
-PUBLIC bool fifo_fill(fifo_t *fifo)
+PUBLIC bool fifo_full(fifo_t *fifo)
 {
     return (fifo->free == 0);
 }
