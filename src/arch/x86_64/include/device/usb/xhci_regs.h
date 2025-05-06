@@ -183,6 +183,7 @@ typedef struct xhci_xcap_regs_s
 #define PORTSC_PED (1 <<  1) // Port Enabled/Disabled
 #define PORTSC_PR  (1 <<  4) // Port Reset
 #define PORTSC_CSC (1 << 17) // Connect Status Change
+#define PORTSC_PEC (1 << 18) // Port Enabled/Disabled Change
 #define PORTSC_PRC (1 << 21) // Port Reset Change
 
 #define PORTSC_CCS_SHIFT 0
@@ -206,8 +207,17 @@ typedef struct xhci_xcap_regs_s
 #define PORTSC_CSC_SHIFT 17
 #define PORTSC_CSC_MASK  0x01
 
+#define PORTSC_PEC_SHIFT 18
+#define PORTSC_PEC_MASK  0x01
+
+#define PORTSC_WRC_SHIFT 19
+#define PORTSC_WRC_MASK  0x01
+
 #define PORTSC_PRC_SHIFT 21
 #define PORTSC_PRC_MASK  0x01
+
+#define PORTSC_WPR_SHIFT 31
+#define PORTSC_WPR_MASK  0x01
 
 #define PLS_U0               0
 #define PLS_U1               1

@@ -19,64 +19,6 @@
 #define XHCI_USB_SPEED_SUPER_SPEED          4 // 5 Gb/s (Gen1 x1) USB 3.0
 #define XHCI_USB_SPEED_SUPER_SPEED_PLUS     5 // 10 Gb/s (Gen2 x1) USB 3.1
 
-#pragma pack(1)
-
-// Section 6.2.2
-typedef struct xhci_slot_ctx32_s
-{
-    uint32_t slot0;
-    uint32_t slot1;
-    uint32_t slot2;
-    uint32_t slot3;
-    uint32_t RsvdO[4];
-} xhci_slot_ctx32_t;
-
-// Section 6.2.3
-typedef struct xhci_endpoint_ctx32_s
-{
-    uint32_t endpoint0;
-    uint32_t endpoint1;
-    uint64_t endpoint2;
-    uint32_t endpoint4;
-    uint32_t RsvdO[3];
-} xhci_endpoint_ctx32_t;
-
-typedef struct xhci_device_cxt32_s
-{
-    xhci_slot_ctx32_t     slot_context;
-    xhci_endpoint_ctx32_t control_ep_context;
-    xhci_endpoint_ctx32_t ep[30];
-} xhci_device_cxt32_t;
-
-// 64-byte device context
-
-typedef struct xhci_slot_ctx64_s
-{
-    uint32_t slot0;
-    uint32_t slot1;
-    uint32_t slot2;
-    uint32_t slot3;
-    uint32_t RsvdO[12];
-} xhci_slot_ctx64_t;
-
-typedef struct xhci_endpoint_ctx64_s
-{
-    uint32_t endpoint0;
-    uint32_t endpoint1;
-    uint64_t endpoint2;
-    uint32_t endpoint4;
-    uint32_t RsvdO[11];
-} xhci_endpoint_ctx64_t;
-
-typedef struct xhci_device_cxt64_s
-{
-    xhci_slot_ctx64_t     slot_context;
-    xhci_endpoint_ctx64_t control_ep_context;
-    xhci_endpoint_ctx64_t ep[30];
-} xhci_device_cxt64_t;
-
-#pragma pack()
-
 typedef struct xhci_portmap_s
 {
     uint8_t start;
@@ -85,12 +27,13 @@ typedef struct xhci_portmap_s
 
 typedef struct xhci_device_s
 {
-    uint8_t port_id; // 1-based
-    uint8_t slot_id; // slots index in DCBAA
-    uint8_t speed;   // Speed
-    uint8_t using_64byte_csz; // 64-byte context size
-    void   *input_cxt;
-    addr_t  dma_input_cxt;
+    uint8_t              port_id; // 1-based
+    uint8_t              slot_id; // slots index in DCBAA
+    uint8_t              speed;   // Speed
+    uint8_t              using_64byte_ctx; // 64-byte context size
+    void                *input_ctx;
+    addr_t               dma_input_ctx;
+    xhci_trasfer_ring_t *ctrl_ep_ring;
 } xhci_device_t;
 
 typedef struct xhci_port_connection_event_s

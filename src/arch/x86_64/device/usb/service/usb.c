@@ -7,17 +7,18 @@
 */
 
 #include <kernel/global.h>
-#include <kernel/syscall.h>       // inform_intr,sys_send_recv
-#include <service.h>              // TICK_SLEEP
-#include <device/pci.h>           // pci_device_t,pci functions
-#include <device/usb/xhci.h>      // xhci_t
-#include <device/usb/xhci_regs.h> // xhci registers
-#include <device/usb/xhci_trb.h>  // xhci_trb_t
-#include <device/usb/xhci_mem.h> // xhci memory
-#include <device/usb/usb.h>       // process_event
-#include <task/task.h>            // task_start
-#include <std/string.h>           // memset
-#include <mem/mem.h>              // pmalloc
+#include <kernel/syscall.h>              // inform_intr,sys_send_recv
+#include <service.h>                     // TICK_SLEEP
+#include <device/pci.h>                  // pci_device_t,pci functions
+#include <device/usb/xhci.h>             // xhci_t
+#include <device/usb/xhci_regs.h>        // xhci registers
+#include <device/usb/xhci_trb.h>         // xhci_trb_t
+#include <device/usb/xhci_mem.h>         // xhci memory
+#include <device/usb/xhci_device_ctx.h>  // xhci device context
+#include <device/usb/usb.h>              // process_event
+#include <task/task.h>                   // task_start
+#include <std/string.h>                  // memset
+#include <mem/mem.h>                     // pmalloc
 
 #include <log.h>
 
@@ -25,38 +26,68 @@ extern xhci_t *xhci_set;
 
 PRIVATE status_t xhci_hub_port_reset(xhci_t *xhci,uint8_t port_id)
 {
+    uint8_t usb3_start = xhci->usb3.start;
+    uint8_t usb3_end   = xhci->usb3.start + xhci->usb3.count;
+    uint8_t is_usb3_port = usb3_start <= port_id && port_id < usb3_end;
+
     uint32_t portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port_id - 1));
-    if (!GET_FIELD(portsc,PORTSC_CCS))
+    // Power on the port if necessary
+    if (GET_FIELD(portsc,PORTSC_PP) == 0)
     {
-        xhci_write_opt(xhci,XHCI_OPT_PORTSC(port_id - 1),portsc | PORTSC_PR);
-        return K_ERROR;
+        portsc = SET_FIELD(portsc,PORTSC_PP,1);
+        xhci_write_opt(xhci,XHCI_OPT_PORTSC(port_id - 1),portsc);
+
+        // Check
+        portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port_id - 1));
+        if (GET_FIELD(portsc,PORTSC_PP) == 0)
+        {
+            pr_log("\3 Failed to power on the port %d.\n",port_id);
+            return K_ERROR;
+        }
     }
-    switch (GET_FIELD(portsc,PORTSC_PLS))
+
+    // Clear lingering status change bits before reset
+    // Clear bits by write
+    portsc = SET_FIELD(portsc,PORTSC_CSC,1);
+    portsc = SET_FIELD(portsc,PORTSC_PEC,1);
+    portsc = SET_FIELD(portsc,PORTSC_PRC,1);
+    xhci_write_opt(xhci,XHCI_OPT_PORTSC(port_id - 1),portsc);
+
+    if (is_usb3_port)
     {
-        case PLS_U0:
-            // Section 4.3
-            // USB 3 - controller automatically performs reset
-            break;
-        case PLS_POLLING:
-            // USB 2 - Reset Port
-            portsc |= PORTSC_PR;
-            xhci_write_opt(xhci,XHCI_OPT_PORTSC(port_id - 1),portsc);
-            break;
-        default:
-            return K_UDF_BEHAVIOR;
+        portsc = SET_FIELD(portsc,PORTSC_WPR,1);
     }
+    else
+    {
+        portsc = SET_FIELD(portsc,PORTSC_PR,1);
+    }
+    xhci_write_opt(xhci,XHCI_OPT_PORTSC(port_id - 1),portsc);
+
     while (1)
     {
         portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port_id - 1));
-        if (!GET_FIELD(portsc,PORTSC_CCS))
+        if (is_usb3_port && (GET_FIELD(portsc,PORTSC_WRC) == 1))
         {
-            return K_ERROR;
-        }
-        if (GET_FIELD(portsc,PORTSC_PED))
-        {
-            // Success
             break;
         }
+        if (!is_usb3_port && (GET_FIELD(portsc,PORTSC_PRC) == 1))
+        {
+            break;
+        }
+    }
+    portsc = SET_FIELD(portsc,PORTSC_CSC,1);
+    portsc = SET_FIELD(portsc,PORTSC_PRC,1);
+    portsc = SET_FIELD(portsc,PORTSC_WRC,1);
+    portsc = SET_FIELD(portsc,PORTSC_PEC,1);
+    portsc = SET_FIELD(portsc,PORTSC_PED,0);
+    xhci_write_opt(xhci,XHCI_OPT_PORTSC(port_id - 1),portsc);
+
+    // Check if the port is enabled
+    portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port_id - 1));
+    if (GET_FIELD(portsc,PORTSC_PED) == 0)
+    {
+        pr_log("\3 Error: port not enabled.\n");
+        return K_ERROR;
     }
     return K_SUCCESS;
 }
@@ -133,25 +164,142 @@ PRIVATE status_t xhci_enable_slot(xhci_t *xhci,uint8_t *slot_id)
 
 PRIVATE status_t xhci_create_device_context(xhci_t *xhci,uint8_t slot_id)
 {
-    uint64_t dev_cxt_size = sizeof(xhci_device_cxt32_t);
+    uint64_t dev_ctx_size = sizeof(xhci_device_ctx32_t);
     if (xhci->csz)
     {
-        dev_cxt_size = sizeof(xhci_device_cxt64_t);
+        dev_ctx_size = sizeof(xhci_device_ctx64_t);
     }
-    void *cxt;
+    void *ctx;
     status_t status;
-    status = pmalloc(dev_cxt_size,
+    status = pmalloc(dev_ctx_size,
                      XHCI_DEVICE_CONTEXT_ALIGNMENT,
                      XHCI_DEVICE_CONTEXT_BOUNDARY,
-                     &cxt);
+                     &ctx);
     if (ERROR(status))
     {
         pr_log("\3 Failed to alloc device context.\n");
         return status;
     }
-    xhci->dcbaa[slot_id]       = (uint64_t)cxt;
-    xhci->dcbaa_vaddr[slot_id] = (uint64_t)KADDR_P2V(cxt);
+    xhci->dcbaa[slot_id]       = (uint64_t)ctx;
+    xhci->dcbaa_vaddr[slot_id] = (uint64_t)KADDR_P2V(ctx);
     return K_SUCCESS;
+}
+
+PRIVATE status_t init_xhci_device_struct(
+    xhci_device_t *device,
+    uint8_t port_id,
+    uint8_t slot_id,
+    uint8_t speed,
+    uint16_t using_64byte_ctx)
+{
+    device->port_id          = port_id;
+    device->slot_id          = slot_id;
+    device->speed            = speed;
+    device->using_64byte_ctx = using_64byte_ctx;
+    status_t status;
+    size_t input_ctx_size = sizeof(xhci_input_ctx32_t);
+    if (using_64byte_ctx)
+    {
+        input_ctx_size = sizeof(xhci_input_ctx64_t);
+    }
+    status = pmalloc(input_ctx_size,0,0,&device->dma_input_ctx);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc input ctx.\n");
+        return status;
+    }
+    device->input_ctx = KADDR_P2V(device->dma_input_ctx);
+
+    // allocate ep ring
+    xhci_trasfer_ring_t *ctrl_ep_ring;
+    status = pmalloc(sizeof(xhci_trasfer_ring_t),0,0,&ctrl_ep_ring);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc ctrl_ep_ring.\n");
+        return status;
+    }
+    ctrl_ep_ring = KADDR_P2V(ctrl_ep_ring);
+    device->ctrl_ep_ring = ctrl_ep_ring;
+    ctrl_ep_ring->trb_count = XHCI_TRANSFER_RING_COUNT;
+    ctrl_ep_ring->cycle_bit = 1;
+    ctrl_ep_ring->dequeue = 0;
+    ctrl_ep_ring->enqueue = 0;
+    ctrl_ep_ring->doorbell_id = slot_id;
+
+    xhci_trb_t *transfer_ring;
+    status = pmalloc(sizeof(ctrl_ep_ring->ring[0]),0,0,&transfer_ring);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc transfer ring.\n");
+        return status;
+    }
+    ctrl_ep_ring->ring_paddr = (phy_addr_t)transfer_ring;
+    ctrl_ep_ring->ring       = KADDR_P2V(transfer_ring);
+
+    // Make Linking trb
+    uint8_t cycle_bit = ctrl_ep_ring->cycle_bit;
+    ctrl_ep_ring->ring[ctrl_ep_ring->trb_count - 1].addr =
+                        (uint64_t)transfer_ring;
+    ctrl_ep_ring->ring[ctrl_ep_ring->trb_count - 1].flags =
+                        TRB_3_TYPE(TRB_TYPE_LINK) | TRB_3_TC_BIT | cycle_bit;
+    return K_SUCCESS;
+
+}
+
+PRIVATE void xhci_configure_device_ctrl_ep_input_ctx(xhci_device_t *device,
+                                                     uint16_t max_packet_size)
+{
+    xhci_input_ctrl_ctx32_t *input_ctrl_ctx =
+                                    xhci_device_get_input_ctrl_ctx(device);
+    xhci_slot_ctx32_t *slot_ctx             =
+                                    xhci_device_get_input_slot_ctx(device);
+    xhci_endpoint_ctx32_t *ctrl_ep_ctx      =
+                                    xhci_device_get_input_ctrl_ep_ctx(device);
+
+    // Enable slot and control endpoint contexts
+    input_ctrl_ctx->add_flags = (1 << 0) | (1 << 1);
+    input_ctrl_ctx->drop_flags = 0;
+
+    // Configure the slot context
+    uint32_t slot0 = 0,slot1 = 0,slot2 = 0;
+    slot0 = SET_FIELD(slot0,SLOT_CTX_0_ROUTE_STRING,0);
+    slot0 = SET_FIELD(slot0,SLOT_CTX_0_CTX_ENTRY,1);
+    slot0 = SET_FIELD(slot0,SLOT_CTX_0_SPEED,device->speed);
+    slot1 = SET_FIELD(slot1,SLOT_CTX_1_ROOT_HUB_PORT_NUM,device->port_id);
+    slot2 = SET_FIELD(slot2,SLOT_CTX_2_INTR_TARGET,0);
+
+    slot_ctx->slot0 = slot0;
+    slot_ctx->slot1 = slot1;
+    slot_ctx->slot2 = slot2;
+
+    // Configure Endpoint context
+    uint32_t ep0 = 0,ep1 = 0,ep2 = 0,ep3 = 0,ep4 = 0;
+    ep0 = SET_FIELD(ep0,EP_CTX_0_EP_STATE,XHCI_EP_STATE_DISABLED);
+    ep0 = SET_FIELD(ep0,EP_CTX_0_INTERVAL,0);
+    ep0 = SET_FIELD(ep0,EP_CTX_0_MAX_ESIT_PAYLOAD_HI,0);
+
+    ep1 = SET_FIELD(ep1,EP_CTX_1_CERR,3);
+    ep1 = SET_FIELD(ep1,EP_CTX_1_EP_TYPE,XHCI_EP_TYPE_CONTROL);
+    ep1 = SET_FIELD(ep1,EP_CTX_1_MAX_PACKET_SZ,max_packet_size);
+
+    xhci_trasfer_ring_t *t_ring = device->ctrl_ep_ring;
+    phy_addr_t transfer_ring =   (phy_addr_t)t_ring->ring_paddr
+                               + sizeof(t_ring->ring[0]) * t_ring->dequeue;
+    uint32_t tr_dequeue_lo = transfer_ring & 0xffffffff;
+    uint32_t tr_dequeue_hi = transfer_ring >> 32;
+    ep2 = SET_FIELD(ep2,EP_CTX_2_DCS,t_ring->cycle_bit);
+    ep2 = SET_FIELD(ep2,EP_CTX_2_TR_DEQUEUE_LO,tr_dequeue_lo);
+    ep3 = SET_FIELD(ep1,EP_CTX_3_TR_DEQUEUE_HI,tr_dequeue_hi);
+
+    ep4 = SET_FIELD(ep4,EP_CTX_4_AVERAGE_TRB_LEN,8);
+    ep4 = SET_FIELD(ep4,EP_CTX_4_MAX_ESIT_PAYLOAD_LO,0);
+
+    ctrl_ep_ctx->endpoint0 = ep0;
+    ctrl_ep_ctx->endpoint1 = ep1;
+    ctrl_ep_ctx->endpoint2 = ep2;
+    ctrl_ep_ctx->endpoint3 = ep3;
+    ctrl_ep_ctx->endpoint4 = ep4;
+    return;
 }
 
 PRIVATE status_t xhci_setup_device(xhci_t *xhci,uint8_t port_id)
@@ -163,7 +311,6 @@ PRIVATE status_t xhci_setup_device(xhci_t *xhci,uint8_t port_id)
 
     uint8_t speed = GET_FIELD(portsc,PORTSC_SPEED);
     uint16_t max_packet_size = xhci_get_max_init_packet_size(speed);
-    (void)max_packet_size;
 
     status_t status;
     uint8_t slot_id;
@@ -177,8 +324,22 @@ PRIVATE status_t xhci_setup_device(xhci_t *xhci,uint8_t port_id)
     if (slot_id == 0)
     {
         pr_log("\3 Invalid slot id.\n");
+        return K_INVAILD_PARAM;
     }
     xhci_create_device_context(xhci,slot_id);
+
+    xhci_device_t *device;
+    status = pmalloc(sizeof(device),0,0,&device);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc memory for device.\n");
+        return status;
+    }
+    device = KADDR_P2V(device);
+    init_xhci_device_struct(device,port_id,slot_id,speed,max_packet_size);
+    xhci_configure_device_ctrl_ep_input_ctx(device,max_packet_size);
+
+    /// TODO: Address device
     return K_SUCCESS;
 }
 
@@ -223,10 +384,7 @@ PUBLIC void usb_main(void)
     while (1)
     {
         // sys_send_recv(NR_RECV,RECV_FROM_ANY,&msg);
-        // if (msg.src == usb_event_pid)
-        // {
-        //     process_connection_event(&msg);
-        // }
+
         uint32_t number_of_xhci = pci_dev_count(0x0c,0x03,0x30);
         uint32_t i;
 

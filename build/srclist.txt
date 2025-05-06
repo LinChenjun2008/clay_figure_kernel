@@ -35,6 +35,7 @@ $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pci/pci_msi.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/usb/service/usb.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/usb/service/events.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/usb/xhci/xhci.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/usb/xhci/device_ctx.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/usb/xhci/registers.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/keyboard/service/keyboard.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/keyboard/ps2_keyboard.c \
