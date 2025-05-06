@@ -39,4 +39,17 @@ typedef struct xhci_event_ring_s
     uint16_t     dequeue_index;
 } xhci_event_ring_t;
 
+typedef struct xhci_trasfer_ring_s
+{
+    xhci_trb_t *ring;
+    phy_addr_t  ring_paddr;
+    size_t      trb_count;
+
+    uint16_t    enqueue;
+    uint16_t    dequeue;
+
+    uint8_t     cycle_bit;
+    uint8_t     doorbell_id;
+} xhci_trasfer_ring_t;
+
 #endif

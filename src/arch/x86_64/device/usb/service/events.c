@@ -141,6 +141,16 @@ PUBLIC void process_event(xhci_t *xhci)
         {
             case TRB_TYPE_PORT_STATUS_CHANGE:
                 fifo_write(&xhci->port_status_change_events,trb);
+                uint8_t  port_id = (trb->addr >> 24) & 0xff;
+                uint32_t portsc;
+                portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port_id - 1));
+                if (GET_FIELD(portsc,PORTSC_CSC))
+                {
+                    xhci_port_connection_event_t pc_event;
+                    pc_event.port_id = port_id;
+                    pc_event.is_connected = GET_FIELD(portsc,PORTSC_CCS) == 1;
+                    fifo_write(&xhci->port_connection_events,&pc_event);
+                }
                 break;
             case TRB_TYPE_COMMAND_COMPLETION:
                 fifo_write(&xhci->command_completion_events,trb);
@@ -184,11 +194,8 @@ PUBLIC void usb_event_task(void)
             {
                 xhci_port_connection_event_t pc_event;
                 pc_event.port_id = port + 1;
-                pc_event.is_connected = ((portsc & PORTSC_CCS) == 1);
+                pc_event.is_connected = GET_FIELD(portsc,PORTSC_CCS) == 1;
                 fifo_write(&xhci_set[i].port_connection_events,&pc_event);
-                // message_t msg;
-                // msg.m2.p1 = &xhci_set[i];
-                // sys_send_recv(NR_SEND,USB_SRV,&msg);
             }
         }
     }
