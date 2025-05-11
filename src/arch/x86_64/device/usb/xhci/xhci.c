@@ -44,25 +44,21 @@ PRIVATE void switch_to_xhci(pci_device_t *xhci_dev)
     return;
 }
 
-// PRIVATE void xhci_halt(xhci_t *xhci)
-// {
-//     uint32_t usbcmd = xhci_read_opt(xhci,XHCI_OPT_USBCMD);
-//     usbcmd &= ~USBCMD_RUN;
-//     xhci_write_opt(xhci,XHCI_OPT_USBCMD,usbcmd);
-//     while((xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_HCH) == 0) continue;
-//     return;
-// }
+PRIVATE void xhci_halt(xhci_t *xhci)
+{
+    uint32_t usbcmd = xhci_read_opt(xhci,XHCI_OPT_USBCMD);
+    usbcmd &= ~USBCMD_RUN;
+    xhci_write_opt(xhci,XHCI_OPT_USBCMD,usbcmd);
+    while((xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_HCH) == 0) continue;
+    return;
+}
 
 PRIVATE status_t xhci_reset(xhci_t *xhci)
 {
     uint32_t usbcmd = xhci_read_opt(xhci,XHCI_OPT_USBCMD);
     usbcmd |= USBCMD_HCRST;
     xhci_write_opt(xhci,XHCI_OPT_USBCMD,usbcmd);
-    // Wait 1ms
-    message_t msg;
-    msg.type = TICK_SLEEP;
-    msg.m3.l1 = 1;
-    sys_send_recv(NR_BOTH,TICK,&msg);
+
     while((xhci_read_opt(xhci,XHCI_OPT_USBCMD) & USBCMD_HCRST)) continue;
     while((xhci_read_opt(xhci,XHCI_OPT_USBSTS) & USBSTS_CNR))   continue;
     if (xhci_read_opt(xhci,XHCI_OPT_USBCMD) != 0)
@@ -73,13 +69,19 @@ PRIVATE status_t xhci_reset(xhci_t *xhci)
     {
         return K_ERROR;
     }
-
-    // Assume CRCR_HI,DCBAAP_HI has been cleared
     if (xhci_read_opt(xhci,XHCI_OPT_CRCR_LO) != 0)
     {
         return K_ERROR;
     }
+    if (xhci_read_opt(xhci,XHCI_OPT_CRCR_HI) != 0)
+    {
+        return K_ERROR;
+    }
     if (xhci_read_opt(xhci,XHCI_OPT_DCBAAP_LO) != 0)
+    {
+        return K_ERROR;
+    }
+    if (xhci_read_opt(xhci,XHCI_OPT_DCBAAP_HI) != 0)
     {
         return K_ERROR;
     }
@@ -245,10 +247,11 @@ PRIVATE status_t xhci_setup_dcbaa(xhci_t *xhci)
     if (xhci->max_scratchpad_buffer > 0)
     {
         uint64_t *sc_buffer_array;
-        status = pmalloc(xhci->max_scratchpad_buffer * sizeof(uint64_t),
-                         XHCI_DEVICE_CONTEXT_ALIGNMENT,
-                         XHCI_DEVICE_CONTEXT_BOUNDARY,
-                         &sc_buffer_array);
+        status = pmalloc(
+            xhci->max_scratchpad_buffer * sizeof(uint64_t),
+            XHCI_DEVICE_CONTEXT_ALIGNMENT,
+            XHCI_DEVICE_CONTEXT_BOUNDARY,
+            &sc_buffer_array);
         if (ERROR(status))
         {
             pr_log("Faild to alloc memory for sc_buffer.\n");
@@ -260,10 +263,11 @@ PRIVATE status_t xhci_setup_dcbaa(xhci_t *xhci)
         for (i = 0;i < xhci->max_scratchpad_buffer;i++)
         {
             void *sc;
-            status = pmalloc(XHCI_PG_SZIE,
-                             XHCI_SCRATCHPAD_BUFFER_ARRAY_ALIGNMENT,
-                             XHCI_SCRATCHPAD_BUFFER_ARRAY_BOUNDARY,
-                            &sc);
+            status = pmalloc(
+                XHCI_PG_SZIE,
+                XHCI_SCRATCHPAD_BUFFER_ARRAY_ALIGNMENT,
+                XHCI_SCRATCHPAD_BUFFER_ARRAY_BOUNDARY,
+                &sc);
             if (ERROR(status))
             {
                 pr_log("\3 Failed to alloc sc buffer page.\n");
@@ -292,10 +296,11 @@ PRIVATE status_t xhci_setup_command_ring(xhci_t *xhci)
                        * xhci->command_ring.trb_count;
     void *cr;
     status_t status;
-    status = pmalloc(ring_size,
-                     XHCI_COMMAND_RING_SEGMENTS_ALIGNMENT,
-                     XHCI_COMMAND_RING_SEGMENTS_BOUNDARY,
-                     &cr);
+    status = pmalloc(
+        ring_size,
+        XHCI_COMMAND_RING_SEGMENTS_ALIGNMENT,
+        XHCI_COMMAND_RING_SEGMENTS_BOUNDARY,
+        &cr);
     if (ERROR(status))
     {
         pr_log("\3 Failed alloc memory for CR.\n");
@@ -306,9 +311,9 @@ PRIVATE status_t xhci_setup_command_ring(xhci_t *xhci)
     // Set link trb
     uint8_t cycle_bit = xhci->command_ring.cycle_bit;
     xhci->command_ring.ring[xhci->command_ring.trb_count - 1].addr  =
-                        (uint64_t)cr;
+            (uint64_t)cr;
     xhci->command_ring.ring[xhci->command_ring.trb_count - 1].flags =
-                        TRB_3_TYPE(TRB_TYPE_LINK) | TRB_3_TC_BIT | cycle_bit;
+            SET_FIELD(TRB_3_TC_BIT | cycle_bit,TRB_3_TYPE,TRB_TYPE_LINK);
     // write CRCR
     uint32_t crcr_lo = ((phy_addr_t)cr & 0xffffffff) | cycle_bit;
     uint32_t crcr_hi = (phy_addr_t)cr >> 32;
@@ -359,10 +364,11 @@ PRIVATE status_t xhci_setup_event_ring(xhci_t *xhci)
     size_t erst_size =   sizeof(xhci_erst_t) * xhci->event_ring.erst_count;
     void *er;
     status_t status;
-    status = pmalloc(ring_size,
-                     XHCI_EVENT_RING_SEGMENTS_ALIGNMENT,
-                     XHCI_EVENT_RING_SEGMENTS_BOUNDARY,
-                     &er);
+    status = pmalloc(
+        ring_size,
+        XHCI_EVENT_RING_SEGMENTS_ALIGNMENT,
+        XHCI_EVENT_RING_SEGMENTS_BOUNDARY,
+        &er);
     if (ERROR(status))
     {
         pr_log("\3 Failed alloc memory for ER.\n");
@@ -372,10 +378,11 @@ PRIVATE status_t xhci_setup_event_ring(xhci_t *xhci)
     xhci->event_ring.ring_paddr = (phy_addr_t)er;
 
     void *erst;
-    status = pmalloc(erst_size,
-                     XHCI_EVENT_RING_SEGMENT_TABLE_ALIGNMENT,
-                     XHCI_EVENT_RING_SEGMENT_TABLE_BOUNDARY,
-                     &erst);
+    status = pmalloc(
+        erst_size,
+        XHCI_EVENT_RING_SEGMENT_TABLE_ALIGNMENT,
+        XHCI_EVENT_RING_SEGMENT_TABLE_BOUNDARY,
+        &erst);
     if (ERROR(status))
     {
         pr_log("\3 Failed to alloc memory for ERST.\n");
@@ -385,7 +392,7 @@ PRIVATE status_t xhci_setup_event_ring(xhci_t *xhci)
 
     xhci_erst_t erst_entry =
     {
-        xhci->event_ring.ring_paddr,
+        (xhci_trb_t*)xhci->event_ring.ring_paddr,
         xhci->event_ring.trb_count,
         0,
     };
@@ -394,8 +401,8 @@ PRIVATE status_t xhci_setup_event_ring(xhci_t *xhci)
     xhci_write_run(xhci,XHCI_IRS_ERSTSZ(0),ERSTSZ_SET(1));
 
     // ERDP
-    uint32_t erdp_lo = erst_entry.rs_addr & 0xffffffff;
-    uint32_t erdp_hi = erst_entry.rs_addr >> 32;
+    uint32_t erdp_lo = (uint64_t)erst_entry.rs_addr & 0xffffffff;
+    uint32_t erdp_hi = (uint64_t)erst_entry.rs_addr >> 32;
     xhci_write_run(xhci,XHCI_IRS_ERDP_LO(0),erdp_lo);
     xhci_write_run(xhci,XHCI_IRS_ERDP_HI(0),erdp_hi);
 
@@ -458,9 +465,11 @@ PUBLIC status_t xhci_setup()
         addr_t xhci_mmio_base = pci_dev_read_bar(device,0);
         pr_log("\1 xhci mmio base: %p\n",xhci_mmio_base);
 
-        page_map((uint64_t*)KERNEL_PAGE_DIR_TABLE_POS,
-                 (void*)xhci_mmio_base,
-                 (void*)KADDR_P2V(xhci_mmio_base));
+        page_map(
+            (uint64_t*)KERNEL_PAGE_DIR_TABLE_POS,
+            (void*)xhci_mmio_base,
+            (void*)KADDR_P2V(xhci_mmio_base));
+
         xhci->mmio_base = KADDR_P2V(xhci_mmio_base);
 
         // Parse xHCI Capability Register space
@@ -482,7 +491,8 @@ PUBLIC status_t xhci_setup()
         {
             xhci->connected_devices[i] = NULL;
         }
-        // Reset Host Controller
+        // Helt and Reset Host Controller
+        xhci_halt(xhci);
         status = xhci_reset(xhci);
         if (ERROR(status))
         {
@@ -586,8 +596,12 @@ PRIVATE void xhci_trb_queue(xhci_command_ring_t *ring,xhci_trb_t *trb)
     ring->enqueue_index++;
     if (ring->enqueue_index == ring->trb_count - 1)
     {
-        ring->ring[ring->enqueue_index].flags  = TRB_3_TYPE(TRB_TYPE_LINK);
-        ring->ring[ring->enqueue_index].flags |= TRB_3_TC_BIT | ring->cycle_bit;
+        uint32_t flags = 0;
+        flags  = SET_FIELD(
+            TRB_3_TC_BIT | ring->cycle_bit,
+            TRB_3_TYPE,
+            TRB_TYPE_LINK);
+        ring->ring[ring->enqueue_index].flags = flags;
         ring->enqueue_index = 0;
         ring->cycle_bit = !ring->cycle_bit;
     }
@@ -610,11 +624,12 @@ PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb)
 
     // Wait Host Controller Process the command.
     while (fifo_empty(&xhci->command_completion_events)) continue;
-    // Success
+    // Completed
     fifo_read(&xhci->command_completion_events,trb);
     if (GET_FIELD(trb->status,TRB_2_COMP_CODE) != COMP_SUCCESS)
     {
         pr_log("\3 Command Error %d.\n",GET_FIELD(trb->status,TRB_2_COMP_CODE));
+        return K_ERROR;
     }
     return K_SUCCESS;
 }

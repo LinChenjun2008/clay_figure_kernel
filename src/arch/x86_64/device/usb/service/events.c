@@ -140,7 +140,6 @@ PUBLIC void process_event(xhci_t *xhci)
         switch (event_type)
         {
             case TRB_TYPE_PORT_STATUS_CHANGE:
-                fifo_write(&xhci->port_status_change_events,trb);
                 uint8_t  port_id = (trb->addr >> 24) & 0xff;
                 uint32_t portsc;
                 portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port_id - 1));
@@ -151,6 +150,7 @@ PUBLIC void process_event(xhci_t *xhci)
                     pc_event.is_connected = GET_FIELD(portsc,PORTSC_CCS) == 1;
                     fifo_write(&xhci->port_connection_events,&pc_event);
                 }
+                fifo_write(&xhci->port_status_change_events,trb);
                 break;
             case TRB_TYPE_COMMAND_COMPLETION:
                 fifo_write(&xhci->command_completion_events,trb);
@@ -168,8 +168,7 @@ PUBLIC void process_event(xhci_t *xhci)
         xhci->event_ring.dequeue_index = dequeue_index;
         xhci->event_ring.cycle_bit     = cycle_bit;
 
-        uint64_t addr =   xhci->event_ring.erst->rs_addr
-                        + dequeue_index * sizeof(xhci_trb_t);
+        uint64_t addr = (uint64_t)&xhci->event_ring.erst->rs_addr[dequeue_index];
 
         uint32_t erdp_lo = (addr & 0xffffffff) | (1 << 3);// clear EHB
         uint32_t erdp_hi = addr >> 32;
@@ -184,18 +183,19 @@ PUBLIC void usb_event_task(void)
     uint32_t number_of_xhci = pci_dev_count(0x0c,0x03,0x30);
     uint32_t i;
     uint8_t  port;
-
+    xhci_t *xhci;
     for (i = 0;i < number_of_xhci;i++)
     {
+        xhci = &xhci_set[i];
         for (port = 0;port < xhci_set[i].max_ports;port++)
         {
-            uint32_t portsc = xhci_read_opt(&xhci_set[i],XHCI_OPT_PORTSC(port));
+            uint32_t portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port));
             if (portsc & PORTSC_CCS && portsc & PORTSC_CSC)
             {
                 xhci_port_connection_event_t pc_event;
                 pc_event.port_id = port + 1;
                 pc_event.is_connected = GET_FIELD(portsc,PORTSC_CCS) == 1;
-                fifo_write(&xhci_set[i].port_connection_events,&pc_event);
+                fifo_write(&xhci->port_connection_events,&pc_event);
             }
         }
     }

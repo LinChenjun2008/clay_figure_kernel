@@ -20,9 +20,9 @@ typedef struct xhci_command_ring_s
 
 typedef struct xhci_erst_s
 {
-    uint64_t rs_addr;
-    uint32_t rs_size;
-    uint32_t rsvdz;
+    xhci_trb_t *rs_addr;
+    uint32_t    rs_size;
+    uint32_t    rsvdz;
 } xhci_erst_t;
 
 typedef struct xhci_event_ring_s

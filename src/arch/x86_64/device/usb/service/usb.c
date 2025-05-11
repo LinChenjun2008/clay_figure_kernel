@@ -154,11 +154,11 @@ PRIVATE status_t xhci_enable_slot(xhci_t *xhci,uint8_t *slot_id)
 {
     xhci_trb_t trb;
     memset(&trb,0,sizeof(trb));
-    trb.flags = TRB_3_TYPE(TRB_TYPE_ENABLE_SLOT);
+    trb.flags = SET_FIELD(trb.flags,TRB_3_TYPE,TRB_TYPE_ENABLE_SLOT);
     status_t status;
     status = xhci_submit_command(xhci,&trb);
 
-    *slot_id = (trb.flags >> 24) & 0xff;
+    *slot_id = GET_FIELD(trb.flags,TRB_3_SLOT_ID);
     return status;
 }
 
@@ -185,67 +185,6 @@ PRIVATE status_t xhci_create_device_context(xhci_t *xhci,uint8_t slot_id)
     return K_SUCCESS;
 }
 
-PRIVATE status_t init_xhci_device_struct(
-    xhci_device_t *device,
-    uint8_t port_id,
-    uint8_t slot_id,
-    uint8_t speed,
-    uint16_t using_64byte_ctx)
-{
-    device->port_id          = port_id;
-    device->slot_id          = slot_id;
-    device->speed            = speed;
-    device->using_64byte_ctx = using_64byte_ctx;
-    status_t status;
-    size_t input_ctx_size = sizeof(xhci_input_ctx32_t);
-    if (using_64byte_ctx)
-    {
-        input_ctx_size = sizeof(xhci_input_ctx64_t);
-    }
-    status = pmalloc(input_ctx_size,0,0,&device->dma_input_ctx);
-    if (ERROR(status))
-    {
-        pr_log("\3 Failed to alloc input ctx.\n");
-        return status;
-    }
-    device->input_ctx = KADDR_P2V(device->dma_input_ctx);
-
-    // allocate ep ring
-    xhci_trasfer_ring_t *ctrl_ep_ring;
-    status = pmalloc(sizeof(xhci_trasfer_ring_t),0,0,&ctrl_ep_ring);
-    if (ERROR(status))
-    {
-        pr_log("\3 Failed to alloc ctrl_ep_ring.\n");
-        return status;
-    }
-    ctrl_ep_ring = KADDR_P2V(ctrl_ep_ring);
-    device->ctrl_ep_ring = ctrl_ep_ring;
-    ctrl_ep_ring->trb_count = XHCI_TRANSFER_RING_COUNT;
-    ctrl_ep_ring->cycle_bit = 1;
-    ctrl_ep_ring->dequeue = 0;
-    ctrl_ep_ring->enqueue = 0;
-    ctrl_ep_ring->doorbell_id = slot_id;
-
-    xhci_trb_t *transfer_ring;
-    status = pmalloc(sizeof(ctrl_ep_ring->ring[0]),0,0,&transfer_ring);
-    if (ERROR(status))
-    {
-        pr_log("\3 Failed to alloc transfer ring.\n");
-        return status;
-    }
-    ctrl_ep_ring->ring_paddr = (phy_addr_t)transfer_ring;
-    ctrl_ep_ring->ring       = KADDR_P2V(transfer_ring);
-
-    // Make Linking trb
-    uint8_t cycle_bit = ctrl_ep_ring->cycle_bit;
-    ctrl_ep_ring->ring[ctrl_ep_ring->trb_count - 1].addr =
-                        (uint64_t)transfer_ring;
-    ctrl_ep_ring->ring[ctrl_ep_ring->trb_count - 1].flags =
-                        TRB_3_TYPE(TRB_TYPE_LINK) | TRB_3_TC_BIT | cycle_bit;
-    return K_SUCCESS;
-
-}
-
 PRIVATE void xhci_configure_device_ctrl_ep_input_ctx(xhci_device_t *device,
                                                      uint16_t max_packet_size)
 {
@@ -257,10 +196,9 @@ PRIVATE void xhci_configure_device_ctrl_ep_input_ctx(xhci_device_t *device,
                                     xhci_device_get_input_ctrl_ep_ctx(device);
 
     // Enable slot and control endpoint contexts
-    input_ctrl_ctx->add_flags = (1 << 0) | (1 << 1);
+    input_ctrl_ctx->add_flags  = (1 << 0) | (1 << 1);
     input_ctrl_ctx->drop_flags = 0;
 
-    // Configure the slot context
     uint32_t slot0 = 0,slot1 = 0,slot2 = 0;
     slot0 = SET_FIELD(slot0,SLOT_CTX_0_ROUTE_STRING,0);
     slot0 = SET_FIELD(slot0,SLOT_CTX_0_CTX_ENTRY,1);
@@ -283,17 +221,15 @@ PRIVATE void xhci_configure_device_ctrl_ep_input_ctx(xhci_device_t *device,
     ep1 = SET_FIELD(ep1,EP_CTX_1_MAX_PACKET_SZ,max_packet_size);
 
     xhci_trasfer_ring_t *t_ring = device->ctrl_ep_ring;
-    phy_addr_t transfer_ring =   (phy_addr_t)t_ring->ring_paddr
-                               + sizeof(t_ring->ring[0]) * t_ring->dequeue;
-    uint32_t tr_dequeue_lo = transfer_ring & 0xffffffff;
+    phy_addr_t transfer_ring =   (phy_addr_t)t_ring->ring_paddr;
+    uint32_t tr_dequeue_lo = (transfer_ring & 0xffffffff) | t_ring->cycle_bit;
     uint32_t tr_dequeue_hi = transfer_ring >> 32;
-    ep2 = SET_FIELD(ep2,EP_CTX_2_DCS,t_ring->cycle_bit);
+
     ep2 = SET_FIELD(ep2,EP_CTX_2_TR_DEQUEUE_LO,tr_dequeue_lo);
-    ep3 = SET_FIELD(ep1,EP_CTX_3_TR_DEQUEUE_HI,tr_dequeue_hi);
+    ep3 = SET_FIELD(ep3,EP_CTX_3_TR_DEQUEUE_HI,tr_dequeue_hi);
 
     ep4 = SET_FIELD(ep4,EP_CTX_4_AVERAGE_TRB_LEN,8);
     ep4 = SET_FIELD(ep4,EP_CTX_4_MAX_ESIT_PAYLOAD_LO,0);
-
     ctrl_ep_ctx->endpoint0 = ep0;
     ctrl_ep_ctx->endpoint1 = ep1;
     ctrl_ep_ctx->endpoint2 = ep2;
@@ -302,8 +238,27 @@ PRIVATE void xhci_configure_device_ctrl_ep_input_ctx(xhci_device_t *device,
     return;
 }
 
+PRIVATE status_t xhci_address_device(
+    xhci_t *xhci,
+    xhci_device_t *device,
+    uint8_t bsr)
+{
+    xhci_trb_t trb;
+    memset(&trb,0,sizeof(trb));
+    uint32_t flags = 0;
+    trb.addr = device->dma_input_ctx;
+    flags = SET_FIELD(flags,TRB_3_BSR,bsr);
+    flags = SET_FIELD(flags,TRB_3_TYPE,TRB_TYPE_ADDRESS_DEVICE);
+    flags = SET_FIELD(flags,TRB_3_SLOT_ID,device->slot_id);
+    trb.flags = flags;
+    status_t status;
+    status = xhci_submit_command(xhci,&trb);
+    return status;
+}
+
 PRIVATE status_t xhci_setup_device(xhci_t *xhci,uint8_t port_id)
 {
+    pr_log("\2 Port ID: %d.\n",port_id);
     uint8_t port = port_id - 1;
 
     uint32_t portsc;
@@ -329,17 +284,24 @@ PRIVATE status_t xhci_setup_device(xhci_t *xhci,uint8_t port_id)
     xhci_create_device_context(xhci,slot_id);
 
     xhci_device_t *device;
-    status = pmalloc(sizeof(device),0,0,&device);
+    status = pmalloc(sizeof(*device),0,0,&device);
     if (ERROR(status))
     {
         pr_log("\3 Failed to alloc memory for device.\n");
         return status;
     }
     device = KADDR_P2V(device);
-    init_xhci_device_struct(device,port_id,slot_id,speed,max_packet_size);
+    memset(device,0,sizeof(*device));
+    init_xhci_device_struct(device,port_id,slot_id,speed,xhci->csz);
     xhci_configure_device_ctrl_ep_input_ctx(device,max_packet_size);
 
-    /// TODO: Address device
+    status = xhci_address_device(xhci,device,1);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to address device.\n");
+        return status;
+    }
+    pr_log("\1 Address device successful.\n");
     return K_SUCCESS;
 }
 
