@@ -10,9 +10,14 @@
 #define __XHCI_TRB_H__
 
 // TRB
-#define TRB_3_TYPE(x)     (((x) & 0x3f) << 10)
+#define TRB_3_BSR_SHIFT 9
+#define TRB_3_BSR_MASK  0x01
+
 #define TRB_3_TYPE_SHIFT 10
 #define TRB_3_TYPE_MASK  0x3f
+
+#define TRB_3_SLOT_ID_SHIFT 24
+#define TRB_3_SLOT_ID_MASK  0xff
 
 // TRB type
 #define TRB_TYPE_NORMAL                 1
