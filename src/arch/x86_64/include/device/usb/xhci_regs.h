@@ -309,4 +309,60 @@ Offset | Size (bits) | Mnemonic
 #define XHCI_DOORBELL_TARGET(x)   ((x) & 0xff)
 #define XHCI_DOORBELL_STREAMID(x) (((x) & 0xffff) << 16)
 
+/**
+ * @brief 读取xHCI能力寄存器(Capability Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @return 寄存器值
+ */
+PUBLIC uint32_t xhci_read_cap(xhci_t *xhci,uint32_t reg);
+
+/**
+ * @brief 读取xHCI操作寄存器(Operational Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @return 寄存器值
+ */
+PUBLIC uint32_t xhci_read_opt(xhci_t *xhci,uint32_t reg);
+
+/**
+ * @brief 写入xHCI操作寄存器(Operational Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @param val 写入值
+ */
+PUBLIC void xhci_write_opt(xhci_t *xhci,uint32_t reg,uint32_t val);
+
+/**
+ * @brief 读取xHCI运行时寄存器(Runtine Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @return 寄存器值
+ */
+PUBLIC uint32_t xhci_read_run(xhci_t *xhci,uint32_t reg);
+
+/**
+ * @brief 写入xHCI运行时寄存器(Runtine Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @param value 写入值
+ */
+PUBLIC void xhci_write_run(xhci_t *xhci,uint32_t reg,uint32_t val);
+
+/**
+ * @brief 读取xHCI门铃寄存器(Doorbell Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @return 寄存器值
+ */
+PUBLIC uint32_t xhci_read_doorbell(xhci_t *xhci,uint32_t reg);
+
+/**
+ * @brief 写入xHCI门铃寄存器(Doorbell Registers)
+ * @param xhci xHCI结构体指针
+ * @param reg 寄存器偏移地址
+ * @param value 写入值
+ */
+PUBLIC void xhci_write_doorbell(xhci_t *xhci,uint32_t reg,uint32_t val);
+
 #endif

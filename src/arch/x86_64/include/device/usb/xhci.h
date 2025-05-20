@@ -9,8 +9,9 @@
 #ifndef __XHCI_H__
 #define __XHCI_H__
 
-#include <device/usb/xhci_ring.h> // xhci_ring_t
-#include <lib/fifo.h>             // fifo_t
+#include <device/usb/xhci_ring.h>   // xhci_ring_t
+#include <device/usb/xhci_device.h> // xhci_device_t
+#include <lib/fifo.h>               // fifo_t
 
 #define XHCI_USB_SPEED_UNDEFINED            0
 #define XHCI_USB_SPEED_FULL_SPEED           1 // 12 MB/s USB 2.0
@@ -24,17 +25,6 @@ typedef struct xhci_portmap_s
     uint8_t start;
     uint8_t count;
 } xhci_portmap_t;
-
-typedef struct xhci_device_s
-{
-    uint8_t              port_id; // 1-based
-    uint8_t              slot_id; // slots index in DCBAA
-    uint8_t              speed;   // Speed
-    uint8_t              using_64byte_ctx; // 64-byte context size
-    void                *input_ctx;
-    addr_t               dma_input_ctx;
-    xhci_trasfer_ring_t *ctrl_ep_ring;
-} xhci_device_t;
 
 typedef struct xhci_port_connection_event_s
 {
@@ -116,64 +106,9 @@ PUBLIC status_t xhci_start(void);
  */
 PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb);
 
-
-
-// registers.c
-
-/**
- * @brief 读取xHCI能力寄存器(Capability Registers)
- * @param xhci xHCI结构体指针
- * @param reg 寄存器偏移地址
- * @return 寄存器值
- */
-PUBLIC uint32_t xhci_read_cap(xhci_t *xhci,uint32_t reg);
-
-/**
- * @brief 读取xHCI操作寄存器(Operational Registers)
- * @param xhci xHCI结构体指针
- * @param reg 寄存器偏移地址
- * @return 寄存器值
- */
-PUBLIC uint32_t xhci_read_opt(xhci_t *xhci,uint32_t reg);
-
-/**
- * @brief 写入xHCI操作寄存器(Operational Registers)
- * @param xhci xHCI结构体指针
- * @param reg 寄存器偏移地址
- * @param val 写入值
- */
-PUBLIC void xhci_write_opt(xhci_t *xhci,uint32_t reg,uint32_t val);
-
-/**
- * @brief 读取xHCI运行时寄存器(Runtine Registers)
- * @param xhci xHCI结构体指针
- * @param reg 寄存器偏移地址
- * @return 寄存器值
- */
-PUBLIC uint32_t xhci_read_run(xhci_t *xhci,uint32_t reg);
-
-/**
- * @brief 写入xHCI运行时寄存器(Runtine Registers)
- * @param xhci xHCI结构体指针
- * @param reg 寄存器偏移地址
- * @param value 写入值
- */
-PUBLIC void xhci_write_run(xhci_t *xhci,uint32_t reg,uint32_t val);
-
-/**
- * @brief 读取xHCI门铃寄存器(Doorbell Registers)
- * @param xhci xHCI结构体指针
- * @param reg 寄存器偏移地址
- * @return 寄存器值
- */
-PUBLIC uint32_t xhci_read_doorbell(xhci_t *xhci,uint32_t reg);
-
-/**
- * @brief 写入xHCI门铃寄存器(Doorbell Registers)
- * @param xhci xHCI结构体指针
- * @param reg 寄存器偏移地址
- * @param value 写入值
- */
-PUBLIC void xhci_write_doorbell(xhci_t *xhci,uint32_t reg,uint32_t val);
+PUBLIC status_t xhci_start_ctrl_ep_transfer(
+    xhci_t *xhci,
+    xhci_transfer_ring_t *ring,
+    xhci_trb_t *trb);
 
 #endif

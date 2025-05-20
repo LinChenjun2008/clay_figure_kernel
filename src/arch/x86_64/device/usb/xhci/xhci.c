@@ -289,11 +289,11 @@ PRIVATE status_t xhci_setup_dcbaa(xhci_t *xhci)
 
 PRIVATE status_t xhci_setup_command_ring(xhci_t *xhci)
 {
-    xhci->command_ring.trb_count     = XHCI_COMMAND_RING_TRB_COUNT;
-    xhci->command_ring.cycle_bit     = 1;
-    xhci->command_ring.enqueue_index = 0;
-    size_t ring_size =   sizeof(xhci->command_ring.ring[0])
-                       * xhci->command_ring.trb_count;
+    xhci->command_ring.ring.trb_count = XHCI_COMMAND_RING_TRB_COUNT;
+    xhci->command_ring.ring.cycle_bit = 1;
+    xhci->command_ring.ring.enqueue   = 0;
+    size_t ring_size =   sizeof(xhci->command_ring.ring.trbs[0])
+                       * xhci->command_ring.ring.trb_count;
     void *cr;
     status_t status;
     status = pmalloc(
@@ -306,13 +306,13 @@ PRIVATE status_t xhci_setup_command_ring(xhci_t *xhci)
         pr_log("\3 Failed alloc memory for CR.\n");
         return status;
     }
-    xhci->command_ring.ring       = KADDR_P2V(cr);
-    xhci->command_ring.ring_paddr = (phy_addr_t)cr;
+    xhci->command_ring.ring.trbs       = KADDR_P2V(cr);
+    xhci->command_ring.ring.trbs_paddr = (phy_addr_t)cr;
     // Set link trb
-    uint8_t cycle_bit = xhci->command_ring.cycle_bit;
-    xhci->command_ring.ring[xhci->command_ring.trb_count - 1].addr  =
+    uint8_t cycle_bit = xhci->command_ring.ring.cycle_bit;
+    xhci->command_ring.ring.trbs[xhci->command_ring.ring.trb_count - 1].addr  =
             (uint64_t)cr;
-    xhci->command_ring.ring[xhci->command_ring.trb_count - 1].flags =
+    xhci->command_ring.ring.trbs[xhci->command_ring.ring.trb_count - 1].flags =
             SET_FIELD(TRB_3_TC_BIT | cycle_bit,TRB_3_TYPE,TRB_TYPE_LINK);
     // write CRCR
     uint32_t crcr_lo = ((phy_addr_t)cr & 0xffffffff) | cycle_bit;
@@ -355,12 +355,13 @@ PRIVATE status_t xhci_configure_opt_reg(xhci_t *xhci)
 
 PRIVATE status_t xhci_setup_event_ring(xhci_t *xhci)
 {
-    xhci->event_ring.trb_count     = XHCI_EVENT_RING_TRB_COUNT;
-    xhci->event_ring.erst_count    = 1;
-    xhci->event_ring.cycle_bit     = 1;
-    xhci->event_ring.dequeue_index = 0;
-    size_t ring_size =   sizeof(xhci->event_ring.ring[0])
-                       * xhci->event_ring.trb_count;
+    xhci->event_ring.ring.trb_count     = XHCI_EVENT_RING_TRB_COUNT;
+    xhci->event_ring.ring.cycle_bit     = 1;
+    xhci->event_ring.ring.dequeue       = 0;
+    xhci->event_ring.erst_count         = 1;
+
+    size_t ring_size =   sizeof(xhci->event_ring.ring.trbs[0])
+                       * xhci->event_ring.ring.trb_count;
     size_t erst_size =   sizeof(xhci_erst_t) * xhci->event_ring.erst_count;
     void *er;
     status_t status;
@@ -374,8 +375,8 @@ PRIVATE status_t xhci_setup_event_ring(xhci_t *xhci)
         pr_log("\3 Failed alloc memory for ER.\n");
         return status;
     }
-    xhci->event_ring.ring       = KADDR_P2V(er);
-    xhci->event_ring.ring_paddr = (phy_addr_t)er;
+    xhci->event_ring.ring.trbs       = KADDR_P2V(er);
+    xhci->event_ring.ring.trbs_paddr = (phy_addr_t)er;
 
     void *erst;
     status = pmalloc(
@@ -392,8 +393,8 @@ PRIVATE status_t xhci_setup_event_ring(xhci_t *xhci)
 
     xhci_erst_t erst_entry =
     {
-        (xhci_trb_t*)xhci->event_ring.ring_paddr,
-        xhci->event_ring.trb_count,
+        (xhci_trb_t*)xhci->event_ring.ring.trbs_paddr,
+        xhci->event_ring.ring.trb_count,
         0,
     };
     xhci->event_ring.erst[0] = erst_entry;
@@ -516,7 +517,7 @@ PUBLIC status_t xhci_setup()
         void *cc_data;  // command completion events
         void *tc_data;  // transfer completion events
         size_t item_sz = sizeof(xhci_trb_t);
-        size_t fifo_sz = xhci->event_ring.trb_count;
+        size_t fifo_sz = xhci->event_ring.ring.trb_count;
         status = pmalloc(item_sz * fifo_sz,0,0,&psc_data);
         if (ERROR(status))
         {
@@ -589,20 +590,20 @@ PUBLIC status_t xhci_start()
     return K_SUCCESS;
 }
 
-PRIVATE void xhci_trb_queue(xhci_command_ring_t *ring,xhci_trb_t *trb)
+PUBLIC void xhci_trb_enqueue(xhci_ring_t *ring,xhci_trb_t *trb)
 {
     trb->flags |= ring->cycle_bit;
-    ring->ring[ring->enqueue_index] = *trb;
-    ring->enqueue_index++;
-    if (ring->enqueue_index == ring->trb_count - 1)
+    ring->trbs[ring->enqueue] = *trb;
+    ring->enqueue++;
+    if (ring->enqueue == ring->trb_count - 1)
     {
         uint32_t flags = 0;
         flags  = SET_FIELD(
             TRB_3_TC_BIT | ring->cycle_bit,
             TRB_3_TYPE,
             TRB_TYPE_LINK);
-        ring->ring[ring->enqueue_index].flags = flags;
-        ring->enqueue_index = 0;
+        ring->trbs[ring->enqueue].flags = flags;
+        ring->enqueue   = 0;
         ring->cycle_bit = !ring->cycle_bit;
     }
     return;
@@ -619,13 +620,31 @@ PRIVATE void xhci_doorbell_ring(xhci_t *xhci,uint8_t slot,uint8_t endpoint)
 
 PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb)
 {
-    xhci_trb_queue(&xhci->command_ring,trb);
+    xhci_trb_enqueue(&xhci->command_ring.ring,trb);
     xhci_doorbell_ring(xhci,0,0);
 
     // Wait Host Controller Process the command.
     while (fifo_empty(&xhci->command_completion_events)) continue;
     // Completed
     fifo_read(&xhci->command_completion_events,trb);
+    if (GET_FIELD(trb->status,TRB_2_COMP_CODE) != COMP_SUCCESS)
+    {
+        pr_log("\3 Command Error %d.\n",GET_FIELD(trb->status,TRB_2_COMP_CODE));
+        return K_ERROR;
+    }
+    return K_SUCCESS;
+}
+
+PUBLIC status_t xhci_start_ctrl_ep_transfer(
+    xhci_t *xhci,
+    xhci_transfer_ring_t *ring,
+    xhci_trb_t *trb)
+{
+    xhci_doorbell_ring(xhci,ring->doorbell_id,1); // 1: control endpoint ring.
+    // Wait Host Controller Process the command.
+    while (fifo_empty(&xhci->transfer_completion_events)) continue;
+    // Completed
+    fifo_read(&xhci->transfer_completion_events,trb);
     if (GET_FIELD(trb->status,TRB_2_COMP_CODE) != COMP_SUCCESS)
     {
         pr_log("\3 Command Error %d.\n",GET_FIELD(trb->status,TRB_2_COMP_CODE));

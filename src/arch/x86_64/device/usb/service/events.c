@@ -14,6 +14,7 @@
 #include <kernel/syscall.h>       // sys_send_recv
 #include <device/pci.h>           // pci_device_t,pci functions
 #include <task/task.h>            // task_yield
+#include <device/cpu.h>           // is_virtual_machine
 
 #include <log.h>
 
@@ -124,14 +125,14 @@ PRIVATE void process_intr(xhci_t *xhci)
 
 PUBLIC void process_event(xhci_t *xhci)
 {
-    uint16_t dequeue_index = xhci->event_ring.dequeue_index;
-    uint8_t  cycle_bit     = xhci->event_ring.cycle_bit;
+    uint16_t dequeue_index = xhci->event_ring.ring.dequeue;
+    uint8_t  cycle_bit     = xhci->event_ring.ring.cycle_bit;
 
     xhci_trb_t *trb;
     uint8_t event_type;
     while(1)
     {
-        trb         = &xhci->event_ring.ring[dequeue_index];
+        trb         = &xhci->event_ring.ring.trbs[dequeue_index];
         event_type  = GET_FIELD(trb->flags,TRB_3_TYPE);
         if (cycle_bit != (trb->flags & TRB_3_CYCLE_BIT))
         {
@@ -155,18 +156,21 @@ PUBLIC void process_event(xhci_t *xhci)
             case TRB_TYPE_COMMAND_COMPLETION:
                 fifo_write(&xhci->command_completion_events,trb);
                 break;
+            case TRB_TYPE_TRANSFER:
+                fifo_write(&xhci->transfer_completion_events,trb);
+                break;
             default:
                 pr_log("\2 Event type: %s.\n",trb_type_str(event_type));
                 break;
         }
         dequeue_index++;
-        if (dequeue_index == xhci->event_ring.trb_count)
+        if (dequeue_index == xhci->event_ring.ring.trb_count)
         {
             dequeue_index = 0;
             cycle_bit = !cycle_bit;
         }
-        xhci->event_ring.dequeue_index = dequeue_index;
-        xhci->event_ring.cycle_bit     = cycle_bit;
+        xhci->event_ring.ring.dequeue   = dequeue_index;
+        xhci->event_ring.ring.cycle_bit = cycle_bit;
 
         uint64_t addr = (uint64_t)&xhci->event_ring.erst->rs_addr[dequeue_index];
 
@@ -184,18 +188,21 @@ PUBLIC void usb_event_task(void)
     uint32_t i;
     uint8_t  port;
     xhci_t *xhci;
-    for (i = 0;i < number_of_xhci;i++)
+    if (is_virtual_machine())
     {
-        xhci = &xhci_set[i];
-        for (port = 0;port < xhci_set[i].max_ports;port++)
+        for (i = 0;i < number_of_xhci;i++)
         {
-            uint32_t portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port));
-            if (portsc & PORTSC_CCS && portsc & PORTSC_CSC)
+            xhci = &xhci_set[i];
+            for (port = 0;port < xhci_set[i].max_ports;port++)
             {
-                xhci_port_connection_event_t pc_event;
-                pc_event.port_id = port + 1;
-                pc_event.is_connected = GET_FIELD(portsc,PORTSC_CCS) == 1;
-                fifo_write(&xhci->port_connection_events,&pc_event);
+                uint32_t portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port));
+                if (portsc & PORTSC_CCS && portsc & PORTSC_CSC)
+                {
+                    xhci_port_connection_event_t pc_event;
+                    pc_event.port_id = port + 1;
+                    pc_event.is_connected = GET_FIELD(portsc,PORTSC_CCS) == 1;
+                    fifo_write(&xhci->port_connection_events,&pc_event);
+                }
             }
         }
     }
