@@ -7,15 +7,23 @@
 
 typedef struct xhci_trb_s xhci_trb_t;
 
-typedef struct xhci_command_ring_s
+typedef struct xhci_ring_s
 {
     // TRB ring's virtual address
-    xhci_trb_t *ring;
+    xhci_trb_t *trbs;
     // TRB ring's physical address
-    phy_addr_t  ring_paddr;
+    phy_addr_t  trbs_paddr;
+
     size_t      trb_count;
     uint8_t     cycle_bit;
-    uint16_t    enqueue_index;
+
+    uint16_t    enqueue;
+    uint16_t    dequeue;
+} xhci_ring_t;
+
+typedef struct xhci_command_ring_s
+{
+    xhci_ring_t ring;
 } xhci_command_ring_t;
 
 typedef struct xhci_erst_s
@@ -27,29 +35,18 @@ typedef struct xhci_erst_s
 
 typedef struct xhci_event_ring_s
 {
-    // TRB ring's virtual address
-    xhci_trb_t  *ring;
-    // TRB ring's physical address
-    phy_addr_t   ring_paddr;
-    size_t       trb_count;
-
+    xhci_ring_t  ring;
     xhci_erst_t *erst;
     size_t       erst_count;
-    uint8_t      cycle_bit;
-    uint16_t     dequeue_index;
+
 } xhci_event_ring_t;
 
-typedef struct xhci_trasfer_ring_s
+typedef struct xhci_transfer_ring_s
 {
-    xhci_trb_t *ring;
-    phy_addr_t  ring_paddr;
-    size_t      trb_count;
-
-    uint16_t    enqueue;
-    uint16_t    dequeue;
-
-    uint8_t     cycle_bit;
+    xhci_ring_t ring;
     uint8_t     doorbell_id;
-} xhci_trasfer_ring_t;
+} xhci_transfer_ring_t;
+
+PUBLIC void xhci_trb_enqueue(xhci_ring_t *ring,xhci_trb_t *trb);
 
 #endif

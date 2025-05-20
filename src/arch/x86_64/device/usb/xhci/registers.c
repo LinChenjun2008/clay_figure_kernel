@@ -8,6 +8,7 @@
 
 #include <kernel/global.h>
 #include <device/usb/xhci.h>
+#include <device/usb/xhci_regs.h>
 
 PUBLIC uint32_t xhci_read_cap(xhci_t *xhci,uint32_t reg)
 {

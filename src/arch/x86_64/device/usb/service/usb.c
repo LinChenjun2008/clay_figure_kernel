@@ -15,6 +15,7 @@
 #include <device/usb/xhci_trb.h>         // xhci_trb_t
 #include <device/usb/xhci_mem.h>         // xhci memory
 #include <device/usb/xhci_device_ctx.h>  // xhci device context
+#include <device/usb/usb_desc.h>         // usb device descriptor
 #include <device/usb/usb.h>              // process_event
 #include <task/task.h>                   // task_start
 #include <std/string.h>                  // memset
@@ -220,9 +221,10 @@ PRIVATE void xhci_configure_device_ctrl_ep_input_ctx(xhci_device_t *device,
     ep1 = SET_FIELD(ep1,EP_CTX_1_EP_TYPE,XHCI_EP_TYPE_CONTROL);
     ep1 = SET_FIELD(ep1,EP_CTX_1_MAX_PACKET_SZ,max_packet_size);
 
-    xhci_trasfer_ring_t *t_ring = device->ctrl_ep_ring;
-    phy_addr_t transfer_ring =   (phy_addr_t)t_ring->ring_paddr;
-    uint32_t tr_dequeue_lo = (transfer_ring & 0xffffffff) | t_ring->cycle_bit;
+    xhci_transfer_ring_t *t_ring = device->ctrl_ep_ring;
+    phy_addr_t transfer_ring =   (phy_addr_t)t_ring->ring.trbs_paddr;
+    uint32_t tr_dequeue_lo   =   (transfer_ring & 0xffffffff)
+                             | t_ring->ring.cycle_bit;
     uint32_t tr_dequeue_hi = transfer_ring >> 32;
 
     ep2 = SET_FIELD(ep2,EP_CTX_2_TR_DEQUEUE_LO,tr_dequeue_lo);
@@ -254,6 +256,133 @@ PRIVATE status_t xhci_address_device(
     status_t status;
     status = xhci_submit_command(xhci,&trb);
     return status;
+}
+
+PRIVATE status_t xhci_submit_usb_request_packet(
+    xhci_t *xhci,
+    xhci_device_t *device,
+    xhci_device_request_packet_t *req,
+    void *buffer,
+    uint32_t length)
+{
+    xhci_transfer_ring_t *transfer_ring =
+        xhci_get_device_ctrl_ep_transfer_ring(device);
+
+    status_t status;
+    uint32_t *transfer_status_paddr;
+    uint32_t *transfer_status_buffer;
+    status = pmalloc(
+        sizeof(*transfer_status_paddr),16,16,&transfer_status_paddr);
+
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc memory for transfer status.\n");
+        return status;
+    }
+    transfer_status_buffer = KADDR_P2V(transfer_status_paddr);
+    *transfer_status_buffer = 0;
+
+    uint8_t *desc_paddr;
+    uint8_t *desc_buffer;
+    status = pmalloc(256,256,256,&desc_paddr);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc memory for desc buffer.\n");
+        return status;
+    }
+    desc_buffer = KADDR_P2V(desc_paddr);
+    memset(desc_buffer,0,256);
+
+    uint32_t trb2 = 0,trb3 = 0;
+
+    // Setup Stage
+    xhci_trb_t setup_stage_trb;
+    memset(&setup_stage_trb,0,sizeof(setup_stage_trb));
+    trb2 = SET_FIELD(trb2,TRB_2_TRANSFER_LEN,8);
+    trb3 = SET_FIELD(trb3,SETUP_TRB_3_IDT,1);
+    trb3 = SET_FIELD(trb3,TRB_3_TYPE,TRB_TYPE_SETUP_STAGE);
+    trb3 = SET_FIELD(trb3,SETUP_TRB_3_TRT,3);
+
+    setup_stage_trb.addr   = *(uint64_t*)req;
+    setup_stage_trb.status = trb2;
+    setup_stage_trb.flags  = trb3;
+
+    // Data Stage
+    trb2 = 0,trb3 = 0;
+    xhci_trb_t data_stage_trb;
+    memset(&data_stage_trb,0,sizeof(data_stage_trb));
+    trb2 = SET_FIELD(trb2,TRB_2_TRANSFER_LEN,length);
+    trb3 = SET_FIELD(trb3,TRB_3_TYPE,TRB_TYPE_DATA_STAGE);
+    trb3 = SET_FIELD(trb3,DATA_TRB_3_CHAIN,1);
+    trb3 = SET_FIELD(trb3,DATA_TRB_3_DIR,1);
+
+    data_stage_trb.addr   = (uint64_t)desc_paddr;
+    data_stage_trb.status = trb2;
+    data_stage_trb.flags  = trb3;
+
+    // Event Data First
+    trb2 = 0,trb3 = 0;
+    xhci_trb_t event_data_first_trb;
+    memset(&event_data_first_trb,0,sizeof(event_data_first_trb));
+    trb3 = SET_FIELD(trb3,TRB_3_TYPE,TRB_TYPE_EVENT_DATA);
+    trb3 = SET_FIELD(trb3,EVT_DATA_TRB_3_IOC,1);
+
+    event_data_first_trb.addr   = (uint64_t)transfer_status_paddr;
+    event_data_first_trb.status = trb2;
+    event_data_first_trb.flags  = trb3;
+
+    xhci_trb_enqueue(&transfer_ring->ring,&setup_stage_trb);
+    xhci_trb_enqueue(&transfer_ring->ring,&data_stage_trb);
+    xhci_trb_enqueue(&transfer_ring->ring,&event_data_first_trb);
+
+    trb2 = 0,trb3 = 0;
+    xhci_trb_t status_stage_trb;
+    memset(&status_stage_trb,0,sizeof(status_stage_trb));
+    trb3 = SET_FIELD(trb3,TRB_3_TYPE,TRB_TYPE_STATUS_STAGE);
+    trb3 = SET_FIELD(trb3,TRB_3_CHAIN_BIT,1);
+    status_stage_trb.addr   = 0;
+    status_stage_trb.status = trb2;
+    status_stage_trb.flags  = trb3;
+
+
+    // Event Data Second
+    trb2 = 0,trb3 = 0;
+    xhci_trb_t event_data_second_trb;
+    memset(&event_data_second_trb,0,sizeof(event_data_second_trb));
+    trb3 = SET_FIELD(trb3,TRB_3_TYPE,TRB_TYPE_EVENT_DATA);
+    trb3 = SET_FIELD(trb3,EVT_DATA_TRB_3_IOC,1);
+
+    event_data_second_trb.addr   = (uint64_t)transfer_status_paddr;
+    event_data_second_trb.status = trb2;
+    event_data_second_trb.flags  = trb3;
+
+    xhci_trb_enqueue(&transfer_ring->ring,&status_stage_trb);
+    xhci_trb_enqueue(&transfer_ring->ring,&event_data_second_trb);
+
+    xhci_trb_t comp_trb;
+    xhci_start_ctrl_ep_transfer(xhci,transfer_ring,&comp_trb);
+
+    // Copy the descriptor
+    memcpy(buffer,desc_buffer,length);
+
+    pfree(transfer_status_paddr);
+    pfree(desc_paddr);
+    return K_SUCCESS;
+}
+
+PRIVATE status_t xhci_get_device_desc(
+    xhci_t *xhci,
+    xhci_device_t *device,
+    usb_device_desc_t *usb_desc,
+    uint32_t length)
+{
+    xhci_device_request_packet_t req;
+    req.bRequestType = 0x80;
+    req.bRequest     = 6;
+    req.wValue       = USB_DESCRIPTOR_REQUEST(USB_DESCRIPTOR_DEVICE,0);
+    req.wIndex       = 0;
+    req.wLegnth      = length;
+    return xhci_submit_usb_request_packet(xhci,device,&req,usb_desc,length);
 }
 
 PRIVATE status_t xhci_setup_device(xhci_t *xhci,uint8_t port_id)
@@ -302,6 +431,15 @@ PRIVATE status_t xhci_setup_device(xhci_t *xhci,uint8_t port_id)
         return status;
     }
     pr_log("\1 Address device successful.\n");
+    usb_device_desc_t *usb_desc;
+    status = pmalloc(sizeof(*usb_desc),0,0,&usb_desc);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc usb desc.\n");
+        return status;
+    }
+    usb_desc = KADDR_P2V(usb_desc);
+    status = xhci_get_device_desc(xhci,device,usb_desc,8);
     return K_SUCCESS;
 }
 

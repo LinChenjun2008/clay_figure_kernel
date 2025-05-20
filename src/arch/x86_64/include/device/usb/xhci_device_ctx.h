@@ -198,13 +198,6 @@ STATIC_ASSERT(sizeof(xhci_input_ctx64_t) == 2112,"64-byte input context should b
 
 #pragma pack()
 
-PUBLIC status_t init_xhci_device_struct(
-    xhci_device_t *device,
-    uint8_t port_id,
-    uint8_t slot_id,
-    uint8_t speed,
-    uint16_t using_64byte_ctx);
-
 PUBLIC xhci_input_ctrl_ctx32_t* xhci_device_get_input_ctrl_ctx(
     xhci_device_t *device);
 PUBLIC xhci_slot_ctx32_t* xhci_device_get_input_slot_ctx(xhci_device_t *device);
