@@ -37,7 +37,10 @@ PUBLIC status_t fifo_write(fifo_t *fifo,void* item)
     }
     spinlock_lock(&fifo->lock);
     fifo->free--;
-    memcpy((uint8_t*)fifo->data + fifo->item_size,item,fifo->item_size);
+    memcpy(
+        (uint8_t*)fifo->data + fifo->item_size * fifo->next_write,
+        item,
+        fifo->item_size);
     fifo->next_write = (fifo->next_write + 1) % fifo->size;
     spinlock_unlock(&fifo->lock);
     return K_SUCCESS;
@@ -55,7 +58,10 @@ PUBLIC status_t fifo_read(fifo_t *fifo,void* item)
     }
     spinlock_lock(&fifo->lock);
     fifo->free++;
-    memcpy(item,(uint8_t*)fifo->data + fifo->item_size,fifo->item_size);
+    memcpy(
+        item,
+        (uint8_t*)fifo->data + fifo->item_size * fifo->next_read,
+        fifo->item_size);
     fifo->next_read = (fifo->next_read + 1) % fifo->size;
     spinlock_unlock(&fifo->lock);
     return K_SUCCESS;
