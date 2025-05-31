@@ -16,6 +16,8 @@
 #define COUNTER0_VALUE_LO ((INPUT_FREQUENCY / IRQ0_FREQUENCY)        & 0xff)
 #define COUNTER0_VALUE_HI (((INPUT_FREQUENCY / IRQ0_FREQUENCY) >> 8) & 0xff)
 
+#define MSECOND_TO_TICKS(MS) (MS * IRQ0_FREQUENCY / 1000)
+
 PUBLIC void pit_init(void);
 PUBLIC void apic_timer_init(void);
 
