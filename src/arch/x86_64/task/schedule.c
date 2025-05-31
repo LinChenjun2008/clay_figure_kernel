@@ -7,13 +7,15 @@
 */
 
 #include <kernel/global.h>
-#include <task/task.h>  // task structs & functions,list,sse
-#include <device/cpu.h> // apic_id
-#include <intr.h>       // intr functions
+#include <task/task.h>    // task structs & functions,list,sse
+#include <device/cpu.h>   // apic_id
+#include <device/timer.h> // MSECOND_TO_TICKS
+#include <intr.h>         // intr functions
 
 #include <log.h>
 
 extern taskmgr_t *tm;
+extern volatile uint64_t global_ticks;
 
 PRIVATE void update_min_vruntime(core_taskmgr_t *taskmgr,uint64_t vruntime)
 {
@@ -149,4 +151,10 @@ PUBLIC void task_yield(void)
     spinlock_unlock(&tm->core[task->cpu_id].task_list_lock);
     do_schedule();
     intr_set_status(intr_status);
+}
+
+PUBLIC void task_msleep(uint32_t milliseconds)
+{
+    uint32_t timeout_tick = global_ticks + MSECOND_TO_TICKS(milliseconds);
+    while ((int64_t)(global_ticks - timeout_tick) < 0) continue;
 }

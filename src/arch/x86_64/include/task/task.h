@@ -215,7 +215,16 @@ PUBLIC void task_block(task_status_t status);
  */
 PUBLIC void task_unblock(pid_t pid);
 
+/**
+ * @brief 使当前进程让出cpu
+ */
 PUBLIC void task_yield(void);
+
+/**
+ * @brief 使当前进程休眠一定时间
+ * @param milliseconds 要休眠的毫秒数
+ */
+PUBLIC void task_msleep(uint32_t milliseconds);
 
 /// tss.c
 PUBLIC void init_tss(uint8_t nr_cpu);
