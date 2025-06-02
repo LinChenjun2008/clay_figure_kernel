@@ -31,8 +31,8 @@ typedef int bool;
 #endif
 
 #define GET_FIELD(X,FIELD)       (((X) >> FIELD##_SHIFT) & FIELD##_MASK)
-#define SET_FIELD(X,FIELD,VALUE) ((((X) & ~(FIELD##_MASK << FIELD##_SHIFT)) \
-                                 | ((VALUE) << FIELD##_SHIFT)))
+#define SET_FIELD(X,FIELD,VALUE) (((X) & ~(FIELD##_MASK << FIELD##_SHIFT)) \
+                              | (((VALUE) & (FIELD##_MASK)) << FIELD##_SHIFT))
 
 #define KADDR_P2V(ADDR) ((void*)((addr_t)(ADDR) + KERNEL_VMA_BASE))
 #define KADDR_V2P(ADDR) ((void*)((addr_t)(ADDR) - KERNEL_VMA_BASE))
@@ -48,6 +48,10 @@ typedef int bool;
 
 #define ASMLINKAGE __attribute__((sysv_abi))
 #define WEAK __attribute__((weak))
+
+#ifndef STATIC_ASSERT
+#define STATIC_ASSERT(CONDITION,MESSAGE) _Static_assert(CONDITION,MESSAGE)
+#endif
 
 #define DIV_ROUND_UP(X ,STEP) (((X) + (STEP - 1)) / STEP)
 
