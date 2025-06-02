@@ -86,7 +86,11 @@ PUBLIC void mem_allocator_init(void);
  * @param addr 如果成功,addr指针处存储了分配到的物理地址
  * @return 成功将返回K_SUCCESS,失败则返回错误码
  */
-PUBLIC status_t pmalloc(size_t size,size_t alignment,size_t boundary,void *addr);
+PUBLIC status_t pmalloc(
+   size_t size,
+   size_t alignment,
+   size_t boundary,
+   void *addr);
 
 /**
  * @brief 在内存池中释放addr处的内存块.

@@ -30,6 +30,7 @@
 #define K_INVAILD_ADDR    0xc0000007
 #define K_OUT_OF_RESOURCE 0xc0000008
 #define K_NOT_FOUND       0xc0000009
+#define K_TIMEOUT         0xc000000a
 #define K_SUCCESS         0x80000000
 
 #include <kernel/def.h>

@@ -32,6 +32,9 @@ typedef struct
 
 typedef list_node_t mem_block_t;
 
+STATIC_ASSERT(sizeof (mem_cache_t) <= MIN_ALLOCATE_MEMORY_SIZE,"");
+STATIC_ASSERT(sizeof (mem_block_t) <= MIN_ALLOCATE_MEMORY_SIZE,"");
+
 PRIVATE mem_group_t mem_groups[NUMBER_OF_MEMORY_BLOCK_TYPES];
 
 PUBLIC void mem_allocator_init(void)
@@ -52,10 +55,9 @@ PUBLIC void mem_allocator_init(void)
     return;
 }
 
-PRIVATE mem_block_t* cache2block(mem_cache_t *c,int idx)
+PRIVATE mem_block_t* cache2block(mem_cache_t *c,size_t idx)
 {
-    addr_t addr = (addr_t)c + sizeof(*c)
-                + ((PG_SIZE - sizeof(*c)) & (c->group->block_size - 1));
+    addr_t addr = (addr_t)c + c->group->block_size;
     return ((mem_block_t*)(addr + (idx * (c->group->block_size))));
 }
 
@@ -82,9 +84,12 @@ PRIVATE mem_block_t *pmalloc_find_block(list_t *list,
         {
             continue;
         }
-        if (addr / boundary != (addr + size - 1) / boundary)
+        if (boundary != 0)
         {
-            continue;
+            if (addr / boundary != (addr + size - 1) / boundary)
+            {
+                continue;
+            }
         }
         list_remove(res);
         return res;
@@ -125,9 +130,7 @@ PUBLIC status_t pmalloc(size_t size,size_t alignment,size_t boundary,void *addr)
         c = KADDR_P2V(c);
         memset(c,0,PG_SIZE);
         c->group            = &mem_groups[i];
-        c->number_of_blocks = (PG_SIZE - sizeof(*c)
-                              - (PG_SIZE - sizeof(*c)) % c->group->block_size)
-                              / c->group->block_size;
+        c->number_of_blocks = PG_SIZE / c->group->block_size - 1;
         c->cnt              = c->number_of_blocks;
         mem_groups[i].total_free += c->cnt;
         size_t block_index;
@@ -135,6 +138,7 @@ PUBLIC status_t pmalloc(size_t size,size_t alignment,size_t boundary,void *addr)
         {
             b = cache2block(c,block_index);
             list_append(&c->group->free_block_list,b);
+            ASSERT(b->next != NULL && NULL != b->prev);
         }
     }
 
@@ -157,22 +161,31 @@ PUBLIC status_t pmalloc(size_t size,size_t alignment,size_t boundary,void *addr)
 
 PUBLIC void pfree(void *addr)
 {
-    ASSERT(addr != NULL);
+    if (addr == NULL)
+    {
+        pr_log("\3 %s: free nullptr.\n",__func__);
+        return;
+    }
     mem_cache_t *c;
     mem_block_t *b;
     b = KADDR_P2V(addr);
     ASSERT(b != NULL);
     c = block2cache(b);
     mem_group_t *g = c->group;
+    ASSERT(((addr_t)addr & (g->block_size - 1)) == 0);
     spinlock_lock(&g->lock);
     list_append(&g->free_block_list,b);
+    ASSERT(b->next != NULL && NULL != b->prev);
+
     c->cnt++;
-    if (c->cnt == c->number_of_blocks && g->total_free >= c->number_of_blocks)
+    if (c->cnt == c->number_of_blocks)
     {
         size_t idx;
         for (idx = 0;idx < c->number_of_blocks;idx++)
         {
             b = cache2block(c,idx);
+            ASSERT(b != NULL);
+            ASSERT(b->next != NULL && NULL != b->prev);
             list_remove(b);
         }
         g->total_free -= c->number_of_blocks;
