@@ -8,11 +8,10 @@
 
 #include <kernel/global.h>
 #include <device/usb/xhci.h>
-#include <device/usb/xhci_regs.h>
 
 PUBLIC uint32_t xhci_read_cap(xhci_t *xhci,uint32_t reg)
 {
-    return *(volatile uint32_t*)(xhci->mmio_base + reg);
+    return *(volatile uint32_t*)(xhci->cap_regs + reg);
 }
 
 PUBLIC uint32_t xhci_read_opt(xhci_t *xhci,uint32_t reg)
