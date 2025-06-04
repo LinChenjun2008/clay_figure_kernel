@@ -14,7 +14,6 @@
 #include <device/sse.h>
 #include <device/timer.h>
 #include <device/pci.h>
-#include <device/usb/xhci.h>
 #include <mem/mem.h>
 #include <task/task.h>
 #include <kernel/syscall.h>

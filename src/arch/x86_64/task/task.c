@@ -21,11 +21,11 @@
 
 PUBLIC taskmgr_t *tm;
 
-PRIVATE void kernel_task(addr_t  func,wordsize_t arg)
+PRIVATE void kernel_task(addr_t func,wordsize_t arg)
 {
     intr_enable();
     sse_init();
-    ((void (*)(void*))func)((void*)arg);
+    ((void (*)(size_t))func)((size_t)arg);
     message_t msg;
     msg.type = MM_EXIT;
     sys_send_recv(NR_BOTH,MM,&msg);

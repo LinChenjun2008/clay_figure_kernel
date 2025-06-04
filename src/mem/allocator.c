@@ -72,6 +72,7 @@ PRIVATE mem_block_t *pmalloc_find_block(list_t *list,
                                         size_t boundary)
 {
     list_node_t *res = list->head.next;
+    ASSERT(res->next->prev == res);
     if (alignment <= size && boundary == 0)
     {
         list_remove(res);
@@ -79,6 +80,7 @@ PRIVATE mem_block_t *pmalloc_find_block(list_t *list,
     }
     for (;res != &list->tail;res = list_next(res))
     {
+        ASSERT(res->next->prev == res);
         addr_t addr = (addr_t)res;
         if ((addr & (alignment - 1)) != 0)
         {

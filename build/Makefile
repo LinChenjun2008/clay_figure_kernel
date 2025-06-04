@@ -34,11 +34,11 @@ $(TARGET_BOOTLOADER): $(BOOTLOADER_SRC)
 	@"$(MINGW64_GCC)" $(BOOTLOADER_FLAGS) -o $@ $^
 
 %.o: %.c
-	@$(ECHO) compiling $*.c
+	@$(ECHO) [$(X86_64-ELF-GCC)] compiling $*.c
 	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -MP -MD -MF $*.dep -c -o $*.o $*.c
 
 %.o: %.S
-	@$(ECHO) compiling $*.S
+	@$(ECHO) [$(X86_64-ELF-AS)] compiling $*.S
 	@"$(X86_64-ELF-GCC)" -E $(KERNEL_FLAGS) $*.S > $*.tmp.S
 	@"$(X86_64-ELF-AS)" --64 -D -o $*.o $*.tmp.S
 	@"$(RM)" $*.tmp.S
@@ -47,10 +47,11 @@ $(TARGET_KERNEL): $(TMP_KERNEL_TARGET)
 	@"$(OBJCOPY)" -I elf64-x86-64 --strip-debug -S -R ".eh_frame" -R ".comment" -O binary $^ $@
 
 $(TMP_KERNEL_TARGET): $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o) $(KERNEL_LINKER_SCRIPT)
-	@$(ECHO) linking
+	@$(ECHO) [$(X86_64-ELF-LD)] linking [1/2]
 	@"$(X86_64-ELF-LD)" -T $(KERNEL_LINKER_SCRIPT) -pie -o $@ $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o)
 	@"$(NM)" -W -n $@ | "./kallsyms" > $@_sym.c
 	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -c -o $@_sym.o $@_sym.c
+	@$(ECHO) [$(X86_64-ELF-LD)] linking [2/2]
 	@"$(X86_64-ELF-LD)" -T $(KERNEL_LINKER_SCRIPT) -pie -o $@ $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o) $@_sym.o
 	@"$(RM)" $@_sym.c $@_sym.o
 
