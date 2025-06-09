@@ -9,7 +9,9 @@
 #ifndef __XHCI_H__
 #define __XHCI_H__
 
-#include <device/usb/usb.h>
+#include <device/usb/usb.h> // usb_t, usb_pipe_t, usb_hub_set_t
+#include <lib/fifo.h>       // fifo_t
+
 // registers
 
 /* XHCI Capability Regisers (Secton 5.3)
@@ -438,8 +440,7 @@ typedef struct xhci_slot_ctx_s
 typedef struct xhci_ep_ctx_s
 {
     uint32_t ctx[2];
-    uint32_t deq_low;
-    uint32_t deq_high;
+    uint64_t deq_ptr;
     uint32_t length;
     uint32_t reserved_01[3];
 } xhci_ep_ctx_t;
@@ -447,8 +448,7 @@ typedef struct xhci_ep_ctx_s
 // device context array element
 typedef struct xhci_dev_list_s
 {
-    uint32_t ptr_lo;
-    uint32_t ptr_hi;
+    uint64_t ptr;
 } xhci_dev_list_t;
 
 // input context
@@ -462,8 +462,7 @@ typedef struct xhci_in_ctx_s
 // transfer block (ring element)
 typedef struct xhci_trb_s
 {
-    uint32_t ptr_low;
-    uint32_t ptr_high;
+    uint64_t ptr;
     uint32_t status;
     uint32_t control;
 } xhci_trb_t;
@@ -486,10 +485,10 @@ typedef struct xhci_ring_s
 {
     xhci_trb_t     *trbs;
     size_t          trb_count;
-    uint32_t        eidx;
-    uint32_t        nidx;
+    uint32_t        enqueue;
+    uint32_t        dequeue;
     uint32_t        cs;
-    spinlock_t      lock;
+    // spinlock_t      lock;
 } xhci_ring_t;
 
 typedef struct xhci_portmap_s
@@ -501,13 +500,6 @@ typedef struct xhci_portmap_s
 typedef struct xhci_s
 {
     usb_t            usb;
-    /* devinfo */
-    uint32_t         xecp;
-    uint32_t         ports;
-    uint32_t         slots;
-    uint8_t          context64;
-    xhci_portmap_t   usb2;
-    xhci_portmap_t   usb3;
 
     /* xhci registers */
     uint8_t         *mmio_base;
@@ -516,11 +508,24 @@ typedef struct xhci_s
     uint8_t         *run_regs;
     uint8_t         *doorbell_regs;
 
+    /* devinfo */
+    uint32_t         xecp;
+    uint32_t         ports;
+    uint32_t         slots;
+    uint8_t          context64;
+    xhci_portmap_t   usb2;
+    xhci_portmap_t   usb3;
+
     /* xhci data structures */
     xhci_dev_list_t *devs;
     xhci_er_seg_t   *eseg;
     xhci_ring_t      cmds;
     xhci_ring_t      evts;
+
+    /* events */
+    fifo_t           cmds_evts; // command completion event
+    fifo_t           port_evts; // port status change event
+    fifo_t           xfer_evts; // transfer completion event
 } xhci_t;
 
 typedef struct xhci_pipe_s
@@ -528,7 +533,7 @@ typedef struct xhci_pipe_s
     xhci_ring_t reqs;
 
     usb_pipe_t  pipe;
-    uint32_t    slotid;
+    uint32_t    slot_id;
     uint32_t    epid;
     void       *buf;
     int         bufused;
@@ -536,8 +541,29 @@ typedef struct xhci_pipe_s
 
 /**
  * @brief 对所有xHCI进行初始化
+ * @param hub_set
  */
-PUBLIC status_t xhci_setup(void);
+PUBLIC status_t xhci_setup(usb_hub_set_t *hub_set);
+
+/**
+ * @brief
+ * @param xhci
+ * @return
+ */
+PUBLIC void xhci_process_events(xhci_t *xhci);
+
+PUBLIC usb_pipe_t *xhci_realloc_pipe(
+    usb_device_t *usb_dev,
+    usb_pipe_t *upipe,
+    usb_endpoint_descriptor_t *epdesc);
+
+
+PUBLIC int xhci_send_pipe(
+    usb_pipe_t *pipe,
+    int dir,
+    const void *cmd,
+    void *data,
+    int data_len);
 
 /**
  * @brief 读取xHCI能力寄存器(Capability Registers)

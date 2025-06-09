@@ -35,7 +35,7 @@ struct usb_pipe_s
 {
     union
     {
-        usb_t      *cntl;
+        usb_t      *ctrl;
         usb_pipe_t *freenext;
     };
     uint8_t  type;
@@ -78,7 +78,7 @@ struct usb_hub_s
 {
     usb_hub_op_t *op;
     usb_device_t *usb_dev;
-    usb_t        *cntl;
+    usb_t        *ctrl;
     spinlock_t    lock;
     uint32_t      detectend;
     uint32_t      port;
@@ -86,6 +86,18 @@ struct usb_hub_s
     uint32_t      portcount;
     uint32_t      devcount;
 };
+
+typedef struct usb_hub_set_s
+{
+    usb_hub_t *hubs;
+    size_t     count;
+} usb_hub_set_t;
+
+typedef struct usb_port_status_change_s
+{
+    uint8_t port;
+    uint8_t is_connect;
+} usb_port_connecton_event_t;
 
 #define USB_FULLSPEED  0
 #define USB_LOWSPEED   1
@@ -258,11 +270,32 @@ typedef struct usb_endpoint_descriptor_s
 #define US_PR_BULK         0x50  /* bulk-only transport */
 #define US_PR_UAS          0x62  /* usb attached scsi   */
 
-/**
- * @brief 枚举USB设备
- * @param hub
- * @return
- */
-PUBLIC void usb_enumerate(usb_hub_t *hub);
+PUBLIC usb_pipe_t *usb_realloc_pipe(
+    usb_device_t *usb_dev,
+    usb_pipe_t *pipe,
+    usb_endpoint_descriptor_t *epdesc);
+
+PUBLIC usb_pipe_t *usb_alloc_pipe(
+    usb_device_t *usb_dev,
+    usb_endpoint_descriptor_t *epdesc);
+
+PUBLIC void usb_free_pipe(usb_device_t *usb_dev,usb_pipe_t *pipe);
+
+PUBLIC int usb_send_default_control(
+    usb_pipe_t *pipe,
+    const usb_ctrl_request_t *req,
+    void *data);
+
+PUBLIC void usb_add_freelist(usb_pipe_t *pipe);
+
+PUBLIC void usb_desc2pipe(
+    usb_pipe_t *pipe,
+    usb_device_t *usb_dev,
+    usb_endpoint_descriptor_t *epdesc);
+
+
+PUBLIC int usb_get_period(
+    usb_device_t *usb_dev,
+    usb_endpoint_descriptor_t *epdesc);
 
 #endif
