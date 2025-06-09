@@ -67,7 +67,7 @@ PRIVATE status_t xhci_controller_setup(void *mmio_base,xhci_t **xhci_addr)
     status = pmalloc(sizeof(*xhci),0,0,&xhci);
     if (ERROR(status))
     {
-        pr_log("\3 Alloc memory for xhci failed.\n");
+        pr_log(LOG_ERROR,"Alloc memory for xhci failed.\n");
         return status;
     }
     xhci = KADDR_P2V(xhci);
@@ -88,8 +88,7 @@ PRIVATE status_t xhci_controller_setup(void *mmio_base,xhci_t **xhci_addr)
     xhci->slots = GET_FIELD(hcs1,HCSP1_MAX_SLOTS);
     xhci->xecp  = GET_FIELD(hcc1,HCCP1_XECP) << 2;
     xhci->context64 = GET_FIELD(hcc1,HCCP1_CSZ) ? 1 : 0;
-    // xhci->usb.type = ;
-    pr_log("XHCI: mmio base: %p, %d ports, %d slots, %d bytes context.\n",
+    pr_log(0,"XHCI: mmio base: %p, %d ports, %d slots, %d bytes context.\n",
         mmio_base,xhci->ports,xhci->slots,xhci->context64 ? 64 : 32);
 
     if (xhci->xecp != 0)
@@ -111,7 +110,7 @@ PRIVATE status_t xhci_controller_setup(void *mmio_base,xhci_t **xhci_addr)
                     uint8_t minor = GET_FIELD(cap,XECP_SUP_MINOR);
                     uint8_t count = (ports >> 8) & 0xff;
                     uint8_t start = (ports >> 0) & 0xff;
-                    pr_log("xHCI protocol %c%c%c%c"
+                    pr_log(LOG_INFO,"xHCI protocol %c%c%c%c"
                         " %x.%02x ,%d ports (offset %d), def %x\n",
                         (name >>  0) & 0xff,
                         (name >>  8) & 0xff,
@@ -133,7 +132,7 @@ PRIVATE status_t xhci_controller_setup(void *mmio_base,xhci_t **xhci_addr)
                     }
                     break;
                 default:
-                    pr_log("XHCI XECP %#02x.\n",GET_FIELD(cap,XECP_CAP_ID));
+                    pr_log(0,"XHCI XECP %#02x.\n",GET_FIELD(cap,XECP_CAP_ID));
                     break;
             }
             offset = GET_FIELD(cap,XECP_NEXT_POINT) << 2;
@@ -143,7 +142,7 @@ PRIVATE status_t xhci_controller_setup(void *mmio_base,xhci_t **xhci_addr)
     uint32_t pagesize = xhci_read_opt(xhci,XHCI_OPT_PAGESIZE);
     if (XHCI_PAGE_SIZE != pagesize << 12)
     {
-        pr_log("\3 XHCI Driver not support pagesize: %d.\n",pagesize << 12);
+        pr_log(LOG_ERROR,"XHCI Driver not support pagesize: %d.\n",pagesize << 12);
         pfree(KADDR_V2P(xhci));
         *xhci_addr = NULL;
         return K_ERROR;
@@ -166,7 +165,7 @@ PRIVATE status_t xhci_halt(xhci_t *xhci)
     {
         if (--timeout == 0)
         {
-            pr_log("\3 Host controller halt timeout.\n");
+            pr_log(LOG_ERROR,"Host controller halt timeout.\n");
             return K_TIMEOUT;
         }
         task_msleep(1);
@@ -186,7 +185,7 @@ PRIVATE status_t xhci_reset(xhci_t *xhci)
     {
         if (--timeout == 0)
         {
-            pr_log("\3 Host controller reset timeout.\n");
+            pr_log(LOG_ERROR,"Host controller reset timeout.\n");
             return K_TIMEOUT;
         }
         task_msleep(1);
@@ -233,7 +232,7 @@ PRIVATE status_t xhci_run(xhci_t *xhci)
     {
         if (--timeout == 0)
         {
-            pr_log("\3 xhci start timeout.\n");
+            pr_log(LOG_ERROR,"xhci start timeout.\n");
             return K_TIMEOUT;
         }
         task_msleep(1);
@@ -267,7 +266,7 @@ PRIVATE int xhci_hub_reset(usb_hub_t *hub,uint32_t port)
     portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port));
     if ((portsc & XHCI_PORTSC_CCS) == 0)
     {
-        pr_log("\3 Port not connected before reset.\n");
+        pr_log(LOG_ERROR,"Port not connected before reset.\n");
         return -1;
     }
     switch (GET_FIELD(portsc,XHCI_PORTSC_PLS))
@@ -280,7 +279,7 @@ PRIVATE int xhci_hub_reset(usb_hub_t *hub,uint32_t port)
         xhci_write_opt(xhci,XHCI_OPT_PORTSC(port),portsc | XHCI_PORTSC_PR);
         break;
     default:
-        pr_log("\3 Unknow PLS: %d.\n",GET_FIELD(portsc,XHCI_PORTSC_PLS));
+        pr_log(LOG_ERROR,"Unknow PLS: %d.\n",GET_FIELD(portsc,XHCI_PORTSC_PLS));
         return -1;
         break;
     }
@@ -290,7 +289,7 @@ PRIVATE int xhci_hub_reset(usb_hub_t *hub,uint32_t port)
         portsc = xhci_read_opt(xhci,XHCI_OPT_PORTSC(port));
         if ((portsc & XHCI_PORTSC_CCS) == 0)
         {
-            pr_log("\3 Port not connected.\n");
+            pr_log(LOG_ERROR,"Port not connected.\n");
             return -1;
         }
         if (portsc & XHCI_PORTSC_PED)
@@ -300,7 +299,7 @@ PRIVATE int xhci_hub_reset(usb_hub_t *hub,uint32_t port)
         }
         if (timeout == 0)
         {
-            pr_log("\3 Port reset timeout.\n");
+            pr_log(LOG_ERROR,"Port reset timeout.\n");
             return K_TIMEOUT;
         }
         timeout--;
@@ -344,7 +343,7 @@ PRIVATE usb_hub_op_t xhci_hub_ops =
 
 PRIVATE status_t configure_xhci(xhci_t *xhci,usb_hub_t *hub)
 {
-    pr_log("\1 Configure xhci: %p.\n",xhci);
+    pr_log(LOG_INFO,"Configure xhci: %p.\n",xhci);
     status_t status;
     void *devs = NULL,*eseg = NULL,*evts = NULL,*cmds = NULL;
     void *cmds_evt = NULL,*port_evt = NULL,*xfer_evt = NULL;
@@ -425,12 +424,12 @@ PRIVATE status_t configure_xhci(xhci_t *xhci,usb_hub_t *hub)
 
     if (ERROR(xhci_halt(xhci)))
     {
-        pr_log("\3 Failed to halt xhci controller.\n");
+        pr_log(LOG_ERROR,"Failed to halt xhci controller.\n");
         goto fail;
     }
     if (ERROR(xhci_reset(xhci)))
     {
-        pr_log("\3 Failed to reset xhci controller.\n");
+        pr_log(LOG_ERROR,"Failed to reset xhci controller.\n");
         goto fail;
     }
 
@@ -482,7 +481,7 @@ PRIVATE status_t configure_xhci(xhci_t *xhci,usb_hub_t *hub)
         status = pmalloc(sizeof(uint64_t) * spb,64,4096,&spba);
         if (ERROR(status))
         {
-            pr_log("\3 Failed to alloc spba.\n");
+            pr_log(LOG_ERROR,"Failed to alloc spba.\n");
             goto fail;
         }
         int i;
@@ -492,7 +491,7 @@ PRIVATE status_t configure_xhci(xhci_t *xhci,usb_hub_t *hub)
             status = pmalloc(XHCI_PAGE_SIZE,XHCI_PAGE_SIZE,XHCI_PAGE_SIZE,&pad);
             if (ERROR(status))
             {
-                pr_log("\3 Failed to alloc sctatch pad buf.\n");
+                pr_log(LOG_ERROR,"Failed to alloc sctatch pad buf.\n");
                 while (--i >= 0)
                 {
                     pfree(((uint64_t**)KADDR_P2V(spba))[i]);
@@ -536,7 +535,7 @@ PUBLIC status_t xhci_setup(usb_hub_set_t *hub_set)
         0,0,&hub_set->hubs);
     if (ERROR(status))
     {
-        pr_log("\3 Failed to alloc hub_set.\n");
+        pr_log(LOG_ERROR,"Failed to alloc hub_set.\n");
         return status;
     }
     hub_set->hubs  = KADDR_P2V(hub_set->hubs);
@@ -609,7 +608,7 @@ PUBLIC void xhci_process_events(xhci_t *xhci)
                 break;
 
             default:
-                pr_log("\2 unknow trb type: %d.\n",type);
+                pr_log(LOG_WARN,"unknow trb type: %d.\n",type);
                 break;
         }
         dequeue++;
@@ -665,7 +664,7 @@ PRIVATE trb_comp_code_t xhci_event_wait(
         task_msleep(1);
         if (--timeout == 0)
         {
-            pr_log("\3 Process command timeout.\n");
+            pr_log(LOG_ERROR,"Process command timeout.\n");
             return CC_INVALID;
         }
     }
@@ -674,7 +673,7 @@ PRIVATE trb_comp_code_t xhci_event_wait(
     trb_comp_code_t ret = (trb->status >> 24) & 0xff;
     if (ret != CC_SUCCESS)
     {
-        pr_log("\3 Command Error: %d.\n",ret);
+        pr_log(LOG_ERROR,"Command Error: %d.\n",ret);
     }
     return ret;
 }
@@ -759,7 +758,7 @@ PRIVATE xhci_in_ctx_t *xhci_alloc_in_ctx(usb_device_t *usb_dev,int max_epid)
     status_t status = pmalloc(size,64,4096,&in_ctx);
     if (ERROR(status))
     {
-        pr_log("\3 Failed to alloc in ctx.\n");
+        pr_log(LOG_ERROR,"Failed to alloc in ctx.\n");
         return NULL;
     }
     in_ctx = KADDR_P2V(in_ctx);
@@ -827,7 +826,7 @@ PRIVATE int xhci_configure_hub(usb_hub_t *hub)
     pfree(KADDR_V2P(in_ctx));
     if (cc != CC_SUCCESS)
     {
-        pr_log("\3 Failed to configure ep.\n");
+        pr_log(LOG_ERROR,"Failed to configure ep.\n");
         return -1;
     }
     return 0;
@@ -861,7 +860,7 @@ PRIVATE usb_pipe_t *xhci_alloc_pipe(
     status_t status = pmalloc(sizeof(*pipe),64,4096,&pipe);
     if (ERROR(status))
     {
-        pr_log("\3 Failed to alloc pipe.\n");
+        pr_log(LOG_ERROR,"Failed to alloc pipe.\n");
         return NULL;
     }
     pipe = KADDR_P2V(pipe);
@@ -871,7 +870,7 @@ PRIVATE usb_pipe_t *xhci_alloc_pipe(
     status = pmalloc(XHCI_RING_SIZE,64,65536,&pipe_reqs);
     if (ERROR(status))
     {
-        pr_log("\3 Failed to alloc pipe reqs.trbs.\n");
+        pr_log(LOG_ERROR,"Failed to alloc pipe reqs.trbs.\n");
         pfree(KADDR_V2P(pipe));
         return NULL;
     }
@@ -900,7 +899,7 @@ PRIVATE usb_pipe_t *xhci_alloc_pipe(
     xhci_in_ctx_t *in_ctx = xhci_alloc_in_ctx(usb_dev,epid);
     if (in_ctx == NULL)
     {
-        pr_log("\3 Failed to alloc in_ctx.\n");
+        pr_log(LOG_ERROR,"Failed to alloc in_ctx.\n");
         goto fail;
     }
     in_ctx->add = 0x01 | (1 << epid);
@@ -921,7 +920,7 @@ PRIVATE usb_pipe_t *xhci_alloc_pipe(
     ep->deq_ptr  |= 1;         // dcs
     ep->length   = pipe->pipe.max_packet;
 
-    pr_log("\1 slot id %d, epid %d.\n",pipe->slot_id,pipe->epid);
+    pr_log(LOG_DEBUG,"slot id %d, epid %d.\n",pipe->slot_id,pipe->epid);
 
     if (pipe->epid == 1)
     {
@@ -945,7 +944,7 @@ PRIVATE usb_pipe_t *xhci_alloc_pipe(
         int slot_id = xhci_cmd_enable_slot(xhci);
         if (slot_id < 0)
         {
-            pr_log("\3 Failed to enable slot.\n");
+            pr_log(LOG_ERROR,"Failed to enable slot.\n");
             pfree(dev);
             goto fail;
         }
@@ -959,11 +958,11 @@ PRIVATE usb_pipe_t *xhci_alloc_pipe(
             KADDR_V2P(in_ctx));
         if (cc != CC_SUCCESS)
         {
-            pr_log("\3 Failed to address device: cc = %d.\n",cc);
+            pr_log(LOG_ERROR,"Failed to address device: cc = %d.\n",cc);
             cc = xhci_cmd_disable_slot(xhci,slot_id);
             if (cc != CC_SUCCESS)
             {
-                pr_log("\3 Failed to disable slot.\n");
+                pr_log(LOG_ERROR,"Failed to disable slot.\n");
                 goto fail;
             }
             xhci->devs[slot_id].ptr = 0;
@@ -984,7 +983,7 @@ PRIVATE usb_pipe_t *xhci_alloc_pipe(
             KADDR_V2P(in_ctx));
         if (cc != CC_SUCCESS)
         {
-            pr_log("\3 Failed to configure ep.\n");
+            pr_log(LOG_ERROR,"Failed to configure ep.\n");
             goto fail;
         }
     }
@@ -1041,7 +1040,7 @@ PUBLIC usb_pipe_t *xhci_realloc_pipe(
         KADDR_V2P(in_ctx));
     if (cc != CC_SUCCESS)
     {
-        pr_log("\3 Failed to evaluate context.\n");
+        pr_log(LOG_ERROR,"Failed to evaluate context.\n");
     }
     pfree(KADDR_V2P(in_ctx));
     return upipe;
@@ -1053,7 +1052,7 @@ PRIVATE trb_comp_code_t xhci_xfer_wait(xhci_t *xhci)
     trb_comp_code_t cc = xhci_event_wait(&xhci->xfer_evts,&trb,USB_TIME_COMMAND);
     if (cc != CC_SUCCESS)
     {
-        pr_log("\3 xfer failed: %d.\n",cc);
+        pr_log(LOG_ERROR,"xfer failed: %d.\n",cc);
     }
     return cc;
 }
@@ -1112,7 +1111,7 @@ PRIVATE trb_comp_code_t xhci_xfer_setup(
     trb_comp_code_t cc = xhci_xfer_wait(xhci);
     if (cc != CC_SUCCESS)
     {
-        pr_log("\3 Failed to xfer setup.\n");
+        pr_log(LOG_ERROR,"Failed to xfer setup.\n");
         return cc;
     }
     return cc;
@@ -1163,7 +1162,7 @@ PUBLIC int xhci_send_pipe(
     }
     if (cc != CC_SUCCESS)
     {
-        pr_log("\3 xhci send pipe error.\n");
+        pr_log(LOG_ERROR,"xhci send pipe error.\n");
     }
     return 0;
 }

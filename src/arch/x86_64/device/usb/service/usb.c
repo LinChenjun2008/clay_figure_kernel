@@ -154,7 +154,7 @@ PRIVATE usb_config_descriptor_t *get_device_config(usb_pipe_t *pipe)
     status_t status = pmalloc(config.wTotalLength,16,0,&p_config);
     if (ERROR(status))
     {
-        pr_log("\3 Failed to alloc config.\n");
+        pr_log(LOG_ERROR,"Failed to alloc config.\n");
         return NULL;
     }
     p_config = KADDR_P2V(p_config);
@@ -197,7 +197,7 @@ PRIVATE int usb_set_address(usb_device_t *usb_dev)
     usb_dev->defpipe      = usb_alloc_pipe(usb_dev,&epdesc);
     if (usb_dev->defpipe == NULL)
     {
-        pr_log("\3 Failed to alloc pipe.\n");
+        pr_log(LOG_ERROR,"Failed to alloc pipe.\n");
         return -1;
     }
     // Send address command
@@ -211,7 +211,7 @@ PRIVATE int usb_set_address(usb_device_t *usb_dev)
 
     if (ret != 0)
     {
-        pr_log("\3 failed to send defaule control.\n");
+        pr_log(LOG_ERROR,"failed to send defaule control.\n");
         usb_free_pipe(usb_dev,usb_dev->defpipe);
         return ret;
     }
@@ -234,7 +234,7 @@ PRIVATE int configure_usb_device(usb_device_t *usb_dev)
     int ret = get_device_info8(usb_dev->defpipe,&dinfo);
     if (ret != 0)
     {
-        pr_log("\3 Failed to get device info.\n");
+        pr_log(LOG_ERROR,"Failed to get device info.\n");
         return 0;
     }
     uint16_t max_packet = dinfo.bMaxPacketSize0;
@@ -242,7 +242,7 @@ PRIVATE int configure_usb_device(usb_device_t *usb_dev)
     {
         max_packet = 1 << dinfo.bMaxPacketSize0;
     }
-    pr_log("\1 device rev=%04x cls=%02x sub=%02x proto=%02x size=%d\n",
+    pr_log(LOG_DEBUG,"device rev=%04x cls=%02x sub=%02x proto=%02x size=%d\n",
         dinfo.bcdUSB,
         dinfo.bDeviceClass,
         dinfo.bDeviceSubClass,
@@ -260,13 +260,13 @@ PRIVATE int configure_usb_device(usb_device_t *usb_dev)
     usb_dev->defpipe = usb_realloc_pipe(usb_dev,usb_dev->defpipe,&epdesc);
     if (usb_dev->defpipe == NULL)
     {
-        pr_log("\3 failed to realloc pipe.\n");
+        pr_log(LOG_ERROR,"failed to realloc pipe.\n");
         return -1;
     }
     usb_config_descriptor_t *config = get_device_config(usb_dev->defpipe);
     if (config == NULL)
     {
-        pr_log("\3 Failed to get config.\n");
+        pr_log(LOG_ERROR,"Failed to get config.\n");
         return -1;
     }
 
@@ -319,22 +319,22 @@ PRIVATE int configure_usb_device(usb_device_t *usb_dev)
     usb_dev->imax = (uint8_t*)config + config->wTotalLength - (uint8_t*)iface;
     if (iface->bInterfaceClass == USB_CLASS_HUB)
     {
-        pr_log("\1 USB HUB.\n");
+        pr_log(LOG_DEBUG,"USB HUB.\n");
     }
     else if (iface->bInterfaceClass == USB_CLASS_MASS_STORAGE)
     {
         if (iface->bInterfaceProtocol == US_PR_BULK)
         {
-            pr_log("\1 USB Mass storge (bluk).\n");
+            pr_log(LOG_DEBUG,"USB Mass storge (bluk).\n");
         }
         if (iface->bInterfaceProtocol == US_PR_UAS)
         {
-            pr_log("\1 USB Mass storge (uas).\n");
+            pr_log(LOG_DEBUG,"USB Mass storge (uas).\n");
         }
     }
     else
     {
-        pr_log("\1 USB HID device.\n");
+        pr_log(LOG_DEBUG,"USB HID device.\n");
     }
     pfree(KADDR_V2P(config));
     return 1;
@@ -351,20 +351,20 @@ PRIVATE int usb_hub_port_setup(usb_device_t *usb_dev)
     int ret = hub->op->reset(hub,port);
     if (ret < 0)
     {
-        pr_log("\3 Port reset fail.ret=%d\n",ret);
+        pr_log(LOG_ERROR,"Port reset fail.ret=%d\n",ret);
         goto reset_fail;
     }
     usb_dev->speed = ret;
     ret = usb_set_address(usb_dev);
     if (ret < 0)
     {
-        pr_log("\3 usb set address failed.\n");
+        pr_log(LOG_ERROR,"usb set address failed.\n");
         hub->op->disconnect(hub,port);
         goto reset_fail;
     }
-    pr_log("\1 usb set address success.\n");
+    pr_log(LOG_INFO,"usb set address success.\n");
 
-    pr_log("\1 Configure the device.\n");
+    pr_log(LOG_INFO,"Configure the device.\n");
     int count = configure_usb_device(usb_dev);
     //
     if (count == 0)
@@ -421,7 +421,7 @@ PUBLIC void usb_main(void)
 {
     usb_hub_set_t xhci_hubs;
     usb_setup(&xhci_hubs);
-    pr_log("\2 Hub set at %p,count=%d.\n",xhci_hubs.hubs,xhci_hubs.count);
+    pr_log(LOG_DEBUG,"Hub set at %p,count=%d.\n",xhci_hubs.hubs,xhci_hubs.count);
     task_start("XHCI",DEFAULT_PRIORITY,4096,xhci_event,(uint64_t)&xhci_hubs);
     task_yield();
 
@@ -438,8 +438,8 @@ PUBLIC void usb_main(void)
             }
             usb_port_connecton_event_t pc_evt;
             fifo_read(&xhci->port_evts,&pc_evt);
-            pr_log("=====================================================\n");
-            pr_log("\2 Port %d %s detected.\n",
+            pr_log(0,"=====================================================\n");
+            pr_log(LOG_INFO,"Port %d %s detected.\n",
                 pc_evt.port + 1,
                 pc_evt.is_connect ? "connect" : "disconnect");
 
@@ -450,7 +450,7 @@ PUBLIC void usb_main(void)
                 status = pmalloc(sizeof(*usb_dev),16,0,&usb_dev);
                 if (ERROR(status))
                 {
-                    pr_log("\3 Failed to alloc usb dev.\n");
+                    pr_log(LOG_ERROR,"Failed to alloc usb dev.\n");
                     continue;
                 }
                 usb_dev = KADDR_P2V(usb_dev);
@@ -461,11 +461,11 @@ PUBLIC void usb_main(void)
                 int ret = usb_hub_port_setup(usb_dev);
                 if (ret < 0)
                 {
-                    pr_log("\3 Failed to setup port: %d.\n",pc_evt.port);
+                    pr_log(LOG_ERROR,"Failed to setup port: %d.\n",pc_evt.port);
                 }
                 else
                 {
-                    pr_log("\1 setup port successful: %d.\n",pc_evt.port);
+                    pr_log(LOG_INFO,"setup port successful: %d.\n",pc_evt.port);
                 }
             }
             else
