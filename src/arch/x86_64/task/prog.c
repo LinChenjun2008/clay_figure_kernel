@@ -43,12 +43,12 @@ PRIVATE void start_process(void *process)
     status_t status = alloc_physical_page(1,&ustack);
     if (ERROR(status))
     {
-        pr_log("\3 Alloc User Stack error.\n");
+        pr_log(LOG_ERROR,"Alloc User Stack error.\n");
         message_t msg;
         msg.type = MM_EXIT;
         msg.m1.i1 = K_NOMEM;
         sys_send_recv(NR_BOTH,MM,&msg);
-        pr_log("\3 %s: Shuold not be here.",__func__);
+        pr_log(LOG_FATAL,"%s: Shuold not be here.",__func__);
         while (1) continue;
     }
     cur->ustack_base = ustack;
@@ -149,20 +149,19 @@ PUBLIC task_struct_t *prog_execute(
 {
     ASSERT(!(kstack_size & (kstack_size - 1)));
     status_t status;
-    pid_t pid;
+    pid_t pid = MAX_TASK;
     status = task_alloc(&pid);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
         return NULL;
     }
-    void *kstack_base;
+    void *kstack_base = NULL;
     status = pmalloc(kstack_size,0,0,&kstack_base);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
-        task_free(pid);
-        return NULL;
+        goto fail;
     }
     task_struct_t *task = pid2task(pid);
     init_task_struct(task,
@@ -174,23 +173,24 @@ PUBLIC task_struct_t *prog_execute(
     ASSERT(task->page_dir != NULL);
     if (task->page_dir == NULL)
     {
-        pr_log("\3 Can not alloc memory for task page table.\n");
-        pfree(kstack_base);
-        task_free(pid);
-        return NULL;
+        pr_log(LOG_ERROR,"Can not alloc memory for task page table.\n");
+        goto fail;
     }
     status = user_vaddr_table_init(task);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
-        pr_log("\3 Can not init vaddr table.\n");
-        pfree(kstack_base);
-        pfree(task->page_dir);
-        task_free(pid);
-        return NULL;
+        pr_log(LOG_ERROR,"Can not init vaddr table.\n");
+        goto fail;
     }
     spinlock_lock(&tm->core[apic_id()].task_list_lock);
     task_list_insert(&tm->core[apic_id()].task_list,task);
     spinlock_unlock(&tm->core[apic_id()].task_list_lock);
     return task;
+
+fail:
+    pfree(kstack_base);
+    pfree(task->page_dir);
+    task_free(pid);
+    return NULL;
 }

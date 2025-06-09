@@ -170,7 +170,7 @@ PRIVATE void add_device(pci_device_t *device)
 {
     pci_devices[number_of_pci_device] = *device;
     number_of_pci_device++;
-    // pr_log("\2 pci {%02x,%02x,%02x} class code: %06x: %s.\n",
+    // pr_log(LOG_DEBUG," pci {%02x,%02x,%02x} class code: %06x: %s.\n",
     //         device->bus,
     //         device->device,
     //         device->func,

@@ -21,11 +21,11 @@
 
 PUBLIC taskmgr_t *tm;
 
-PRIVATE void kernel_task(addr_t  func,wordsize_t arg)
+PRIVATE void kernel_task(addr_t func,wordsize_t arg)
 {
     intr_enable();
     sse_init();
-    ((void (*)(void*))func)((void*)arg);
+    ((void (*)(size_t))func)((size_t)arg);
     message_t msg;
     msg.type = MM_EXIT;
     sys_send_recv(NR_BOTH,MM,&msg);
@@ -143,7 +143,10 @@ PUBLIC task_struct_t* get_next_task(list_t *list)
 PUBLIC void task_free(pid_t pid)
 {
     PANIC(pid >= MAX_TASK,"Invailable pid");
-
+    if (pid >= MAX_TASK)
+    {
+        return;
+    }
     spinlock_lock(&tm->task_table_lock);
     tm->task_table[pid].status = TASK_NO_TASK;
     spinlock_unlock(&tm->task_table_lock);
