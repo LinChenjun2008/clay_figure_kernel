@@ -187,7 +187,7 @@ PRIVATE void analysis_key(void)
     //     char cur_char = key_map[scancode][shift];
     //     if (cur_char)
     //     {
-    //         pr_log("%c",cur_char);
+    //         pr_log(0,"%c",cur_char);
     //     }
     //     switch (scancode)
     //     {

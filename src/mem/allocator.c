@@ -165,7 +165,7 @@ PUBLIC void pfree(void *addr)
 {
     if (addr == NULL)
     {
-        pr_log("\3 %s: free nullptr.\n",__func__);
+        pr_log(LOG_WARN,"%s: free nullptr.\n",__func__);
         return;
     }
     mem_cache_t *c;

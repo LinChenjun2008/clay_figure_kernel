@@ -59,8 +59,18 @@ typedef struct
 #define serial_pr_log(...) (void)0
 #endif /* __DISABLE_SERIAL_LOG__ */
 
-PUBLIC void pr_log(const char* str,...);
-PUBLIC void pr_log_ttf(const char* str,...);
+// log level
+#define DEBUG_LEVEL 6
+
+#define LOG_FATAL 1
+#define LOG_ERROR 2
+#define LOG_WARN  3
+#define LOG_INFO  4
+#define LOG_DEBUG 5
+#define LOG_TRACE 6
+
+PUBLIC void pr_log(int level,const char* str,...);
+// PUBLIC void pr_log_ttf(const char* str,...);
 
 PUBLIC void panic_spin(
     const char* filename,

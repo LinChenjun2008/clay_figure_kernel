@@ -34,8 +34,8 @@ PRIVATE void intr_keyboard_handler(intr_stack_t *stack)
     do
     {
         uint8_t scancode = io_in8(KEYBOARD_DATA_PORT);
-        pr_log("\n");
-        pr_log("\1 Key: [%02x]\n",scancode);
+        pr_log(0,"\n");
+        pr_log(LOG_INFO,"Key: [%02x]\n",scancode);
         // if (scancode != 0xfa)
         // {
         //     inform_intr(KBD_SRV);
@@ -76,7 +76,7 @@ PUBLIC void ps2_keyboard_init(void)
         wait_keyboard_write();
     } while (io_in8(KEYBOARD_DATA_PORT) == 0xfe);
 
-    pr_log("\1 Keyboard init done.\n");
+    pr_log(LOG_TRACE,"Keyboard init done.\n");
 
     register_handle(0x21,intr_keyboard_handler);
     ioapic_enable(1,0x21);

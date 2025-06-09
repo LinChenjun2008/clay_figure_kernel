@@ -143,7 +143,10 @@ PUBLIC task_struct_t* get_next_task(list_t *list)
 PUBLIC void task_free(pid_t pid)
 {
     PANIC(pid >= MAX_TASK,"Invailable pid");
-
+    if (pid >= MAX_TASK)
+    {
+        return;
+    }
     spinlock_lock(&tm->task_table_lock);
     tm->task_table[pid].status = TASK_NO_TASK;
     spinlock_unlock(&tm->task_table_lock);

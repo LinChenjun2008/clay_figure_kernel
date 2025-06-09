@@ -39,13 +39,13 @@ PUBLIC syscall_status_t ASMLINKAGE sys_send_recv(
             }
             break;
         default:
-            pr_log("\3 unknow syscall nr: 0x%x",nr);
+            pr_log(LOG_WARN,"unknow syscall nr: 0x%x",nr);
             res = SYSCALL_NO_SYSCALL;
             break;
     }
     if (res != SYSCALL_SUCCESS)
     {
-        pr_log("\3 syscall error: %x\n",res);
+        pr_log(LOG_ERROR,"syscall error: %x\n",res);
     }
     return res;
 }

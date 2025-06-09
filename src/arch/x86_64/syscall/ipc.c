@@ -94,7 +94,7 @@ PUBLIC syscall_status_t msg_send(pid_t dest,message_t* msg)
     ASSERT(!deadlock(sender->pid,dest));
     if (deadlock(sender->pid,dest))
     {
-        pr_log("\3'%s' -> '%s' dead lock\n",
+        pr_log(LOG_WARN,"\3'%s' -> '%s' dead lock\n",
                sender->name,
                receiver->name);
         return K_DEADLOCK;

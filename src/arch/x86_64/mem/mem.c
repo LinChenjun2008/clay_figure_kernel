@@ -191,7 +191,7 @@ PUBLIC status_t alloc_physical_page(uint64_t number_of_pages,void *addr)
     if (ERROR(status))
     {
         spinlock_unlock(&mem.lock);
-        pr_log("\3 %s:Out of Memory.\n",__func__);
+        pr_log(LOG_ERROR,"%s:Out of Memory.\n",__func__);
         return K_NOMEM;
     }
     phy_addr_t paddr = 0;
@@ -275,7 +275,7 @@ PUBLIC void* to_physical_address(void *pml4t,void *vaddr)
     v_pml4e = v_pml4t + GET_FIELD((addr_t)vaddr,ADDR_PML4T_INDEX);
     if (!(*v_pml4e & PG_P))
     {
-        pr_log("\3 %s:vaddr pml4e not exist: %p\n",__func__,vaddr);
+        pr_log(LOG_WARN,"%s:vaddr pml4e not exist: %p\n",__func__,vaddr);
         return NULL;
     }
     pdpt = (uint64_t*)(*v_pml4e & (~0xfff));
@@ -283,7 +283,7 @@ PUBLIC void* to_physical_address(void *pml4t,void *vaddr)
     v_pdpte = KADDR_P2V(pdpte);
     if (!(*v_pdpte & PG_P))
     {
-        pr_log("\3 %s:vaddr pdpte not exist: %p\n",__func__,vaddr);
+        pr_log(LOG_WARN,"%s:vaddr pdpte not exist: %p\n",__func__,vaddr);
         return NULL;
     }
     pdt = (uint64_t*)(*v_pdpte & (~0xfff));
@@ -291,7 +291,7 @@ PUBLIC void* to_physical_address(void *pml4t,void *vaddr)
     v_pde = KADDR_P2V(pde);
     if (!(*v_pde & PG_P))
     {
-        pr_log("\3 %s:vaddr pde not exist: %p\n",__func__,vaddr);
+        pr_log(LOG_WARN,"%s:vaddr pde not exist: %p\n",__func__,vaddr);
         return NULL;
     }
     return (void*)((*v_pde & ~0xfff) + GET_FIELD((addr_t)vaddr,ADDR_OFFSET));

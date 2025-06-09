@@ -69,70 +69,62 @@ extern uint64_t global_ticks;
 
 PUBLIC void init_all(void)
 {
-    pr_log(K_NAME " - " K_VERSION "\n");
+    pr_log(0,K_NAME " - " K_VERSION "\n");
 
     intr_disable();
 
-    pr_log("\1 Segment initializing ...");
+    pr_log(LOG_TRACE,"Segment initializing ...\n");
     init_desc();
-    pr_log(" OK.\n");
 
-    pr_log("\1 Interrrupt initializing ...");
+    pr_log(LOG_TRACE,"Interrrupt initializing ...\n");
     intr_init();
-    pr_log(" OK.\n");
 
-    pr_log("\1 SSE initializing ...");
+    pr_log(LOG_TRACE,"SSE initializing ...\n");
     if (ERROR(check_sse()))
     {
-        pr_log("\3 HW no support SSE.\n");
+        pr_log(LOG_FATAL,"HW no support SSE.\n");
         while (1) continue;
     }
     sse_enable();
     sse_init();
-    pr_log(" OK.\n");
 
-    pr_log("\1 Memory initializing ...");
+    pr_log(LOG_TRACE,"Memory initializing ...\n");
     mem_init();
     mem_allocator_init();
-    pr_log(" OK.\n");
 
-    pr_log("\1 Task initializing ...");
+    pr_log(LOG_TRACE,"Task initializing ...\n");
     task_init();
-    pr_log(" OK.\n");
 
-    pr_log("\1 SMP initializing ...");
+    pr_log(LOG_TRACE,"SMP initializing ...\n");
     detect_cores();
-    smp_init();
-    pr_log(" OK.\n");
+    if (ERROR(smp_init()))
+    {
+        pr_log(LOG_FATAL,"Failed to initialize SMP.\n");
+        while (1) continue;
+    }
 
-    pr_log("\1 PIC initializing ...");
+    pr_log(LOG_TRACE,"PIC initializing ...\n");
     pic_init();
-    pr_log(" OK.\n");
 
-    pr_log("\1 Timer initializing ...");
+    pr_log(LOG_TRACE,"Timer initializing ...\n");
     pit_init();
-    pr_log(" OK.\n");
 
-    pr_log("\1 PCI initializing ...");
+    pr_log(LOG_TRACE,"PCI initializing ...\n");
     pci_scan_all_bus();
-    pr_log(" OK.\n");
 
-    pr_log("\1 System Call initializing ...");
+    pr_log(LOG_TRACE,"System Call initializing ...\n");
     syscall_init();
-    pr_log(" OK.\n");
 
     intr_enable();
 
     // Call apic_timer_init() after intr_enable()
     // then we can use global_ticks to calibrate apic timer.
-    pr_log("\1 Setting up APIC timer ...");
+    pr_log(LOG_TRACE,"Setting up APIC timer ...\n");
     apic_timer_init();
-    pr_log(" OK.\n");
-    pr_log("\1 Kernel initializing done.\n");
+    pr_log(LOG_TRACE,"Kernel initializing done.\n");
 
-    pr_log("\1 Service initializing ...");
+    pr_log(LOG_TRACE,"Service initializing ...\n");
     service_init();
-    pr_log(" OK.\n");
 
     smp_start();
 

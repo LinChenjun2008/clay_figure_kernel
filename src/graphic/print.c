@@ -47,21 +47,29 @@ static void serial_pr_log_sub(uint16_t port,char *buf)
     return;
 }
 
-static inline void serial_pr_log(const char *log,va_list ap)
+static inline void serial_pr_log(int level,const char *log,va_list ap)
 {
+    if (level > DEBUG_LEVEL)
+    {
+        return;
+    }
     char msg[256];
     char *buf;
     uint16_t port = 0x3f8;
-    const char *level[] =
+    const char *level_str[] =
     {
-        "\033[32m[ INFO  ]\033[0m ",
-        "\033[33m[ DEBUG ]\033[0m ",
-        "\033[31m[ ERROR ]\033[0m ",
+        "\033[0m[       ]\033[0m ",
+        "\033[0;91m[ FATAL ]\033[0m ",
+        "\033[0;31m[ ERROR ]\033[0m ",
+        "\033[0;33m[ WARN  ]\033[0m ",
+        "\033[0;32m[ INFO  ]\033[0m ",
+        "\033[0;36m[ DEBUG ]\033[0m ",
+        "\033[0;37m[ TRACE ]\033[0m ",
     };
-    if (*log >= 1 && *log <= 3)
+    if (level >= LOG_FATAL && level <= LOG_TRACE)
     {
         serial_pr_log_sub(port,print_time(msg,global_ticks));
-        buf = (char*)level[*log - 1];
+        buf = (char*)level_str[level];
         serial_pr_log_sub(port,buf);
     }
     vsprintf(msg,log,ap);
@@ -77,47 +85,49 @@ static inline void serial_pr_log(const char *log,va_list ap)
 PRIVATE void basic_put_char(textbox_t *tb,unsigned char c,uint32_t col);
 PRIVATE void basic_print(textbox_t *tb,uint32_t col,const char *str);
 
-PUBLIC void pr_log(const char *log,...)
+PUBLIC void pr_log(int level,const char *log,...)
 {
+    if (level > DEBUG_LEVEL)
+    {
+        return;
+    }
     char msg[256];
     char *buf;
     va_list ap;
-    const char *level[] =
+    const char *level_str[] =
     {
-        "[ INFO  ]",
-        "[ DEBUG ]",
-        "[ ERROR ]"
-
+        "[       ] ",
+        "[ FATAL ] ",
+        "[ ERROR ] ",
+        "[ WARN  ] ",
+        "[ INFO  ] ",
+        "[ DEBUG ] ",
+        "[ TRACE ] ",
     };
-
-    va_start(ap,log);
-    serial_pr_log(log,ap);
-
-    if (*log >= 1 && *log <= 3)
+    const uint32_t level_color[] =
     {
-        basic_print(&g_tb,0x00c5c5c5,print_time(msg,global_ticks));
-        buf = (char*)level[*log - 1];
-        uint32_t color = 0;
-        switch (*log)
-        {
-            case 1:
-                color = 0x0000c500;
-                break;
-            case 2:
-                color = 0x00c59900;
-                break;
-            case 3:
-                color = 0x00c50000;
-                break;
-        }
-        basic_print(&g_tb,color,buf);
-        log = log + 1;
+        0x00c5c5c5,
+        0x00ff0000,
+        0x00c00000,
+        0x00c0c000,
+        0x0000c000,
+        0x0000c0c0,
+        0x00a0a0a0,
+    };
+    if (level >= LOG_FATAL && level <= LOG_TRACE)
+    {
+        print_time(msg,global_ticks);
+        basic_print(&g_tb,level_color[0],msg);
+        basic_print(&g_tb,level_color[level],level_str[level]);
     }
+    va_start(ap,log);
+    serial_pr_log(level,log,ap);
+    va_end(ap);
+
     va_start(ap,log);
     vsprintf(msg,log,ap);
     buf = msg;
-    basic_print(&g_tb,0x00c5c5c5,buf);
-
+    basic_print(&g_tb,level_color[0],buf);
     va_end(ap);
     return;
 }
@@ -263,10 +273,10 @@ PUBLIC void panic_spin(
         0);
     send_IPI(icr);
     io_cli();
-    pr_log("\n");
-    pr_log("\3 >>> PANIC <<<\n");
-    pr_log("\3 %s: In function '%s':\n",filename,func);
-    pr_log("\3 %s:%d: %s\n",filename,line,message);
+    pr_log(0,"\n");
+    pr_log(0,">>> PANIC <<<\n");
+    pr_log(0,"%s: In function '%s':\n",filename,func);
+    pr_log(0,"%s:%d: %s\n",filename,line,message);
     asm_debug_intr();
     while (1) io_hlt();
 }
@@ -296,7 +306,7 @@ PUBLIC void init_ttf_info(ttf_info_t* ttf_info)
             ttf_info->bitmap = KADDR_P2V(btmp);
             if (ERROR(status))
             {
-                pr_log("\3Failed to allocate memory for ttf bitmap.\n");
+                pr_log(0,"\3Failed to allocate memory for ttf bitmap.\n");
                 return;
             }
             ttf_info->has_ttf = 1;
@@ -316,89 +326,89 @@ PUBLIC void free_ttf_info(ttf_info_t* ttf_info)
     return;
 }
 
-PUBLIC void pr_log_ttf(const char *log,...)
-{
-    ttf_info_t ttf_info;
-    init_ttf_info(&ttf_info);
+// PUBLIC void pr_log_ttf(const char *log,...)
+// {
+//     ttf_info_t ttf_info;
+//     init_ttf_info(&ttf_info);
 
-    char msg[256];
-    char *buf;
-    va_list ap;
-    const char *level[] =
-    {
-        "[ INFO  ]",
-        "[ DEBUG ]",
-        "[ ERROR ]"
+//     char msg[256];
+//     char *buf;
+//     va_list ap;
+//     const char *level[] =
+//     {
+//         "[ INFO  ]",
+//         "[ DEBUG ]",
+//         "[ ERROR ]"
 
-    };
+//     };
 
-    va_start(ap,log);
-    serial_pr_log(log,ap);
+//     va_start(ap,log);
+//     serial_pr_log(log,ap);
 
-    if (*log >= 1 && *log <= 3)
-    {
-        if (ttf_info.has_ttf)
-        {
-            pr_ttf_str(g_graph_info,
-                       &ttf_info,
-                       &g_tb,
-                       0x00c5c5c5,
-                       print_time(msg,global_ticks),
-                       16.0);
-        }
-        else
-        {
-            basic_print(&g_tb,0x00c5c5c5,print_time(msg,global_ticks));
-        }
-        buf = (char*)level[*log - 1];
-        uint32_t color = 0;
-        switch (*log)
-        {
-            case 1:
-                color = 0x0000c500;
-                break;
-            case 2:
-                color = 0x00c59900;
-                break;
-            case 3:
-                color = 0x00c50000;
-                break;
-        }
-        if (ttf_info.has_ttf)
-        {
-            pr_ttf_str(g_graph_info,
-                       &ttf_info,
-                       &g_tb,
-                       color,
-                       buf,
-                       16.0);
-        }
-        else
-        {
-            basic_print(&g_tb,color,buf);
-        }
-        log = log + 1;
-    }
-    va_start(ap,log);
-    vsprintf(msg,log,ap);
-    buf = msg;
-    if (ttf_info.has_ttf)
-    {
-        pr_ttf_str(g_graph_info,
-                    &ttf_info,
-                    &g_tb,
-                    0x00c5c5c5,
-                    buf,
-                    16.0);
-    }
-    else
-    {
-        basic_print(&g_tb,0x00c5c5c5,buf);
-    }
-    free_ttf_info(&ttf_info);
-    va_end(ap);
-    return;
-}
+//     if (*log >= 1 && *log <= 3)
+//     {
+//         if (ttf_info.has_ttf)
+//         {
+//             pr_ttf_str(g_graph_info,
+//                        &ttf_info,
+//                        &g_tb,
+//                        0x00c5c5c5,
+//                        print_time(msg,global_ticks),
+//                        16.0);
+//         }
+//         else
+//         {
+//             basic_print(&g_tb,0x00c5c5c5,print_time(msg,global_ticks));
+//         }
+//         buf = (char*)level[*log - 1];
+//         uint32_t color = 0;
+//         switch (*log)
+//         {
+//             case 1:
+//                 color = 0x0000c500;
+//                 break;
+//             case 2:
+//                 color = 0x00c59900;
+//                 break;
+//             case 3:
+//                 color = 0x00c50000;
+//                 break;
+//         }
+//         if (ttf_info.has_ttf)
+//         {
+//             pr_ttf_str(g_graph_info,
+//                        &ttf_info,
+//                        &g_tb,
+//                        color,
+//                        buf,
+//                        16.0);
+//         }
+//         else
+//         {
+//             basic_print(&g_tb,color,buf);
+//         }
+//         log = log + 1;
+//     }
+//     va_start(ap,log);
+//     vsprintf(msg,log,ap);
+//     buf = msg;
+//     if (ttf_info.has_ttf)
+//     {
+//         pr_ttf_str(g_graph_info,
+//                     &ttf_info,
+//                     &g_tb,
+//                     0x00c5c5c5,
+//                     buf,
+//                     16.0);
+//     }
+//     else
+//     {
+//         basic_print(&g_tb,0x00c5c5c5,buf);
+//     }
+//     free_ttf_info(&ttf_info);
+//     va_end(ap);
+//     return;
+// }
 
 PUBLIC void pr_ch(graph_info_t* graph_info,
                   ttf_info_t *ttf_info,
