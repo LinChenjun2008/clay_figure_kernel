@@ -24,6 +24,7 @@ Clay Figure Kernel是一个简易的系统内核（开发中），可运行在�
 * [UEFI Spec 2.9](https://uefi.org/)
 * [eXtensible Host Controller Interface for Universal Serial Bus](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf)
 * [Haiku](https://github.com/haiku/haiku)
+* [seaBIOS](https://github.com/coreboot/seabios.git)
 
 ### 开放源代码声明
 

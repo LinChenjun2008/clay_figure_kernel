@@ -1,4 +1,6 @@
 /*
+   Copyright 2013 Gerd Hoffmann <kraxel@redhat.com>
+   Copyright 2014 Kevin O'Connor <kevin@koconnor.net>
    Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
@@ -1048,7 +1050,6 @@ PUBLIC usb_pipe_t *xhci_realloc_pipe(
 PRIVATE trb_comp_code_t xhci_xfer_wait(xhci_t *xhci)
 {
     xhci_trb_t trb;
-    pr_log("\1 xfer wait.\n");
     trb_comp_code_t cc = xhci_event_wait(&xhci->xfer_evts,&trb,USB_TIME_COMMAND);
     if (cc != CC_SUCCESS)
     {
@@ -1057,6 +1058,15 @@ PRIVATE trb_comp_code_t xhci_xfer_wait(xhci_t *xhci)
     return cc;
 }
 
+/**
+ * @brief
+ * @param pipe
+ * @param dir
+ * @param cmd
+ * @param data (virtual adderss)
+ * @param data_len
+ * @return
+ */
 PRIVATE trb_comp_code_t xhci_xfer_setup(
     xhci_pipe_t *pipe,
     int dir,
@@ -1065,14 +1075,6 @@ PRIVATE trb_comp_code_t xhci_xfer_setup(
     int data_len)
 {
     xhci_t *xhci = CONTAINER_OF(xhci_t,usb,pipe->pipe.ctrl);
-    usb_device_descriptor_t *desc = NULL;
-    status_t status = pmalloc(256,256,256,&desc);
-    if (ERROR(status))
-    {
-        pr_log("\3 Failed to alloc memory for desc buffer.\n");
-        goto fail;
-    }
-    memset(KADDR_P2V(desc),0,256);
 
     // Setup stage
     xhci_trb_t setup_trb;
@@ -1089,7 +1091,7 @@ PRIVATE trb_comp_code_t xhci_xfer_setup(
     {
         xhci_trb_t data_trb;
         memset(&data_trb,0,sizeof(data_trb));
-        data_trb.ptr      = (uint64_t)desc;
+        data_trb.ptr      = (uint64_t)KADDR_V2P(data);
         data_trb.status   = data_len;
         data_trb.control  = (TR_DATA << 10);
         data_trb.control |= (dir ? 1 : 0) << 16;
@@ -1111,12 +1113,8 @@ PRIVATE trb_comp_code_t xhci_xfer_setup(
     if (cc != CC_SUCCESS)
     {
         pr_log("\3 Failed to xfer setup.\n");
-        goto fail;
+        return cc;
     }
-    // copy buffer
-    memcpy(data,KADDR_P2V(desc),data_len);
-fail:
-    pfree(desc);
     return cc;
 }
 

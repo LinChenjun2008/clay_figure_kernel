@@ -1,4 +1,5 @@
 /*
+   Copyright 2009-2013 Kevin O'Connor <kevin@koconnor.net>
    Copyright 2024 LinChenjun
 
    本程序是自由软件
@@ -135,6 +136,49 @@ PRIVATE int get_device_info8(
     return usb_send_default_control(pipe,&req,dinfo);
 }
 
+PRIVATE usb_config_descriptor_t *get_device_config(usb_pipe_t *pipe)
+{
+    usb_config_descriptor_t config;
+    usb_ctrl_request_t req;
+    req.bRequestType = USB_DIR_IN | USB_TYPE_STANDARD | USB_RECIP_DEVICE;
+    req.bRequest = USB_REQ_GET_DESCRIPTOR;
+    req.wValue = USB_DT_CONFIG << 8;
+    req.wIndex = 0;
+    req.wLength = sizeof(config);
+    int ret = usb_send_default_control(pipe,&req,&config);
+    if (ret != 0)
+    {
+        return NULL;
+    }
+    usb_config_descriptor_t *p_config;
+    status_t status = pmalloc(config.wTotalLength,16,0,&p_config);
+    if (ERROR(status))
+    {
+        pr_log("\3 Failed to alloc config.\n");
+        return NULL;
+    }
+    p_config = KADDR_P2V(p_config);
+    req.wLength = config.wTotalLength;
+    ret = usb_send_default_control(pipe,&req,p_config);
+    if (ret != 0 || p_config->wTotalLength != config.wTotalLength)
+    {
+        pfree(KADDR_V2P(p_config));
+        return NULL;
+    }
+    return p_config;
+}
+
+PRIVATE int set_configuration(usb_pipe_t *pipe, uint16_t val)
+{
+    usb_ctrl_request_t req;
+    req.bRequestType = USB_DIR_OUT | USB_TYPE_STANDARD | USB_RECIP_DEVICE;
+    req.bRequest = USB_REQ_SET_CONFIGURATION;
+    req.wValue = val;
+    req.wIndex = 0;
+    req.wLength = 0;
+    return usb_send_default_control(pipe,&req,NULL);
+}
+
 PRIVATE int usb_set_address(usb_device_t *usb_dev)
 {
     usb_t *ctrl = usb_dev->hub->ctrl;
@@ -204,6 +248,98 @@ PRIVATE int configure_usb_device(usb_device_t *usb_dev)
         dinfo.bDeviceSubClass,
         dinfo.bDeviceProtocol,
         max_packet);
+
+    if (max_packet < 8)
+    {
+        return 0;
+    }
+    usb_endpoint_descriptor_t epdesc;
+    memset(&epdesc, 0,sizeof(epdesc));
+    epdesc.wMaxPacketSize = max_packet;
+    epdesc.bmAttributes   = USB_ENDPOINT_XFER_CONTROL;
+    usb_dev->defpipe = usb_realloc_pipe(usb_dev,usb_dev->defpipe,&epdesc);
+    if (usb_dev->defpipe == NULL)
+    {
+        pr_log("\3 failed to realloc pipe.\n");
+        return -1;
+    }
+    usb_config_descriptor_t *config = get_device_config(usb_dev->defpipe);
+    if (config == NULL)
+    {
+        pr_log("\3 Failed to get config.\n");
+        return -1;
+    }
+
+    // Determine if a driver exists for this device - only look at the
+    // interfaces of the first configuration.
+    int num_iface = config->bNumInterfaces;
+    uint8_t *config_end = (uint8_t*)config + config->wTotalLength;
+    usb_interface_descriptor_t *iface = (void*)(&config[1]);
+    while (1)
+    {
+        if (!num_iface || (uint8_t*)iface + iface->bLength > config_end)
+        {
+            // Not a supported device.
+            goto fail;
+        }
+        if (iface->bDescriptorType == USB_DT_INTERFACE)
+        {
+            num_iface--;
+            if (iface->bInterfaceClass == USB_CLASS_HUB)
+            {
+                break;
+            }
+            if (iface->bInterfaceClass == USB_CLASS_MASS_STORAGE)
+            {
+                if (iface->bInterfaceProtocol == US_PR_BULK)
+                {
+                    break;
+                }
+                if (iface->bInterfaceProtocol == US_PR_UAS)
+                {
+                    break;
+                }
+            }
+            /// TODO: if (iface->bInterfaceClass == USB_CLASS_HID
+            ///  && iface->bInterfaceSubClass == USB_INTERFACE_SUBCLASS_BOOT)
+            break;
+        }
+        iface = (void*)((uint8_t*)iface + iface->bLength);
+    }
+    // Set the configuration
+    ret = set_configuration(usb_dev->defpipe,config->bConfigurationValue);
+    if (ret != 0)
+    {
+        goto fail;
+    }
+
+    // Configure driver
+    usb_dev->config = config;
+    usb_dev->iface  = iface;
+    usb_dev->imax = (uint8_t*)config + config->wTotalLength - (uint8_t*)iface;
+    if (iface->bInterfaceClass == USB_CLASS_HUB)
+    {
+        pr_log("\1 USB HUB.\n");
+    }
+    else if (iface->bInterfaceClass == USB_CLASS_MASS_STORAGE)
+    {
+        if (iface->bInterfaceProtocol == US_PR_BULK)
+        {
+            pr_log("\1 USB Mass storge (bluk).\n");
+        }
+        if (iface->bInterfaceProtocol == US_PR_UAS)
+        {
+            pr_log("\1 USB Mass storge (uas).\n");
+        }
+    }
+    else
+    {
+        pr_log("\1 USB HID device.\n");
+    }
+    pfree(KADDR_V2P(config));
+    return 1;
+fail:
+    pfree(KADDR_V2P(config));
     return 0;
 }
 
