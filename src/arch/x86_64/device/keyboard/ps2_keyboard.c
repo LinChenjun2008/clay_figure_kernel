@@ -76,8 +76,6 @@ PUBLIC void ps2_keyboard_init(void)
         wait_keyboard_write();
     } while (io_in8(KEYBOARD_DATA_PORT) == 0xfe);
 
-    pr_log(LOG_TRACE,"Keyboard init done.\n");
-
     register_handle(0x21,intr_keyboard_handler);
     ioapic_enable(1,0x21);
     return;

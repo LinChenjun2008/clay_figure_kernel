@@ -9,6 +9,11 @@
 #ifndef __XHCI_H__
 #define __XHCI_H__
 
+#include <device/usb/usb.h> // usb_t, usb_pipe_t, usb_hub_set_t
+#include <lib/fifo.h>       // fifo_t
+
+// registers
+
 /* XHCI Capability Regisers (Secton 5.3)
 offset |  size (byte)| Mnemonic
    00h |           1 | CAPLENGTH
@@ -123,6 +128,29 @@ offset |  size (byte)| Mnemonic
 
 
 
+// XHCI Extended Capabilities
+#define XECP_CAP_ID_SHIFT 0
+#define XECP_CAP_ID_MASK  0xff
+
+#define XECP_NEXT_POINT_SHIFT 8
+#define XECP_NEXT_POINT_MASK  0xff
+
+#define XECP_CAP_SPEC_SHIFT 16
+#define XECP_CAP_SPEC_MASK  0xffff
+
+// xHCI Supported Protocol Capability
+#define XECP_SUP_MAJOR_SHIFT 24
+#define XECP_SUP_MAJOR_MASK  0xff
+
+#define XECP_SUP_MINOR_SHIFT 16
+#define XECP_SUP_MINOR_MASK  0xff
+
+typedef struct xhci_xcap_regs_s
+{
+    uint32_t cap;
+    uint32_t data[];
+} xhci_xcap_regs_t;
+
 /* XHCI Operational Registers (Section 5.4)
 00h       USBCMD
 04h       USBSTS
@@ -143,90 +171,14 @@ offset |  size (byte)| Mnemonic
 #define XHCI_OPT_DNCTRL    0x14
 #define XHCI_OPT_CRCR_LO   0x18
 #define XHCI_OPT_CRCR_HI   0x1c
-#define XHCI_OPT_DCBAPP_LO 0x30
-#define XHCI_OPT_DCBAPP_HI 0x34
+#define XHCI_OPT_DCBAAP_LO 0x30
+#define XHCI_OPT_DCBAAP_HI 0x34
 #define XHCI_OPT_CONFIG    0x38
 
 #define XHCI_OPT_PORTSC(n)    (0x400 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
 #define XHCI_OPT_PORTPMSC(n)  (0x404 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
 #define XHCI_OPT_PORTLI(n)    (0x408 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
 #define XHCI_OPT_PORTHLPMC(n) (0x40c + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
-
-#define PORTSC_CCS (1 <<  0) // Current Connect Status
-#define PORTSC_PED (1 <<  1) // Port Enabled/Disabled
-#define PORTSC_PR  (1 <<  4) // Port Reset
-#define PORTSC_CSC (1 << 17) // Connect Status Change
-#define PORTSC_PRC (1 << 21) // Port Reset Change
-
-#define PORTSC_CCS_SHIFT 0
-#define PORTSC_CCS_MASK  0x01
-
-#define PORTSC_PED_SHIFT 1
-#define PORTSC_PED_MASK  0x01
-
-#define PORTSC_PR_SHIFT 4
-#define PORTSC_PR_MASK  0x01
-
-#define PORTSC_PLS_SHIFT 5
-#define PORTSC_PLS_MASK  0x0f
-
-#define PORTSC_PP_SHIFT 9
-#define PORTSC_PP_MASK  0x01
-
-#define PORTSC_SPEED_SHIFT 10
-#define PORTSC_SPEED_MASK  0x0f
-
-#define PORTSC_CSC_SHIFT 17
-#define PORTSC_CSC_MASK  0x01
-
-#define PORTSC_PRC_SHIFT 21
-#define PORTSC_PRC_MASK  0x01
-
-#define PLS_U0               0
-#define PLS_U1               1
-#define PLS_U2               2
-#define PLS_U3               3
-#define PLS_DISABLED         4
-#define PLS_RX_DETECT        5
-#define PLS_INACTIVE         6
-#define PLS_POLLING          7
-#define PLS_RECOVERY         8
-#define PLS_HOT_RESET        9
-#define PLS_COMPILANCE_MODE 10
-#define PLS_TEST_MODE       11
-#define PLS_RESUME          15
-
-// USBCMD
-#define USBCMD_RUN    (1 <<  0) // Running
-#define USBCMD_HCRST  (1 <<  1) // Host Controller Reset
-#define USBCMD_INTE   (1 <<  2) // IRQ Enable
-#define USBCMD_HSEE   (1 <<  3) // Host System Error En
-#define USBCMD_LHCRST (1 <<  7) // Light Host Controller Reset
-#define USBCMD_CSS    (1 <<  8) // Controller Save State
-#define USBCMD_CRS    (1 <<  9) // Controller Restore State
-#define USBCMD_EWE    (1 << 10) // Enable Wrap Event
-
-// USBSTS
-#define USBSTS_HCH  (1 <<  0)  // Host Controller Halt
-#define USBSTS_HSE  (1 <<  2)  // Host System Error
-#define USBSTS_EINT (1 <<  3)  // Event Interrupt
-#define USBSTS_PCD  (1 <<  4)  // Port Change Detect
-#define USBSTS_SSS  (1 <<  8)  // Save State Status
-#define USBSTS_RSS  (1 <<  9)  // Restore State Status
-#define USBSTS_SRE  (1 << 10)  // Save Restore Error
-#define USBSTS_CNR  (1 << 11)  // Controller Not Ready
-#define USBSTS_HCE  (1 << 12)  // Host Controller Error
-
-#define USBSTS_PCD_SHIFT 4
-#define USBSTS_PCD_MASK  0x01
-
-// CRCR
-#define CRCR_RCS (1<<0)
-#define CRCR_CS  (1<<1)
-#define CRCR_CA  (1<<2)
-#define CRCR_CRR (1<<3)
-
-
 
 /* XHCI Runtime Regiseters
      Offset | Mnemonic
@@ -258,7 +210,8 @@ Offset | Size (bits) | Mnemonic
 #define XHCI_IRS_ERDP_HI(n)   (0x003C + (0x20 * (n)))
 
 // IMAN
-#define IMAN_INTR_EN 0x00000002
+#define IMAN_INTR_PENDING (1 << 0)
+#define IMAN_INTR_ENABLE  (1 << 1)
 
 // ERSTSZ
 #define ERSTSZ_SET(n) ((n) & 0xffff)
@@ -266,208 +219,277 @@ Offset | Size (bits) | Mnemonic
 // ERDP
 #define ERDP_EHB(x) (((x) >> 3) & 0x01)
 
-#define XHCI_MAX_EVENTS      (16 * 13)
-#define XHCI_MAX_COMMANDS    (16 * 1)
-#define XHCI_MAX_SLOTS       255
-#define XHCI_MAX_PORTS       127
-#define XHCI_MAX_ENDPOINTS   32
-#define XHCI_MAX_SCRATCHPADS 256
-#define XHCI_MAX_DEVICES     128
-#define XHCI_MAX_TRANSFERS   8
-
 // Doorbell Regs
 #define XHCI_DOORBELL(n)          ((n) * 4)
 #define XHCI_DOORBELL_TARGET(x)   ((x) & 0xff)
 #define XHCI_DOORBELL_STREAMID(x) (((x) & 0xffff) << 16)
 
+// --------------------------------------------------------------
+// configuration
+
+#define XHCI_PAGE_SIZE           4096
+
+#define XHCI_RING_ITEMS          16
+#define XHCI_RING_SIZE           (XHCI_RING_ITEMS * sizeof(xhci_trb_t))
+
+/*
+ *  xhci_ring structs are allocated with XHCI_RING_SIZE alignment,
+ *  then we can get it from a trb pointer (provided by evt ring).
+ */
+#define XHCI_RING(_trb)          \
+    ((struct xhci_ring*)((uint32_t)(_trb) & ~(XHCI_RING_SIZE-1)))
+
+// --------------------------------------------------------------
+// bit definitions
+
+#define XHCI_CMD_RS              (1 <<  0)
+#define XHCI_CMD_HCRST           (1 <<  1)
+#define XHCI_CMD_INTE            (1 <<  2)
+#define XHCI_CMD_HSEE            (1 <<  3)
+#define XHCI_CMD_LHCRST          (1 <<  7)
+#define XHCI_CMD_CSS             (1 <<  8)
+#define XHCI_CMD_CRS             (1 <<  9)
+#define XHCI_CMD_EWE             (1 << 10)
+#define XHCI_CMD_EU3S            (1 << 11)
+
+#define XHCI_STS_HCH             (1 <<  0)
+#define XHCI_STS_HSE             (1 <<  2)
+#define XHCI_STS_EINT            (1 <<  3)
+#define XHCI_STS_PCD             (1 <<  4)
+#define XHCI_STS_SSS             (1 <<  8)
+#define XHCI_STS_RSS             (1 <<  9)
+#define XHCI_STS_SRE             (1 << 10)
+#define XHCI_STS_CNR             (1 << 11)
+#define XHCI_STS_HCE             (1 << 12)
+
+#define XHCI_PORTSC_CCS          (1 <<  0)
+#define XHCI_PORTSC_PED          (1 <<  1)
+#define XHCI_PORTSC_OCA          (1 <<  3)
+#define XHCI_PORTSC_PR           (1 <<  4)
+#define XHCI_PORTSC_PLS_SHIFT     5
+#define XHCI_PORTSC_PLS_MASK      0x0f
+#define XHCI_PORTSC_PP           (1 <<  9)
+#define XHCI_PORTSC_SPEED_SHIFT   10
+#define XHCI_PORTSC_SPEED_MASK    0x0f
+#define XHCI_PORTSC_SPEED_FULL   (1 << 10)
+#define XHCI_PORTSC_SPEED_LOW    (2 << 10)
+#define XHCI_PORTSC_SPEED_HIGH   (3 << 10)
+#define XHCI_PORTSC_SPEED_SUPER  (4 << 10)
+#define XHCI_PORTSC_PIC_SHIFT     14
+#define XHCI_PORTSC_PIC_MASK      0x03
+#define XHCI_PORTSC_LWS          (1 << 16)
+#define XHCI_PORTSC_CSC          (1 << 17)
+#define XHCI_PORTSC_PEC          (1 << 18)
+#define XHCI_PORTSC_WRC          (1 << 19)
+#define XHCI_PORTSC_OCC          (1 << 20)
+#define XHCI_PORTSC_PRC          (1 << 21)
+#define XHCI_PORTSC_PLC          (1 << 22)
+#define XHCI_PORTSC_CEC          (1 << 23)
+#define XHCI_PORTSC_CAS          (1 << 24)
+#define XHCI_PORTSC_WCE          (1 << 25)
+#define XHCI_PORTSC_WDE          (1 << 26)
+#define XHCI_PORTSC_WOE          (1 << 27)
+#define XHCI_PORTSC_DR           (1 << 30)
+#define XHCI_PORTSC_WPR          (1 << 31)
+
+#define XHCI_TIME_POSTPOWER 20
+
+#define TRB_C               (1 <<  0)
+#define TRB_TYPE_SHIFT       10
+#define TRB_TYPE_MASK        0x3f
+#define TRB_TYPE(t)         (((t) >> TRB_TYPE_SHIFT) & TRB_TYPE_MASK)
+
+#define TRB_EV_ED           (1 <<  2)
+
+#define TRB_TR_ENT          (1 <<  1)
+#define TRB_TR_ISP          (1 <<  2)
+#define TRB_TR_NS           (1 <<  3)
+#define TRB_TR_CH           (1 <<  4)
+#define TRB_TR_IOC          (1 <<  5)
+#define TRB_TR_IDT          (1 <<  6)
+#define TRB_TR_TBC_SHIFT     7
+#define TRB_TR_TBC_MASK      0x03
+#define TRB_TR_BEI          (1 <<  9)
+#define TRB_TR_TLBPC_SHIFT   16
+#define TRB_TR_TLBPC_MASK    0x0f
+#define TRB_TR_FRAMEID_SHIFT 20
+#define TRB_TR_FRAMEID_MASK  0x7ff
+#define TRB_TR_SIA          (1 << 31)
+
+#define TRB_TR_DIR          (1 << 16)
+
+#define TRB_CR_SLOTID_SHIFT 24
+#define TRB_CR_SLOTID_MASK  0xff
+#define TRB_CR_EPID_SHIFT   16
+#define TRB_CR_EPID_MASK    0x1f
+
+#define TRB_CR_BSR          (1 <<  9)
+#define TRB_CR_DC           (1 <<  9)
+
+#define TRB_LK_TC           (1 <<  1)
+
+#define TRB_INTR_SHIFT      22
+#define TRB_INTR_MASK       0x3ff
+#define TRB_INTR(t)         (((t).status >> TRB_INTR_SHIFT) & TRB_INTR_MASK)
+
+typedef enum trb_type_e
+{
+    TRB_RESERVED = 0,
+    TR_NORMAL,
+    TR_SETUP,
+    TR_DATA,
+    TR_STATUS,
+    TR_ISOCH,
+    TR_LINK,
+    TR_EVDATA,
+    TR_NOOP,
+    CR_ENABLE_SLOT,
+    CR_DISABLE_SLOT,
+    CR_ADDRESS_DEVICE,
+    CR_CONFIGURE_ENDPOINT,
+    CR_EVALUATE_CONTEXT,
+    CR_RESET_ENDPOINT,
+    CR_STOP_ENDPOINT,
+    CR_SET_TR_DEQUEUE,
+    CR_RESET_DEVICE,
+    CR_FORCE_EVENT,
+    CR_NEGOTIATE_BW,
+    CR_SET_LATENCY_TOLERANCE,
+    CR_GET_PORT_BANDWIDTH,
+    CR_FORCE_HEADER,
+    CR_NOOP,
+    ER_TRANSFER = 32,
+    ER_COMMAND_COMPLETE,
+    ER_PORT_STATUS_CHANGE,
+    ER_BANDWIDTH_REQUEST,
+    ER_DOORBELL,
+    ER_HOST_CONTROLLER,
+    ER_DEVICE_NOTIFICATION,
+    ER_MFINDEX_WRAP,
+} trb_type_t;
+
+typedef enum trb_comp_code_e
+{
+    CC_INVALID = 0,
+    CC_SUCCESS,
+    CC_DATA_BUFFER_ERROR,
+    CC_BABBLE_DETECTED,
+    CC_USB_TRANSACTION_ERROR,
+    CC_TRB_ERROR,
+    CC_STALL_ERROR,
+    CC_RESOURCE_ERROR,
+    CC_BANDWIDTH_ERROR,
+    CC_NO_SLOTS_ERROR,
+    CC_INVALID_STREAM_TYPE_ERROR,
+    CC_SLOT_NOT_ENABLED_ERROR,
+    CC_EP_NOT_ENABLED_ERROR,
+    CC_SHORT_PACKET,
+    CC_RING_UNDERRUN,
+    CC_RING_OVERRUN,
+    CC_VF_ER_FULL,
+    CC_PARAMETER_ERROR,
+    CC_BANDWIDTH_OVERRUN,
+    CC_CONTEXT_STATE_ERROR,
+    CC_NO_PING_RESPONSE_ERROR,
+    CC_EVENT_RING_FULL_ERROR,
+    CC_INCOMPATIBLE_DEVICE_ERROR,
+    CC_MISSED_SERVICE_ERROR,
+    CC_COMMAND_RING_STOPPED,
+    CC_COMMAND_ABORTED,
+    CC_STOPPED,
+    CC_STOPPED_LENGTH_INVALID,
+    CC_MAX_EXIT_LATENCY_TOO_LARGE_ERROR = 29,
+    CC_ISOCH_BUFFER_OVERRUN = 31,
+    CC_EVENT_LOST_ERROR,
+    CC_UNDEFINED_ERROR,
+    CC_INVALID_STREAM_ID_ERROR,
+    CC_SECONDARY_BANDWIDTH_ERROR,
+    CC_SPLIT_TRANSACTION_ERROR
+} trb_comp_code_t;
+
+enum
+{
+    PLS_U0              =  0,
+    PLS_U1              =  1,
+    PLS_U2              =  2,
+    PLS_U3              =  3,
+    PLS_DISABLED        =  4,
+    PLS_RX_DETECT       =  5,
+    PLS_INACTIVE        =  6,
+    PLS_POLLING         =  7,
+    PLS_RECOVERY        =  8,
+    PLS_HOT_RESET       =  9,
+    PLS_COMPILANCE_MODE = 10,
+    PLS_TEST_MODE       = 11,
+    PLS_RESUME          = 15,
+};
+
+// --------------------------------------------------------------
+// memory data structs
+
 #pragma pack(1)
 
-// Section 6.2.2
+// slot context
 typedef struct xhci_slot_ctx_s
 {
-    uint32_t slot0;
-    uint32_t slot1;
-    uint32_t slot2;
-    uint32_t slot3;
-    uint32_t RsvdO[4];
+    uint32_t ctx[4];
+    uint32_t reserved_01[4];
 } xhci_slot_ctx_t;
 
-// Section 6.2.3
-typedef struct xhci_endpoint_ctx_s
+// endpoint context
+typedef struct xhci_ep_ctx_s
 {
-    uint32_t endpoint0;
-    uint32_t endpoint1;
-    uint64_t endpoint2;
-    uint32_t endpoint4;
-    uint32_t RsvdO[3];
-} xhci_endpoint_ctx_t;
+    uint32_t ctx[2];
+    uint64_t deq_ptr;
+    uint32_t length;
+    uint32_t reserved_01[3];
+} xhci_ep_ctx_t;
 
-// Section 6.2.1
-typedef struct xhci_device_ctx_s
+// device context array element
+typedef struct xhci_dev_list_s
 {
-    xhci_slot_ctx_t slot;
-    xhci_endpoint_ctx_t endpoint[XHCI_MAX_ENDPOINTS - 1];
-} xhci_device_ctx_t;
+    uint64_t ptr;
+} xhci_dev_list_t;
 
-// Section 6.4
+// input context
+typedef struct xhci_in_ctx_s
+{
+    uint32_t del;
+    uint32_t add;
+    uint32_t reserved_01[6];
+} xhci_in_ctx_t;
+
+// transfer block (ring element)
 typedef struct xhci_trb_s
 {
-    uint64_t addr;
+    uint64_t ptr;
     uint32_t status;
-    uint32_t flags;
+    uint32_t control;
 } xhci_trb_t;
 
-// TRB
-#define TRB_3_TYPE(x)     (((x) & 0x3f) << 10)
-#define TRB_3_TYPE_SHIFT 10
-#define TRB_3_TYPE_MASK  0x3f
-
-// TRB type
-#define TRB_TYPE_NORMAL                 1
-#define TRB_TYPE_SETUP_STAGE            2
-#define TRB_TYPE_DATA_STAGE             3
-#define TRB_TYPE_STATUS_STAGE           4
-#define TRB_TYPE_ISOCH                  5
-#define TRB_TYPE_LINK                   6
-#define TRB_TYPE_EVENT_DATA             7
-#define TRB_TYPE_TR_NOOP                8
-// Command
-#define TRB_TYPE_ENABLE_SLOT            9
-#define TRB_TYPE_DISABLE_SLOT          10
-#define TRB_TYPE_ADDRESS_DEVICE        11
-#define TRB_TYPE_CONFIGURE_ENDPOINT    12
-#define TRB_TYPE_EVALUATE_CONTEXT      13
-#define TRB_TYPE_RESET_ENDPOINT        14
-#define TRB_TYPE_STOP_ENDPOINT         15
-#define TRB_TYPE_SET_TR_DEQUEUE        16
-#define TRB_TYPE_RESET_DEVICE          17
-#define TRB_TYPE_FORCE_EVENT           18
-#define TRB_TYPE_NEGOCIATE_BW          19
-#define TRB_TYPE_SET_LATENCY_TOLERANCE 20
-#define TRB_TYPE_GET_PORT_BW           21
-#define TRB_TYPE_FORCE_HEADER          22
-#define TRB_TYPE_CMD_NOOP              23
-
-// Events
-#define TRB_TYPE_TRANSFER              32
-#define TRB_TYPE_COMMAND_COMPLETION    33
-#define TRB_TYPE_PORT_STATUS_CHANGE    34
-#define TRB_TYPE_BANDWIDTH_REQUEST     35
-#define TRB_TYPE_DOORBELL              36
-#define TRB_TYPE_HOST_CONTROLLER       37
-#define TRB_TYPE_DEVICE_NOTIFICATION   38
-#define TRB_TYPE_MFINDEX_WRAP          39
-
-#define TRB_2_COMP_CODE_SHIFT 24
-#define TRB_2_COMP_CODE_MASK  0xff
-
-#define COMP_INVALID                 0
-#define COMP_SUCCESS                 1
-#define COMP_DATA_BUFFER             2
-#define COMP_BABBLE                  3
-#define COMP_USB_TRANSACTION         4
-#define COMP_TRB                     5
-#define COMP_STALL                   6
-#define COMP_RESOURCE                7
-#define COMP_BANDWIDTH               8
-#define COMP_NO_SLOTS                9
-#define COMP_INVALID_STREAM         10
-#define COMP_SLOT_NOT_ENABLED       11
-#define COMP_ENDPOINT_NOT_ENABLED   12
-#define COMP_SHORT_PACKET           13
-#define COMP_RING_UNDERRUN          14
-#define COMP_RING_OVERRUN           15
-#define COMP_VF_RING_FULL           16
-#define COMP_PARAMETER              17
-#define COMP_BANDWIDTH_OVERRUN      18
-#define COMP_CONTEXT_STATE          19
-#define COMP_NO_PING_RESPONSE       20
-#define COMP_EVENT_RING_FULL        21
-#define COMP_INCOMPATIBLE_DEVICE    22
-#define COMP_MISSED_SERVICE         23
-#define COMP_COMMAND_RING_STOPPED   24
-#define COMP_COMMAND_ABORTED        25
-#define COMP_STOPPED                26
-#define COMP_STOPPED_LENGTH_INVALID 27
-#define COMP_MAX_EXIT_LATENCY       29
-#define COMP_ISOC_OVERRUN           31
-#define COMP_EVENT_LOST             32
-#define COMP_UNDEFINED              33
-#define COMP_INVALID_STREAM_ID      34
-#define COMP_SECONDARY_BANDWIDTH    35
-#define COMP_SPLIT_TRANSACTION      36
-
-#define TRB_3_CYCLE_BIT            (1U <<  0)
-#define TRB_3_TC_BIT               (1U <<  1)
-#define TRB_3_ENT_BIT              (1U <<  1)
-#define TRB_3_ISP_BIT              (1U <<  2)
-#define TRB_3_EVENT_DATA_BIT       (1U <<  2)
-#define TRB_3_NSNOOP_BIT           (1U <<  3)
-#define TRB_3_CHAIN_BIT            (1U <<  4)
-#define TRB_3_IOC_BIT              (1U <<  5)
-#define TRB_3_IDT_BIT              (1U <<  6)
-#define TRB_3_BEI_BIT              (1U <<  9)
-#define TRB_3_DCEP_BIT             (1U <<  9)
-#define TRB_3_PRSV_BIT             (1U <<  9)
-#define TRB_3_BSR_BIT              (1U <<  9)
-#define TRB_3_TRT_MASK             (3U << 16)
-#define TRB_3_DIR_IN               (1U << 16)
-#define TRB_3_TRT_OUT              (2U << 16)
-#define TRB_3_TRT_IN               (3U << 16)
-#define TRB_3_SUSPEND_ENDPOINT_BIT (1U << 23)
-#define TRB_3_ISO_SIA_BIT          (1U << 31)
-
-#define TRB_3_SLOT_SHIFT 24
-#define TRB_3_SLOT_MASK  0xff
-
-// Section 6.5
-typedef struct xhci_erst_s
+// event ring segment
+typedef struct xhci_er_seg_s
 {
-    uint64_t rs_addr;
-    uint32_t rs_size;
-    uint32_t rsvdz;
-} xhci_erst_t;
+    uint32_t ptr_lo;
+    uint32_t ptr_hi;
+    uint32_t size;
+    uint32_t reserved_01;
+} xhci_er_seg_t;
 
 #pragma pack()
 
-typedef struct xhci_device_cxt_arr_s
-{
-    uint64_t base_addr[XHCI_MAX_SLOTS];
-    uint64_t padding;
-    uint64_t scratchpad[XHCI_MAX_SCRATCHPADS];
-} xhci_device_cxt_arr_t;
+// --------------------------------------------------------------
+// state structs
 
 typedef struct xhci_ring_s
 {
-    xhci_trb_t *ring;
-    xhci_trb_t *event;
-    uint8_t     cycle_bit;
-    uint16_t    enqueue_index;
-    uint16_t    dequeue_index;
+    xhci_trb_t     *trbs;
+    size_t          trb_count;
+    uint32_t        enqueue;
+    uint32_t        dequeue;
+    uint32_t        cs;
+    // spinlock_t      lock;
 } xhci_ring_t;
-
-// Section 7
-typedef struct xhci_xcap_regs_s
-{
-    uint32_t cap;
-    uint32_t data[];
-} xhci_xcap_regs_t;
-
-#define XECP_CAP_ID_SHIFT 0
-#define XECP_CAP_ID_MASK  0xff
-
-#define XECP_NEXT_POINT_SHIFT 8
-#define XECP_NEXT_POINT_MASK  0xff
-
-#define XECP_CAP_SPEC_SHIFT 16
-#define XECP_CAP_SPEC_MASK  0xffff
-
-// xHCI Supported Protocol Capability
-#define XECP_SUP_MAJOR_SHIFT 24
-#define XECP_SUP_MAJOR_MASK  0xff
-
-#define XECP_SUP_MINOR_SHIFT 16
-#define XECP_SUP_MINOR_MASK  0xff
 
 typedef struct xhci_portmap_s
 {
@@ -477,60 +499,71 @@ typedef struct xhci_portmap_s
 
 typedef struct xhci_s
 {
-    uint8_t               *mmio_base;
-    uint8_t               *cap_regs;
-    uint8_t               *opt_regs;
-    uint8_t               *run_regs;
-    uint8_t               *doorbell_regs;
+    usb_t            usb;
 
-    uint32_t               max_ports;
-    uint32_t               max_slots;
-    uint32_t               cxt_size;
-    uint32_t               xecp_offset;
-    uint32_t               msi_vector;
-    uint32_t               scrath_chapad_count;
+    /* xhci registers */
+    uint8_t         *mmio_base;
+    uint8_t         *cap_regs;
+    uint8_t         *opt_regs;
+    uint8_t         *run_regs;
+    uint8_t         *doorbell_regs;
 
-    xhci_portmap_t         usb2;
-    xhci_portmap_t         usb3;
+    /* devinfo */
+    uint32_t         xecp;
+    uint32_t         ports;
+    uint32_t         slots;
+    uint8_t          context64;
+    xhci_portmap_t   usb2;
+    xhci_portmap_t   usb3;
 
-    xhci_ring_t            event_ring;
-    xhci_ring_t            command_ring;
-    xhci_erst_t           *erst;
-    xhci_device_cxt_arr_t *dev_cxt_arr;
+    /* xhci data structures */
+    xhci_dev_list_t *devs;
+    xhci_er_seg_t   *eseg;
+    xhci_ring_t      cmds;
+    xhci_ring_t      evts;
 
-    uint8_t                max_address;
+    /* events */
+    fifo_t           cmds_evts; // command completion event
+    fifo_t           port_evts; // port status change event
+    fifo_t           xfer_evts; // transfer completion event
 } xhci_t;
+
+typedef struct xhci_pipe_s
+{
+    xhci_ring_t reqs;
+
+    usb_pipe_t  pipe;
+    uint32_t    slot_id;
+    uint32_t    epid;
+    void       *buf;
+    int         bufused;
+} xhci_pipe_t;
 
 /**
  * @brief 对所有xHCI进行初始化
+ * @param hub_set
  */
-PUBLIC status_t xhci_setup(void);
+PUBLIC status_t xhci_setup(usb_hub_set_t *hub_set);
 
 /**
- * @brief 向xHCI发出命令
- * @param xhci xhci结构体指针
- * @param trb 命令的TRB结构体指针
- * @return 成功将返回K_SUCCESS,若失败则返回对应的错误码
+ * @brief
+ * @param xhci
+ * @return
  */
-PUBLIC status_t xhci_submit_command(xhci_t *xhci,xhci_trb_t *trb);
+PUBLIC void xhci_process_events(xhci_t *xhci);
 
-/**
- * @brief 对xHCI进行初始化,并启用xHCI
- * @param xhci 将要被初始化的xhci控制器结构体指针
- * @return 成功将返回K_SUCCESS,若失败则返回对应的错误码
- */
-PUBLIC status_t xhci_init(xhci_t *xhci);
-
-/**
- * @brief 判断xHCI Ring是否空闲
- * @param ring 将判断这个ring是否空闲
- * @return 空闲将返回0,否则返回1
- */
-PUBLIC bool xhci_ring_busy(xhci_ring_t *ring);
+PUBLIC usb_pipe_t *xhci_realloc_pipe(
+    usb_device_t *usb_dev,
+    usb_pipe_t *upipe,
+    usb_endpoint_descriptor_t *epdesc);
 
 
-
-// registers.c
+PUBLIC int xhci_send_pipe(
+    usb_pipe_t *pipe,
+    int dir,
+    const void *cmd,
+    void *data,
+    int data_len);
 
 /**
  * @brief 读取xHCI能力寄存器(Capability Registers)

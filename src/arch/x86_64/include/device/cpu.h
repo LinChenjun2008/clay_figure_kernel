@@ -33,6 +33,27 @@ static __inline__ void cpu_name(char *s)
     }
 }
 
+static __inline__ bool is_virtual_machine()
+{
+    uint32_t eax,ebx,ecx,edx;
+    char s[13];
+    asm_cpuid(0x40000000,0,&eax,&ebx,&ecx,&edx);
+    ((uint32_t*)s)[0] = ebx;
+    ((uint32_t*)s)[1] = ecx;
+    ((uint32_t*)s)[2] = edx;
+    s[12] = '\0';
+    int i;
+    for (i = 0;i < 13;i++)
+    {
+        if (s[i] == "TCGTCGTCGTCG"[i] || s[i] == "KVMKVMKVM\0\0\0"[i])
+        {
+            continue;
+        }
+        return FALSE;
+    }
+    return TRUE;
+}
+
 static __inline__ bool is_bsp()
 {
     return rdmsr(IA32_APIC_BASE) & IA32_APIC_BASE_BSP;
