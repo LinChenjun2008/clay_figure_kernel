@@ -142,7 +142,10 @@ PRIVATE status_t xhci_controller_setup(void *mmio_base,xhci_t **xhci_addr)
     uint32_t pagesize = xhci_read_opt(xhci,XHCI_OPT_PAGESIZE);
     if (XHCI_PAGE_SIZE != pagesize << 12)
     {
-        pr_log(LOG_ERROR,"XHCI Driver not support pagesize: %d.\n",pagesize << 12);
+        pr_log(
+            LOG_ERROR,
+            "XHCI Driver not support pagesize: %d.\n",
+            pagesize << 12);
         pfree(KADDR_V2P(xhci));
         *xhci_addr = NULL;
         return K_ERROR;
@@ -1049,7 +1052,8 @@ PUBLIC usb_pipe_t *xhci_realloc_pipe(
 PRIVATE trb_comp_code_t xhci_xfer_wait(xhci_t *xhci)
 {
     xhci_trb_t trb;
-    trb_comp_code_t cc = xhci_event_wait(&xhci->xfer_evts,&trb,USB_TIME_COMMAND);
+    trb_comp_code_t cc;
+    cc = xhci_event_wait(&xhci->xfer_evts,&trb,USB_TIME_COMMAND);
     if (cc != CC_SUCCESS)
     {
         pr_log(LOG_ERROR,"xfer failed: %d.\n",cc);

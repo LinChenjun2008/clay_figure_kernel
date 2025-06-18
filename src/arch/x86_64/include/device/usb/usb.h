@@ -298,4 +298,9 @@ PUBLIC int usb_get_period(
     usb_device_t *usb_dev,
     usb_endpoint_descriptor_t *epdesc);
 
+PUBLIC usb_endpoint_descriptor_t *usb_find_desc(
+    usb_device_t *usb_dev,
+    int type,
+    int dir);
+
 #endif

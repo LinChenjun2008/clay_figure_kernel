@@ -10,7 +10,7 @@
 #include <kernel/global.h>
 #include <service.h>         // previous prototype for 'usb_main'
 #include <device/usb/xhci.h> // xhci_setup
-#include <device/usb/usb.h>  // previous prototype for 'usb_enumerate'
+#include <device/usb/hid.h>  // USB_INTERFACE_SUBCLASS_BOOT
 #include <mem/mem.h>         // pmalloc
 #include <std/string.h>      // memset
 #include <task/task.h>       // task_msleep,task_start
@@ -121,6 +121,33 @@ PUBLIC int usb_get_period(
         return (period <= 0) ? 0 : ret;
     }
     return (period <= 4) ? 0 : period - 4;
+}
+
+// Find the first endpoint of a given type in an interface description.
+PUBLIC usb_endpoint_descriptor_t *usb_find_desc(
+    usb_device_t *usb_dev,
+    int type,
+    int dir)
+{
+    usb_endpoint_descriptor_t *epdesc = (void*)&usb_dev->iface[1];
+    while (1)
+    {
+        if ((addr_t)epdesc >= (addr_t)usb_dev->iface + usb_dev->imax)
+        {
+            return NULL;
+        }
+        if (epdesc->bDescriptorType == USB_DT_INTERFACE)
+        {
+            return NULL;
+        }
+        if (    epdesc->bDescriptorType == USB_DT_ENDPOINT
+            && (epdesc->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == dir
+            && (epdesc->bmAttributes & USB_ENDPOINT_XFERTYPE_MASK) == type)
+        {
+            return epdesc;
+        }
+        epdesc = (void*)((uint8_t*)epdesc + epdesc->bLength);
+    }
 }
 
 PRIVATE int get_device_info8(
@@ -300,9 +327,11 @@ PRIVATE int configure_usb_device(usb_device_t *usb_dev)
                     break;
                 }
             }
-            /// TODO: if (iface->bInterfaceClass == USB_CLASS_HID
-            ///  && iface->bInterfaceSubClass == USB_INTERFACE_SUBCLASS_BOOT)
-            break;
+            if (   iface->bInterfaceClass    == USB_CLASS_HID
+                && iface->bInterfaceSubClass == USB_INTERFACE_SUBCLASS_BOOT)
+            {
+                break;
+            }
         }
         iface = (void*)((uint8_t*)iface + iface->bLength);
     }
@@ -334,7 +363,7 @@ PRIVATE int configure_usb_device(usb_device_t *usb_dev)
     }
     else
     {
-        pr_log(LOG_DEBUG,"USB HID device.\n");
+        usb_hid_setup(usb_dev);
     }
     pfree(KADDR_V2P(config));
     return 1;
@@ -366,6 +395,8 @@ PRIVATE int usb_hub_port_setup(usb_device_t *usb_dev)
 
     pr_log(LOG_INFO,"Configure the device.\n");
     int count = configure_usb_device(usb_dev);
+
+    return 0;
     //
     if (count == 0)
     {
@@ -470,6 +501,7 @@ PUBLIC void usb_main(void)
             }
             else
             {
+                /// TODO: process port disconnect event
                 hub->op->disconnect(hub,pc_evt.port);
             }
 
