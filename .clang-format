@@ -1,100 +1,341 @@
 ---
-Language: Cpp  # 指定要格式化的编程语言
+# 指定要格式化的编程语言
+Language: Cpp
 
 # =============== 缩进设置 ===============
-IndentWidth: 4          # 设置基本缩进宽度
-TabWidth: 4             # 设置制表符代表的空格宽度
-UseTab: Never           # 控制是否使用制表符进行缩进
-ContinuationIndentWidth: 4  # 设置续行缩进宽度
+# 设置基本缩进宽度（数值）
+IndentWidth: 4
+
+# 设置制表符代表的空格宽度（数值）
+TabWidth: 4
+
+# 控制是否使用制表符进行缩进
+# 可选值:
+#   Never - 从不使用制表符
+#   ForIndentation - 仅用于缩进
+#   ForContinuationAndIndentation - 用于缩进和续行
+#   Always - 总是使用制表符
+UseTab: Never
+
+# 设置续行缩进宽度（数值）
+ContinuationIndentWidth: 4
 
 # =============== 行长度设置 ===============
-ColumnLimit: 80         # 设置代码行的最大长度限制
-ReflowComments: false   # 控制是否重新排版注释内容
+# 设置代码行的最大长度限制（数值）
+ColumnLimit: 80
+
+# 控制是否重新排版注释内容
+# 可选值:
+#   true - 重新排版注释以适应行宽
+#   false - 保持注释原始格式
+ReflowComments: false
 
 # =============== 指针对齐 ===============
-PointerAlignment: Right  # 设置指针符号（*）的对齐方式
+# 设置指针符号（*）的对齐方式
+# 可选值:
+#   Left - *靠近变量名 (int *ptr)
+#   Right - *靠近类型 (int* ptr)
+#   Middle - *在类型和变量名中间 (int * ptr)
+PointerAlignment: Right
 
 # =============== 大括号风格 ===============
-BreakBeforeBraces: Custom  # 设置大括号的换行方式
+# 设置大括号的换行方式
+#   Custom - 自定义风格
+BreakBeforeBraces: Custom
+
 BraceWrapping:
-  AfterClass: true        # 控制类定义后的大括号是否换行
-  AfterControlStatement: true  # 控制控制语句后的大括号是否换行
-  AfterEnum: true         # 控制枚举定义后的大括号是否换行
-  AfterFunction: true     # 控制函数定义后的大括号是否换行
-  AfterStruct: true       # 控制结构体定义后的大括号是否换行
-  AfterUnion: true        # 控制联合体定义后的大括号是否换行
-  BeforeElse: true        # 控制 else/else if 前的大括号是否换行
-  IndentBraces: false     # 控制大括号是否额外缩进
+# 控制类定义后的大括号是否换行
+# 可选值: true - 换行, false - 不换行 ( 下同 )
+  AfterClass: true
+
+# 控制控制语句后的大括号是否换行
+  AfterControlStatement: true
+
+# 控制枚举定义后的大括号是否换行
+  AfterEnum: true
+
+# 控制函数定义后的大括号是否换行
+  AfterFunction: true
+
+# 控制结构体定义后的大括号是否换行
+  AfterStruct: true
+
+# 控制联合体定义后的大括号是否换行
+  AfterUnion: true
+
+# 控制 else/else if 前的大括号是否换行
+  BeforeElse: true
+
+# 控制大括号是否额外缩进
+# 可选值: true - 额外缩进一级, false - 不额外缩进
+  IndentBraces: false
 
 # =============== 函数格式 ===============
-AllowAllParametersOfDeclarationOnNextLine: false  # 控制函数声明的参数是否全部放在下一行
-BinPackParameters: false  # 控制函数参数是否打包到同一行
-BinPackArguments: false   # 控制函数调用参数是否打包到同一行
-AllowShortFunctionsOnASingleLine: None  # 控制短函数是否可以写在一行
-AlwaysBreakAfterReturnType: None  # 控制函数返回类型后是否强制换行
-AlwaysBreakAfterDefinitionReturnType: None  # 控制函数定义返回类型后是否强制换行
-AlignAfterOpenBracket: BlockIndent  # 设置括号内多行内容的对齐方式
+# 控制函数声明的参数是否全部放在下一行
+# 可选值: true - 所有参数放在下一行, false - 参数可以放在同一行
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# 控制函数参数是否打包到同一行
+# 可选值: true - 尽可能打包参数, false - 每个参数单独一行
+BinPackParameters: false
+
+# 控制函数调用参数是否打包到同一行
+# 可选值: true - 尽可能打包参数, false - 每个参数单独一行
+BinPackArguments: false
+
+# 控制短函数是否可以写在一行
+# 可选值:
+#   None - 从不写在一行
+#   Empty - 只有空函数写在一行
+#   Inline - 类内定义的函数写在一行
+#   InlineOnly - 只有类内定义的函数写在一行
+#   All - 所有短函数写在一行
+AllowShortFunctionsOnASingleLine: None
+
+# 控制函数返回类型后是否强制换行
+# 可选值:
+#   None - 不换行
+#   All - 总是换行
+#   TopLevel - 顶层函数换行
+#   AllDefinitions - 所有定义换行
+#   TopLevelDefinitions - 顶层定义换行
+AlwaysBreakAfterReturnType: None
+
+# 控制函数定义返回类型后是否强制换行
+# 可选值:
+#   None - 不换行
+#   All - 总是换行
+#   TopLevel - 顶层函数换行
+AlwaysBreakAfterDefinitionReturnType: None
+
+# 设置括号内多行内容的对齐方式
+# 可选值:
+#   DontAlign - 不对齐
+#   Align - 与开括号对齐
+#   BlockIndent - 使用块缩进
+#   AlwaysBreak - 总是换行
+AlignAfterOpenBracket: BlockIndent
 
 # =============== 控制语句 ===============
-SpaceAfterControlStatementKeyword: true  # 控制关键字后是否添加空格
-AllowShortIfStatementsOnASingleLine: true  # 控制短 if 语句是否可以写在一行
-AllowShortLoopsOnASingleLine: true  # 控制短循环语句是否可以写在一行
-IndentCaseLabels: true    # 控制 case 标签是否缩进
-IndentCaseBlocks: false   # 控制 case 语句块是否额外缩进
+# 控制关键字后是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpaceAfterControlStatementKeyword: true
+
+# 控制短 if 语句是否可以写在一行
+# 可选值:
+#   false - 从不写在一行
+#   true - 允许写在一行
+#   NeverBeforeElse - 除非有 else 否则写在一行
+#   OnlyFirstIf - 只允许第一个 if 写在一行
+AllowShortIfStatementsOnASingleLine: true
+
+# 控制短循环语句是否可以写在一行
+# 可选值: true - 允许写在一行, false - 从不写在一行
+AllowShortLoopsOnASingleLine: true
+
+# 控制 case 标签是否缩进
+# 可选值: true - 缩进, false - 不缩进
+IndentCaseLabels: true
+
+# 控制 case 语句块是否额外缩进
+# 可选值: true - 额外缩进, false - 不额外缩进
+IndentCaseBlocks: false
 
 # =============== 空格设置 ===============
-SpaceBeforeParens: ControlStatements  # 控制括号前是否添加空格
-SpaceInEmptyParentheses: false  # 控制空括号内是否添加空格
-SpacesInParentheses: false      # 控制括号内部是否添加空格
-SpacesInSquareBrackets: false   # 控制方括号内部是否添加空格
-SpaceBeforeSquareBrackets: false  # 控制方括号前是否添加空格
-SpacesInAngles: false           # 控制尖括号内部是否添加空格
-SpaceInEmptyBlock: false        # 控制空代码块内是否添加空格
-SpacesInContainerLiterals: false  # 控制容器字面量内是否添加空格
-SpaceBeforeCpp11BracedList: false  # 控制 C++11 大括号列表前是否添加空格
-SpacesInCStyleCastParentheses: false  # 控制 C 风格类型转换括号内是否添加空格
-SpaceAfterCStyleCast: false     # 控制 C 风格类型转换后是否添加空格
-SpaceAfterLogicalNot: false     # 控制逻辑非运算符后是否添加空格
-SpaceAfterTemplateKeyword: false  # 控制 template 关键字后是否添加空格
+# 控制括号前是否添加空格
+# 可选值:
+#   Never - 从不添加
+#   ControlStatements - 控制语句添加
+#   ControlStatementsExceptForEachMacros - 除 for each 宏外添加
+#   Always - 总是添加
+#   NonEmptyParentheses - 非空括号添加
+SpaceBeforeParens: ControlStatements
+
+# 控制空括号内是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpaceInEmptyParentheses: false
+
+# 控制括号内部是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpacesInParentheses: false
+
+# 控制方括号内部是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpacesInSquareBrackets: false
+
+# 控制方括号前是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpaceBeforeSquareBrackets: false
+
+# 控制尖括号内部是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpacesInAngles: false
+
+# 控制空代码块内是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpaceInEmptyBlock: false
+
+# 控制容器字面量内是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpacesInContainerLiterals: false
+
+# 控制 C++11 大括号列表前是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpaceBeforeCpp11BracedList: false
+
+# 控制 C 风格类型转换括号内是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpacesInCStyleCastParentheses: false
+
+# 控制 C 风格类型转换后是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpaceAfterCStyleCast: false
+
+# 控制逻辑非运算符后是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpaceAfterLogicalNot: false
+
+# 控制 template 关键字后是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpaceAfterTemplateKeyword: false
 
 # =============== 对齐设置 ===============
 AlignConsecutiveAssignments:
-  Enabled: true          # 启用/禁用连续赋值对齐
-  AcrossEmptyLines: false  # 控制是否跨越空行对齐
-  AcrossComments: true   # 控制是否跨越注释对齐
+# 启用/禁用连续赋值对齐
+# 可选值: true - 启用, false - 禁用
+  Enabled: true
+
+# 控制是否跨越空行对齐
+# 可选值: true - 跨越空行, false - 不跨越空行
+  AcrossEmptyLines: false
+
+# 控制是否跨越注释对齐
+# 可选值: true - 跨越注释, false - 不跨越注释
+  AcrossComments: true
 
 AlignConsecutiveDeclarations:
-  Enabled: true          # 启用/禁用连续声明对齐
-  AcrossEmptyLines: false  # 控制是否跨越空行对齐
-  AcrossComments: true   # 控制是否跨越注释对齐
+# 启用/禁用连续声明对齐
+# 可选值: true - 启用, false - 禁用
+  Enabled: true
+
+# 控制是否跨越空行对齐
+# 可选值: true - 跨越空行, false - 不跨越空行
+  AcrossEmptyLines: false
+
+# 控制是否跨越注释对齐
+# 可选值: true - 跨越注释, false - 不跨越注释
+  AcrossComments: true
 
 AlignConsecutiveMacros:
-  Enabled: true          # 启用/禁用连续宏定义对齐
-  AcrossEmptyLines: false  # 控制是否跨越空行对齐
-  AcrossComments: true   # 控制是否跨越注释对齐
+# 启用/禁用连续宏定义对齐
+# 可选值: true - 启用, false - 禁用
+  Enabled: true
 
-AlignTrailingComments: true  # 控制是否对齐行尾注释
-AlignEscapedNewlines: Left   # 设置反斜杠换行符的对齐方式
+# 控制是否跨越空行对齐
+# 可选值: true - 跨越空行, false - 不跨越空行
+  AcrossEmptyLines: false
+
+# 控制是否跨越注释对齐
+# 可选值: true - 跨越注释, false - 不跨越注释
+  AcrossComments: true
+
+# 控制是否对齐行尾注释
+# 可选值: true - 对齐, false - 不对齐
+AlignTrailingComments: true
+
+# 设置反斜杠换行符的对齐方式
+# 可选值:
+#   DontAlign - 不对齐
+#   Left - 左对齐
+#   Right - 右对齐
+AlignEscapedNewlines: Left
 
 # =============== 预处理指令 ===============
-IndentPPDirectives: AfterHash   # 设置预处理指令的缩进方式
-PPIndentWidth: 4           # 设置预处理指令的缩进宽度
+# 设置预处理指令的缩进方式
+# 可选值:
+#   None - 无缩进
+#   AfterHash - # 后缩进
+#   BeforeHash - # 前缩进
+IndentPPDirectives: AfterHash
+
+# 设置预处理指令的缩进宽度（数值）
+PPIndentWidth: 4
 
 # =============== 其他设置 ===============
-AccessModifierOffset: 0    # 设置访问修饰符的额外偏移量
-NamespaceIndentation: None # 设置命名空间内容的缩进方式
-SortIncludes: false        # 控制是否排序 include 文件
-SortUsingDeclarations: false  # 控制是否排序 using 声明
-Cpp11BracedListStyle: false  # 控制是否使用 C++11 大括号列表风格
-DerivePointerAlignment: false  # 控制是否自动推导指针对齐方式
-FixNamespaceComments: false  # 控制是否修复命名空间注释
-IncludeBlocks: Preserve     # 设置 include 块的处理方式
-KeepEmptyLinesAtTheStartOfBlocks: true  # 控制是否保留代码块开头的空行
-MaxEmptyLinesToKeep: 3      # 设置最大保留的连续空行数
-PointerBindsToType: false   # 控制指针符号是否绑定到类型
-SpaceBeforeCtorInitializerColon: true  # 控制构造函数初始化列表冒号前是否添加空格
-SpaceBeforeInheritanceColon: true  # 控制继承列表冒号前是否添加空格
-SpaceBeforeRangeBasedForLoopColon: true  # 控制范围 for 循环冒号前是否添加空格
-SpaceAroundPointerQualifiers: Default  # 设置指针限定符周围空格的处理方式
-SpacesBeforeTrailingComments: 1  # 设置行尾注释前的空格数
-Standard: Auto              # 设置使用的 C++ 标准版本
+# 设置访问修饰符的额外偏移量（数值）
+AccessModifierOffset: 0
+
+# 设置命名空间内容的缩进方式
+# 可选值:
+#   None - 无缩进
+#   Inner - 内部内容缩进
+#   All - 所有内容缩进
+NamespaceIndentation: None
+
+# 控制是否排序 include 文件
+# 可选值: true - 排序, false - 不排序
+SortIncludes: false
+
+# 控制是否排序 using 声明
+# 可选值: true - 排序, false - 不排序
+SortUsingDeclarations: false
+
+# 控制是否使用 C++11 大括号列表风格
+# 可选值: true - 使用, false - 不使用
+Cpp11BracedListStyle: false
+
+# 控制是否自动推导指针对齐方式
+# 可选值: true - 自动推导, false - 手动指定
+DerivePointerAlignment: false
+
+# 控制是否修复命名空间注释
+# 可选值: true - 修复, false - 不修复
+FixNamespaceComments: false
+
+# 设置 include 块的处理方式
+# 可选值:
+#   Preserve - 保持原始顺序
+#   Merge - 合并相邻块
+#   Regroup - 重新分组
+IncludeBlocks: Preserve
+
+# 控制是否保留代码块开头的空行
+# 可选值: true - 保留, false - 不保留
+KeepEmptyLinesAtTheStartOfBlocks: true
+
+# 设置最大保留的连续空行数（数值）
+MaxEmptyLinesToKeep: 3
+
+# 控制指针符号是否绑定到类型
+# 可选值: true - 绑定到类型, false - 绑定到变量名
+PointerBindsToType: false
+
+# 控制构造函数初始化列表冒号前是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpaceBeforeCtorInitializerColon: true
+
+# 控制继承列表冒号前是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpaceBeforeInheritanceColon: true
+
+# 控制范围 for 循环冒号前是否添加空格
+# 可选值: true - 添加空格, false - 不添加空格
+SpaceBeforeRangeBasedForLoopColon: true
+
+# 设置指针限定符周围空格的处理方式
+# 可选值:
+#   Default - 默认处理
+#   Before - 限定符前加空格
+#   After - 限定符后加空格
+#   Both - 前后都加空格
+SpaceAroundPointerQualifiers: Default
+
+# 设置行尾注释前的空格数（数值）
+SpacesBeforeTrailingComments: 1
+
+# 设置使用的 C++ 标准版本
+# 可选值:
+#   Auto - 自动检测
+#   Latest - 最新标准
+#   c++03, c++11, c++14, c++17, c++20, c++23 - 特定标准
+Standard: Auto
