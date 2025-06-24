@@ -8,27 +8,24 @@
 
 #include <Efi.h>
 
-EFI_STATUS ReadFile
-(
+EFI_STATUS ReadFile(
     CHAR16 *FileName,
     EFI_PHYSICAL_ADDRESS *FileBufferBase,
     EFI_ALLOCATE_TYPE BufferType,
-    UINT64 *FileSize
-)
+    UINT64 *FileSize)
 {
     EFI_FILE_PROTOCOL *FileHandle;
     EFI_STATUS Status = EFI_SUCCESS;
     UINTN HandleCount = 0;
     EFI_HANDLE *HandleBuffer;
 
-    Status = gBS->LocateHandleBuffer
-    (
+    Status = gBS->LocateHandleBuffer(
         ByProtocol,
         &gEfiSimpleFileSystemProtocolGuid,
         NULL,
         &HandleCount,
-        &HandleBuffer
-    );
+        &HandleBuffer);
+
     if (EFI_ERROR(Status))
     {
         return Status;
@@ -39,15 +36,14 @@ EFI_STATUS ReadFile
     i = 0;
     do
     {
-        Status = gBS->OpenProtocol
-        (
+        Status = gBS->OpenProtocol(
             HandleBuffer[i++],
             &gEfiSimpleFileSystemProtocolGuid,
             (VOID**)&FileSystem,
             gImageHandle,
             NULL,
-            EFI_OPEN_PROTOCOL_GET_PROTOCOL
-        );
+            EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+
         if (EFI_ERROR(Status))
         {
             return Status;

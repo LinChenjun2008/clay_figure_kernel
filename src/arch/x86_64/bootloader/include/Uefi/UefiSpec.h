@@ -163,14 +163,14 @@ VOID
     UINT8    Value
 );
 
-typedef 
+typedef
 VOID
 (EFIAPI *EFI_RESET_SYSTEM)
 (
     EFI_RESET_TYPE ResetType,
     EFI_STATUS     ResetStatus,
     UINTN          DataSize,
-    VOID           *ResetData 
+    VOID           *ResetData
 );
 
 /// Uefi Runtime services

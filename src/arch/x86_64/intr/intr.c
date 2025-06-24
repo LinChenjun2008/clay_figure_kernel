@@ -156,9 +156,14 @@ PRIVATE void default_irq_handler(intr_stack_t *stack)
 PUBLIC void ASMLINKAGE do_irq(intr_stack_t *stack)
 {
     int int_vector = stack->int_vector;
-    if (int_vector == 0x82) { pr_debug_info(stack); return; }
-    if (irq_handler[int_vector]) { irq_handler[int_vector](stack); }
-    else { default_irq_handler(stack); }
+    if (irq_handler[int_vector])
+    {
+        irq_handler[int_vector](stack);
+    }
+    else
+    {
+        default_irq_handler(stack);
+    }
     return;
 }
 
@@ -181,12 +186,14 @@ PUBLIC void intr_init(void)
     int i;
     for (i = 0;i < IRQ_CNT;i++)
     {
-        irq_handler[i] = NULL;
+        irq_handler[i] = default_irq_handler;
     }
     uint128_t idt_ptr = (((uint128_t)0 + ((uint128_t)((uint64_t)idt))) << 16) \
                         | (sizeof(idt) - 1);
     asm_lidt(&idt_ptr);
     init_spinlock(&intr_lock);
+
+    irq_handler[0x82] = pr_debug_info;
     return;
 }
 
