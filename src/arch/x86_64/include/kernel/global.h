@@ -9,7 +9,7 @@
 #ifndef __GLOBAL_H__
 #define __GLOBAL_H__
 
-#define K_NAME "Clay Figure Kernel"
+#define K_NAME    "Clay Figure Kernel"
 #define K_VERSION "v0.0.0"
 
 #define __DISABLE_SERIAL_LOG__
@@ -19,7 +19,7 @@
 // #define __DISABLE_APIC_TIMER__
 // #define __TIMER_HPET__
 
-#define ERROR(x) ((x) != K_SUCCESS)
+#define ERROR(x)          ((x) != K_SUCCESS)
 #define K_ERROR           0xc0000000
 #define K_UDF_BEHAVIOR    0xc0000001
 #define K_NOMEM           0xc0000002
@@ -38,7 +38,7 @@
 
 #include <common.h>
 
-extern boot_info_t *g_boot_info;
+extern boot_info_t  *g_boot_info;
 extern graph_info_t *g_graph_info;
 
 extern char _kernel_start[];

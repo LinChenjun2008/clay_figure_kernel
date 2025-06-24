@@ -5,7 +5,7 @@
 #pragma pack(1)
 typedef struct
 {
-    UINT32  Signature;
+    UINT32 Signature;
     UINT32 Length;
     UINT8  Revision;
     UINT8  Checksum;
@@ -30,7 +30,7 @@ typedef struct
 
 typedef struct
 {
-    UINT64  Signature;
+    UINT64 Signature;
     UINT8  Checksum;
     UINT8  OemId[6];
     UINT8  Revision;

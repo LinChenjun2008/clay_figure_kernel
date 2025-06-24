@@ -1,0 +1,100 @@
+---
+Language: Cpp  # 指定要格式化的编程语言
+
+# =============== 缩进设置 ===============
+IndentWidth: 4          # 设置基本缩进宽度
+TabWidth: 4             # 设置制表符代表的空格宽度
+UseTab: Never           # 控制是否使用制表符进行缩进
+ContinuationIndentWidth: 4  # 设置续行缩进宽度
+
+# =============== 行长度设置 ===============
+ColumnLimit: 80         # 设置代码行的最大长度限制
+ReflowComments: false   # 控制是否重新排版注释内容
+
+# =============== 指针对齐 ===============
+PointerAlignment: Right  # 设置指针符号（*）的对齐方式
+
+# =============== 大括号风格 ===============
+BreakBeforeBraces: Custom  # 设置大括号的换行方式
+BraceWrapping:
+  AfterClass: true        # 控制类定义后的大括号是否换行
+  AfterControlStatement: true  # 控制控制语句后的大括号是否换行
+  AfterEnum: true         # 控制枚举定义后的大括号是否换行
+  AfterFunction: true     # 控制函数定义后的大括号是否换行
+  AfterStruct: true       # 控制结构体定义后的大括号是否换行
+  AfterUnion: true        # 控制联合体定义后的大括号是否换行
+  BeforeElse: true        # 控制 else/else if 前的大括号是否换行
+  IndentBraces: false     # 控制大括号是否额外缩进
+
+# =============== 函数格式 ===============
+AllowAllParametersOfDeclarationOnNextLine: false  # 控制函数声明的参数是否全部放在下一行
+BinPackParameters: false  # 控制函数参数是否打包到同一行
+BinPackArguments: false   # 控制函数调用参数是否打包到同一行
+AllowShortFunctionsOnASingleLine: None  # 控制短函数是否可以写在一行
+AlwaysBreakAfterReturnType: None  # 控制函数返回类型后是否强制换行
+AlwaysBreakAfterDefinitionReturnType: None  # 控制函数定义返回类型后是否强制换行
+AlignAfterOpenBracket: BlockIndent  # 设置括号内多行内容的对齐方式
+
+# =============== 控制语句 ===============
+SpaceAfterControlStatementKeyword: true  # 控制关键字后是否添加空格
+AllowShortIfStatementsOnASingleLine: true  # 控制短 if 语句是否可以写在一行
+AllowShortLoopsOnASingleLine: true  # 控制短循环语句是否可以写在一行
+IndentCaseLabels: true    # 控制 case 标签是否缩进
+IndentCaseBlocks: false   # 控制 case 语句块是否额外缩进
+
+# =============== 空格设置 ===============
+SpaceBeforeParens: ControlStatements  # 控制括号前是否添加空格
+SpaceInEmptyParentheses: false  # 控制空括号内是否添加空格
+SpacesInParentheses: false      # 控制括号内部是否添加空格
+SpacesInSquareBrackets: false   # 控制方括号内部是否添加空格
+SpaceBeforeSquareBrackets: false  # 控制方括号前是否添加空格
+SpacesInAngles: false           # 控制尖括号内部是否添加空格
+SpaceInEmptyBlock: false        # 控制空代码块内是否添加空格
+SpacesInContainerLiterals: false  # 控制容器字面量内是否添加空格
+SpaceBeforeCpp11BracedList: false  # 控制 C++11 大括号列表前是否添加空格
+SpacesInCStyleCastParentheses: false  # 控制 C 风格类型转换括号内是否添加空格
+SpaceAfterCStyleCast: false     # 控制 C 风格类型转换后是否添加空格
+SpaceAfterLogicalNot: false     # 控制逻辑非运算符后是否添加空格
+SpaceAfterTemplateKeyword: false  # 控制 template 关键字后是否添加空格
+
+# =============== 对齐设置 ===============
+AlignConsecutiveAssignments:
+  Enabled: true          # 启用/禁用连续赋值对齐
+  AcrossEmptyLines: false  # 控制是否跨越空行对齐
+  AcrossComments: true   # 控制是否跨越注释对齐
+
+AlignConsecutiveDeclarations:
+  Enabled: true          # 启用/禁用连续声明对齐
+  AcrossEmptyLines: false  # 控制是否跨越空行对齐
+  AcrossComments: true   # 控制是否跨越注释对齐
+
+AlignConsecutiveMacros:
+  Enabled: true          # 启用/禁用连续宏定义对齐
+  AcrossEmptyLines: false  # 控制是否跨越空行对齐
+  AcrossComments: true   # 控制是否跨越注释对齐
+
+AlignTrailingComments: true  # 控制是否对齐行尾注释
+AlignEscapedNewlines: Left   # 设置反斜杠换行符的对齐方式
+
+# =============== 预处理指令 ===============
+IndentPPDirectives: AfterHash   # 设置预处理指令的缩进方式
+PPIndentWidth: 4           # 设置预处理指令的缩进宽度
+
+# =============== 其他设置 ===============
+AccessModifierOffset: 0    # 设置访问修饰符的额外偏移量
+NamespaceIndentation: None # 设置命名空间内容的缩进方式
+SortIncludes: false        # 控制是否排序 include 文件
+SortUsingDeclarations: false  # 控制是否排序 using 声明
+Cpp11BracedListStyle: false  # 控制是否使用 C++11 大括号列表风格
+DerivePointerAlignment: false  # 控制是否自动推导指针对齐方式
+FixNamespaceComments: false  # 控制是否修复命名空间注释
+IncludeBlocks: Preserve     # 设置 include 块的处理方式
+KeepEmptyLinesAtTheStartOfBlocks: true  # 控制是否保留代码块开头的空行
+MaxEmptyLinesToKeep: 3      # 设置最大保留的连续空行数
+PointerBindsToType: false   # 控制指针符号是否绑定到类型
+SpaceBeforeCtorInitializerColon: true  # 控制构造函数初始化列表冒号前是否添加空格
+SpaceBeforeInheritanceColon: true  # 控制继承列表冒号前是否添加空格
+SpaceBeforeRangeBasedForLoopColon: true  # 控制范围 for 循环冒号前是否添加空格
+SpaceAroundPointerQualifiers: Default  # 设置指针限定符周围空格的处理方式
+SpacesBeforeTrailingComments: 1  # 设置行尾注释前的空格数
+Standard: Auto              # 设置使用的 C++ 标准版本

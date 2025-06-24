@@ -9,7 +9,7 @@ typedef struct usb_desc_header_s
     uint8_t bDescriptorType;
 } usb_desc_header_t;
 
-STATIC_ASSERT(sizeof(usb_desc_header_t) == 2,"");
+STATIC_ASSERT(sizeof(usb_desc_header_t) == 2, "");
 
 typedef struct usb_device_desc_s
 {
@@ -28,7 +28,7 @@ typedef struct usb_device_desc_s
     uint8_t           bNumConfigurations;
 } usb_device_desc_t;
 
-STATIC_ASSERT(sizeof(usb_device_desc_t) == 18,"");
+STATIC_ASSERT(sizeof(usb_device_desc_t) == 18, "");
 
 #pragma pack()
 

@@ -10,40 +10,44 @@
 #define __CPU_H__
 
 extern uint64_t rdmsr(uint64_t address);
-extern void wrmsr(uint64_t address,uint64_t value);
+extern void     wrmsr(uint64_t address, uint64_t value);
 
 extern void asm_cpuid(
-    uint32_t mop,
-    uint32_t sop,
+    uint32_t  mop,
+    uint32_t  sop,
     uint32_t *a,
     uint32_t *b,
     uint32_t *c,
-    uint32_t *d);
+    uint32_t *d
+);
 
 static __inline__ void cpu_name(char *s)
 {
     uint32_t i;
-    for (i = 0x80000002; i < 0x80000005;i++)
+    for (i = 0x80000002; i < 0x80000005; i++)
     {
-        asm_cpuid(i,0,
-                  (uint32_t*)s + (i - 0x80000002) * 4,
-                  (uint32_t*)s + (i - 0x80000002) * 4 + 1,
-                  (uint32_t*)s + (i - 0x80000002) * 4 + 2,
-                  (uint32_t*)s + (i - 0x80000002) * 4 + 3);
+        asm_cpuid(
+            i,
+            0,
+            (uint32_t *)s + (i - 0x80000002) * 4,
+            (uint32_t *)s + (i - 0x80000002) * 4 + 1,
+            (uint32_t *)s + (i - 0x80000002) * 4 + 2,
+            (uint32_t *)s + (i - 0x80000002) * 4 + 3
+        );
     }
 }
 
 static __inline__ bool is_virtual_machine()
 {
-    uint32_t eax,ebx,ecx,edx;
-    char s[13];
-    asm_cpuid(0x40000000,0,&eax,&ebx,&ecx,&edx);
-    ((uint32_t*)s)[0] = ebx;
-    ((uint32_t*)s)[1] = ecx;
-    ((uint32_t*)s)[2] = edx;
-    s[12] = '\0';
+    uint32_t eax, ebx, ecx, edx;
+    char     s[13];
+    asm_cpuid(0x40000000, 0, &eax, &ebx, &ecx, &edx);
+    ((uint32_t *)s)[0] = ebx;
+    ((uint32_t *)s)[1] = ecx;
+    ((uint32_t *)s)[2] = edx;
+    s[12]              = '\0';
     int i;
-    for (i = 0;i < 13;i++)
+    for (i = 0; i < 13; i++)
     {
         if (s[i] == "TCGTCGTCGTCG"[i] || s[i] == "KVMKVMKVM\0\0\0"[i])
         {
@@ -61,8 +65,8 @@ static __inline__ bool is_bsp()
 
 static __inline__ uint32_t apic_id()
 {
-    uint32_t a,b,c,d;
-    asm_cpuid(1,0,&a,&b,&c,&d);
+    uint32_t a, b, c, d;
+    asm_cpuid(1, 0, &a, &b, &c, &d);
     return (b >> 24) & 0xff;
 }
 
@@ -74,11 +78,12 @@ PUBLIC uint64_t make_icr(
     uint8_t  level,
     uint8_t  trigger,
     uint8_t  des_shorthand,
-    uint32_t destination);
+    uint32_t destination
+);
 
 PUBLIC status_t smp_init(void);
 PUBLIC status_t smp_start(void);
-PUBLIC void send_IPI(uint64_t icr);
+PUBLIC void     send_IPI(uint64_t icr);
 
 extern uint8_t AP_BOOT_BASE[];
 extern uint8_t AP_BOOT_END[];

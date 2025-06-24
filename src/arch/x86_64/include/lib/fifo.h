@@ -13,12 +13,12 @@
 
 typedef struct fifo_s
 {
-    void      *data;
-    int        item_size; /* 元素大小 */
-    int        size;      /* 大小(最大元素数) */
-    int        free;
-    int        next_read;
-    int        next_write;
+    void *data;
+    int   item_size; /* 元素大小 */
+    int   size;      /* 大小(最大元素数) */
+    int   free;
+    int   next_read;
+    int   next_write;
 
     spinlock_t lock;
 } fifo_t;
@@ -30,7 +30,7 @@ typedef struct fifo_s
  * @param item_size fifo内各项的大小
  * @param size fifo可容纳的项个数
  */
-PUBLIC void init_fifo(fifo_t *fifo,void* data,size_t item_size,int size);
+PUBLIC void init_fifo(fifo_t *fifo, void *data, size_t item_size, int size);
 
 /**
  * @brief 将item写入fifo中
@@ -38,7 +38,7 @@ PUBLIC void init_fifo(fifo_t *fifo,void* data,size_t item_size,int size);
  * @param item 要被写入的item指针
  * @return 成功将返回K_SUCCESS,若失败则返回对应的错误码
  */
-PUBLIC status_t fifo_write(fifo_t *fifo,void* item);
+PUBLIC status_t fifo_write(fifo_t *fifo, void *item);
 
 /**
  * @brief 从fifo中读取item
@@ -46,7 +46,7 @@ PUBLIC status_t fifo_write(fifo_t *fifo,void* item);
  * @param item 获取读出item的指针
  * @return 成功将返回K_SUCCESS,若失败则返回对应的错误码
  */
-PUBLIC status_t fifo_read(fifo_t *fifo,void* item);
+PUBLIC status_t fifo_read(fifo_t *fifo, void *item);
 
 PUBLIC bool fifo_empty(fifo_t *fifo);
 PUBLIC bool fifo_full(fifo_t *fifo);

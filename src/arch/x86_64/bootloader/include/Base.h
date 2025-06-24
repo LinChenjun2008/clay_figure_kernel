@@ -4,21 +4,21 @@
 #define CONST  const
 #define STATIC static
 
-#define VOID   void
+#define VOID void
 
 #ifdef EFIAPI
-    #elif defined (_MSC_EXTENSIONS)
-        #define EFIAPI  __cdecl
-    #elif defined (__GNUC__)
-        #define EFIAPI __attribute__((ms_abi))
-    #else
-        #define EFIAPI
+#elif defined(_MSC_EXTENSIONS)
+#    define EFIAPI __cdecl
+#elif defined(__GNUC__)
+#    define EFIAPI __attribute__((ms_abi))
+#else
+#    define EFIAPI
 #endif
 
 #define IN
 #define OUT
 
-#define NULL ((void*) 0)
+#define NULL ((void *)0)
 
 #define TRUE  (1 == 1)
 #define FALSE (1 == 0)

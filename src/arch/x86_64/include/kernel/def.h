@@ -10,50 +10,51 @@
 #define __DEF_H__
 
 #ifndef NULL
-#define NULL ((void*)0)
+#    define NULL ((void *)0)
 #endif
 
 #ifndef PUBLIC
-#define PUBLIC
+#    define PUBLIC
 #endif
 
 #ifndef PRIVATE
-#define PRIVATE static
+#    define PRIVATE static
 #endif
 
 typedef int bool;
 #ifndef TRUE
-#define TRUE  (1 == 1)
+#    define TRUE (1 == 1)
 #endif
 
 #ifndef FALSE
-#define FALSE (1 == 0)
+#    define FALSE (1 == 0)
 #endif
 
-#define GET_FIELD(X,FIELD)       (((X) >> FIELD##_SHIFT) & FIELD##_MASK)
-#define SET_FIELD(X,FIELD,VALUE) (((X) & ~(FIELD##_MASK << FIELD##_SHIFT)) \
-                              | (((VALUE) & (FIELD##_MASK)) << FIELD##_SHIFT))
+#define GET_FIELD(X, FIELD) (((X) >> FIELD##_SHIFT) & FIELD##_MASK)
+#define SET_FIELD(X, FIELD, VALUE)              \
+    (((X) & ~(FIELD##_MASK << FIELD##_SHIFT)) | \
+     (((VALUE) & (FIELD##_MASK)) << FIELD##_SHIFT))
 
-#define KADDR_P2V(ADDR) ((void*)((addr_t)(ADDR) + KERNEL_VMA_BASE))
-#define KADDR_V2P(ADDR) ((void*)((addr_t)(ADDR) - KERNEL_VMA_BASE))
+#define KADDR_P2V(ADDR) ((void *)((addr_t)(ADDR) + KERNEL_VMA_BASE))
+#define KADDR_V2P(ADDR) ((void *)((addr_t)(ADDR) - KERNEL_VMA_BASE))
 
 #define ADDR_PML4T_INDEX_SHIFT 39
-#define ADDR_PML4T_INDEX_MASK 0x1ff
-#define ADDR_PDPT_INDEX_SHIFT 30
-#define ADDR_PDPT_INDEX_MASK 0x1ff
-#define ADDR_PDT_INDEX_SHIFT 21
-#define ADDR_PDT_INDEX_MASK 0x1ff
-#define ADDR_OFFSET_SHIFT 0
-#define ADDR_OFFSET_MASK 0x1fffff
+#define ADDR_PML4T_INDEX_MASK  0x1ff
+#define ADDR_PDPT_INDEX_SHIFT  30
+#define ADDR_PDPT_INDEX_MASK   0x1ff
+#define ADDR_PDT_INDEX_SHIFT   21
+#define ADDR_PDT_INDEX_MASK    0x1ff
+#define ADDR_OFFSET_SHIFT      0
+#define ADDR_OFFSET_MASK       0x1fffff
 
 #define ASMLINKAGE __attribute__((sysv_abi))
-#define WEAK __attribute__((weak))
+#define WEAK       __attribute__((weak))
 
 #ifndef STATIC_ASSERT
-#define STATIC_ASSERT(CONDITION,MESSAGE) _Static_assert(CONDITION,MESSAGE)
+#    define STATIC_ASSERT(CONDITION, MESSAGE) _Static_assert(CONDITION, MESSAGE)
 #endif
 
-#define DIV_ROUND_UP(X ,STEP) (((X) + (STEP - 1)) / STEP)
+#define DIV_ROUND_UP(X, STEP) (((X) + (STEP - 1)) / STEP)
 
 #define PADDR_AVAILABLE(ADDR) (ADDR <= 0x00007fffffffffff)
 
@@ -97,22 +98,22 @@ typedef struct message_s
 
         struct
         {
-            void* p1;
-            void* p2;
-            void* p3;
-            void* p4;
+            void *p1;
+            void *p2;
+            void *p3;
+            void *p4;
         } m2;
 
         struct
         {
-            uint32_t  i1;
-            uint32_t  i2;
-            uint32_t  i3;
-            uint32_t  i4;
-            uint64_t  l1;
-            uint64_t  l2;
-            void     *p1;
-            void     *p2;
+            uint32_t i1;
+            uint32_t i2;
+            uint32_t i3;
+            uint32_t i4;
+            uint64_t l1;
+            uint64_t l2;
+            void    *p1;
+            void    *p2;
         } m3;
     };
 } message_t;

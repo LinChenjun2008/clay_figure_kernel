@@ -10,9 +10,10 @@
 #include <lib/alloc_table.h> // allocate_table_t,allocate_table_entry_t
 
 PUBLIC void allocate_table_init(
-    allocate_table_t *table,
+    allocate_table_t       *table,
     allocate_table_entry_t *entries,
-    uint64_t number_of_entries)
+    uint64_t                number_of_entries
+)
 {
     table->number_of_entries = number_of_entries;
     table->frees             = 0;
@@ -22,8 +23,9 @@ PUBLIC void allocate_table_init(
 
 PUBLIC status_t allocate_units(
     allocate_table_t *table,
-    uint64_t number_of_units,
-    uint64_t *index)
+    uint64_t          number_of_units,
+    uint64_t         *index
+)
 {
     if (index == NULL)
     {
@@ -31,7 +33,7 @@ PUBLIC status_t allocate_units(
     }
     uint64_t i;
     uint64_t j;
-    for (i = 0;i < table->number_of_entries;i++)
+    for (i = 0; i < table->number_of_entries; i++)
     {
         if (table->entries[i].number_of_units >= number_of_units)
         {
@@ -54,13 +56,11 @@ PUBLIC status_t allocate_units(
     return K_OUT_OF_RESOURCE;
 }
 
-PUBLIC void free_units(
-    allocate_table_t *table,
-    uint64_t index,
-    uint64_t number_of_units)
+PUBLIC void
+free_units(allocate_table_t *table, uint64_t index, uint64_t number_of_units)
 {
-    uint64_t i,j;
-    for (i = 0;i < table->frees;i++)
+    uint64_t i, j;
+    for (i = 0; i < table->frees; i++)
     {
         if (table->entries[i].index > index)
         {
@@ -69,8 +69,9 @@ PUBLIC void free_units(
     }
     if (i > 0)
     {
-        if (table->entries[i - 1].index + table->entries[i - 1].number_of_units
-            == index)
+        if (table->entries[i - 1].index +
+                table->entries[i - 1].number_of_units ==
+            index)
         {
             table->entries[i - 1].number_of_units += number_of_units;
             if (i < table->frees)
@@ -78,7 +79,7 @@ PUBLIC void free_units(
                 if (index + number_of_units == table->entries[i].index)
                 {
                     table->entries[i - 1].number_of_units +=
-                                            table->entries[i].number_of_units;
+                        table->entries[i].number_of_units;
                     table->frees--;
                     while (i < table->frees)
                     {
@@ -101,12 +102,12 @@ PUBLIC void free_units(
     }
     if (table->frees < table->number_of_entries)
     {
-        for (j = table->frees;j > i;j--)
+        for (j = table->frees; j > i; j--)
         {
             table->entries[j] = table->entries[j - 1];
         }
         table->frees++;
-        table->entries[i].index = index;
+        table->entries[i].index           = index;
         table->entries[i].number_of_units = number_of_units;
         return;
     }
@@ -117,7 +118,7 @@ PUBLIC uint64_t total_free_units(allocate_table_t *table)
 {
     uint64_t i;
     uint64_t free_units = 0;
-    for (i = 0;i < table->frees;i++)
+    for (i = 0; i < table->frees; i++)
     {
         free_units += table->entries[i].number_of_units;
     }

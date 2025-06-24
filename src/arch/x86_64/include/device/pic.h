@@ -9,8 +9,8 @@
 #ifndef __PIC_H__
 #define __PIC_H__
 
-#define SIGNATURE32(A,B,C,D) ( D << 24 | C << 16 | B << 8 | A)
-#define MADT_SIGNATURE SIGNATURE_32('A','P','I','C') //"APIC"
+#define SIGNATURE32(A, B, C, D) (D << 24 | C << 16 | B << 8 | A)
+#define MADT_SIGNATURE          SIGNATURE_32('A', 'P', 'I', 'C') //"APIC"
 
 #define APIC_REG_ID         0x020
 #define APIC_REG_VERSION    0x030
@@ -66,11 +66,11 @@ typedef struct ioapic_s
 
 typedef struct apic_s
 {
-    uint64_t  local_apic_address;
-    uint8_t   number_of_cores;
-    uint8_t   lapic_id[256];
-    uint8_t   number_of_ioapic;
-    ioapic_t  ioapic[8];
+    uint64_t local_apic_address;
+    uint8_t  number_of_cores;
+    uint8_t  lapic_id[256];
+    uint8_t  number_of_ioapic;
+    ioapic_t ioapic[8];
 } apic_t;
 
 /**
@@ -83,7 +83,7 @@ PUBLIC void detect_cores(void);
  * @param index 寄存器索引(MMIO偏移量)
  * @param value 写入值
  */
-PUBLIC void local_apic_write(uint16_t index,uint32_t value);
+PUBLIC void local_apic_write(uint16_t index, uint32_t value);
 
 /**
  * @brief 读取local apic寄存器
@@ -123,6 +123,6 @@ PUBLIC void send_eoi(uint8_t irq);
  * @param pin 中断引脚
  * @param vector 向量号
  */
-PUBLIC void ioapic_enable(uint64_t pin,uint64_t vector);
+PUBLIC void ioapic_enable(uint64_t pin, uint64_t vector);
 
 #endif

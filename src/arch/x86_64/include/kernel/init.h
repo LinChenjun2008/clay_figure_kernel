@@ -19,8 +19,8 @@ typedef struct segmdesc_s
     uint8_t  base_high;    // 56 - 63 base2
 } segmdesc_t;
 
-PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access);
-PUBLIC void init_all(void);
-PUBLIC void ap_init_all(void);
+PUBLIC segmdesc_t make_segmdesc(uint32_t base, uint32_t limit, uint16_t access);
+PUBLIC void       init_all(void);
+PUBLIC void       ap_init_all(void);
 
 #endif

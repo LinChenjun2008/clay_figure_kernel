@@ -84,9 +84,9 @@ enum
 
 typedef struct service_task_s service_task_t;
 
-PUBLIC bool is_service_id(uint32_t sid);
+PUBLIC bool  is_service_id(uint32_t sid);
 PUBLIC pid_t service_id_to_pid(uint32_t sid);
-PUBLIC void service_init(void);
+PUBLIC void  service_init(void);
 
 PUBLIC void tick_main(void);
 PUBLIC void mm_main(void);

@@ -73,8 +73,9 @@ offset |  size (byte)| Mnemonic
 #define HCSP2_MAX_SC_BUF_HI_SHIFT 21
 #define HCSP2_MAX_SC_BUF_HI_MASK  0x1f
 
-#define GET_HCSP2_MAX_SC_BUF(x) ((GET_FIELD(x,HCSP2_MAX_SC_BUF_HI) << 5) \
-                                 | GET_FIELD(x,HCSP2_MAX_SC_BUF_LO))
+#define GET_HCSP2_MAX_SC_BUF(x)                 \
+    ((GET_FIELD(x, HCSP2_MAX_SC_BUF_HI) << 5) | \
+     GET_FIELD(x, HCSP2_MAX_SC_BUF_LO))
 
 // HCSPARAM3
 #define HCSP3_U1_DEVICE_LATENCY_SHIFT 0
@@ -175,10 +176,14 @@ typedef struct xhci_xcap_regs_s
 #define XHCI_OPT_DCBAAP_HI 0x34
 #define XHCI_OPT_CONFIG    0x38
 
-#define XHCI_OPT_PORTSC(n)    (0x400 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
-#define XHCI_OPT_PORTPMSC(n)  (0x404 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
-#define XHCI_OPT_PORTLI(n)    (0x408 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
-#define XHCI_OPT_PORTHLPMC(n) (0x40c + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
+#define XHCI_OPT_PORTSC(n) \
+    (0x400 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
+#define XHCI_OPT_PORTPMSC(n) \
+    (0x404 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
+#define XHCI_OPT_PORTLI(n) \
+    (0x408 + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
+#define XHCI_OPT_PORTHLPMC(n) \
+    (0x40c + ((n) * 0x10)) // n: Port Number-1 (0,1,2,...,Max Port-1)
 
 /* XHCI Runtime Regiseters
      Offset | Mnemonic
@@ -189,7 +194,7 @@ typedef struct xhci_xcap_regs_s
       8000h | IR1023 Interrupter Register Set 1023
 */
 
-#define XHCI_RUN_MFINDEX      0x00
+#define XHCI_RUN_MFINDEX 0x00
 
 /* Interrupt Regisets
 Offset | Size (bits) | Mnemonic
@@ -227,110 +232,110 @@ Offset | Size (bits) | Mnemonic
 // --------------------------------------------------------------
 // configuration
 
-#define XHCI_PAGE_SIZE           4096
+#define XHCI_PAGE_SIZE 4096
 
-#define XHCI_RING_ITEMS          16
-#define XHCI_RING_SIZE           (XHCI_RING_ITEMS * sizeof(xhci_trb_t))
+#define XHCI_RING_ITEMS 16
+#define XHCI_RING_SIZE  (XHCI_RING_ITEMS * sizeof(xhci_trb_t))
 
 /*
  *  xhci_ring structs are allocated with XHCI_RING_SIZE alignment,
  *  then we can get it from a trb pointer (provided by evt ring).
  */
-#define XHCI_RING(_trb)          \
-    ((struct xhci_ring*)((uint32_t)(_trb) & ~(XHCI_RING_SIZE-1)))
+#define XHCI_RING(_trb) \
+    ((struct xhci_ring *)((uint32_t)(_trb) & ~(XHCI_RING_SIZE - 1)))
 
 // --------------------------------------------------------------
 // bit definitions
 
-#define XHCI_CMD_RS              (1 <<  0)
-#define XHCI_CMD_HCRST           (1 <<  1)
-#define XHCI_CMD_INTE            (1 <<  2)
-#define XHCI_CMD_HSEE            (1 <<  3)
-#define XHCI_CMD_LHCRST          (1 <<  7)
-#define XHCI_CMD_CSS             (1 <<  8)
-#define XHCI_CMD_CRS             (1 <<  9)
-#define XHCI_CMD_EWE             (1 << 10)
-#define XHCI_CMD_EU3S            (1 << 11)
+#define XHCI_CMD_RS     (1 << 0)
+#define XHCI_CMD_HCRST  (1 << 1)
+#define XHCI_CMD_INTE   (1 << 2)
+#define XHCI_CMD_HSEE   (1 << 3)
+#define XHCI_CMD_LHCRST (1 << 7)
+#define XHCI_CMD_CSS    (1 << 8)
+#define XHCI_CMD_CRS    (1 << 9)
+#define XHCI_CMD_EWE    (1 << 10)
+#define XHCI_CMD_EU3S   (1 << 11)
 
-#define XHCI_STS_HCH             (1 <<  0)
-#define XHCI_STS_HSE             (1 <<  2)
-#define XHCI_STS_EINT            (1 <<  3)
-#define XHCI_STS_PCD             (1 <<  4)
-#define XHCI_STS_SSS             (1 <<  8)
-#define XHCI_STS_RSS             (1 <<  9)
-#define XHCI_STS_SRE             (1 << 10)
-#define XHCI_STS_CNR             (1 << 11)
-#define XHCI_STS_HCE             (1 << 12)
+#define XHCI_STS_HCH  (1 << 0)
+#define XHCI_STS_HSE  (1 << 2)
+#define XHCI_STS_EINT (1 << 3)
+#define XHCI_STS_PCD  (1 << 4)
+#define XHCI_STS_SSS  (1 << 8)
+#define XHCI_STS_RSS  (1 << 9)
+#define XHCI_STS_SRE  (1 << 10)
+#define XHCI_STS_CNR  (1 << 11)
+#define XHCI_STS_HCE  (1 << 12)
 
-#define XHCI_PORTSC_CCS          (1 <<  0)
-#define XHCI_PORTSC_PED          (1 <<  1)
-#define XHCI_PORTSC_OCA          (1 <<  3)
-#define XHCI_PORTSC_PR           (1 <<  4)
-#define XHCI_PORTSC_PLS_SHIFT     5
-#define XHCI_PORTSC_PLS_MASK      0x0f
-#define XHCI_PORTSC_PP           (1 <<  9)
-#define XHCI_PORTSC_SPEED_SHIFT   10
-#define XHCI_PORTSC_SPEED_MASK    0x0f
-#define XHCI_PORTSC_SPEED_FULL   (1 << 10)
-#define XHCI_PORTSC_SPEED_LOW    (2 << 10)
-#define XHCI_PORTSC_SPEED_HIGH   (3 << 10)
-#define XHCI_PORTSC_SPEED_SUPER  (4 << 10)
-#define XHCI_PORTSC_PIC_SHIFT     14
-#define XHCI_PORTSC_PIC_MASK      0x03
-#define XHCI_PORTSC_LWS          (1 << 16)
-#define XHCI_PORTSC_CSC          (1 << 17)
-#define XHCI_PORTSC_PEC          (1 << 18)
-#define XHCI_PORTSC_WRC          (1 << 19)
-#define XHCI_PORTSC_OCC          (1 << 20)
-#define XHCI_PORTSC_PRC          (1 << 21)
-#define XHCI_PORTSC_PLC          (1 << 22)
-#define XHCI_PORTSC_CEC          (1 << 23)
-#define XHCI_PORTSC_CAS          (1 << 24)
-#define XHCI_PORTSC_WCE          (1 << 25)
-#define XHCI_PORTSC_WDE          (1 << 26)
-#define XHCI_PORTSC_WOE          (1 << 27)
-#define XHCI_PORTSC_DR           (1 << 30)
-#define XHCI_PORTSC_WPR          (1 << 31)
+#define XHCI_PORTSC_CCS         (1 << 0)
+#define XHCI_PORTSC_PED         (1 << 1)
+#define XHCI_PORTSC_OCA         (1 << 3)
+#define XHCI_PORTSC_PR          (1 << 4)
+#define XHCI_PORTSC_PLS_SHIFT   5
+#define XHCI_PORTSC_PLS_MASK    0x0f
+#define XHCI_PORTSC_PP          (1 << 9)
+#define XHCI_PORTSC_SPEED_SHIFT 10
+#define XHCI_PORTSC_SPEED_MASK  0x0f
+#define XHCI_PORTSC_SPEED_FULL  (1 << 10)
+#define XHCI_PORTSC_SPEED_LOW   (2 << 10)
+#define XHCI_PORTSC_SPEED_HIGH  (3 << 10)
+#define XHCI_PORTSC_SPEED_SUPER (4 << 10)
+#define XHCI_PORTSC_PIC_SHIFT   14
+#define XHCI_PORTSC_PIC_MASK    0x03
+#define XHCI_PORTSC_LWS         (1 << 16)
+#define XHCI_PORTSC_CSC         (1 << 17)
+#define XHCI_PORTSC_PEC         (1 << 18)
+#define XHCI_PORTSC_WRC         (1 << 19)
+#define XHCI_PORTSC_OCC         (1 << 20)
+#define XHCI_PORTSC_PRC         (1 << 21)
+#define XHCI_PORTSC_PLC         (1 << 22)
+#define XHCI_PORTSC_CEC         (1 << 23)
+#define XHCI_PORTSC_CAS         (1 << 24)
+#define XHCI_PORTSC_WCE         (1 << 25)
+#define XHCI_PORTSC_WDE         (1 << 26)
+#define XHCI_PORTSC_WOE         (1 << 27)
+#define XHCI_PORTSC_DR          (1 << 30)
+#define XHCI_PORTSC_WPR         (1 << 31)
 
 #define XHCI_TIME_POSTPOWER 20
 
-#define TRB_C               (1 <<  0)
-#define TRB_TYPE_SHIFT       10
-#define TRB_TYPE_MASK        0x3f
-#define TRB_TYPE(t)         (((t) >> TRB_TYPE_SHIFT) & TRB_TYPE_MASK)
+#define TRB_C          (1 << 0)
+#define TRB_TYPE_SHIFT 10
+#define TRB_TYPE_MASK  0x3f
+#define TRB_TYPE(t)    (((t) >> TRB_TYPE_SHIFT) & TRB_TYPE_MASK)
 
-#define TRB_EV_ED           (1 <<  2)
+#define TRB_EV_ED (1 << 2)
 
-#define TRB_TR_ENT          (1 <<  1)
-#define TRB_TR_ISP          (1 <<  2)
-#define TRB_TR_NS           (1 <<  3)
-#define TRB_TR_CH           (1 <<  4)
-#define TRB_TR_IOC          (1 <<  5)
-#define TRB_TR_IDT          (1 <<  6)
+#define TRB_TR_ENT           (1 << 1)
+#define TRB_TR_ISP           (1 << 2)
+#define TRB_TR_NS            (1 << 3)
+#define TRB_TR_CH            (1 << 4)
+#define TRB_TR_IOC           (1 << 5)
+#define TRB_TR_IDT           (1 << 6)
 #define TRB_TR_TBC_SHIFT     7
 #define TRB_TR_TBC_MASK      0x03
-#define TRB_TR_BEI          (1 <<  9)
+#define TRB_TR_BEI           (1 << 9)
 #define TRB_TR_TLBPC_SHIFT   16
 #define TRB_TR_TLBPC_MASK    0x0f
 #define TRB_TR_FRAMEID_SHIFT 20
 #define TRB_TR_FRAMEID_MASK  0x7ff
-#define TRB_TR_SIA          (1 << 31)
+#define TRB_TR_SIA           (1 << 31)
 
-#define TRB_TR_DIR          (1 << 16)
+#define TRB_TR_DIR (1 << 16)
 
 #define TRB_CR_SLOTID_SHIFT 24
 #define TRB_CR_SLOTID_MASK  0xff
 #define TRB_CR_EPID_SHIFT   16
 #define TRB_CR_EPID_MASK    0x1f
 
-#define TRB_CR_BSR          (1 <<  9)
-#define TRB_CR_DC           (1 <<  9)
+#define TRB_CR_BSR (1 << 9)
+#define TRB_CR_DC  (1 << 9)
 
-#define TRB_LK_TC           (1 <<  1)
+#define TRB_LK_TC (1 << 1)
 
-#define TRB_INTR_SHIFT      22
-#define TRB_INTR_MASK       0x3ff
-#define TRB_INTR(t)         (((t).status >> TRB_INTR_SHIFT) & TRB_INTR_MASK)
+#define TRB_INTR_SHIFT 22
+#define TRB_INTR_MASK  0x3ff
+#define TRB_INTR(t)    (((t).status >> TRB_INTR_SHIFT) & TRB_INTR_MASK)
 
 typedef enum trb_type_e
 {
@@ -399,7 +404,7 @@ typedef enum trb_comp_code_e
     CC_STOPPED,
     CC_STOPPED_LENGTH_INVALID,
     CC_MAX_EXIT_LATENCY_TOO_LARGE_ERROR = 29,
-    CC_ISOCH_BUFFER_OVERRUN = 31,
+    CC_ISOCH_BUFFER_OVERRUN             = 31,
     CC_EVENT_LOST_ERROR,
     CC_UNDEFINED_ERROR,
     CC_INVALID_STREAM_ID_ERROR,
@@ -409,16 +414,16 @@ typedef enum trb_comp_code_e
 
 enum
 {
-    PLS_U0              =  0,
-    PLS_U1              =  1,
-    PLS_U2              =  2,
-    PLS_U3              =  3,
-    PLS_DISABLED        =  4,
-    PLS_RX_DETECT       =  5,
-    PLS_INACTIVE        =  6,
-    PLS_POLLING         =  7,
-    PLS_RECOVERY        =  8,
-    PLS_HOT_RESET       =  9,
+    PLS_U0              = 0,
+    PLS_U1              = 1,
+    PLS_U2              = 2,
+    PLS_U3              = 3,
+    PLS_DISABLED        = 4,
+    PLS_RX_DETECT       = 5,
+    PLS_INACTIVE        = 6,
+    PLS_POLLING         = 7,
+    PLS_RECOVERY        = 8,
+    PLS_HOT_RESET       = 9,
     PLS_COMPILANCE_MODE = 10,
     PLS_TEST_MODE       = 11,
     PLS_RESUME          = 15,
@@ -483,11 +488,11 @@ typedef struct xhci_er_seg_s
 
 typedef struct xhci_ring_s
 {
-    xhci_trb_t     *trbs;
-    size_t          trb_count;
-    uint32_t        enqueue;
-    uint32_t        dequeue;
-    uint32_t        cs;
+    xhci_trb_t *trbs;
+    size_t      trb_count;
+    uint32_t    enqueue;
+    uint32_t    dequeue;
+    uint32_t    cs;
     // spinlock_t      lock;
 } xhci_ring_t;
 
@@ -499,22 +504,22 @@ typedef struct xhci_portmap_s
 
 typedef struct xhci_s
 {
-    usb_t            usb;
+    usb_t usb;
 
     /* xhci registers */
-    uint8_t         *mmio_base;
-    uint8_t         *cap_regs;
-    uint8_t         *opt_regs;
-    uint8_t         *run_regs;
-    uint8_t         *doorbell_regs;
+    uint8_t *mmio_base;
+    uint8_t *cap_regs;
+    uint8_t *opt_regs;
+    uint8_t *run_regs;
+    uint8_t *doorbell_regs;
 
     /* devinfo */
-    uint32_t         xecp;
-    uint32_t         ports;
-    uint32_t         slots;
-    uint8_t          context64;
-    xhci_portmap_t   usb2;
-    xhci_portmap_t   usb3;
+    uint32_t       xecp;
+    uint32_t       ports;
+    uint32_t       slots;
+    uint8_t        context64;
+    xhci_portmap_t usb2;
+    xhci_portmap_t usb3;
 
     /* xhci data structures */
     xhci_dev_list_t *devs;
@@ -523,20 +528,20 @@ typedef struct xhci_s
     xhci_ring_t      evts;
 
     /* events */
-    fifo_t           cmds_evts; // command completion event
-    fifo_t           port_evts; // port status change event
-    fifo_t           xfer_evts; // transfer completion event
+    fifo_t cmds_evts; // command completion event
+    fifo_t port_evts; // port status change event
+    fifo_t xfer_evts; // transfer completion event
 } xhci_t;
 
 typedef struct xhci_pipe_s
 {
     xhci_ring_t reqs;
 
-    usb_pipe_t  pipe;
-    uint32_t    slot_id;
-    uint32_t    epid;
-    void       *buf;
-    int         bufused;
+    usb_pipe_t pipe;
+    uint32_t   slot_id;
+    uint32_t   epid;
+    void      *buf;
+    int        bufused;
 } xhci_pipe_t;
 
 /**
@@ -553,17 +558,19 @@ PUBLIC status_t xhci_setup(usb_hub_set_t *hub_set);
 PUBLIC void xhci_process_events(xhci_t *xhci);
 
 PUBLIC usb_pipe_t *xhci_realloc_pipe(
-    usb_device_t *usb_dev,
-    usb_pipe_t *upipe,
-    usb_endpoint_descriptor_t *epdesc);
+    usb_device_t              *usb_dev,
+    usb_pipe_t                *upipe,
+    usb_endpoint_descriptor_t *epdesc
+);
 
 
 PUBLIC int xhci_send_pipe(
     usb_pipe_t *pipe,
-    int dir,
+    int         dir,
     const void *cmd,
-    void *data,
-    int data_len);
+    void       *data,
+    int         data_len
+);
 
 /**
  * @brief 读取xHCI能力寄存器(Capability Registers)
@@ -571,7 +578,7 @@ PUBLIC int xhci_send_pipe(
  * @param reg 寄存器偏移地址
  * @return 寄存器值
  */
-PUBLIC uint32_t xhci_read_cap(xhci_t *xhci,uint32_t reg);
+PUBLIC uint32_t xhci_read_cap(xhci_t *xhci, uint32_t reg);
 
 /**
  * @brief 读取xHCI操作寄存器(Operational Registers)
@@ -579,7 +586,7 @@ PUBLIC uint32_t xhci_read_cap(xhci_t *xhci,uint32_t reg);
  * @param reg 寄存器偏移地址
  * @return 寄存器值
  */
-PUBLIC uint32_t xhci_read_opt(xhci_t *xhci,uint32_t reg);
+PUBLIC uint32_t xhci_read_opt(xhci_t *xhci, uint32_t reg);
 
 /**
  * @brief 写入xHCI操作寄存器(Operational Registers)
@@ -587,7 +594,7 @@ PUBLIC uint32_t xhci_read_opt(xhci_t *xhci,uint32_t reg);
  * @param reg 寄存器偏移地址
  * @param val 写入值
  */
-PUBLIC void xhci_write_opt(xhci_t *xhci,uint32_t reg,uint32_t val);
+PUBLIC void xhci_write_opt(xhci_t *xhci, uint32_t reg, uint32_t val);
 
 /**
  * @brief 读取xHCI运行时寄存器(Runtine Registers)
@@ -595,7 +602,7 @@ PUBLIC void xhci_write_opt(xhci_t *xhci,uint32_t reg,uint32_t val);
  * @param reg 寄存器偏移地址
  * @return 寄存器值
  */
-PUBLIC uint32_t xhci_read_run(xhci_t *xhci,uint32_t reg);
+PUBLIC uint32_t xhci_read_run(xhci_t *xhci, uint32_t reg);
 
 /**
  * @brief 写入xHCI运行时寄存器(Runtine Registers)
@@ -603,7 +610,7 @@ PUBLIC uint32_t xhci_read_run(xhci_t *xhci,uint32_t reg);
  * @param reg 寄存器偏移地址
  * @param value 写入值
  */
-PUBLIC void xhci_write_run(xhci_t *xhci,uint32_t reg,uint32_t val);
+PUBLIC void xhci_write_run(xhci_t *xhci, uint32_t reg, uint32_t val);
 
 /**
  * @brief 读取xHCI门铃寄存器(Doorbell Registers)
@@ -611,7 +618,7 @@ PUBLIC void xhci_write_run(xhci_t *xhci,uint32_t reg,uint32_t val);
  * @param reg 寄存器偏移地址
  * @return 寄存器值
  */
-PUBLIC uint32_t xhci_read_doorbell(xhci_t *xhci,uint32_t reg);
+PUBLIC uint32_t xhci_read_doorbell(xhci_t *xhci, uint32_t reg);
 
 /**
  * @brief 写入xHCI门铃寄存器(Doorbell Registers)
@@ -619,6 +626,6 @@ PUBLIC uint32_t xhci_read_doorbell(xhci_t *xhci,uint32_t reg);
  * @param reg 寄存器偏移地址
  * @param value 写入值
  */
-PUBLIC void xhci_write_doorbell(xhci_t *xhci,uint32_t reg,uint32_t val);
+PUBLIC void xhci_write_doorbell(xhci_t *xhci, uint32_t reg, uint32_t val);
 
 #endif

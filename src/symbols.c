@@ -9,16 +9,16 @@
 #include <kernel/global.h>
 #include <kernel/symbols.h>
 
-extern void *kallsyms_address[] WEAK;
-extern const char * const kallsyms_symbols[] WEAK;
+extern void              *kallsyms_address[] WEAK;
+extern const char *const  kallsyms_symbols[] WEAK;
 extern int kallsyms_count WEAK;
 
 PUBLIC int is_available_symbol_address(void *addr)
 {
-    return addr >= (void*)&_kernel_start && addr <= (void*)&_kernel_end ;
+    return addr >= (void *)&_kernel_start && addr <= (void *)&_kernel_end;
 }
 
-PUBLIC status_t get_symbol_index_by_addr(void *addr,int *index)
+PUBLIC status_t get_symbol_index_by_addr(void *addr, int *index)
 {
     int i;
     for (i = 0; i < kallsyms_count; i++)
@@ -56,7 +56,7 @@ PUBLIC const char *addr_to_symbol(void *addr)
     {
         return "Invalid";
     }
-    int i;
+    int      i;
     status_t status = get_symbol_index_by_addr(addr, &i);
     if (ERROR(status))
     {

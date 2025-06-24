@@ -12,25 +12,25 @@
 #include <common.h>
 #undef __BOOTLOADER__
 
-#define PG_P 0x1
-#define PG_RW_R 0x0
-#define PG_RW_W 0x2
-#define PG_US_S 0x0
-#define PG_US_U 0x4
+#define PG_P       0x1
+#define PG_RW_R    0x0
+#define PG_RW_W    0x2
+#define PG_US_S    0x0
+#define PG_US_U    0x4
 #define PG_SIZE_2M 0x80
 
 EFI_STATUS GetMemoryMap(memory_map_t *memmap)
 {
     EFI_STATUS Status = EFI_SUCCESS;
-    Status = gBS->AllocatePool(EfiLoaderData,memmap->map_size,&memmap->buffer);
-    if(EFI_ERROR(Status))
+    Status =
+        gBS->AllocatePool(EfiLoaderData, memmap->map_size, &memmap->buffer);
+    if (EFI_ERROR(Status))
     {
         return Status;
     }
-    Status = gBS->GetMemoryMap
-    (
+    Status = gBS->GetMemoryMap(
         &memmap->map_size,
-        (EFI_MEMORY_DESCRIPTOR*)memmap->buffer,
+        (EFI_MEMORY_DESCRIPTOR *)memmap->buffer,
         &memmap->map_key,
         &memmap->descriptor_size,
         &memmap->descriptor_version
@@ -67,7 +67,7 @@ VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
     EFI_PHYSICAL_ADDRESS PDPT;
     EFI_PHYSICAL_ADDRESS PDT;
 
-    gBS->SetMem((void*)PG_TABLE,9 * 0x1000,0);
+    gBS->SetMem((void *)PG_TABLE, 9 * 0x1000, 0);
     PML4T = PG_TABLE; // 0x1000-> PML4T
     PG_TABLE += 0x1000;
     /*
@@ -76,20 +76,20 @@ VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
     0x0000000000000000 - 0x00000000ffffffff ==> 0xffff800000000000 - 0xffff8000ffffffff
     */
     EFI_PHYSICAL_ADDRESS addr = 0;
-    PDPT  = PG_TABLE;
+    PDPT                      = PG_TABLE;
     PG_TABLE += 0x1000;
-    ((UINTN*)PML4T)[000] = PDPT | PG_US_U | PG_RW_W | PG_P; // 0x00000...
-    ((UINTN*)PML4T)[256] = PDPT | PG_US_U | PG_RW_W | PG_P; // 0xffff8...
-    UINTN pdpt_index,pdt_index;
-    for (pdpt_index = 0;pdpt_index < 4;pdpt_index++)
+    ((UINTN *)PML4T)[000] = PDPT | PG_US_U | PG_RW_W | PG_P; // 0x00000...
+    ((UINTN *)PML4T)[256] = PDPT | PG_US_U | PG_RW_W | PG_P; // 0xffff8...
+    UINTN pdpt_index, pdt_index;
+    for (pdpt_index = 0; pdpt_index < 4; pdpt_index++)
     {
         PDT = PG_TABLE;
         PG_TABLE += 0x1000;
-        ((UINTN*)PDPT)[pdpt_index] = PDT | PG_US_U | PG_RW_W | PG_P;
-        for (pdt_index = 0;pdt_index < 512;pdt_index++)
+        ((UINTN *)PDPT)[pdpt_index] = PDT | PG_US_U | PG_RW_W | PG_P;
+        for (pdt_index = 0; pdt_index < 512; pdt_index++)
         {
             UINTN PDT_entry = addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
-            ((UINTN*)PDT)[pdt_index] = PDT_entry;
+            ((UINTN *)PDT)[pdt_index] = PDT_entry;
             addr += 0x200000;
         }
     }
@@ -100,25 +100,27 @@ VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
     addr = 0;
     PDPT = PG_TABLE;
     PG_TABLE += 0x1000;
-    ((UINTN*)PML4T)[511] = PDPT | PG_US_U | PG_RW_W | PG_P; // kernel
-    PDT = PG_TABLE;
+    ((UINTN *)PML4T)[511] = PDPT | PG_US_U | PG_RW_W | PG_P; // kernel
+    PDT                   = PG_TABLE;
     PG_TABLE += 0x1000;
-    ((UINTN*)PDPT)[510] = PDT | PG_US_U | PG_RW_W | PG_P;
-    for (pdt_index = 0;pdt_index < 2;pdt_index++)
+    ((UINTN *)PDPT)[510] = PDT | PG_US_U | PG_RW_W | PG_P;
+    for (pdt_index = 0; pdt_index < 2; pdt_index++)
     {
-        ((UINTN*)PDT)[pdt_index] = addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
+        ((UINTN *)PDT)[pdt_index] =
+            addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
         addr += 0x200000;
     }
     // Frame buffer
     addr = Gop->Mode->FrameBufferBase;
-    PDT = PG_TABLE;
+    PDT  = PG_TABLE;
     PG_TABLE += 0x1000;
-    ((UINTN*)PDPT)[511] = PDT | PG_US_U | PG_RW_W | PG_P;
+    ((UINTN *)PDPT)[511] = PDT | PG_US_U | PG_RW_W | PG_P;
     for (pdt_index = 0;
          pdt_index < (Gop->Mode->FrameBufferSize + 0x1fffff) / 0x200000;
          pdt_index++)
     {
-        ((UINTN*)PDT)[pdt_index] = addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
+        ((UINTN *)PDT)[pdt_index] =
+            addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
         addr += 0x200000;
     }
     return;

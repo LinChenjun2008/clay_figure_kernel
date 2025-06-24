@@ -39,19 +39,19 @@ PUBLIC apic_t apic;
 
 PUBLIC void detect_cores(void)
 {
-    apic.local_apic_address   = 0;
-    apic.number_of_cores      = 0;
-    apic.number_of_ioapic     = 0;
+    apic.local_apic_address = 0;
+    apic.number_of_cores    = 0;
+    apic.number_of_ioapic   = 0;
     memset(&apic.lapic_id, 0, sizeof(apic.lapic_id));
-    memset(  &apic.ioapic, 0,   sizeof(apic.ioapic));
+    memset(&apic.ioapic, 0, sizeof(apic.ioapic));
 
-    MADT_t *madt = (MADT_t*)KADDR_P2V(g_boot_info->madt_addr);
+    MADT_t *madt            = (MADT_t *)KADDR_P2V(g_boot_info->madt_addr);
     apic.local_apic_address = madt->LocalApicAddress;
-    uint8_t *p = (uint8_t*)(madt + 1);
-    uint8_t *p2 = (uint8_t*)madt + madt->Header.Length;
-    for (p = (uint8_t*)(madt + 1);p < p2;p += p[1]/* Record Length */)
+    uint8_t *p              = (uint8_t *)(madt + 1);
+    uint8_t *p2             = (uint8_t *)madt + madt->Header.Length;
+    for (p = (uint8_t *)(madt + 1); p < p2; p += p[1] /* Record Length */)
     {
-        switch(p[0]) // Entry Type
+        switch (p[0]) // Entry Type
         {
             case 0:
                 if (p[4] & 1)
@@ -60,16 +60,16 @@ PUBLIC void detect_cores(void)
                 }
                 break;
             case 1:
-                uint64_t ioapic_addr = (uint64_t)(*(uint32_t*)(p + 4) + 0UL);
+                uint64_t ioapic_addr = (uint64_t)(*(uint32_t *)(p + 4) + 0UL);
 
-                apic.ioapic[apic.number_of_ioapic].index_addr
-                    = (uint8_t*)ioapic_addr;
+                apic.ioapic[apic.number_of_ioapic].index_addr =
+                    (uint8_t *)ioapic_addr;
 
-                apic.ioapic[apic.number_of_ioapic].data_addr
-                    = (uint32_t*)(ioapic_addr + 0x10UL);
+                apic.ioapic[apic.number_of_ioapic].data_addr =
+                    (uint32_t *)(ioapic_addr + 0x10UL);
 
-                apic.ioapic[apic.number_of_ioapic].EOI_addr
-                    = (uint32_t*)(ioapic_addr + 0x40UL);
+                apic.ioapic[apic.number_of_ioapic].EOI_addr =
+                    (uint32_t *)(ioapic_addr + 0x40UL);
 
                 apic.number_of_ioapic++;
                 break;
@@ -78,15 +78,15 @@ PUBLIC void detect_cores(void)
     return;
 }
 
-PUBLIC void local_apic_write(uint16_t index,uint32_t value)
+PUBLIC void local_apic_write(uint16_t index, uint32_t value)
 {
-    *(uint32_t*)KADDR_P2V(apic.local_apic_address + index) = value;
+    *(uint32_t *)KADDR_P2V(apic.local_apic_address + index) = value;
     io_mfence();
 }
 
 PUBLIC uint32_t local_apic_read(uint16_t index)
 {
-    return *(uint32_t*)KADDR_P2V(apic.local_apic_address + index);
+    return *(uint32_t *)KADDR_P2V(apic.local_apic_address + index);
     io_mfence();
 }
 
@@ -99,16 +99,16 @@ PRIVATE void xapic_init()
     {
         svr |= 1 << 12;
     }
-    local_apic_write(APIC_REG_SVR,svr);
+    local_apic_write(APIC_REG_SVR, svr);
 
     // Mask all LVT
-    local_apic_write(0x2f0,0x10000);
-    local_apic_write(0x320,0x10000);
-    local_apic_write(0x330,0x10000);
-    local_apic_write(0x340,0x10000);
-    local_apic_write(0x350,0x10000);
-    local_apic_write(0x360,0x10000);
-    local_apic_write(0x370,0x10000);
+    local_apic_write(0x2f0, 0x10000);
+    local_apic_write(0x320, 0x10000);
+    local_apic_write(0x330, 0x10000);
+    local_apic_write(0x340, 0x10000);
+    local_apic_write(0x350, 0x10000);
+    local_apic_write(0x360, 0x10000);
+    local_apic_write(0x370, 0x10000);
 }
 
 PRIVATE void x2apic_init()
@@ -120,22 +120,22 @@ PRIVATE void x2apic_init()
     {
         svr |= 1 << 12;
     }
-    wrmsr(0x80f,svr);
+    wrmsr(0x80f, svr);
 
     // Mask all LVT
-    wrmsr(0x82f,0x10000);
-    wrmsr(0x832,0x10000);
-    wrmsr(0x833,0x10000);
-    wrmsr(0x834,0x10000);
-    wrmsr(0x835,0x10000);
-    wrmsr(0x836,0x10000);
-    wrmsr(0x837,0x10000);
+    wrmsr(0x82f, 0x10000);
+    wrmsr(0x832, 0x10000);
+    wrmsr(0x833, 0x10000);
+    wrmsr(0x834, 0x10000);
+    wrmsr(0x835, 0x10000);
+    wrmsr(0x836, 0x10000);
+    wrmsr(0x837, 0x10000);
 }
 
 PUBLIC void local_apic_init()
 {
-    uint32_t a,b,c,d;
-    asm_cpuid(1,0,&a,&b,&c,&d);
+    uint32_t a, b, c, d;
+    asm_cpuid(1, 0, &a, &b, &c, &d);
     uint64_t ia32_apic_base = rdmsr(IA32_APIC_BASE);
     if ((c & (1 << 21)) && (ia32_apic_base & 0x400))
     {
@@ -168,39 +168,39 @@ PUBLIC void local_apic_init()
 //     return ret;
 // }
 
-PRIVATE void ioapic_rte_write(uint8_t index,uint64_t value)
+PRIVATE void ioapic_rte_write(uint8_t index, uint64_t value)
 {
-    *(uint8_t*)KADDR_P2V(apic.ioapic[0].index_addr) = index;
+    *(uint8_t *)KADDR_P2V(apic.ioapic[0].index_addr) = index;
     io_mfence();
-    *(uint32_t*)KADDR_P2V(apic.ioapic[0].data_addr) = value & 0xffffffff;
+    *(uint32_t *)KADDR_P2V(apic.ioapic[0].data_addr) = value & 0xffffffff;
     value >>= 32;
     io_mfence();
 
-    *(uint8_t*)KADDR_P2V(apic.ioapic[0].index_addr) = index + 1;
+    *(uint8_t *)KADDR_P2V(apic.ioapic[0].index_addr) = index + 1;
     io_mfence();
-    *(uint32_t*)KADDR_P2V(apic.ioapic[0].data_addr) = value & 0xffffffff;
+    *(uint32_t *)KADDR_P2V(apic.ioapic[0].data_addr) = value & 0xffffffff;
     io_mfence();
     return;
 }
 
-PUBLIC void ioapic_enable(uint64_t pin,uint64_t vector)
+PUBLIC void ioapic_enable(uint64_t pin, uint64_t vector)
 {
-    ioapic_rte_write(pin * 2 + 0x10,vector & 0xff);
+    ioapic_rte_write(pin * 2 + 0x10, vector & 0xff);
     return;
 }
 
 PRIVATE void ioapic_init()
 {
-    *(uint8_t*)KADDR_P2V(apic.ioapic[0].index_addr) = 0;
+    *(uint8_t *)KADDR_P2V(apic.ioapic[0].index_addr) = 0;
     io_mfence();
-    *(uint32_t*)KADDR_P2V(apic.ioapic[0].data_addr) = 0x0f000000;
+    *(uint32_t *)KADDR_P2V(apic.ioapic[0].data_addr) = 0x0f000000;
     io_mfence();
 
     /* 屏蔽所有中断 */
     int i;
-    for (i = 0x10;i < 0x40;i += 2)
+    for (i = 0x10; i < 0x40; i += 2)
     {
-        ioapic_rte_write(i,0x10000);
+        ioapic_rte_write(i, 0x10000);
     }
     return;
 }
@@ -209,12 +209,12 @@ PUBLIC void apic_init()
 {
 
     // 禁止8259A的所有中断
-    io_out8(PIC_M_DATA, 0xff ); /* 11111111 禁止所有中断 */
-    io_out8(PIC_S_DATA, 0xff ); /* 11111111 禁止所有中断 */
+    io_out8(PIC_M_DATA, 0xff); /* 11111111 禁止所有中断 */
+    io_out8(PIC_S_DATA, 0xff); /* 11111111 禁止所有中断 */
 
     // IMCR
-    io_out8(0x22,0x70);
-    io_out8(0x23,0x01);
+    io_out8(0x22, 0x70);
+    io_out8(0x23, 0x01);
 
     local_apic_init();
     ioapic_init();
