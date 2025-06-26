@@ -2,7 +2,7 @@
    Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
+   修改和/或再分发依照 GNU GPLv3-or-later
 
 */
 
@@ -37,7 +37,8 @@ PUBLIC segmdesc_t make_segmdesc(uint32_t base, uint32_t limit, uint16_t access)
 
 PUBLIC segmdesc_t gdt_table[8192];
 
-extern void  asm_load_gdt(void *gdt_ptr, uint16_t code, uint16_t data);
+extern void asm_load_gdt(void *gdt_ptr, uint16_t code, uint16_t data);
+
 PRIVATE void load_gdt(void)
 {
     uint128_t gdt_ptr =
@@ -47,7 +48,8 @@ PRIVATE void load_gdt(void)
     return;
 }
 
-extern void  asm_ltr(uint64_t sel);
+extern void asm_ltr(uint64_t sel);
+
 PRIVATE void load_tss(uint8_t nr_cpu)
 {
     asm_ltr(SELECTOR_TSS(nr_cpu));
@@ -135,7 +137,8 @@ PUBLIC void init_all(void)
 }
 
 extern taskmgr_t *tm;
-PUBLIC void       ap_init_all(void)
+
+PUBLIC void ap_init_all(void)
 {
     intr_disable();
     init_tss(apic_id());

@@ -2,7 +2,7 @@
    Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
+   修改和/或再分发依照 GNU GPLv3-or-later
 
 */
 
@@ -15,7 +15,7 @@
 extern segmdesc_t gdt_table[];
 
 #pragma pack(1)
-struct TSS64
+typedef struct tss64_s
 {
     uint32_t reserved1;
 
@@ -38,14 +38,14 @@ struct TSS64
     uint32_t reserved5;
 
     uint32_t io_map;
-};
+} tss64_t;
 #pragma pack()
 
-PRIVATE struct TSS64 tss[NR_CPUS];
+PRIVATE tss64_t tss[NR_CPUS];
 
 PUBLIC void init_tss(uint8_t nr_cpu)
 {
-    uint32_t tss_size = sizeof(struct TSS64);
+    uint32_t tss_size = sizeof(tss[0]);
     memset(&tss[nr_cpu], 0, tss_size);
     tss[nr_cpu].io_map  = tss_size << 16;
     uint64_t tss_base_l = ((uint64_t)&tss[nr_cpu]) & 0xffffffff;

@@ -2,7 +2,7 @@
    Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
+   修改和/或再分发依照 GNU GPLv3-or-later
 
 */
 
@@ -50,7 +50,7 @@ typedef struct
     addr_t     VirtualStart;
     uint64_t   NumberOfPages;
     uint64_t   Attribute;
-} __attribute__((aligned(16))) EFI_MEMORY_DESCRIPTOR;
+} ALIGNED(16) EFI_MEMORY_DESCRIPTOR;
 
 PRIVATE struct
 {
@@ -82,7 +82,6 @@ PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
         case EfiBootServicesData:
         case EfiLoaderCode:
             return FREE_MEMORY;
-            break;
         case EfiLoaderData:
         case EfiRuntimeServicesCode:
         case EfiRuntimeServicesData:
@@ -91,20 +90,15 @@ PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
         case EfiPalCode:
         case EfiReservedMemoryType:
             return RESERVED_MEMORY;
-            break;
         case EfiACPIReclaimMemory:
             return ACPI_MEMORY;
-            break;
         case EfiACPIMemoryNVS:
             return ACPI_MEMORY_NVS;
-            break;
         case EfiUnusableMemory:
         case EfiMaxMemoryType:
             return UNUSEABLE_MEMORY;
-            break;
         default:
             return MAX_MEMORY_TYPE;
-            break;
     }
     return MAX_MEMORY_TYPE;
 }

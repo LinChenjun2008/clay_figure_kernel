@@ -2,7 +2,7 @@
    Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
+   修改和/或再分发依照 GNU GPLv3-or-later
 
 */
 
@@ -12,7 +12,7 @@
 #define K_NAME    "Clay Figure Kernel"
 #define K_VERSION "v0.0.0"
 
-#define __DISABLE_SERIAL_LOG__
+// #define __DISABLE_SERIAL_LOG__
 
 // #define __DISABLE_ASSERT__
 

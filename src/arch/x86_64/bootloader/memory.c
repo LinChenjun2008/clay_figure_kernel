@@ -2,7 +2,7 @@
    Copyright 2024 LinChenjun
 
    本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
+   修改和/或再分发依照 GNU GPLv3-or-later
 
 */
 
@@ -49,10 +49,18 @@ VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
     * 0x519000 - 0x5fffff (924KB) - 空闲
     * 0x600000 - ...             -空闲内存
     映射:
-    0x0000000000000000 - 0x00000000ffffffff ==> 0x0000000000000000 - 0x00000000ffffffff
-    0x0000000000000000 - 0x00000000ffffffff ==> 0xffff800000000000 - 0xffff8000ffffffff
-    0xffffffff80000000 - 0xffffffff80400000 ==> kernel
-    0xffffffffc0000000 - 0xffffffffffffffff ==> frame buffer
+        0x0000000000000000 - 0x00000000ffffffff
+    ==> 0x0000000000000000 - 0x00000000ffffffff
+
+        0x0000000000000000 - 0x00000000ffffffff
+    ==> 0xffff800000000000 - 0xffff8000ffffffff
+
+        0xffffffff80000000 - 0xffffffff80400000
+    ==> kernel
+
+        0xffffffffc0000000 - 0xffffffffffffffff
+    ==> frame buffer
+
     PML4E 0         PDPTE 3       PDE 511       offset
     0(1)000 0000 0 | 000 0000 11 | 11 1111 111 | 1 1111 1111 1111 1111 1111
     0(8)    0    0       0    f       f    f       f    f    f    f    f
@@ -72,8 +80,11 @@ VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
     PG_TABLE += 0x1000;
     /*
     * 进行以下映射:
-    0x0000000000000000 - 0x00000000ffffffff ==> 0x0000000000000000 - 0x00000000ffffffff
-    0x0000000000000000 - 0x00000000ffffffff ==> 0xffff800000000000 - 0xffff8000ffffffff
+        0x0000000000000000 - 0x00000000ffffffff
+    ==> 0x0000000000000000 - 0x00000000ffffffff
+
+        0x0000000000000000 - 0x00000000ffffffff
+    ==> 0xffff800000000000 - 0xffff8000ffffffff
     */
     EFI_PHYSICAL_ADDRESS addr = 0;
     PDPT                      = PG_TABLE;

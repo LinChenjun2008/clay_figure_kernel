@@ -2,7 +2,7 @@
    Copyright 2024 LinChenjun
 
    本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
+   修改和/或再分发依照 GNU GPLv3-or-later
 
 */
 
@@ -126,10 +126,11 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
     }
 
     // Get memory map
-    boot_info->memory_map.map_size = 4096 * 4,
-    boot_info->memory_map.buffer = NULL, boot_info->memory_map.map_key = 0,
-    boot_info->memory_map.descriptor_size    = 0,
-    boot_info->memory_map.descriptor_version = 0,
+    boot_info->memory_map.map_size           = 4096 * 4;
+    boot_info->memory_map.buffer             = NULL;
+    boot_info->memory_map.map_key            = 0;
+    boot_info->memory_map.descriptor_size    = 0;
+    boot_info->memory_map.descriptor_version = 0;
     Status = GetMemoryMap(&boot_info->memory_map);
     if (EFI_ERROR(Status))
     {

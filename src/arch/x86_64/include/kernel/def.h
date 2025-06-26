@@ -2,7 +2,7 @@
    Copyright 2024 LinChenjun
 
    本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
+   修改和/或再分发依照 GNU GPLv3-or-later
 
 */
 
@@ -47,8 +47,9 @@ typedef int bool;
 #define ADDR_OFFSET_SHIFT      0
 #define ADDR_OFFSET_MASK       0x1fffff
 
-#define ASMLINKAGE __attribute__((sysv_abi))
-#define WEAK       __attribute__((weak))
+#define ASMLINKAGE     __attribute__((sysv_abi))
+#define WEAK           __attribute__((weak))
+#define ALIGNED(ALIGN) __attribute__((aligned(ALIGN)))
 
 #ifndef STATIC_ASSERT
 #    define STATIC_ASSERT(CONDITION, MESSAGE) _Static_assert(CONDITION, MESSAGE)

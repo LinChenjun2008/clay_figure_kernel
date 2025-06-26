@@ -2,13 +2,15 @@
    Copyright 2024-2025 LinChenjun
 
    本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
+   修改和/或再分发依照 GNU GPLv3-or-later
 
 */
 
 #include <kernel/global.h>
 #include <device/pci.h>
 #include <io.h> // io_out32,io_in32
+
+#include <log.h>
 
 PRIVATE pci_device_t pci_devices[256];
 PRIVATE uint8_t      number_of_pci_device;
@@ -162,12 +164,15 @@ PRIVATE void add_device(pci_device_t *device)
 {
     pci_devices[number_of_pci_device] = *device;
     number_of_pci_device++;
-    // pr_log(LOG_DEBUG," pci {%02x,%02x,%02x} class code: %06x: %s.\n",
-    //         device->bus,
-    //         device->device,
-    //         device->func,
-    //         ((device->class_code) >> 8) & 0xffffff,
-    //         pci_dev_type_str(device));
+    pr_log(
+        LOG_DEBUG,
+        " pci {%02x,%02x,%02x} class code: %06x: %s.\n",
+        device->bus,
+        device->device,
+        device->func,
+        ((device->class_code) >> 8) & 0xffffff,
+        pci_dev_type_str(device)
+    );
 }
 
 PRIVATE void scan_func(uint8_t bus, uint8_t dev, uint8_t func);
