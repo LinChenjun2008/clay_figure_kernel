@@ -8,13 +8,14 @@
 
 #include <kernel/global.h>
 #include <kernel/syscall.h> // sys_send_recv
-#include <task/task.h>      // task functions,include list,spinlock,alloc_table
-#include <service.h>        // message type
-#include <mem/mem.h>        // memory functions
-#include <intr.h>           // intr functions
-#include <std/string.h>     // memcpy
 
 #include <log.h>
+
+#include <intr.h>       // intr functions
+#include <mem/mem.h>    // memory functions
+#include <service.h>    // message type
+#include <std/string.h> // memcpy
+#include <task/task.h>  // task functions,include list,spinlock,alloc_table
 
 extern taskmgr_t *tm;
 

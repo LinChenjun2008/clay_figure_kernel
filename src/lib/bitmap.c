@@ -7,10 +7,11 @@
 */
 
 #include <kernel/global.h>
-#include <lib/bitmap.h>
-#include <std/string.h> // memset
 
 #include <log.h> // PANIC
+
+#include <lib/bitmap.h>
+#include <std/string.h> // memset
 
 PUBLIC void init_bitmap(bitmap_t *btmp)
 {

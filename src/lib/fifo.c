@@ -7,9 +7,10 @@
 */
 
 #include <kernel/global.h>
+
+#include <device/spinlock.h>
 #include <lib/fifo.h>
 #include <std/string.h>
-#include <device/spinlock.h>
 
 PUBLIC void init_fifo(fifo_t *fifo, void *data, size_t item_size, int size)
 {

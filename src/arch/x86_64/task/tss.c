@@ -8,9 +8,10 @@
 
 #include <kernel/global.h>
 #include <kernel/init.h> // segmdesc
-#include <task/task.h>   // task_struct
-#include <std/string.h>  // memset,memcpy
-#include <device/cpu.h>  // apic_id
+
+#include <device/cpu.h> // apic_id
+#include <std/string.h> // memset,memcpy
+#include <task/task.h>  // task_struct
 
 extern segmdesc_t gdt_table[];
 

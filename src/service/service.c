@@ -7,8 +7,9 @@
 */
 
 #include <kernel/global.h>
-#include <task/task.h>
+
 #include <service.h>
+#include <task/task.h>
 
 PRIVATE pid_t service_pid_table[SERVICES];
 

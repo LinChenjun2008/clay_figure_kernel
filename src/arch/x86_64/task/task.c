@@ -7,17 +7,18 @@
 */
 
 #include <kernel/global.h>
-#include <task/task.h>  // include sse,spinlock
-#include <mem/mem.h>    // pmalloc,to_physical_address,init_alloc_physical_page
-#include <intr.h>       // intr functions
-#include <io.h>         // get_cr3 get_rsp
-#include <device/cpu.h> // apic_id
-#include <std/string.h> // memset,strlen,strcpy
-#include <service.h>    // MM_EXIT
 #include <kernel/syscall.h> // sys_send_recv
-#include <sync/atomic.h>    // atomic functions
 
 #include <log.h>
+
+#include <device/cpu.h>  // apic_id
+#include <intr.h>        // intr functions
+#include <io.h>          // get_cr3 get_rsp
+#include <mem/mem.h>     // pmalloc,to_physical_address,init_alloc_physical_page
+#include <service.h>     // MM_EXIT
+#include <std/string.h>  // memset,strlen,strcpy
+#include <sync/atomic.h> // atomic functions
+#include <task/task.h>   // include sse,spinlock
 
 PUBLIC taskmgr_t *tm;
 

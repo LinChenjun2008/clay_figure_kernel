@@ -7,16 +7,17 @@
 */
 
 #include <kernel/global.h>
-#include <task/task.h>      // task struct & functions,spinlock
-#include <mem/mem.h>        // alloc_physical_page,page_map,pmalloc,pfree
-#include <intr.h>           // intr_stack_t
-#include <io.h>             // set_cr3
-#include <device/cpu.h>     // apic_id
-#include <std/string.h>     // memset,memcpy
 #include <kernel/syscall.h> // sys_send_recv
-#include <service.h>        // MM_EXIT
 
 #include <log.h>
+
+#include <device/cpu.h> // apic_id
+#include <intr.h>       // intr_stack_t
+#include <io.h>         // set_cr3
+#include <mem/mem.h>    // alloc_physical_page,page_map,pmalloc,pfree
+#include <service.h>    // MM_EXIT
+#include <std/string.h> // memset,memcpy
+#include <task/task.h>  // task struct & functions,spinlock
 
 extern taskmgr_t *tm;
 

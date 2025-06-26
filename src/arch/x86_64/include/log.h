@@ -25,9 +25,7 @@
 #define RGB(r, g, b) \
     (SET_FIELD(0, RED, r) | SET_FIELD(0, GREEN, g) | SET_FIELD(0, BLUE, b))
 
-#define ARGB(a, r, g, b)                                                      \
-    (SET_FIELD(0, ALPHA, a) | SET_FIELD(0, RED, r) | SET_FIELD(0, GREEN, g) | \
-     SET_FIELD(0, BLUE, b))
+#define ARGB(a, r, g, b) (SET_FIELD(RGB(r, g, b), ALPHA, a))
 
 typedef struct position_s
 {

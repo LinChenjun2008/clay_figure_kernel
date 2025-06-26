@@ -1,8 +1,9 @@
 #include <kernel/global.h>
-#include <device/usb/usb.h> // usb_device_t
-#include <device/usb/hid.h> // usb hid flags
 
 #include <log.h>
+
+#include <device/usb/hid.h> // usb hid flags
+#include <device/usb/usb.h> // usb_device_t
 
 PUBLIC int usb_hid_setup(usb_device_t *usb_dev)
 {

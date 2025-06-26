@@ -7,14 +7,15 @@
 */
 
 #include <kernel/global.h>
-#include <task/task.h>   // task_struct_t running_task,task block/unblock,list
-#include <service.h>     // is_service_id,service_id_to_pid
-#include <std/string.h>  // memcpy
-#include <intr.h>        // intr_disable,intr_enable
-#include <sync/atomic.h> // atomic_inc,atomic_dec
 #include <kernel/syscall.h>
 
 #include <log.h>
+
+#include <intr.h>        // intr_disable,intr_enable
+#include <service.h>     // is_service_id,service_id_to_pid
+#include <std/string.h>  // memcpy
+#include <sync/atomic.h> // atomic_inc,atomic_dec
+#include <task/task.h>   // task_struct_t running_task,task block/unblock,list
 
 PRIVATE bool deadlock(pid_t src, pid_t dest)
 {

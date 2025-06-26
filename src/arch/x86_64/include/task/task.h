@@ -9,10 +9,10 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-#include <lib/list.h>
-#include <lib/alloc_table.h>
 #include <device/spinlock.h>
 #include <device/sse.h>
+#include <lib/alloc_table.h>
+#include <lib/list.h>
 #include <sync/atomic.h>
 
 typedef enum task_status_e

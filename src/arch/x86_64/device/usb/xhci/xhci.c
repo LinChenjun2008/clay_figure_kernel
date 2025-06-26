@@ -9,13 +9,14 @@
 */
 
 #include <kernel/global.h>
-#include <device/usb/xhci.h> // xhci struct
+
+#include <log.h>
+
 #include <device/pci.h>      // pci functions
+#include <device/usb/xhci.h> // xhci struct
 #include <mem/mem.h>         // pmalloc,pfree
 #include <std/string.h>      // memset
 #include <task/task.h>       // task_start
-
-#include <log.h>
 
 PRIVATE int speed_from_xhci(uint8_t speed)
 {

@@ -7,6 +7,7 @@
 */
 
 #include <kernel/global.h>
+
 #include <sync/atomic.h> // atomic_t
 
 PUBLIC void atomic_set(atomic_t *atom, uint64_t value)

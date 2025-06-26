@@ -8,10 +8,11 @@
 
 #include <kernel/global.h>
 #include <kernel/syscall.h>
-#include <service.h>
-#include <ulib.h>
 
 #include <log.h>
+
+#include <service.h>
+#include <ulib.h>
 
 PRIVATE struct
 {

@@ -7,6 +7,7 @@
 */
 
 #include <kernel/global.h>
+
 #include <lib/list.h>
 
 PUBLIC void list_init(list_t *list)

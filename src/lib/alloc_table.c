@@ -7,6 +7,7 @@
 */
 
 #include <kernel/global.h>
+
 #include <lib/alloc_table.h> // allocate_table_t,allocate_table_entry_t
 
 PUBLIC void allocate_table_init(

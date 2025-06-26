@@ -7,12 +7,13 @@
 */
 
 #include <kernel/global.h>
-#include <task/task.h>    // task structs & functions,list,sse
+
+#include <log.h>
+
 #include <device/cpu.h>   // apic_id
 #include <device/timer.h> // MSECOND_TO_TICKS
 #include <intr.h>         // intr functions
-
-#include <log.h>
+#include <task/task.h>    // task structs & functions,list,sse
 
 extern taskmgr_t        *tm;
 extern volatile uint64_t global_ticks;

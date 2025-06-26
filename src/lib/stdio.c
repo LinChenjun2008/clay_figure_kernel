@@ -7,9 +7,10 @@
 */
 
 #include <kernel/global.h>
+
+#include <std/stdarg.h>
 #include <std/stdio.h>
 #include <std/string.h>
-#include <std/stdarg.h>
 
 
 #define FORMAT_LEFT    (1 << 0)

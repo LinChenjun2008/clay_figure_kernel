@@ -7,6 +7,7 @@
 */
 
 #include <kernel/global.h>
+
 #include <device/pic.h>
 #include <io.h> // io_out8
 

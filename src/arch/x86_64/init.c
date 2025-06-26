@@ -8,19 +8,20 @@
 
 #include <kernel/global.h>
 #include <kernel/init.h>
-#include <intr.h>
-#include <device/pic.h>
-#include <device/cpu.h>
-#include <device/sse.h>
-#include <device/timer.h>
-#include <device/pci.h>
-#include <mem/mem.h>
-#include <task/task.h>
 #include <kernel/syscall.h>
-#include <service.h>
-#include <io.h> // get_cr3,set_cr3
 
 #include <log.h>
+
+#include <device/cpu.h>
+#include <device/pci.h>
+#include <device/pic.h>
+#include <device/sse.h>
+#include <device/timer.h>
+#include <intr.h>
+#include <io.h> // get_cr3,set_cr3
+#include <mem/mem.h>
+#include <service.h>
+#include <task/task.h>
 
 PUBLIC segmdesc_t make_segmdesc(uint32_t base, uint32_t limit, uint16_t access)
 {

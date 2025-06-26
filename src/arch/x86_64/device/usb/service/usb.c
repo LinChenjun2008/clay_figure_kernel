@@ -8,13 +8,15 @@
 */
 
 #include <kernel/global.h>
-#include <service.h>         // previous prototype for 'usb_main'
-#include <device/usb/xhci.h> // xhci_setup
+
+#include <log.h>
+
 #include <device/usb/hid.h>  // USB_INTERFACE_SUBCLASS_BOOT
+#include <device/usb/xhci.h> // xhci_setup
 #include <mem/mem.h>         // pmalloc
+#include <service.h>         // previous prototype for 'usb_main'
 #include <std/string.h>      // memset
 #include <task/task.h>       // task_msleep,task_start
-#include <log.h>
 
 PRIVATE void usb_setup(usb_hub_set_t *hub_set)
 {

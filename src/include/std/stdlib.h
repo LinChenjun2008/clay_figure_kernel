@@ -2,6 +2,7 @@
 #define __STDLIB_H__
 
 #include <kernel/global.h>
+
 #include <mem/mem.h>
 
 static inline void *malloc(size_t size)

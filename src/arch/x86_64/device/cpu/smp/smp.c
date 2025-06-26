@@ -5,18 +5,18 @@
    修改和/或再分发依照 GNU GPLv3-or-later
 
 */
-
 #include <kernel/global.h>
-#include <device/cpu.h> // rdmsr,wrmsr,
-#include <device/pic.h> // local_apic_write,eoi,apic
-#include <mem/mem.h>    // alloc_physical_page
-#include <std/string.h> // memcpy
-#include <intr.h>       // register_handle
-#include <io.h>         // io_hlt
-#include <task/task.h>  // init_task_struct,spinlock,list
-#include <std/stdio.h>  // sprintf
 
 #include <log.h>
+
+#include <device/cpu.h> // rdmsr,wrmsr,
+#include <device/pic.h> // local_apic_write,eoi,apic
+#include <intr.h>       // register_handle
+#include <io.h>         // io_hlt
+#include <mem/mem.h>    // alloc_physical_page
+#include <std/stdio.h>  // sprintf
+#include <std/string.h> // memcpy
+#include <task/task.h>  // init_task_struct,spinlock,list
 
 extern apic_t     apic;
 extern taskmgr_t *tm;

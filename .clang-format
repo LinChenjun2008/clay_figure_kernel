@@ -273,7 +273,26 @@ NamespaceIndentation: None
 
 # 控制是否排序 include 文件
 # 可选值: true - 排序, false - 不排序
-SortIncludes: false
+SortIncludes: true
+
+# 设置 include 块的处理方式
+# 可选值:
+#   Preserve - 保持原始顺序
+#   Merge - 合并相邻块
+#   Regroup - 重新分组
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:           'kernel/*.*'
+    Priority:        1
+    SortPriority:    0
+
+  - Regex:           '<log\.h>'
+    Priority:        2
+    SortPriority:    0
+
+  - Regex:           '!(kernel/global|log).*'
+    Priority:        3
+    SortPriority:    1
 
 # 控制是否排序 using 声明
 # 可选值: true - 排序, false - 不排序
@@ -290,13 +309,6 @@ DerivePointerAlignment: false
 # 控制是否修复命名空间注释
 # 可选值: true - 修复, false - 不修复
 FixNamespaceComments: false
-
-# 设置 include 块的处理方式
-# 可选值:
-#   Preserve - 保持原始顺序
-#   Merge - 合并相邻块
-#   Regroup - 重新分组
-IncludeBlocks: Preserve
 
 # 控制是否保留代码块开头的空行
 # 可选值: true - 保留, false - 不保留

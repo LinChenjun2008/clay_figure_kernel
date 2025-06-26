@@ -7,8 +7,9 @@
 */
 
 #include <kernel/global.h>
-#include <device/sse.h> // fxsave_region_t
+
 #include <device/cpu.h> // cpuid
+#include <device/sse.h> // fxsave_region_t
 
 PUBLIC status_t check_sse(void)
 {

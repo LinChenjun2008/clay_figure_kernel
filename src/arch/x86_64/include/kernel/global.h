@@ -33,8 +33,8 @@
 #define K_TIMEOUT         0xc000000a
 #define K_SUCCESS         0x80000000
 
-#include <kernel/def.h>
 #include <kernel/const.h>
+#include <kernel/def.h>
 
 #include <common.h>
 

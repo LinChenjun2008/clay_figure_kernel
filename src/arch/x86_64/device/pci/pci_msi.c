@@ -7,9 +7,11 @@
 */
 
 #include <kernel/global.h>
+
+#include <log.h>
+
 #include <device/pci.h> // pci_device_t,pci_dev_config_read,pci_dev_config_write
 #include <device/pic.h> // apic
-#include <log.h>
 
 extern apic_t apic;
 

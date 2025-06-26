@@ -1,6 +1,7 @@
 #include <kernel/global.h>
-#include <service.h>
 #include <kernel/syscall.h>
+
+#include <service.h>
 #include <ulib.h>
 
 PUBLIC uint64_t get_ticks(void)

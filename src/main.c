@@ -7,18 +7,18 @@
 */
 
 #include <kernel/global.h>
-#include <common.h>
 #include <kernel/init.h>
-#include <intr.h>
-#include <task/task.h>
 #include <kernel/syscall.h>
-#include <device/cpu.h>
-#include <service.h>
-#include <std/stdio.h>
-#include <io.h>
 
 #include <log.h>
 
+#include <common.h>
+#include <device/cpu.h>
+#include <intr.h>
+#include <io.h>
+#include <service.h>
+#include <std/stdio.h>
+#include <task/task.h>
 #include <ulib.h>
 
 PUBLIC boot_info_t  *g_boot_info = (boot_info_t *)0xffff800000410000;

@@ -1,10 +1,9 @@
 #ifndef __EFI_SPEC__
 #define __EFI_SPEC__
 
-#include <Uefi/UefiMultiPhase.h>
-
 #include <Procotol/SimpleTextIn.h>
 #include <Procotol/SimpleTextOut.h>
+#include <Uefi/UefiMultiPhase.h>
 
 typedef enum
 {

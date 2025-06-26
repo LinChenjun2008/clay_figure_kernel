@@ -7,12 +7,13 @@
 */
 
 #include <kernel/global.h>
-#include <lib/bitmap.h>      // bitmap
-#include <mem/mem.h>         // pmalloc
-#include <device/spinlock.h> // spinlock
-#include <std/string.h>      // memset
 
 #include <log.h>
+
+#include <device/spinlock.h> // spinlock
+#include <lib/bitmap.h>      // bitmap
+#include <mem/mem.h>         // pmalloc
+#include <std/string.h>      // memset
 
 typedef enum
 {

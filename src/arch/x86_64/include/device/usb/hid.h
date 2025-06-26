@@ -12,6 +12,8 @@
 #define HID_REQ_SET_IDLE     0x0A
 #define HID_REQ_SET_PROTOCOL 0x0B
 
+#include <device/usb/usb.h> // usb_devie_t
+
 PUBLIC int usb_hid_setup(usb_device_t *usb_dev);
 
 #endif

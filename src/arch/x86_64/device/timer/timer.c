@@ -7,14 +7,15 @@
 */
 
 #include <kernel/global.h>
-#include <io.h>             // io_out8
-#include <intr.h>           // register_handle
-#include <device/pic.h>     // eoi
-#include <device/cpu.h>     // make_icr,send_IPI
-#include <task/task.h>      // do_schedule
 #include <kernel/syscall.h> // inform_intr
-#include <device/timer.h>   // COUNTER0_VALUE_LO,COUNTER0_VALUE_HI,
-                            // IRQ0_FREQUENCY
+
+#include <device/cpu.h>   // make_icr,send_IPI
+#include <device/pic.h>   // eoi
+#include <device/timer.h> // COUNTER0_VALUE_LO,COUNTER0_VALUE_HI,
+#include <intr.h>         // register_handle
+#include <io.h>           // io_out8
+#include <task/task.h>    // do_schedule
+                          // IRQ0_FREQUENCY
 
 #include <log.h>
 

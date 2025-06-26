@@ -7,10 +7,11 @@
 */
 
 #include <kernel/global.h>
-#include <device/pic.h> // apic_t
-#include <io.h>         // io_out8
 
 #include <log.h>
+
+#include <device/pic.h> // apic_t
+#include <io.h>         // io_out8
 
 extern apic_t apic;
 

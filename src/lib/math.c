@@ -7,6 +7,7 @@
 */
 
 #include <kernel/global.h>
+
 #include <lib/math.h>
 
 #define PI       3.14159265358979323846

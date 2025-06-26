@@ -7,12 +7,13 @@
 */
 
 #include <kernel/global.h>
-#include <io.h>         // io_mfence,io_out8
-#include <device/cpu.h> // wrmsr,rdmsr,cpuid
-#include <device/pic.h> // apic_t,ioapic_t
-#include <std/string.h> // memset
 
 #include <log.h>
+
+#include <device/cpu.h> // wrmsr,rdmsr,cpuid
+#include <device/pic.h> // apic_t,ioapic_t
+#include <io.h>         // io_mfence,io_out8
+#include <std/string.h> // memset
 
 /*
  Base Address | MSR address | Name               | Attribute
