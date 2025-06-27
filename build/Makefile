@@ -33,16 +33,16 @@ init:
 	-$(MKDIR) "$(ESP_PATH)/Kernel"
 
 $(TARGET_BOOTLOADER): $(BOOTLOADER_SRC)
-	@$(ECHO) [$(MINGW64_GCC)] compiling $^
+	@$(ECHO) making $@
 	@"$(MINGW64_GCC)" $(BOOTLOADER_FLAGS) -o $@ $^
 
 %.o: %.c
 	@$(ECHO) compiling $*.c
-	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -Wa,--noexecstack -MP -MD -MF $*.dep -c -o $*.o $*.c
+	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -MP -MD -MF $*.dep -c -o $*.o $*.c
 
 %.o: %.S
 	@$(ECHO) compiling $*.S
-	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -Wa,--noexecstack -MP -MD -MF $*.dep -c -o $*.o $*.S
+	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -MP -MD -MF $*.dep -c -o $*.o $*.S
 
 $(TARGET_KERNEL): $(TMP_KERNEL_TARGET)
 	@$(ECHO) making $@
@@ -52,7 +52,7 @@ $(TMP_KERNEL_TARGET): $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o) $(KERNEL_LINKER_
 	@$(ECHO) linking [1/2]
 	@"$(X86_64-ELF-LD)" -T $(KERNEL_LINKER_SCRIPT) -pie -o $@ $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o)
 	@"$(NM)" -W -n $@ | "./kallsyms" > $@_sym.c
-	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -Wa,--noexecstack -c -o $@_sym.o $@_sym.c
+	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -c -o $@_sym.o $@_sym.c
 	@$(ECHO) linking [2/2]
 	@"$(X86_64-ELF-LD)" -T $(KERNEL_LINKER_SCRIPT) -pie -o $@ $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o) $@_sym.o
 	@"$(RM)" $@_sym.c $@_sym.o
