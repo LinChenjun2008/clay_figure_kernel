@@ -22,7 +22,9 @@ debug: all
 
 .PHONY: clean
 clean:
-	-@"$(RM)" $(KERNEL_C_SRC:c=o) $(KERNEL_C_SRC:c=dep) $(KERNEL_ASM_SRC:S=o) $(TMP_KERNEL_TARGET) $(TARGET_BOOTLOADER)
+	-@"$(RM)" $(KERNEL_C_SRC:c=o) $(KERNEL_C_SRC:c=dep)   \
+	$(KERNEL_ASM_SRC:S=o) $(KERNEL_ASM_SRC:S=dep) \
+	$(TMP_KERNEL_TARGET) $(TARGET_BOOTLOADER)
 
 .PHONY: init
 init:

@@ -121,6 +121,21 @@ PUBLIC void pr_log(int level, const char *log, ...)
     return;
 }
 
+PUBLIC void pr_msg(const char *msg, ...)
+{
+    char    buf[256];
+    va_list ap;
+    va_start(ap, msg);
+    serial_pr_log(0, msg, ap);
+    va_end(ap);
+
+    va_start(ap, msg);
+    vsprintf(buf, msg, ap);
+    basic_print(&g_tb, 0x00c5c5c5, buf);
+    va_end(ap);
+    return;
+}
+
 PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col)
 {
     uint8_t *character = ascii_character[(uint32_t)c];
@@ -137,38 +152,14 @@ PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col)
         {
             pixel[j] = 0x00000000;
         }
-        if ((data & 0x80) != 0)
-        {
-            pixel[0] = col;
-        }
-        if ((data & 0x40) != 0)
-        {
-            pixel[1] = col;
-        }
-        if ((data & 0x20) != 0)
-        {
-            pixel[2] = col;
-        }
-        if ((data & 0x10) != 0)
-        {
-            pixel[3] = col;
-        }
-        if ((data & 0x08) != 0)
-        {
-            pixel[4] = col;
-        }
-        if ((data & 0x04) != 0)
-        {
-            pixel[5] = col;
-        }
-        if ((data & 0x02) != 0)
-        {
-            pixel[6] = col;
-        }
-        if ((data & 0x01) != 0)
-        {
-            pixel[7] = col;
-        }
+        if ((data & 0x80) != 0) pixel[0] = col;
+        if ((data & 0x40) != 0) pixel[1] = col;
+        if ((data & 0x20) != 0) pixel[2] = col;
+        if ((data & 0x10) != 0) pixel[3] = col;
+        if ((data & 0x08) != 0) pixel[4] = col;
+        if ((data & 0x04) != 0) pixel[5] = col;
+        if ((data & 0x02) != 0) pixel[6] = col;
+        if ((data & 0x01) != 0) pixel[7] = col;
     }
     if (c != 255)
     {
@@ -186,38 +177,14 @@ PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col)
             {
                 pixel[j] = 0x00000000;
             }
-            if ((data & 0x80) != 0)
-            {
-                pixel[0] = col;
-            }
-            if ((data & 0x40) != 0)
-            {
-                pixel[1] = col;
-            }
-            if ((data & 0x20) != 0)
-            {
-                pixel[2] = col;
-            }
-            if ((data & 0x10) != 0)
-            {
-                pixel[3] = col;
-            }
-            if ((data & 0x08) != 0)
-            {
-                pixel[4] = col;
-            }
-            if ((data & 0x04) != 0)
-            {
-                pixel[5] = col;
-            }
-            if ((data & 0x02) != 0)
-            {
-                pixel[6] = col;
-            }
-            if ((data & 0x01) != 0)
-            {
-                pixel[7] = col;
-            }
+            if ((data & 0x80) != 0) pixel[0] = col;
+            if ((data & 0x40) != 0) pixel[1] = col;
+            if ((data & 0x20) != 0) pixel[2] = col;
+            if ((data & 0x10) != 0) pixel[3] = col;
+            if ((data & 0x08) != 0) pixel[4] = col;
+            if ((data & 0x04) != 0) pixel[5] = col;
+            if ((data & 0x02) != 0) pixel[6] = col;
+            if ((data & 0x01) != 0) pixel[7] = col;
         }
     }
 
@@ -239,6 +206,25 @@ PRIVATE void clear_line(textbox_t *tb)
             *pixel = 0x00000000;
         }
     }
+}
+
+PUBLIC void clear_textbox(textbox_t *tb)
+{
+    uint32_t i;
+    for (i = 0; i < tb->ysize; i++)
+    {
+        uint32_t j;
+        for (j = 0; j < tb->xsize; j++)
+        {
+            uint32_t *pixel =
+                (uint32_t *)g_graph_info->frame_buffer_base +
+                (tb->box_pos.y + i) * g_graph_info->pixel_per_scanline +
+                (j + tb->box_pos.x);
+            *pixel = 0x00000000;
+        }
+    }
+    tb->cur_pos.x = 0;
+    tb->cur_pos.y = 0;
 }
 
 PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str)
@@ -353,7 +339,9 @@ PUBLIC void init_ttf_info(ttf_info_t *ttf_info)
             ttf_info->bitmap = KADDR_P2V(btmp);
             if (ERROR(status))
             {
-                pr_log(0, "\3Failed to allocate memory for ttf bitmap.\n");
+                PR_LOG(
+                    LOG_ERROR, "Failed to allocate memory for ttf bitmap.\n"
+                );
                 return;
             }
             ttf_info->has_ttf = 1;

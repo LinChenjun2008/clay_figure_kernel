@@ -38,13 +38,13 @@ sys_send_recv(uint32_t nr, pid_t src_dest, message_t *msg)
             }
             break;
         default:
-            pr_log(LOG_WARN, "unknow syscall nr: 0x%x", nr);
+            PR_LOG(LOG_WARN, "unknow syscall nr: 0x%x", nr);
             res = SYSCALL_NO_SYSCALL;
             break;
     }
     if (res != SYSCALL_SUCCESS)
     {
-        pr_log(LOG_ERROR, "syscall error: %x\n", res);
+        PR_LOG(LOG_ERROR, "syscall error: %x\n", res);
     }
     return res;
 }

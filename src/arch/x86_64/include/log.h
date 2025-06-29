@@ -65,7 +65,10 @@ typedef struct
 #define LOG_DEBUG 5
 #define LOG_TRACE 6
 
-PUBLIC void pr_log(int level, const char *str, ...);
+PUBLIC void pr_log(int level, const char *log, ...);
+PUBLIC void pr_msg(const char *msg, ...);
+PUBLIC void clear_textbox(textbox_t *tb);
+
 // PUBLIC void pr_log_ttf(const char* str,...);
 
 PUBLIC void panic_spin(
@@ -75,13 +78,16 @@ PUBLIC void panic_spin(
     const char *message
 );
 
-#define PANIC(CONDITION, MESSAGE)                                  \
-    do                                                             \
-    {                                                              \
-        if (CONDITION)                                             \
-        {                                                          \
-            panic_spin(__FILE__, __LINE__, __FUNCTION__, MESSAGE); \
-        }                                                          \
+#define PR_LOG(LEVEL, MESSAGE, args...) \
+    pr_log(LEVEL, "%s: " MESSAGE, __func__, ##args)
+
+#define PANIC(CONDITION, MESSAGE)                              \
+    do                                                         \
+    {                                                          \
+        if (CONDITION)                                         \
+        {                                                      \
+            panic_spin(__FILE__, __LINE__, __func__, MESSAGE); \
+        }                                                      \
     } while (0)
 
 #if defined __DISABLE_ASSERT__

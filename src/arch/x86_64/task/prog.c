@@ -44,12 +44,12 @@ PRIVATE void start_process(void *process)
     status_t status = alloc_physical_page(1, &ustack);
     if (ERROR(status))
     {
-        pr_log(LOG_ERROR, "Alloc User Stack error.\n");
+        PR_LOG(LOG_ERROR, "Alloc User Stack error.\n");
         message_t msg;
         msg.type  = MM_EXIT;
         msg.m1.i1 = K_NOMEM;
         sys_send_recv(NR_BOTH, MM, &msg);
-        pr_log(LOG_FATAL, "%s: Shuold not be here.", __func__);
+        PR_LOG(LOG_FATAL, "%s: Shuold not be here.", __func__);
         while (1) continue;
     }
     cur->ustack_base = ustack;
@@ -177,14 +177,14 @@ PUBLIC task_struct_t *prog_execute(
     ASSERT(task->page_dir != NULL);
     if (task->page_dir == NULL)
     {
-        pr_log(LOG_ERROR, "Can not alloc memory for task page table.\n");
+        PR_LOG(LOG_ERROR, "Can not alloc memory for task page table.\n");
         goto fail;
     }
     status = user_vaddr_table_init(task);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
-        pr_log(LOG_ERROR, "Can not init vaddr table.\n");
+        PR_LOG(LOG_ERROR, "Can not init vaddr table.\n");
         goto fail;
     }
     spinlock_lock(&tm->core[apic_id()].task_list_lock);

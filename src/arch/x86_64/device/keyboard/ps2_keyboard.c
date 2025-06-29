@@ -35,8 +35,7 @@ PRIVATE void intr_keyboard_handler(intr_stack_t *stack)
     do
     {
         uint8_t scancode = io_in8(KEYBOARD_DATA_PORT);
-        pr_log(0, "\n");
-        pr_log(LOG_INFO, "Key: [%02x]\n", scancode);
+        PR_LOG(LOG_INFO, "Key: [%02x]\n", scancode);
         // if (scancode != 0xfa)
         // {
         //     inform_intr(KBD_SRV);

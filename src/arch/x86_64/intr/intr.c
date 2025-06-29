@@ -55,61 +55,55 @@ PRIVATE void set_gatedesc(gate_desc_t *gd, void *func, int selector, int ar)
 
 PRIVATE void pr_debug_info(intr_stack_t *stack)
 {
-    pr_log(0, "\n");
+    pr_msg("\n");
     int i;
     for (i = 0; i < 19; i++)
     {
-        pr_log(0, "=====");
+        pr_msg("=====");
     }
-    pr_log(0, "\n");
-    pr_log(0, "Registers:\n\n");
+    pr_msg("\n");
+    pr_msg("Registers:\n\n");
     uint64_t cr2, cr3;
     cr2 = get_cr2();
     cr3 = get_cr3();
-    pr_log(
-        0,
+    pr_msg(
         "CS:RIP %04x:%p\n"
         "ERROR CODE: %016x ",
         stack->cs,
         stack->rip,
         stack->error_code
     );
-    pr_log(0, "\n");
-    pr_log(0, "CR2 - %016lx, CR3 - %016lx\n", cr2, cr3);
-    pr_log(
-        0,
+    pr_msg("\n");
+    pr_msg("CR2 - %016lx, CR3 - %016lx\n", cr2, cr3);
+    pr_msg(
         "DS  - %016lx, ES  - %016lx, FS  - %016lx, GS  - %016lx\n",
         stack->ds,
         stack->es,
         stack->fs,
         stack->gs
     );
-    pr_log(
-        0,
+    pr_msg(
         "RAX - %016lx, RBX - %016lx, RCX - %016lx, RDX - %016lx\n",
         stack->rax,
         stack->rbx,
         stack->rcx,
         stack->rdx
     );
-    pr_log(
-        0,
+    pr_msg(
         "RSP - %016lx, RBP - %016lx, RSI - %016lx, RDI - %016lx\n",
         stack->rsp,
         stack->rbp,
         stack->rsi,
         stack->rdi
     );
-    pr_log(
-        0,
+    pr_msg(
         "R8  - %016lx, R9  - %016lx, R10 - %016lx, R11 - %016lx\n",
         stack->r8,
         stack->r9,
         stack->r10,
         stack->r11
     );
-    pr_log(
-        0,
+    pr_msg(
         "R12 - %016lx, R13 - %016lx, R14 - %016lx, R15 - %016lx\n",
         stack->r12,
         stack->r13,
@@ -119,20 +113,20 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
     uint32_t a, b, c, d;
     asm_cpuid(1, 0, &a, &b, &c, &d);
     b >>= 24;
-    pr_log(0, "CPUID: %d\n", b);
+    pr_msg("CPUID: %d\n", b);
 
     PANIC(running_task() == NULL, "Can not Get Running Task.");
 
     task_struct_t *running = running_task();
-    pr_log(0, "running task: %s\n", running->name);
-    pr_log(0, "task context: %p\n", running->context);
+    pr_msg("running task: %s\n", running->name);
+    pr_msg("task context: %p\n", running->context);
 
     // Backtrace
     for (i = 0; i < 19; i++)
     {
-        pr_log(0, "=====");
+        pr_msg("=====");
     }
-    pr_log(0, "\nKernel Stack Backtrace:\n\n");
+    pr_msg("\nKernel Stack Backtrace:\n\n");
     int     sym_idx;
     addr_t *rip = (addr_t *)stack->rip;
     addr_t *rbp = (addr_t *)stack->rbp;
@@ -143,8 +137,7 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
         {
             break;
         }
-        pr_log(
-            0,
+        pr_msg(
             "    At address: %p [ %s + %#x ]\n",
             rip,
             index_to_symbol(sym_idx),
@@ -155,9 +148,9 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
     }
     for (i = 0; i < 19; i++)
     {
-        pr_log(0, "=====");
+        pr_msg("=====");
     }
-    pr_log(0, "\n");
+    pr_msg("\n");
 }
 
 PRIVATE void default_irq_handler(intr_stack_t *stack)
@@ -168,13 +161,13 @@ PRIVATE void default_irq_handler(intr_stack_t *stack)
         return;
     }
     spinlock_lock(&intr_lock);
-    pr_log(0, "\n");
-    pr_log(0, "INTR : 0x%x", int_vector);
+    pr_msg("\n");
+    pr_msg("INTR : 0x%x", int_vector);
     if (int_vector < 20)
     {
-        pr_log(0, ": %s", intr_name[int_vector]);
+        pr_msg(": %s", intr_name[int_vector]);
     }
-    pr_log(0, "\n");
+    pr_msg("\n");
     spinlock_unlock(&intr_lock);
     pr_debug_info(stack);
     task_struct_t *running = running_task();

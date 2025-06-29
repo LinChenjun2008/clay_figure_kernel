@@ -115,7 +115,7 @@ PUBLIC void configure_msi(
     }
     else if (msix_cap_addr)
     {
-        pr_log(LOG_WARN, "MSI-X not implemented.\n");
+        PR_LOG(LOG_WARN, "MSI-X not implemented.\n");
     }
 }
 
@@ -124,7 +124,7 @@ pci_dev_configure_msi(pci_device_t *dev, uint32_t irq, uint32_t count)
 {
     if (!dev->msi.msi_capable)
     {
-        pr_log(
+        PR_LOG(
             LOG_ERROR,
             "PCI Device %x:%x:%x Not Support MSI.\n",
             dev->bus,
@@ -136,7 +136,7 @@ pci_dev_configure_msi(pci_device_t *dev, uint32_t irq, uint32_t count)
     pci_msi_struct_t *msi = &dev->msi;
     if (count > 32 || count > msi->msg_cnt || ((count - 1) & count) != 0)
     {
-        pr_log(LOG_ERROR, "MSI: inavlid count.\n");
+        PR_LOG(LOG_ERROR, "MSI: inavlid count.\n");
     }
     if (msi->configured_count != 0)
     {
@@ -174,7 +174,7 @@ PUBLIC status_t pci_dev_enable_msi(pci_device_t *dev)
     pci_msi_struct_t *msi = &dev->msi;
     if (msi->configured_count == 0)
     {
-        pr_log(LOG_ERROR, "No MSI configured.\n");
+        PR_LOG(LOG_ERROR, "No MSI configured.\n");
         return K_HW_NOSUPPORT;
     }
     uint32_t pci_command = pci_dev_config_read(dev, 0x04);

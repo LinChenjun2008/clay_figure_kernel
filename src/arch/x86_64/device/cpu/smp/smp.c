@@ -61,7 +61,7 @@ PUBLIC status_t smp_init(void)
     );
     if (ERROR(status))
     {
-        pr_log(LOG_FATAL, "can not alloc memory for apu. \n");
+        PR_LOG(LOG_FATAL, "can not alloc memory for apu. \n");
         return K_NOMEM;
     }
     *(phy_addr_t *)AP_STACK_BASE_PTR = (phy_addr_t)apu_stack_base;
@@ -75,7 +75,7 @@ PUBLIC status_t smp_init(void)
         status = task_alloc(&ap_main_pid);
         if (ERROR(status))
         {
-            pr_log(LOG_FATAL, "Alloc task for AP error.\n");
+            PR_LOG(LOG_FATAL, "Alloc task for AP error.\n");
             free_physical_page(
                 apu_stack_base,
                 ((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1
