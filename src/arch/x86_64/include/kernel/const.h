@@ -9,41 +9,8 @@
 #ifndef __CONST_H__
 #define __CONST_H__
 
-
-#define KERNEL_VMA_BASE  0xffff800000000000
-#define KERNEL_TEXT_BASE 0xffffffff80000000
-
-#define KERNEL_PAGE_DIR_TABLE_POS 0x0000000000510000
-
 #define KERNEL_STACK_BASE 0x400000
 #define KERNEL_STACK_SIZE 0x10000
-
-#define PT_SIZE 0x1000
-#define PG_SIZE 0x200000
-
-#define PAGE_BITMAP_BYTES_LEN 2048
-
-#define MIN_ALLOCATE_MEMORY_SIZE     32
-#define MAX_ALLOCATE_MEMORY_SIZE     524288
-#define NUMBER_OF_MEMORY_BLOCK_TYPES 14
-
-// Present
-#define PG_P (1 << 0)
-
-// Read/Write
-#define PG_RW_R (0 << 1)
-#define PG_RW_W (1 << 1)
-
-// User/Supervisor
-#define PG_US_S (0 << 2)
-#define PG_US_U (1 << 2)
-
-// Page Chace Disable
-#define PG_PCD (1 << 4)
-
-#define PG_SIZE_2M (1 << 7)
-
-#define PG_DEFAULT_FLAGS (PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M)
 
 #define TSS_D_0 0
 #define AR_TSS32                                                      \
@@ -189,29 +156,5 @@
 
 #define PCI_CONFIG_ADDRESS 0x0cf8
 #define PCI_CONFIG_DATA    0x0cfc
-
-#define NR_SEND 0x80000001
-#define NR_RECV 0x80000002
-#define NR_BOTH 0x80000003
-
-#define RECV_FROM_INT (MAX_TASK + 1)
-#define RECV_FROM_ANY (MAX_TASK + 2)
-
-#define SERVICE_ID_BASE 0x80000000UL
-
-#define SERVICES 5
-
-#define TICK    SERVICE_ID_BASE
-#define MM      SERVICE_ID_BASE + 1
-#define VIEW    SERVICE_ID_BASE + 2
-#define USB_SRV SERVICE_ID_BASE + 3
-#define KBD_SRV SERVICE_ID_BASE + 4
-
-#define SYSCALL_SUCCESS        0x80000000
-#define SYSCALL_ERROR          0xc0000000
-#define SYSCALL_NO_SYSCALL     (SYSCALL_ERROR | 0x00000001)
-#define SYSCALL_DEADLOCK       (SYSCALL_ERROR | 0x00000002)
-#define SYSCALL_DEST_NOT_EXIST (SYSCALL_ERROR | 0x00000003)
-#define SYSCALL_SRC_NOT_EXIST  (SYSCALL_ERROR | 0x00000004)
 
 #endif

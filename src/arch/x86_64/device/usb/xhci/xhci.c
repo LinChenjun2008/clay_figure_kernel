@@ -14,7 +14,8 @@
 
 #include <device/pci.h>      // pci functions
 #include <device/usb/xhci.h> // xhci struct
-#include <mem/mem.h>         // pmalloc,pfree
+#include <mem/allocator.h>   // pmalloc,pfree
+#include <mem/page.h>        // KADDR_V2P,KADDR_P2V
 #include <std/string.h>      // memset
 #include <task/task.h>       // task_start
 

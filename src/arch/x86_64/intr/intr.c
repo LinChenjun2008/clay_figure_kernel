@@ -216,8 +216,9 @@ PUBLIC void intr_init(void)
     {
         irq_handler[i] = default_irq_handler;
     }
-    uint128_t idt_ptr = (((uint128_t)0 + ((uint128_t)((uint64_t)idt))) << 16) |
-                        (sizeof(idt) - 1);
+    uint64_t idt_ptr[2];
+    idt_ptr[0] = ((((uint64_t)idt)) << 16) | (sizeof(idt) - 1);
+    idt_ptr[1] = ((((uint64_t)idt)) >> 48) & 0xffff;
     asm_lidt(&idt_ptr);
     init_spinlock(&intr_lock);
 
@@ -227,8 +228,9 @@ PUBLIC void intr_init(void)
 
 PUBLIC void ap_intr_init(void)
 {
-    uint128_t idt_ptr = (((uint128_t)0 + ((uint128_t)((uint64_t)idt))) << 16) |
-                        (sizeof(idt) - 1);
+    uint64_t idt_ptr[2];
+    idt_ptr[0] = ((((uint64_t)idt)) << 16) | (sizeof(idt) - 1);
+    idt_ptr[1] = ((((uint64_t)idt)) >> 48) & 0xffff;
     asm_lidt(&idt_ptr);
 }
 

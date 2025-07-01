@@ -16,6 +16,7 @@
 #include <device/cpu.h>
 #include <intr.h>
 #include <io.h>
+#include <mem/page.h>
 #include <service.h>
 #include <std/stdio.h>
 #include <task/task.h>

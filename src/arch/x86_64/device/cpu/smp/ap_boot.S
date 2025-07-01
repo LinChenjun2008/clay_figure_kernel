@@ -8,6 +8,10 @@
 
 #include <kernel/const.h>
 
+#define __ASM_INCLUDE__
+
+#include <mem/page.h>
+
 .balign 0x1000
 .text
 .code16

@@ -9,15 +9,15 @@
 #include <kernel/global.h>
 #include <kernel/syscall.h> // inform_intr
 
+#include <log.h>
+
 #include <device/cpu.h>   // make_icr,send_IPI
 #include <device/pic.h>   // eoi
-#include <device/timer.h> // COUNTER0_VALUE_LO,COUNTER0_VALUE_HI,
+#include <device/timer.h> // COUNTER0_VALUE_LO,COUNTER0_VALUE_HI,IRQ0_FREQUENCY
 #include <intr.h>         // register_handle
 #include <io.h>           // io_out8
+#include <service.h>      // TICK
 #include <task/task.h>    // do_schedule
-                          // IRQ0_FREQUENCY
-
-#include <log.h>
 
 PUBLIC volatile uint64_t global_ticks;
 

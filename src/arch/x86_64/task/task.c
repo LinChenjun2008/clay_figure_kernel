@@ -11,14 +11,15 @@
 
 #include <log.h>
 
-#include <device/cpu.h>  // apic_id
-#include <intr.h>        // intr functions
-#include <io.h>          // get_cr3 get_rsp
-#include <mem/mem.h>     // pmalloc,to_physical_address,init_alloc_physical_page
-#include <service.h>     // MM_EXIT
-#include <std/string.h>  // memset,strlen,strcpy
-#include <sync/atomic.h> // atomic functions
-#include <task/task.h>   // include sse,spinlock
+#include <device/cpu.h>    // apic_id
+#include <intr.h>          // intr functions
+#include <io.h>            // get_cr3 get_rsp
+#include <mem/allocator.h> // pmalloc,to_physical_address,init_alloc_physical_page
+#include <mem/page.h>      // KADDR_V2P,KADDR_P2V
+#include <service.h>       // MM_EXIT
+#include <std/string.h>    // memset,strlen,strcpy
+#include <sync/atomic.h>   // atomic functions
+#include <task/task.h>     // include sse,spinlock
 
 PUBLIC taskmgr_t *tm;
 

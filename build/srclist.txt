@@ -48,6 +48,7 @@ $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/sync/atomic.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/sync/spinlock.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/sync/asm_sync.S \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/mem/mem.c \
+$(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/mem/page.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/syscall.c \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/asm_syscall.S \
 $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/syscall/ipc.c \

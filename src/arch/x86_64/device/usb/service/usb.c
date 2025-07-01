@@ -13,7 +13,8 @@
 
 #include <device/usb/hid.h>  // USB_INTERFACE_SUBCLASS_BOOT
 #include <device/usb/xhci.h> // xhci_setup
-#include <mem/mem.h>         // pmalloc
+#include <mem/allocator.h>   // pmalloc
+#include <mem/page.h>        // KADDR_V2P,KADDR_P2V
 #include <service.h>         // previous prototype for 'usb_main'
 #include <std/string.h>      // memset
 #include <task/task.h>       // task_msleep,task_start

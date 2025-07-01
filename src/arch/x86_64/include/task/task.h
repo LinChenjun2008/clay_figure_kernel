@@ -9,6 +9,8 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
+#include <kernel/syscall.h>
+
 #include <device/spinlock.h>
 #include <device/sse.h>
 #include <lib/alloc_table.h>

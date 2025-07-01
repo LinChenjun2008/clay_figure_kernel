@@ -3,7 +3,9 @@
 
 #include <kernel/global.h>
 
-#include <mem/mem.h>
+#include <mem/allocator.h>
+#include <mem/page.h>
+
 
 static inline void *malloc(size_t size)
 {

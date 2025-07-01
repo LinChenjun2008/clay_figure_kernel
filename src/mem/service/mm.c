@@ -11,11 +11,12 @@
 
 #include <log.h>
 
-#include <intr.h>       // intr functions
-#include <mem/mem.h>    // memory functions
-#include <service.h>    // message type
-#include <std/string.h> // memcpy
-#include <task/task.h>  // task functions,include list,spinlock,alloc_table
+#include <intr.h>          // intr functions
+#include <mem/allocator.h> // pfree
+#include <mem/page.h>      // PG_SIZE
+#include <service.h>       // message type
+#include <std/string.h>    // memcpy
+#include <task/task.h>     // task functions,include list,spinlock,alloc_table
 
 extern taskmgr_t *tm;
 

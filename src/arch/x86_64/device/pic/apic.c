@@ -13,8 +13,8 @@
 #include <device/cpu.h> // wrmsr,rdmsr,cpuid
 #include <device/pic.h> // apic_t,ioapic_t
 #include <io.h>         // io_mfence,io_out8
+#include <mem/page.h>   // KADDR_P2V
 #include <std/string.h> // memset
-
 /*
  Base Address | MSR address | Name               | Attribute
  0xfee00020   | 0x802       | Local APIC ID      | RW

@@ -9,9 +9,19 @@
 #ifndef __SERVICE_H__
 #define __SERVICE_H__
 
+#define SERVICE_ID_BASE 0x80000000UL
+
+#define SERVICES 5
+
+#define TICK    SERVICE_ID_BASE
+#define MM      SERVICE_ID_BASE + 1
+#define VIEW    SERVICE_ID_BASE + 2
+#define USB_SRV SERVICE_ID_BASE + 3
+#define KBD_SRV SERVICE_ID_BASE + 4
+
 enum
 {
-    TICK_NO = 0x80000000,
+    TICK_NO = 0x00000000,
     /**
      * GET_TICKS
      * return: ticks(m3.l1)
@@ -27,7 +37,7 @@ enum
 
 enum
 {
-    MM_NO = 0x80000000,
+    MM_NO = 0x00000000,
 
     /**
      * MM_ALLOCATE_PAGE
@@ -50,7 +60,7 @@ enum
      * @param size The number of bytes you want to read (m3.l1).
      * @param buffer The buffer to save the data you read (m3.p2).
      *               You must ensure that the buffer (range: [buffer , buffer + size]) is available.
-     * @return Error code (m1.i1), 0x80000000 if success.
+     * @return Error code (m1.i1), 0x00000000 if success.
     */
     MM_READ_PROG_ADDR,
 
@@ -60,7 +70,7 @@ enum
 
 enum
 {
-    VIEW_NO = 0x80000000,
+    VIEW_NO = 0x00000000,
 
     /**
      * VIEW_PUT_PIXEL

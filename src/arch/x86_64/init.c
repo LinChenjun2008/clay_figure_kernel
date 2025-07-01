@@ -18,8 +18,10 @@
 #include <device/sse.h>
 #include <device/timer.h>
 #include <intr.h>
-#include <io.h> // get_cr3,set_cr3
-#include <mem/mem.h>
+#include <io.h>            // get_cr3,set_cr3
+#include <mem/allocator.h> // mem_allocator_init
+#include <mem/mem.h>       // mem_init
+#include <mem/page.h>      // KERNEL_PAGE_TABLE_POS
 #include <service.h>
 #include <task/task.h>
 
@@ -44,9 +46,9 @@ extern void asm_load_gdt(void *gdt_ptr, uint16_t code, uint16_t data);
 
 PRIVATE void load_gdt(void)
 {
-    uint128_t gdt_ptr =
-        (((uint128_t)0 + ((uint128_t)((uint64_t)gdt_table))) << 16) |
-        (sizeof(gdt_table) - 1);
+    uint64_t gdt_ptr[2];
+    gdt_ptr[0] = (((uint64_t)gdt_table) << 16) | (sizeof(gdt_table) - 1);
+    gdt_ptr[1] = (((uint64_t)gdt_table) >> 48) & 0xffff;
     asm_load_gdt(&gdt_ptr, SELECTOR_CODE64_K, SELECTOR_DATA64_K);
     return;
 }

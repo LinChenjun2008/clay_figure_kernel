@@ -8,6 +8,11 @@
 
 #include <kernel/const.h>
 
+#define __ASM_INCLUDE__
+
+#include <mem/page.h> // KERNEL_PAGE_DIR_TABLE_POS
+
+
 .text
 
 .extern kernel_main

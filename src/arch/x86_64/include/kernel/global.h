@@ -19,19 +19,20 @@
 // #define __DISABLE_APIC_TIMER__
 // #define __TIMER_HPET__
 
-#define ERROR(x)          ((x) != K_SUCCESS)
-#define K_ERROR           0xc0000000
-#define K_UDF_BEHAVIOR    0xc0000001
-#define K_NOMEM           0xc0000002
-#define K_NOSUPPORT       0xc0000003
-#define K_HW_NOSUPPORT    0xc0000004
-#define K_DEADLOCK        0xc0000005
-#define K_INVAILD_PARAM   0xc0000006
-#define K_INVAILD_ADDR    0xc0000007
-#define K_OUT_OF_RESOURCE 0xc0000008
-#define K_NOT_FOUND       0xc0000009
-#define K_TIMEOUT         0xc000000a
-#define K_SUCCESS         0x80000000
+#define ERROR(x) ((x) != K_SUCCESS)
+
+
+#define K_SUCCESS         0
+#define K_ERROR           1
+#define K_NOMEM           2
+#define K_NOSUPPORT       3
+#define K_HW_NOSUPPORT    4
+#define K_DEADLOCK        5
+#define K_INVAILD_PARAM   6
+#define K_INVAILD_ADDR    7
+#define K_OUT_OF_RESOURCE 8
+#define K_NOT_FOUND       9
+#define K_TIMEOUT         10
 
 #include <kernel/const.h>
 #include <kernel/def.h>

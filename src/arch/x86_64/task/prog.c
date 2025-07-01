@@ -11,13 +11,14 @@
 
 #include <log.h>
 
-#include <device/cpu.h> // apic_id
-#include <intr.h>       // intr_stack_t
-#include <io.h>         // set_cr3
-#include <mem/mem.h>    // alloc_physical_page,page_map,pmalloc,pfree
-#include <service.h>    // MM_EXIT
-#include <std/string.h> // memset,memcpy
-#include <task/task.h>  // task struct & functions,spinlock
+#include <device/cpu.h>    // apic_id
+#include <intr.h>          // intr_stack_t
+#include <io.h>            // set_cr3
+#include <mem/allocator.h> // pmalloc,pfree
+#include <mem/page.h>      // alloc_physical_page,page_map
+#include <service.h>       // MM_EXIT
+#include <std/string.h>    // memset,memcpy
+#include <task/task.h>     // task struct & functions,spinlock
 
 extern taskmgr_t *tm;
 
