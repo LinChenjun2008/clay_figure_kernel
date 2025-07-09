@@ -30,6 +30,8 @@ typedef int bool;
 #    define FALSE (1 == 0)
 #endif
 
+#define SIGNATURE32(A, B, C, D) (D << 24 | C << 16 | B << 8 | A)
+
 #define GET_FIELD(X, FIELD) (((X) >> FIELD##_SHIFT) & FIELD##_MASK)
 #define SET_FIELD(X, FIELD, VALUE)              \
     (((X) & ~(FIELD##_MASK << FIELD##_SHIFT)) | \
@@ -62,9 +64,9 @@ typedef unsigned long long int size_t;
 typedef unsigned long long int phy_addr_t;
 typedef unsigned long long int addr_t;
 
-typedef uint32_t pid_t;
+typedef int32_t pid_t;
 
-typedef uint32_t status_t;
+typedef int32_t status_t;
 
 
 #endif

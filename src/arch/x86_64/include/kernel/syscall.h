@@ -13,8 +13,8 @@
 #define NR_RECV 0x80000002
 #define NR_BOTH 0x80000003
 
-#define RECV_FROM_INT (MAX_TASK + 1)
-#define RECV_FROM_ANY (MAX_TASK + 2)
+#define RECV_FROM_INT -1
+#define RECV_FROM_ANY -2
 
 #define SYSCALL_SUCCESS        0x80000000
 #define SYSCALL_ERROR          0xc0000000

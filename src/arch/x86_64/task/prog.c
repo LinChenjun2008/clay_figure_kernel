@@ -155,8 +155,9 @@ PUBLIC task_struct_t *prog_execute(
 {
     ASSERT(!(kstack_size & (kstack_size - 1)));
     status_t status;
-    pid_t    pid = MAX_TASK;
-    status       = task_alloc(&pid);
+
+    pid_t pid = MAX_TASK;
+    status    = task_alloc(&pid);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {

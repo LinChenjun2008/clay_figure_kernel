@@ -14,7 +14,7 @@
 #include <intr.h>            // intr functions
 #include <lib/list.h>        // list functions
 #include <mem/allocator.h>   // MIN,MAX allocate size
-#include <mem/page.h>        //  KADDR_P2V,KADDR_V2P
+#include <mem/page.h>        // KADDR_P2V,KADDR_V2P
 #include <std/string.h>      // memset
 
 typedef struct
@@ -41,6 +41,11 @@ typedef struct mem_block_s
 STATIC_ASSERT(sizeof(mem_cache_t) <= MIN_ALLOCATE_MEMORY_SIZE, "");
 STATIC_ASSERT(sizeof(mem_block_t) <= MIN_ALLOCATE_MEMORY_SIZE, "");
 
+STATIC_ASSERT(
+    MIN_ALLOCATE_MEMORY_SIZE << (NUMBER_OF_MEMORY_BLOCK_TYPES - 1) ==
+        MAX_ALLOCATE_MEMORY_SIZE,
+    ""
+);
 STATIC_ASSERT(MAX_ALLOCATE_MEMORY_SIZE < PG_SIZE, "");
 
 PRIVATE mem_group_t mem_groups[NUMBER_OF_MEMORY_BLOCK_TYPES];
@@ -57,9 +62,9 @@ PUBLIC void mem_allocator_init(void)
         mem_groups[i].total_free = 0;
         list_init(&mem_groups[i].free_block_list);
         init_spinlock(&mem_groups[i].lock);
-        block_size *= 2;
+        block_size <<= 1;
     }
-    ASSERT(block_size == MAX_ALLOCATE_MEMORY_SIZE);
+    ASSERT((block_size >> 1) == MAX_ALLOCATE_MEMORY_SIZE);
     return;
 }
 
@@ -93,7 +98,19 @@ pmalloc_find_block(list_t *list, size_t size, size_t alignment, size_t boundary)
     }
     for (; res != &list->tail; res = list_next(res))
     {
-        mem_block_t *b = CONTAINER_OF(mem_block_t, node, res);
+        mem_block_t *b   = CONTAINER_OF(mem_block_t, node, res);
+        mem_cache_t *c   = block2cache(b);
+        size_t       idx = block_index(c, b);
+        // Check magic
+        ASSERT(b->magic == idx + c->number_of_blocks);
+
+        if (b->magic != idx + c->number_of_blocks)
+        {
+            PR_LOG(
+                LOG_WARN, "Block magic error (memory may use after free).\n"
+            );
+        }
+
         ASSERT(res->next->prev == res);
         addr_t addr = (addr_t)b;
         if ((addr & (alignment - 1)) != 0)
@@ -127,8 +144,9 @@ pmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
         alignment = size;
     }
     int          i;
-    mem_cache_t *c;
-    mem_block_t *b;
+    mem_cache_t *c = NULL;
+    mem_block_t *b = NULL;
+    mem_group_t *g = NULL;
     ASSERT(size <= MAX_ALLOCATE_MEMORY_SIZE);
 
     if (size > MAX_ALLOCATE_MEMORY_SIZE)
@@ -140,12 +158,14 @@ pmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
     {
         if (size <= mem_groups[i].block_size)
         {
+            g = &mem_groups[i];
             break;
         }
     }
+    ASSERT(i < NUMBER_OF_MEMORY_BLOCK_TYPES);
 
-    spinlock_lock(&mem_groups[i].lock);
-    if (list_empty(&mem_groups[i].free_block_list))
+    spinlock_lock(&g->lock);
+    if (list_empty(&g->free_block_list))
     {
         phy_addr_t cache_paddr;
         status = alloc_physical_page(1, &cache_paddr);
@@ -155,11 +175,27 @@ pmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
             goto done;
         }
         c = KADDR_P2V(cache_paddr);
-        memset(c, 0, PG_SIZE);
-        c->group            = &mem_groups[i];
+
+        /// TODO: Fix this bugs.
+        // memset(c, 0, PG_SIZE);
+        c->group = g;
+
+        while (c->group != g)
+        {
+            c->group = g;
+            PR_LOG(
+                LOG_DEBUG,
+                "i = %d,g = %p,c = %p,c->group: %p.\n",
+                i,
+                g,
+                c,
+                c->group
+            );
+        }
+
         c->number_of_blocks = PG_SIZE / c->group->block_size - 1;
         c->cnt              = c->number_of_blocks;
-        mem_groups[i].total_free += c->cnt;
+        c->group->total_free += c->cnt;
         size_t block_index;
         for (block_index = 0; block_index < c->cnt; block_index++)
         {
@@ -171,21 +207,20 @@ pmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
         }
     }
 
-    b = pmalloc_find_block(
-        &mem_groups[i].free_block_list, size, alignment, boundary
-    );
+    b = pmalloc_find_block(&g->free_block_list, size, alignment, boundary);
     if (b == NULL)
     {
         PR_LOG(LOG_WARN, "Can not find avilable memory block.\n");
         return K_NOT_FOUND;
     }
-    memset(b, 0, mem_groups[i].block_size);
+    memset(b, 0, g->block_size);
     c = block2cache(b);
     c->cnt--;
-    mem_groups[i].total_free--;
+    ASSERT(c->group == g);
+    c->group->total_free--;
     *(phy_addr_t *)addr = (phy_addr_t)KADDR_V2P(b);
 done:
-    spinlock_unlock(&mem_groups[i].lock);
+    spinlock_unlock(&g->lock);
     return status;
 }
 
@@ -196,14 +231,15 @@ PUBLIC void pfree(void *addr)
         PR_LOG(LOG_WARN, "free nullptr.\n");
         return;
     }
-    mem_cache_t *c;
-    mem_block_t *b;
+    mem_cache_t *c = NULL;
+    mem_block_t *b = NULL;
+
     b = KADDR_P2V(addr);
     ASSERT(b != NULL);
     c = block2cache(b);
 
-    // Set magic so that we can detect memory leak.
-    b->magic       = block_index(c, b) + c->number_of_blocks;
+    b->magic = block_index(c, b) + c->number_of_blocks;
+
     mem_group_t *g = c->group;
     ASSERT(((addr_t)addr & (g->block_size - 1)) == 0);
     spinlock_lock(&g->lock);
@@ -222,12 +258,6 @@ PUBLIC void pfree(void *addr)
             // Check magic
             ASSERT(b->magic == idx + c->number_of_blocks);
 
-            if (b->magic != idx + c->number_of_blocks)
-            {
-                PR_LOG(
-                    LOG_WARN, "Block magic error. Memory leaks may occur.\n"
-                );
-            }
             list_remove(&b->node);
         }
         g->total_free -= c->number_of_blocks;

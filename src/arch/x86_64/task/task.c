@@ -47,7 +47,11 @@ PUBLIC task_struct_t *pid2task(pid_t pid)
 
 PUBLIC bool task_exist(pid_t pid)
 {
-    return pid <= MAX_TASK ? tm->task_table[pid].status != TASK_NO_TASK : 0;
+    if (pid >= 0 && pid <= MAX_TASK)
+    {
+        return tm->task_table[pid].status != TASK_NO_TASK;
+    }
+    return 0;
 }
 
 // running_task() can only be called in ring 0

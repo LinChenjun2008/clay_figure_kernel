@@ -5,7 +5,6 @@
    修改和/或再分发依照 GNU GPLv3-or-later
 
 */
-
 #include <kernel/global.h>
 #include <kernel/init.h>
 #include <kernel/syscall.h>
@@ -55,9 +54,9 @@ PRIVATE void load_gdt(void)
 
 extern void asm_ltr(uint64_t sel);
 
-PRIVATE void load_tss(uint8_t nr_cpu)
+PRIVATE void load_tss(uint8_t cpu_id)
 {
-    asm_ltr(SELECTOR_TSS(nr_cpu));
+    asm_ltr(SELECTOR_TSS(cpu_id));
     return;
 }
 
@@ -132,6 +131,19 @@ PUBLIC void init_all(void)
     PR_LOG(LOG_INFO, "Kernel initializing done.\n");
     clear_textbox(&g_tb);
 
+    //  _____   _       _____   _____
+    // /  ___| | |     |  ___| /  ___|
+    // | |     | |     | |__   | | __
+    // | |     | |     |  __|  | ||_ |
+    // | |___  | |___  | |     | |_| |
+    // \_____| |_____| |_|     \_____/
+
+    pr_log(0, " _____   _       _____   _____\n");
+    pr_log(0, "/  ___| | |     |  ___| /  ___|\n");
+    pr_log(0, "| |     | |     | |__   | | __\n");
+    pr_log(0, "| |     | |     |  __|  | ||_ |\n");
+    pr_log(0, "| |___  | |___  | |     | |_| |\n");
+    pr_log(0, "\\_____| |_____| |_|     \\_____/\n");
     PR_LOG(LOG_INFO, "Service initializing ...\n");
     service_init();
 

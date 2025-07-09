@@ -44,18 +44,18 @@ typedef struct tss64_s
 
 PRIVATE tss64_t tss[NR_CPUS];
 
-PUBLIC void init_tss(uint8_t nr_cpu)
+PUBLIC void init_tss(uint8_t cpu_id)
 {
     uint32_t tss_size = sizeof(tss[0]);
-    memset(&tss[nr_cpu], 0, tss_size);
-    tss[nr_cpu].io_map  = tss_size << 16;
-    uint64_t tss_base_l = ((uint64_t)&tss[nr_cpu]) & 0xffffffff;
-    uint64_t tss_base_h = (((uint64_t)&tss[nr_cpu]) >> 32) & 0xffffffff;
+    memset(&tss[cpu_id], 0, tss_size);
+    tss[cpu_id].io_map  = tss_size << 16;
+    uint64_t tss_base_l = ((uint64_t)&tss[cpu_id]) & 0xffffffff;
+    uint64_t tss_base_h = (((uint64_t)&tss[cpu_id]) >> 32) & 0xffffffff;
 
-    gdt_table[5 + nr_cpu * 2] = make_segmdesc(
+    gdt_table[5 + cpu_id * 2] = make_segmdesc(
         (uint32_t)(tss_base_l & 0xffffffff), tss_size - 1, AR_TSS64
     );
-    memcpy(&gdt_table[5 + nr_cpu * 2 + 1], &tss_base_h, 8);
+    memcpy(&gdt_table[5 + cpu_id * 2 + 1], &tss_base_h, 8);
     return;
 }
 

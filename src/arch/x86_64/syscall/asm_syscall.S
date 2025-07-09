@@ -40,8 +40,12 @@ syscall_entry:
 
     pushq %rbp // save rbp
 
+    sti
+
     leaq sys_send_recv(%rip), %rax
     callq *%rax
+
+    cli
 
     // switch to user stack
     popq %rbp

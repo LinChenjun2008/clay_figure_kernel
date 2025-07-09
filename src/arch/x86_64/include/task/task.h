@@ -11,11 +11,17 @@
 
 #include <kernel/syscall.h>
 
+#include <device/cpu.h> // NR_CPUS
 #include <device/spinlock.h>
 #include <device/sse.h>
 #include <lib/alloc_table.h>
 #include <lib/list.h>
 #include <sync/atomic.h>
+
+#define MAX_TASK 4096
+
+#define DEFAULT_PRIORITY 1
+#define SERVICE_PRIORITY 3
 
 typedef enum task_status_e
 {
@@ -231,7 +237,7 @@ PUBLIC void task_yield(void);
 PUBLIC void task_msleep(uint32_t milliseconds);
 
 /// tss.c
-PUBLIC void   init_tss(uint8_t nr_cpu);
+PUBLIC void   init_tss(uint8_t cpu_id);
 PUBLIC void   update_tss_rsp0(task_struct_t *task);
 PUBLIC addr_t get_running_prog_kstack(void);
 

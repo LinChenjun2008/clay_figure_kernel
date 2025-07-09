@@ -51,6 +51,7 @@ PUBLIC void inform_intr(pid_t dest)
     }
     if (!task_exist(dest))
     {
+        // PR_LOG(LOG_WARN, "Task not exist: %d (%08x).\n", dest);
         return;
     }
     task_struct_t *receiver = pid2task(dest);
@@ -74,9 +75,9 @@ PRIVATE void wait_recevice(void)
 
     atomic_inc(&sender->send_flag);
 
-    intr_status_t intr_status = intr_enable();
+    // intr_status_t intr_status = intr_enable();
     task_yield();
-    intr_set_status(intr_status);
+    // intr_set_status(intr_status);
     return;
 }
 
@@ -125,9 +126,12 @@ PUBLIC syscall_status_t msg_recv(pid_t src, message_t *msg)
     receiver->recv_from = src;
     if (src == RECV_FROM_ANY || src == RECV_FROM_INT)
     {
+        // intr_status_t intr_status;
+        // intr_status = intr_disable();
         spinlock_lock(&receiver->send_lock);
         bool has_msg_received = !list_empty(&receiver->sender_list);
         spinlock_unlock(&receiver->send_lock);
+        // intr_set_status(intr_status);
         if (!has_msg_received && !receiver->has_intr_msg)
         {
             atomic_set(&receiver->recv_flag, 1);
@@ -141,11 +145,13 @@ PUBLIC syscall_status_t msg_recv(pid_t src, message_t *msg)
             receiver->has_intr_msg = 0;
             return SYSCALL_SUCCESS;
         }
+        // intr_status = intr_disable();
         spinlock_lock(&receiver->send_lock);
         ASSERT(!list_empty(&receiver->sender_list));
         list_node_t *src_node;
         src_node = list_pop(&receiver->sender_list);
         spinlock_unlock(&receiver->send_lock);
+        // intr_set_status(intr_status);
         sender = CONTAINER_OF(task_struct_t, send_tag, src_node);
     }
     else
@@ -157,8 +163,11 @@ PUBLIC syscall_status_t msg_recv(pid_t src, message_t *msg)
             return SYSCALL_SRC_NOT_EXIST;
         }
         sender = pid2task(src);
-        spinlock_lock(&receiver->send_lock);
 
+        // intr_status_t intr_status;
+        // intr_status = intr_disable();
+
+        spinlock_lock(&receiver->send_lock);
         while (!list_find(&receiver->sender_list, &sender->send_tag))
         {
             spinlock_unlock(&receiver->send_lock);
@@ -168,6 +177,8 @@ PUBLIC syscall_status_t msg_recv(pid_t src, message_t *msg)
         }
         list_remove(&sender->send_tag);
         spinlock_unlock(&receiver->send_lock);
+
+        // intr_set_status(intr_status);
     }
     memcpy(msg, &sender->msg, sizeof(message_t));
     receiver->recv_from = MAX_TASK;

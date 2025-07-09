@@ -11,7 +11,7 @@
 
 #include <log.h>
 
-#include <device/cpu.h> // wrmsr,rdmsr
+#include <device/cpu.h> // wrmsr,rdmsr,IA32_EFER
 #include <service.h>    // is_service_id,service_id_to_pid
 
 PUBLIC syscall_status_t ASMLINKAGE

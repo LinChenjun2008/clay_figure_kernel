@@ -19,9 +19,6 @@
 // #define __DISABLE_APIC_TIMER__
 // #define __TIMER_HPET__
 
-#define ERROR(x) ((x) != K_SUCCESS)
-
-
 #define K_SUCCESS         0
 #define K_ERROR           1
 #define K_NOMEM           2
@@ -33,6 +30,8 @@
 #define K_OUT_OF_RESOURCE 8
 #define K_NOT_FOUND       9
 #define K_TIMEOUT         10
+
+#define ERROR(x) ((x) != K_SUCCESS)
 
 #include <kernel/const.h>
 #include <kernel/def.h>

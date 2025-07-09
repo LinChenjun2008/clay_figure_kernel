@@ -11,6 +11,7 @@
 #include <log.h>
 
 #include <device/cpu.h>
+#include <device/pic.h>   // ICRs
 #include <device/timer.h> // IRQ0_FREQUENCY
 #include <io.h>           // io_hlt,io_cli
 #include <std/stdarg.h>

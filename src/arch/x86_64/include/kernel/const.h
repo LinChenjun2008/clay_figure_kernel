@@ -98,63 +98,7 @@
 // #define USER_VADDR_START 0x804800
 #define USER_VADDR_START      0x800000
 
-#define MAX_TASK 4096
-
-#define DEFAULT_PRIORITY 1
-#define SERVICE_PRIORITY 3
-
-#define IRQ_CNT 0xff
-
-#define PIC_M_CTRL 0x20 /* 8259A主片的控制端口是0x20 */
-#define PIC_M_DATA 0x21 /* 8259A主片的数据端口是0x21 */
-#define PIC_S_CTRL 0xa0 /* 8259A从片的控制端口是0xa0 */
-#define PIC_S_DATA 0xa1 /* 8259A从片的数据端口是0xa1 */
-
-#define PIT_CTRL 0x0043
-#define PIT_CNT0 0x0040
-
-#define IA32_APIC_BASE        0x0000001b
-#define IA32_APIC_BASE_BSP    (1 << 8)
-#define IA32_APIC_BASE_ENABLE (1 << 11)
-
-#define IA32_EFER  0xc0000080
-#define IA32_STAR  0xc0000081
-#define IA32_LSTAR 0xc0000082
-#define IA32_FMASK 0xc0000084
-
-#define NR_CPUS 256
-
 #define AP_STACK_BASE_PTR 0x1000
 #define AP_START_FLAG     0x1008
-
-#define ICR_DELIVER_MODE_FIXED    0
-#define ICR_DELIVER_MODE_SMI      2
-#define ICR_DELIVER_MODE_NMI      4
-#define ICR_DELIVER_MODE_INIT     5
-#define ICR_DELIVER_MODE_START_UP 6
-
-#define ICR_DEST_MODE_PHY   0
-#define ICR_DEST_MODE_LOGIC 1
-
-#define ICR_LEVEL_DE_ASSEST 0
-#define ICR_LEVEL_ASSERT    1
-
-#define ICR_TRIGGER_EDGE  0
-#define ICR_TRIGGER_LEVEL 1
-
-#define ICR_DELIVER_STATUS_IDLE         0
-#define ICR_DELIVER_STATUS_SEND_PENDING 1
-
-#define ICR_NO_SHORTHAND     0
-#define ICR_SELF             1
-#define ICR_ALL_INCLUDE_SELF 2
-#define ICR_ALL_EXCLUDE_SELF 3
-
-#define EFLAGS_IF (1 << 9)
-
-#define IA32_EFER_SCE 1
-
-#define PCI_CONFIG_ADDRESS 0x0cf8
-#define PCI_CONFIG_DATA    0x0cfc
 
 #endif

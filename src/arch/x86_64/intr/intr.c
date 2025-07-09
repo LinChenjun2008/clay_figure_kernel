@@ -13,6 +13,7 @@
 #include <log.h>
 
 #include <device/cpu.h>      // cpuid
+#include <device/pic.h>      // IRQ_CNT
 #include <device/spinlock.h> // spinlock_t,spinlock_lock,spinlock_unlock
 #include <intr.h>
 #include <io.h>        // get_flags

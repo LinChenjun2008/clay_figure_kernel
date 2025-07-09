@@ -9,6 +9,9 @@
 #ifndef __PCI_H__
 #define __PCI_H__
 
+#define PCI_CONFIG_ADDRESS 0x0cf8
+#define PCI_CONFIG_DATA    0x0cfc
+
 typedef struct pci_msi_struct_s
 {
     bool     msi_capable;
