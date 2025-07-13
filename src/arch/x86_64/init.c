@@ -1,10 +1,7 @@
-/*
-   Copyright 2024-2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPLv3-or-later
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright 2024-2025 LinChenjun
+ */
 #include <kernel/global.h>
 #include <kernel/init.h>
 #include <kernel/syscall.h>
@@ -17,10 +14,9 @@
 #include <device/sse.h>
 #include <device/timer.h>
 #include <intr.h>
-#include <io.h>            // get_cr3,set_cr3
-#include <mem/allocator.h> // mem_allocator_init
-#include <mem/mem.h>       // mem_init
-#include <mem/page.h>      // KERNEL_PAGE_TABLE_POS
+#include <io.h>       // get_cr3,set_cr3
+#include <mem/mem.h>  // mem_init
+#include <mem/page.h> // KERNEL_PAGE_TABLE_POS
 #include <service.h>
 #include <task/task.h>
 
@@ -96,7 +92,6 @@ PUBLIC void init_all(void)
 
     PR_LOG(LOG_INFO, "Memory initializing ...\n");
     mem_init();
-    mem_allocator_init();
 
     PR_LOG(LOG_INFO, "Task initializing ...\n");
     task_init();

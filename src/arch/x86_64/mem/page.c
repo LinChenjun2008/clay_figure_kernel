@@ -1,10 +1,7 @@
-/*
-   Copyright 2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPLv3-or-later
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright 2025 LinChenjun
+ */
 
 #include <kernel/global.h>
 
@@ -105,6 +102,12 @@ PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
     }
     return MAX_MEMORY_TYPE;
 }
+
+PRIVATE const char *memory_type_str[] = {
+    "Invaild",         "Free memory",      "Reserved", "ACPI memory",
+    "ACPI memory NVS", "Unuseable memory", "Invaild",
+};
+
 PUBLIC void mem_page_init(void)
 {
     mem.page_bitmap.map            = page_bitmap_map;
@@ -114,44 +117,121 @@ PUBLIC void mem_page_init(void)
     mem.free_pages                 = 0;
     init_bitmap(&mem.page_bitmap);
     init_spinlock(&mem.lock);
-    int number_of_memory_desct;
-    number_of_memory_desct = g_boot_info->memory_map.map_size /
-                             g_boot_info->memory_map.descriptor_size;
-    int i;
-    for (i = 0; i < number_of_memory_desct; i++)
+
+    EFI_MEMORY_DESCRIPTOR *efi_memory_desc =
+        (EFI_MEMORY_DESCRIPTOR *)g_boot_info->memory_map.buffer;
+
+    size_t map_size              = g_boot_info->memory_map.map_size;
+    size_t desc_size             = g_boot_info->memory_map.descriptor_size;
+    int    number_of_memory_desc = map_size / desc_size;
+
+
+    // mem_xxx - 同类内存块的起始地址,大小,结束地址和类型
+    phy_addr_t    mem_start = 0;
+    phy_addr_t    mem_end   = 0;
+    size_t        mem_size  = 0;
+    memory_type_t mem_type  = MAX_MEMORY_TYPE;
+
+    // curr_xxx - 当前内存块(efi_memory_desc[i])的起始地址,大小,结束地址和类型
+    phy_addr_t    curr_start = 0;
+    phy_addr_t    curr_end   = 0;
+    size_t        curr_size  = 0;
+    memory_type_t curr_type  = memory_type(efi_memory_desc[0].Type);
+
+    size_t bit_start = 0;
+    size_t bit_end   = 0;
+    size_t bit_size  = 0;
+
+    int i, j;
+    for (i = 0; i < number_of_memory_desc; i++)
     {
-        EFI_MEMORY_DESCRIPTOR *efi_memory_desc =
-            (EFI_MEMORY_DESCRIPTOR *)g_boot_info->memory_map.buffer;
-        phy_addr_t start = efi_memory_desc[i].PhysicalStart;
-        phy_addr_t end   = start + (efi_memory_desc[i].NumberOfPages << 12);
-        if (memory_type(efi_memory_desc[i].Type) != FREE_MEMORY)
+        curr_start = efi_memory_desc[i].PhysicalStart;
+        curr_size  = (efi_memory_desc[i].NumberOfPages << 12);
+        curr_end   = curr_start + curr_size;
+
+        mem_start = curr_start;
+        mem_size  = curr_size;
+        mem_end   = curr_end;
+
+        curr_type = memory_type(efi_memory_desc[i].Type);
+
+        // 类型相同的相邻内存空间合并处理,防止内存浪费
+        // 当curr_type和next_type不同时,对类型为this_type的内存空间进行合并
+        for (j = i + 1; j < number_of_memory_desc; j++)
         {
-            start = page_size_round_down(start);
-            end   = page_size_round_up(end);
-            uint64_t j;
-            for (j = start; j < end; j++)
+            curr_start = efi_memory_desc[j].PhysicalStart;
+            curr_size  = (efi_memory_desc[j].NumberOfPages << 12);
+            curr_end   = curr_start + curr_size;
+
+            // 不连续 - 无法合并
+            if (mem_end < curr_start)
             {
-                bitmap_set(&mem.page_bitmap, j, 1);
+                break;
+            }
+            mem_type = memory_type(efi_memory_desc[j].Type);
+            if (mem_type != curr_type)
+            {
+                break;
+            }
+            mem_size += curr_size;
+            mem_end += curr_size;
+            i = j;
+        }
+        PR_LOG(
+            0,
+            "From %p to %p: size: %8d KiB Type: %s.\n",
+            mem_start,
+            mem_end,
+            mem_size >> 10,
+            memory_type_str[curr_type]
+        );
+        if (curr_type != FREE_MEMORY)
+        {
+            bit_start = page_size_round_down(mem_start);
+            bit_end   = page_size_round_up(mem_end);
+            bit_size  = bit_end - bit_start;
+            uint64_t bit_index;
+            for (bit_index = bit_start; bit_index < bit_end; bit_index++)
+            {
+                bitmap_set(&mem.page_bitmap, bit_index, 1);
             }
         }
         else
         {
-            mem.mem_size += efi_memory_desc[i].NumberOfPages << 12;
-            start = page_size_round_up(start);
-            end   = page_size_round_down(end);
-            if (end >= start)
+            mem.mem_size += mem_size;
+            bit_start = page_size_round_up(mem_start);
+            bit_end   = page_size_round_down(mem_end);
+            bit_size  = bit_end - bit_start;
+            if (bit_end > bit_start)
             {
-                mem.total_free_pages += end - start;
+                mem.total_free_pages += bit_size;
                 mem.free_pages = mem.total_free_pages;
             }
         }
-        mem.total_pages += end - start;
+        mem.total_pages += bit_size;
+        mem_start = 0;
+        mem_end   = 0;
+        mem_size  = 0;
+
+        bit_start = 0;
+        bit_end   = 0;
+        bit_size  = 0;
     }
     PR_LOG(
         LOG_INFO,
-        "Total Pages: %d,Free: %d.\n",
+        "Total Page(s): %d (Free: %d).\n",
         mem.total_pages,
         mem.total_free_pages
+    );
+    PR_LOG(
+        LOG_INFO,
+        "Mem Size: %d KiB(%d MiB), Free size: %d KiB(%d MiB) "
+        "(waste: %d KiB).\n",
+        mem.mem_size / 1024,
+        mem.mem_size / (1024 * 1024),
+        mem.total_free_pages * 2048,
+        mem.total_free_pages * 2,
+        (mem.mem_size - mem.total_free_pages * PG_SIZE) / 1024
     );
     if (mem.total_pages / 8 <= PAGE_BITMAP_BYTES_LEN)
     {

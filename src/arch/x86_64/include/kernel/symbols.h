@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright 2025 LinChenjun
+ */
 #ifndef __SYMBOLS_H__
 #define __SYMBOLS_H__
 

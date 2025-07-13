@@ -1,18 +1,16 @@
-/*
-   Copyright 2024-2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPLv3-or-later
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright 2024-2025 LinChenjun
+ */
 
 #include <kernel/global.h>
 
-#include <mem/mem.h>  // previous for mem_init
-#include <mem/page.h> // previous for mem_page_init
-
+#include <mem/allocator.h> // previous for mem_alloctor_init
+#include <mem/mem.h>       // previous for mem_init
+#include <mem/page.h>      // previous for mem_page_init
 PUBLIC void mem_init(void)
 {
     mem_page_init();
+    mem_allocator_init();
     return;
 }

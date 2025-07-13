@@ -1,10 +1,7 @@
-/*
-   Copyright 2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPLv3-or-later
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright 2025 LinChenjun
+ */
 
 #include <kernel/global.h>
 #include <kernel/symbols.h>

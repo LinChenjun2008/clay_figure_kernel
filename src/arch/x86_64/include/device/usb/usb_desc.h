@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright 2024-2025 LinChenjun
+ */
+
 #ifndef __USB_DESC_H__
 #define __USB_DESC_H__
 

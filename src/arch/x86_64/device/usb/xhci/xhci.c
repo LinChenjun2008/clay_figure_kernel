@@ -1,12 +1,9 @@
-/*
-   Copyright 2013 Gerd Hoffmann <kraxel@redhat.com>
-   Copyright 2014 Kevin O'Connor <kevin@koconnor.net>
-   Copyright 2024-2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPLv3-or-later
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright 2013 Gerd Hoffmann <kraxel@redhat.com>
+ * Copyright 2009-2013 Kevin O'Connor <kevin@koconnor.net>
+ * Copyright 2024-2025 LinChenjun
+ */
 
 #include <kernel/global.h>
 
