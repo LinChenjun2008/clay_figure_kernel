@@ -172,24 +172,9 @@ pmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
             goto done;
         }
         c = KADDR_P2V(cache_paddr);
+        memset(c, 0, PG_SIZE);
 
-        /// TODO: Fix this bugs.
-        // memset(c, 0, PG_SIZE);
-        c->group = g;
-
-        while (c->group != g)
-        {
-            c->group = g;
-            PR_LOG(
-                LOG_DEBUG,
-                "i = %d,g = %p,c = %p,c->group: %p.\n",
-                i,
-                g,
-                c,
-                c->group
-            );
-        }
-
+        c->group            = g;
         c->number_of_blocks = PG_SIZE / c->group->block_size - 1;
         c->cnt              = c->number_of_blocks;
         c->group->total_free += c->cnt;

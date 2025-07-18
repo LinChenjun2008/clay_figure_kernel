@@ -181,15 +181,10 @@ PRIVATE void default_irq_handler(intr_stack_t *stack)
 
 PUBLIC void ASMLINKAGE do_irq(intr_stack_t *stack)
 {
-    int int_vector = stack->int_vector;
-    if (irq_handler[int_vector])
-    {
-        irq_handler[int_vector](stack);
-    }
-    else
-    {
-        default_irq_handler(stack);
-    }
+    int int_vector                  = stack->int_vector;
+    void (*handler)(intr_stack_t *) = irq_handler[int_vector];
+    handler != NULL ? handler(stack) : default_irq_handler(stack);
+    schedule();
     return;
 }
 

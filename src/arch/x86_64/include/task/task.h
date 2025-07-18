@@ -199,16 +199,17 @@ PUBLIC void task_init(void);
  * @param cpu_id cpu id
  */
 PUBLIC uint64_t get_core_min_vruntime(uint32_t cpu_id);
+
 /**
- * @brief 更新vrun_time,并判断是否需要调度
+ * @brief 更新vrun_time
  */
-PUBLIC void     schedule(void);
+PUBLIC void task_update(void);
 
 /**
  * @brief 进行任务调度
  * @note 如果进程持有自旋锁,则不会触发调度
  */
-PUBLIC void do_schedule(void);
+PUBLIC void schedule(void);
 
 /**
  * @brief 阻塞当前任务,并将任务状态设为status

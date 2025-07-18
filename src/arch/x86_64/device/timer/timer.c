@@ -44,7 +44,7 @@ PRIVATE void pit_timer_handler(intr_stack_t *stack)
 PRIVATE void apic_timer_handler(intr_stack_t *stack)
 {
     send_eoi(stack->int_vector);
-    schedule();
+    task_update();
     return;
 }
 
@@ -78,7 +78,7 @@ PUBLIC void apic_timer_init()
     // map APIC timer to an interrupt, and by that enable it in one-shot mode.
     local_apic_write(APIC_REG_TIMER_ICNT, 0xffffffff);
     uint32_t          apic_ticks = 0;
-    volatile uint32_t ticks      = global_ticks + (1 << 7);
+    volatile uint32_t ticks      = global_ticks + MSECOND_TO_TICKS(10);
     while (ticks >= global_ticks) continue;
 
     // Stop APIC timer
@@ -86,7 +86,7 @@ PUBLIC void apic_timer_init()
     apic_ticks = -local_apic_read(APIC_REG_TIMER_CCNT);
 
     // 1000 Hz
-    apic_ticks >>= 7;
+    apic_ticks /= 10;
 
     local_apic_write(APIC_REG_LVT_TIMER, 0x80 | 0x20000);
     local_apic_write(APIC_REG_TIMER_DIV, 0x00000003);

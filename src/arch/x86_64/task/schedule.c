@@ -39,6 +39,7 @@ PRIVATE void update_vruntime(task_struct_t *task)
     if (task->jiffies >= task->ideal_runtime)
     {
         task->jiffies       = 0;
+        /// TODO: 根据权重计算ideal_runtime
         task->ideal_runtime = task->priority;
         task->vrun_time++;
         update_min_vruntime(&tm->core[cpu_id], task->vrun_time);
@@ -51,13 +52,12 @@ PUBLIC uint64_t get_core_min_vruntime(uint32_t cpu_id)
     return tm->core[cpu_id].min_vruntime;
 }
 
-PUBLIC void schedule(void)
+PUBLIC void task_update(void)
 {
     ASSERT(intr_get_status() == INTR_OFF);
     task_struct_t *cur_task = running_task();
     cur_task->jiffies++;
     update_vruntime(cur_task);
-    do_schedule();
     return;
 }
 
@@ -73,7 +73,7 @@ PRIVATE void task_unblock_without_spinlock(pid_t pid)
 
 extern void ASMLINKAGE
             asm_switch_to(task_context_t **cur, task_context_t **next);
-PUBLIC void do_schedule(void)
+PUBLIC void schedule(void)
 {
     task_struct_t *cur_task = running_task();
     uint32_t       cpu_id   = apic_id();
@@ -120,7 +120,7 @@ PUBLIC void task_block(task_status_t status)
     task_struct_t *cur_task    = running_task();
     ASSERT(cur_task->spinlock_count == 0);
     cur_task->status = status;
-    do_schedule();
+    schedule();
     intr_set_status(intr_status);
     return;
 }
@@ -148,7 +148,7 @@ PUBLIC void task_yield(void)
     task->vrun_time = get_core_min_vruntime(task->cpu_id);
     task_list_insert(&tm->core[task->cpu_id].task_list, task);
     spinlock_unlock(&tm->core[task->cpu_id].task_list_lock);
-    do_schedule();
+    schedule();
     intr_set_status(intr_status);
 }
 
