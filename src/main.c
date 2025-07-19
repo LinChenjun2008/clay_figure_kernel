@@ -10,7 +10,6 @@
 #include <log.h>
 
 #include <common.h>
-#include <device/cpu.h>
 #include <intr.h>
 #include <io.h>
 #include <mem/page.h>

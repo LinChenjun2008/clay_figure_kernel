@@ -8,7 +8,7 @@
 
 #include <log.h>
 
-#include <device/cpu.h>    // apic_id
+#include <device/cpu.h>    // apic_id,IA32_KERNEL_GS_BASE
 #include <intr.h>          // intr_stack_t
 #include <io.h>            // set_cr3
 #include <mem/allocator.h> // pmalloc,pfree
@@ -103,6 +103,7 @@ PUBLIC void prog_activate(task_struct_t *task)
     {
         update_tss_rsp0(task);
     }
+    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)task);
     return;
 }
 

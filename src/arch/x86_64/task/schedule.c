@@ -96,7 +96,7 @@ PUBLIC void schedule(void)
 
     if (next == NULL)
     {
-        task_unblock_without_spinlock(tm->core[cpu_id].idle_task);
+        task_unblock_without_spinlock(tm->core[cpu_id].idle_task->pid);
         next = get_next_task(&tm->core[cpu_id].task_list);
         ASSERT(next != NULL);
     }

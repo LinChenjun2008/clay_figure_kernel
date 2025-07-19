@@ -158,6 +158,8 @@ PUBLIC void ap_init_all(void)
     load_gdt();
     load_tss(apic_id());
 
+    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)tm->core[apic_id()].idle_task);
+
     ap_intr_init();
     local_apic_init();
     apic_timer_init();

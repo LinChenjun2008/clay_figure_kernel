@@ -61,8 +61,3 @@ PUBLIC void update_tss_rsp0(task_struct_t *task)
     tss[apic_id()].rsp0 = task->kstack_base + task->kstack_size;
     return;
 }
-
-PUBLIC addr_t get_running_prog_kstack(void)
-{
-    return (addr_t)tss[apic_id()].rsp0;
-}

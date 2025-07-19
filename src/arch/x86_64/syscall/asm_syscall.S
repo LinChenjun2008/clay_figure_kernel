@@ -3,6 +3,9 @@
  * Copyright (C) 2024 LinChenjun
  */
 
+#define __ASM_INCLUDE__
+#include <task/task.h>
+
 .global send_recv
 send_recv:
     pushq %r10
@@ -11,7 +14,6 @@ send_recv:
     popq %r10
     retq
 
-.extern get_running_prog_kstack
 .global syscall_entry
 syscall_entry:
     // user stack
@@ -21,21 +23,15 @@ syscall_entry:
     movq %r10, %rcx // restore rcx
 
     // switch to kernel stack
-    pushq %rdi
-    pushq %rsi
-    pushq %rdx
-
-    leaq get_running_prog_kstack(%rip), %rax
-    call *%rax
-
-    popq %rdx
-    popq %rsi
-    popq %rdi
+    swapgs
+    movq %gs:TASK_STRUCT_KSTACK_BASE,%rax
+    addq %gs:TASK_STRUCT_KSTACK_SIZE,%rax
+    swapgs
 
     movq %rsp, %rbp
     movq %rax, %rsp
 
-    pushq %rbp // save rbp
+    pushq %rbp // save rbp (user stack)
 
     sti
 
