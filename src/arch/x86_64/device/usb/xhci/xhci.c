@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright 2013 Gerd Hoffmann <kraxel@redhat.com>
- * Copyright 2009-2013 Kevin O'Connor <kevin@koconnor.net>
- * Copyright 2024-2025 LinChenjun
+ * Copyright (C) 2013 Gerd Hoffmann <kraxel@redhat.com>
+ * Copyright (C) 2009-2013 Kevin O'Connor <kevin@koconnor.net>
+ * Copyright (C) 2024-2025 LinChenjun
  */
 
 #include <kernel/global.h>
