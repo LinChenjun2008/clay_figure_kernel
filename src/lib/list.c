@@ -1,12 +1,10 @@
-/*
-   Copyright 2024-2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024-2025 LinChenjun
+ */
 
 #include <kernel/global.h>
+
 #include <lib/list.h>
 
 PUBLIC void list_init(list_t *list)
@@ -18,7 +16,7 @@ PUBLIC void list_init(list_t *list)
     return;
 }
 
-PUBLIC void list_in(list_node_t *node,list_node_t *in_before)
+PUBLIC void list_in(list_node_t *node, list_node_t *in_before)
 {
     in_before->prev->next = node;
 
@@ -29,15 +27,15 @@ PUBLIC void list_in(list_node_t *node,list_node_t *in_before)
     return;
 }
 
-PUBLIC void list_push(list_t *list,list_node_t *node)
+PUBLIC void list_push(list_t *list, list_node_t *node)
 {
-    list_in(node,list->head.next);
+    list_in(node, list->head.next);
     return;
 }
 
-PUBLIC void list_append(list_t *list,list_node_t *node)
+PUBLIC void list_append(list_t *list, list_node_t *node)
 {
-    list_in(node,&list->tail);
+    list_in(node, &list->tail);
     return;
 }
 
@@ -45,22 +43,22 @@ PUBLIC void list_remove(list_node_t *node)
 {
     node->prev->next = node->next;
     node->next->prev = node->prev;
-    node->next = NULL;
-    node->prev = NULL;
+    node->next       = NULL;
+    node->prev       = NULL;
     return;
 }
 
-PUBLIC list_node_t* list_pop(list_t *list)
+PUBLIC list_node_t *list_pop(list_t *list)
 {
     list_node_t *node = list->head.next;
     list_remove(node);
     return node;
 }
 
-PUBLIC bool list_find(list_t *list,list_node_t *objnode)
+PUBLIC bool list_find(list_t *list, list_node_t *objnode)
 {
     list_node_t *node = list->head.next;
-    bool res = FALSE;
+    bool         res  = FALSE;
     while (node != &(list->tail))
     {
         if (node == objnode)
@@ -73,13 +71,13 @@ PUBLIC bool list_find(list_t *list,list_node_t *objnode)
     return res;
 }
 
-PUBLIC list_node_t* list_traversal(list_t *list,func_t function,int arg)
+PUBLIC list_node_t *list_traversal(list_t *list, func_t function, int arg)
 {
     list_node_t *node = list->head.next;
-    list_node_t *res = NULL;
+    list_node_t *res  = NULL;
     while (node != &list->tail)
     {
-        if (function(node,arg))
+        if (function(node, arg))
         {
             res = node;
             break;
@@ -92,7 +90,7 @@ PUBLIC list_node_t* list_traversal(list_t *list,func_t function,int arg)
 PUBLIC int list_len(list_t *list)
 {
     list_node_t *node = list->head.next;
-    int len = 0;
+    int          len  = 0;
     while (node != &list->tail)
     {
         len++;
@@ -106,12 +104,12 @@ PUBLIC bool list_empty(list_t *list)
     return list->head.next == &list->tail;
 }
 
-PUBLIC list_node_t* list_next(list_node_t *node)
+PUBLIC list_node_t *list_next(list_node_t *node)
 {
     return node->next;
 }
 
-PUBLIC list_node_t* list_prev(list_node_t *node)
+PUBLIC list_node_t *list_prev(list_node_t *node)
 {
     return node->prev;
 }

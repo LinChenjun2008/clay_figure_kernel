@@ -1,10 +1,7 @@
-/*
-   Copyright 2024-2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024-2025 LinChenjun
+ */
 
 #ifndef __INIT_H__
 #define __INIT_H__
@@ -19,8 +16,8 @@ typedef struct segmdesc_s
     uint8_t  base_high;    // 56 - 63 base2
 } segmdesc_t;
 
-PUBLIC segmdesc_t make_segmdesc(uint32_t base,uint32_t limit,uint16_t access);
-PUBLIC void init_all(void);
-PUBLIC void ap_init_all(void);
+PUBLIC segmdesc_t make_segmdesc(uint32_t base, uint32_t limit, uint16_t access);
+PUBLIC void       init_all(void);
+PUBLIC void       ap_init_all(void);
 
 #endif

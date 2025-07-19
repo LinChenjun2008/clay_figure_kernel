@@ -7,7 +7,7 @@
 //*******************************************************
 
 // #define EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL  0x00000001
-#define EFI_OPEN_PROTOCOL_GET_PROTOCOL        0x00000002
+#define EFI_OPEN_PROTOCOL_GET_PROTOCOL 0x00000002
 // #define EFI_OPEN_PROTOCOL_TEST_PROTOCOL       0x00000004
 // #define EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER 0x00000008
 // #define EFI_OPEN_PROTOCOL_BY_DRIVER           0x00000010
@@ -26,8 +26,8 @@
 
 #include <Uefi.h>
 
-#define RETURN_ERROR(StatusCode)  (((INTN)(RETURN_STATUS)(StatusCode)) < 0)
-#define EFI_ERROR(A)  RETURN_ERROR(A)
+#define RETURN_ERROR(StatusCode) (((INTN)(RETURN_STATUS)(StatusCode)) < 0)
+#define EFI_ERROR(A)             RETURN_ERROR(A)
 
 #define EFI_SUCCESS     0
 #define EFI_ERR         0x8000000000000000
@@ -37,8 +37,8 @@
 #include <Procotol/GraphicsOutput.h>
 #include <Procotol/SimpleFileSystem.h>
 
-extern EFI_HANDLE                         gImageHandle;
-extern EFI_SYSTEM_TABLE                   *gST;
-extern EFI_BOOT_SERVICES                  *gBS;
+extern EFI_HANDLE         gImageHandle;
+extern EFI_SYSTEM_TABLE  *gST;
+extern EFI_BOOT_SERVICES *gBS;
 
 #endif

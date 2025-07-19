@@ -2,13 +2,16 @@
 #define __STDLIB_H__
 
 #include <kernel/global.h>
-#include <mem/mem.h>
 
-static inline void* malloc(size_t size)
+#include <mem/allocator.h>
+#include <mem/page.h>
+
+
+static inline void *malloc(size_t size)
 {
-    void *addr;
+    void    *addr;
     status_t ret;
-    ret = pmalloc(size,0,0,&addr);
+    ret = pmalloc(size, 0, 0, &addr);
     if (ret != K_SUCCESS)
     {
         return NULL;

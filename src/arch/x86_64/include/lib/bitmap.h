@@ -1,10 +1,7 @@
-/*
-   Copyright 2024 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024 LinChenjun
+ */
 
 #ifndef __BITMAP_H__
 #define __BITMAP_H__
@@ -23,7 +20,7 @@ PUBLIC void init_bitmap(bitmap_t *btmp);
  * @param bit_index 索引(以bit为单位)
  * @return 当bit_index位为1时返回true
 */
-PUBLIC bool bitmap_scan_test(bitmap_t *btmp,int32_t bit_index);
+PUBLIC bool bitmap_scan_test(bitmap_t *btmp, int32_t bit_index);
 
 /**
  * @brief 在位图中分配连续cnt个bit.
@@ -31,7 +28,7 @@ PUBLIC bool bitmap_scan_test(bitmap_t *btmp,int32_t bit_index);
  * @param cnt 要分配的bit数
  * @param index 如果成功,index指针处保存了分配到的位
 */
-PUBLIC status_t bitmap_alloc(bitmap_t *btmp,int32_t cnt,uint32_t *index);
+PUBLIC status_t bitmap_alloc(bitmap_t *btmp, int32_t cnt, uint32_t *index);
 
 /**
  * @brief 设置位图中的位
@@ -40,6 +37,6 @@ PUBLIC status_t bitmap_alloc(bitmap_t *btmp,int32_t cnt,uint32_t *index);
  * @param value 位值
  * @note value的取值为0或1
  */
-PUBLIC void bitmap_set(bitmap_t *btmp,int32_t bit_index,uint8_t value);
+PUBLIC void bitmap_set(bitmap_t *btmp, int32_t bit_index, uint8_t value);
 
 #endif

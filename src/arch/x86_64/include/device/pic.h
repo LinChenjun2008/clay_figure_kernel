@@ -1,16 +1,12 @@
-/*
-   Copyright 2024-2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024-2025 LinChenjun
+ */
 
 #ifndef __PIC_H__
 #define __PIC_H__
 
-#define SIGNATURE32(A,B,C,D) ( D << 24 | C << 16 | B << 8 | A)
-#define MADT_SIGNATURE SIGNATURE_32('A','P','I','C') //"APIC"
+#define MADT_SIGNATURE SIGNATURE_32('A', 'P', 'I', 'C') //"APIC"
 
 #define APIC_REG_ID         0x020
 #define APIC_REG_VERSION    0x030
@@ -27,6 +23,42 @@
 #define APIC_REG_TIMER_ICNT 0x380
 #define APIC_REG_TIMER_CCNT 0x390
 #define APIC_REG_TIMER_DIV  0x3e0
+
+#define IRQ_CNT 0xff
+
+#define PIC_M_CTRL 0x20 /* 8259A主片的控制端口是0x20 */
+#define PIC_M_DATA 0x21 /* 8259A主片的数据端口是0x21 */
+#define PIC_S_CTRL 0xa0 /* 8259A从片的控制端口是0xa0 */
+#define PIC_S_DATA 0xa1 /* 8259A从片的数据端口是0xa1 */
+
+#define PIT_CTRL 0x0043
+#define PIT_CNT0 0x0040
+
+#define ICR_DELIVER_MODE_FIXED    0
+#define ICR_DELIVER_MODE_SMI      2
+#define ICR_DELIVER_MODE_NMI      4
+#define ICR_DELIVER_MODE_INIT     5
+#define ICR_DELIVER_MODE_START_UP 6
+
+#define ICR_DEST_MODE_PHY   0
+#define ICR_DEST_MODE_LOGIC 1
+
+#define ICR_LEVEL_DE_ASSEST 0
+#define ICR_LEVEL_ASSERT    1
+
+#define ICR_TRIGGER_EDGE  0
+#define ICR_TRIGGER_LEVEL 1
+
+#define ICR_DELIVER_STATUS_IDLE         0
+#define ICR_DELIVER_STATUS_SEND_PENDING 1
+
+#define ICR_NO_SHORTHAND     0
+#define ICR_SELF             1
+#define ICR_ALL_INCLUDE_SELF 2
+#define ICR_ALL_EXCLUDE_SELF 3
+
+#define EFLAGS_IF (1 << 9)
+
 
 #pragma pack(1)
 typedef struct ACPI_DESCRIPTION_HEADER_s
@@ -66,11 +98,11 @@ typedef struct ioapic_s
 
 typedef struct apic_s
 {
-    uint64_t  local_apic_address;
-    uint8_t   number_of_cores;
-    uint8_t   lapic_id[256];
-    uint8_t   number_of_ioapic;
-    ioapic_t  ioapic[8];
+    uint64_t local_apic_address;
+    uint8_t  number_of_cores;
+    uint8_t  lapic_id[256];
+    uint8_t  number_of_ioapic;
+    ioapic_t ioapic[8];
 } apic_t;
 
 /**
@@ -83,7 +115,7 @@ PUBLIC void detect_cores(void);
  * @param index 寄存器索引(MMIO偏移量)
  * @param value 写入值
  */
-PUBLIC void local_apic_write(uint16_t index,uint32_t value);
+PUBLIC void local_apic_write(uint16_t index, uint32_t value);
 
 /**
  * @brief 读取local apic寄存器
@@ -123,6 +155,6 @@ PUBLIC void send_eoi(uint8_t irq);
  * @param pin 中断引脚
  * @param vector 向量号
  */
-PUBLIC void ioapic_enable(uint64_t pin,uint64_t vector);
+PUBLIC void ioapic_enable(uint64_t pin, uint64_t vector);
 
 #endif

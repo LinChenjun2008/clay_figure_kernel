@@ -1,12 +1,13 @@
-/*
-   Copyright 2024 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024 LinChenjun
+ */
 
 #include <kernel/const.h>
+
+#define __ASM_INCLUDE__
+
+#include <mem/page.h>
 
 .balign 0x1000
 .text

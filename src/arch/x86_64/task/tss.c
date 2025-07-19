@@ -1,21 +1,19 @@
-/*
-   Copyright 2024-2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024-2025 LinChenjun
+ */
 
 #include <kernel/global.h>
 #include <kernel/init.h> // segmdesc
-#include <task/task.h>   // task_struct
-#include <std/string.h>  // memset,memcpy
-#include <device/cpu.h>  // apic_id
+
+#include <device/cpu.h> // apic_id
+#include <std/string.h> // memset,memcpy
+#include <task/task.h>  // task_struct
 
 extern segmdesc_t gdt_table[];
 
 #pragma pack(1)
-struct TSS64
+typedef struct tss64_s
 {
     uint32_t reserved1;
 
@@ -38,24 +36,23 @@ struct TSS64
     uint32_t reserved5;
 
     uint32_t io_map;
-};
+} tss64_t;
 #pragma pack()
 
-PRIVATE struct TSS64 tss[NR_CPUS];
+PRIVATE tss64_t tss[NR_CPUS];
 
-PUBLIC void init_tss(uint8_t nr_cpu)
+PUBLIC void init_tss(uint8_t cpu_id)
 {
-    uint32_t tss_size = sizeof(struct TSS64);
-    memset(&tss[nr_cpu],0,tss_size);
-    tss[nr_cpu].io_map = tss_size << 16;
-    uint64_t tss_base_l = ((uint64_t)&tss[nr_cpu]) & 0xffffffff;
-    uint64_t tss_base_h = (((uint64_t)&tss[nr_cpu]) >> 32) & 0xffffffff;
+    uint32_t tss_size = sizeof(tss[0]);
+    memset(&tss[cpu_id], 0, tss_size);
+    tss[cpu_id].io_map  = tss_size << 16;
+    uint64_t tss_base_l = ((uint64_t)&tss[cpu_id]) & 0xffffffff;
+    uint64_t tss_base_h = (((uint64_t)&tss[cpu_id]) >> 32) & 0xffffffff;
 
-            gdt_table[5 + nr_cpu * 2] = make_segmdesc(
-                                            (uint32_t)(tss_base_l & 0xffffffff),
-                                            tss_size - 1,
-                                            AR_TSS64);
-    memcpy(&gdt_table[5 + nr_cpu * 2 + 1],&tss_base_h,8);
+    gdt_table[5 + cpu_id * 2] = make_segmdesc(
+        (uint32_t)(tss_base_l & 0xffffffff), tss_size - 1, AR_TSS64
+    );
+    memcpy(&gdt_table[5 + cpu_id * 2 + 1], &tss_base_h, 8);
     return;
 }
 

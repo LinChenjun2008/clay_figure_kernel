@@ -1,17 +1,15 @@
-/*
-   Copyright 2024 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024 LinChenjun
+ */
 
 #include <kernel/global.h>
+
+#include <device/spinlock.h>
 #include <lib/fifo.h>
 #include <std/string.h>
-#include <device/spinlock.h>
 
-PUBLIC void init_fifo(fifo_t *fifo,void *data,size_t item_size,int size)
+PUBLIC void init_fifo(fifo_t *fifo, void *data, size_t item_size, int size)
 {
     fifo->data       = data;
     fifo->item_size  = item_size;
@@ -24,7 +22,7 @@ PUBLIC void init_fifo(fifo_t *fifo,void *data,size_t item_size,int size)
 }
 
 
-PUBLIC status_t fifo_write(fifo_t *fifo,void* item)
+PUBLIC status_t fifo_write(fifo_t *fifo, void *item)
 {
     if (item == NULL)
     {
@@ -38,15 +36,16 @@ PUBLIC status_t fifo_write(fifo_t *fifo,void* item)
     spinlock_lock(&fifo->lock);
     fifo->free--;
     memcpy(
-        (uint8_t*)fifo->data + fifo->item_size * fifo->next_write,
+        (uint8_t *)fifo->data + fifo->item_size * fifo->next_write,
         item,
-        fifo->item_size);
+        fifo->item_size
+    );
     fifo->next_write = (fifo->next_write + 1) % fifo->size;
     spinlock_unlock(&fifo->lock);
     return K_SUCCESS;
 }
 
-PUBLIC status_t fifo_read(fifo_t *fifo,void* item)
+PUBLIC status_t fifo_read(fifo_t *fifo, void *item)
 {
     if (item == NULL)
     {
@@ -60,8 +59,9 @@ PUBLIC status_t fifo_read(fifo_t *fifo,void* item)
     fifo->free++;
     memcpy(
         item,
-        (uint8_t*)fifo->data + fifo->item_size * fifo->next_read,
-        fifo->item_size);
+        (uint8_t *)fifo->data + fifo->item_size * fifo->next_read,
+        fifo->item_size
+    );
     fifo->next_read = (fifo->next_read + 1) % fifo->size;
     spinlock_unlock(&fifo->lock);
     return K_SUCCESS;

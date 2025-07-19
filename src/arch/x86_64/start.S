@@ -1,12 +1,14 @@
-/*
-   Copyright 2024-2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024-2025 LinChenjun
+ */
 
 #include <kernel/const.h>
+
+#define __ASM_INCLUDE__
+#include <device/cpu.h> // IA32_APIC_BASE
+#include <mem/page.h>   // KERNEL_PAGE_DIR_TABLE_POS
+
 
 .text
 

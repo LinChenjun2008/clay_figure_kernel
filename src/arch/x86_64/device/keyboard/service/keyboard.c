@@ -1,18 +1,16 @@
-/*
-   Copyright 2024-2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024-2025 LinChenjun
+ */
 
 #include <kernel/global.h>
-#include <device/keyboard/ps2_keyboard.h>
 #include <kernel/syscall.h> // send_recv
-#include <lib/fifo.h>       // fifo functions
-#include <std/string.h>     // memset
 
 #include <log.h>
+
+#include <device/keyboard/ps2_keyboard.h>
+#include <lib/fifo.h>   // fifo functions
+#include <std/string.h> // memset
 
 #define KEY_BUF_SIZE 128
 
@@ -187,7 +185,7 @@ PRIVATE void analysis_key(void)
     //     char cur_char = key_map[scancode][shift];
     //     if (cur_char)
     //     {
-    //         pr_log(0,"%c",cur_char);
+    //         PR_LOG(0,"%c",cur_char);
     //     }
     //     switch (scancode)
     //     {
@@ -221,7 +219,7 @@ PUBLIC void keyboard_main(void)
     message_t msg;
     while (1)
     {
-        sys_send_recv(NR_RECV,RECV_FROM_ANY,&msg);
+        sys_send_recv(NR_RECV, RECV_FROM_ANY, &msg);
         switch (msg.type)
         {
             case RECV_FROM_INT:

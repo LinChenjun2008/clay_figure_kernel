@@ -1,35 +1,28 @@
-/*
-   Copyright 2024 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024-2025 LinChenjun
+ */
 
 #ifndef __LOG_H__
 #define __LOG_H__
 
 
-#define ALPHA_MASK 0xff
+#define ALPHA_MASK  0xff
 #define ALPHA_SHIFT 24
 
-#define RED_MASK 0xff
+#define RED_MASK  0xff
 #define RED_SHIFT 16
 
-#define GREEN_MASK 0xff
+#define GREEN_MASK  0xff
 #define GREEN_SHIFT 8
 
-#define BLUE_MASK 0xff
+#define BLUE_MASK  0xff
 #define BLUE_SHIFT 0
 
-#define RGB(r,g,b) (SET_FIELD(0,RED,r) \
-                   | SET_FIELD(0,GREEN,g) \
-                   | SET_FIELD(0,BLUE,b))
+#define RGB(r, g, b) \
+    (SET_FIELD(0, RED, r) | SET_FIELD(0, GREEN, g) | SET_FIELD(0, BLUE, b))
 
-#define ARGB(a,r,g,b) (SET_FIELD(0,ALPHA,a) \
-                      | SET_FIELD(0,RED,r) \
-                      | SET_FIELD(0,GREEN,g) \
-                      | SET_FIELD(0,BLUE,b))
+#define ARGB(a, r, g, b) (SET_FIELD(RGB(r, g, b), ALPHA, a))
 
 typedef struct position_s
 {
@@ -51,12 +44,12 @@ typedef struct textbox_s
 typedef struct
 {
     stbtt_fontinfo info;
-    int has_ttf;
-    uint8_t *bitmap;
+    int            has_ttf;
+    uint8_t       *bitmap;
 } ttf_info_t;
 
 #if defined __DISABLE_SERIAL_LOG__
-#define serial_pr_log(...) (void)0
+#    define serial_pr_log(...) (void)0
 #endif /* __DISABLE_SERIAL_LOG__ */
 
 // log level
@@ -69,50 +62,67 @@ typedef struct
 #define LOG_DEBUG 5
 #define LOG_TRACE 6
 
-PUBLIC void pr_log(int level,const char* str,...);
+PUBLIC void pr_log(int level, const char *log, ...);
+PUBLIC void pr_msg(const char *msg, ...);
+PUBLIC void clear_textbox(textbox_t *tb);
+
 // PUBLIC void pr_log_ttf(const char* str,...);
 
 PUBLIC void panic_spin(
-    const char* filename,
-    int line,
-    const char* func,
-    const char* message);
+    const char *filename,
+    int         line,
+    const char *func,
+    const char *message
+);
 
-#define PANIC(CONDITION,MESSAGE) \
-    do \
-    { \
-        if (CONDITION) {panic_spin (__FILE__,__LINE__,__FUNCTION__,MESSAGE);} \
+#define PR_LOG(LEVEL, MESSAGE, args...) \
+    pr_log(LEVEL, "%s: " MESSAGE, __func__, ##args)
+
+#define PANIC(CONDITION, MESSAGE)                              \
+    do                                                         \
+    {                                                          \
+        if (CONDITION)                                         \
+        {                                                      \
+            panic_spin(__FILE__, __LINE__, __func__, MESSAGE); \
+        }                                                      \
     } while (0)
 
-#if __DISABLE_ASSERT__
+#if defined __DISABLE_ASSERT__
 
-#define ASSERT(X) ((void)0)
+#    define ASSERT(X) ((void)0)
 
 #else
 
-#define ASSERT(X) \
-    do \
-    { \
-        if (!(X)) { PANIC(#X,"ASSERT("#X")"); } \
-    } while (0)
+#    define ASSERT(X)                        \
+        do                                   \
+        {                                    \
+            if (!(X))                        \
+            {                                \
+                PANIC(#X, "ASSERT(" #X ")"); \
+            }                                \
+        } while (0)
 
 #endif /* __DISABLE_ASSERT__ */
 
-PUBLIC void init_ttf_info(ttf_info_t* ttf_info);
-PUBLIC void free_ttf_info(ttf_info_t* ttf_info);
+PUBLIC void init_ttf_info(ttf_info_t *ttf_info);
+PUBLIC void free_ttf_info(ttf_info_t *ttf_info);
 
-PUBLIC void pr_ch(graph_info_t* graph_info,
-                  ttf_info_t *ttf_info,
-                  textbox_t* tb,
-                  uint32_t col,
-                  uint64_t ch,
-                  float font_size);
+PUBLIC void pr_ch(
+    graph_info_t *graph_info,
+    ttf_info_t   *ttf_info,
+    textbox_t    *tb,
+    uint32_t      col,
+    uint64_t      ch,
+    float         font_size
+);
 
-PUBLIC void pr_ttf_str(graph_info_t* graph_info,
-                       ttf_info_t *ttf_info,
-                       textbox_t* tb,
-                       uint32_t color,
-                       const char* str,
-                       float font_size);
+PUBLIC void pr_ttf_str(
+    graph_info_t *graph_info,
+    ttf_info_t   *ttf_info,
+    textbox_t    *tb,
+    uint32_t      color,
+    const char   *str,
+    float         font_size
+);
 
 #endif

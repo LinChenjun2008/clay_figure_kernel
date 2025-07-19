@@ -1,16 +1,14 @@
-/*
-   Copyright 2024 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024 LinChenjun
+ */
 
 #include <kernel/global.h>
-#include <device/spinlock.h>
-#include <task/task.h> // running_task
 
 #include <log.h>
+
+#include <device/spinlock.h>
+#include <task/task.h> // running_task
 
 PUBLIC void init_spinlock(spinlock_t *spinlock)
 {

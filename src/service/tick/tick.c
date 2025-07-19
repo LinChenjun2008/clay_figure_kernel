@@ -1,14 +1,12 @@
-/*
-   Copyright 2024-2025 LinChenjun
-
-   本程序是自由软件
-   修改和/或再分发依照 GNU GPL version 3 (or any later version)
-
-*/
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2024-2025 LinChenjun
+ */
 
 #include <kernel/global.h>
 #include <kernel/syscall.h> // send_recv
-#include <service.h>        // message type
+
+#include <service.h> // message type
 
 #define MAX_TIMERS 512
 
@@ -34,7 +32,7 @@ PRIVATE timer_manager_t time_manager;
 PRIVATE status_t add_timer(message_t *msg)
 {
     int i;
-    for (i = 0;i < MAX_TIMERS;i++)
+    for (i = 0; i < MAX_TIMERS; i++)
     {
         if (time_manager.timers[i].flag == TIMER_UNUSED)
         {
@@ -51,14 +49,14 @@ PRIVATE status_t add_timer(message_t *msg)
 PRIVATE void wake_up(void)
 {
     int i;
-    for (i = 0;i < MAX_TIMERS;i++)
+    for (i = 0; i < MAX_TIMERS; i++)
     {
-        if (time_manager.timers[i].flag != TIMER_UNUSED
-            && time_manager.ticks >= time_manager.timers[i].timeout)
+        if (time_manager.timers[i].flag != TIMER_UNUSED &&
+            time_manager.ticks >= time_manager.timers[i].timeout)
         {
             message_t msg;
             msg.m3.l1 = 0;
-            send_recv(NR_SEND,time_manager.timers[i].holder,&msg);
+            send_recv(NR_SEND, time_manager.timers[i].holder, &msg);
             time_manager.using_timers--;
             time_manager.timers[i].flag = TIMER_UNUSED;
         }
@@ -70,14 +68,14 @@ PUBLIC void tick_main(void)
     time_manager.ticks        = 0;
     time_manager.using_timers = 0;
     int i;
-    for (i = 0;i < MAX_TIMERS;i++)
+    for (i = 0; i < MAX_TIMERS; i++)
     {
         time_manager.timers[i].flag = TIMER_UNUSED;
     }
     message_t msg;
-    while(1)
+    while (1)
     {
-        send_recv(NR_RECV,RECV_FROM_ANY,&msg);
+        send_recv(NR_RECV, RECV_FROM_ANY, &msg);
         switch (msg.type)
         {
             case RECV_FROM_INT:
@@ -86,7 +84,7 @@ PUBLIC void tick_main(void)
                 break;
             case TICK_GET_TICKS:
                 msg.m3.l1 = time_manager.ticks;
-                send_recv(NR_SEND,msg.src,&msg);
+                send_recv(NR_SEND, msg.src, &msg);
                 break;
             case TICK_SLEEP:
                 add_timer(&msg);

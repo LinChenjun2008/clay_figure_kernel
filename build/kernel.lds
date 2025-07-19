@@ -11,20 +11,20 @@ SECTIONS
     {
         kernel_entry = .;
         *(.text)
-    }
+    } :text
     _etext = .;
     . = ALIGN(8);
     _data = .;
     .data :
     {
         *(.data)
-    }
+    } :data
     _edata = .;
     _rodata = .;
     .rodata :
     {
         *(.rodata)
-    }
+    } :rodata
     _erodata = .;
     _bss = .;
     .bss :
@@ -37,4 +37,11 @@ SECTIONS
     {
         *(.eh_frame)
     }
+}
+
+PHDRS
+{
+    text PT_LOAD FLAGS(5);   /* RX (0x5) */
+    data PT_LOAD FLAGS(6);   /* RW (0x6) */
+    rodata PT_LOAD FLAGS(4); /* R  (0x4) */
 }
