@@ -325,30 +325,30 @@ PUBLIC void panic_spin(
 PUBLIC void init_ttf_info(ttf_info_t *ttf_info)
 {
     ttf_info->has_ttf = 0;
-    int i;
-    for (i = 0; i < g_boot_info->loaded_files; i++)
-    {
-        if (g_boot_info->loaded_file[i].flag == 0x80000002)
-        {
-            stbtt_InitFont(
-                &ttf_info->info,
-                KADDR_P2V(g_boot_info->loaded_file[i].base_address),
-                0
-            );
-            uint8_t *btmp;
-            status_t status  = pmalloc(sizeof(char[512 * 512]), 0, 0, &btmp);
-            ttf_info->bitmap = KADDR_P2V(btmp);
-            if (ERROR(status))
-            {
-                PR_LOG(
-                    LOG_ERROR, "Failed to allocate memory for ttf bitmap.\n"
-                );
-                return;
-            }
-            ttf_info->has_ttf = 1;
-            break;
-        }
-    }
+    // int i;
+    // for (i = 0; i < g_boot_info->loaded_files; i++)
+    // {
+    //     if (g_boot_info->loaded_file[i].flag == 0x80000002)
+    //     {
+    //         stbtt_InitFont(
+    //             &ttf_info->info,
+    //             KADDR_P2V(g_boot_info->loaded_file[i].base_address),
+    //             0
+    //         );
+    //         uint8_t *btmp;
+    //         status_t status  = pmalloc(sizeof(char[512 * 512]), 0, 0, &btmp);
+    //         ttf_info->bitmap = KADDR_P2V(btmp);
+    //         if (ERROR(status))
+    //         {
+    //             PR_LOG(
+    //                 LOG_ERROR, "Failed to allocate memory for ttf bitmap.\n"
+    //             );
+    //             return;
+    //         }
+    //         ttf_info->has_ttf = 1;
+    //         break;
+    //     }
+    // }
     return;
 }
 

@@ -4,11 +4,11 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/syscall.h>
 
 #include <log.h>
 
-#include <intr.h>        // intr_disable,intr_enable
+#include <intr.h> // intr_disable,intr_enable
+#include <kernel/syscall.h>
 #include <service.h>     // is_service_id,service_id_to_pid
 #include <std/string.h>  // memcpy
 #include <sync/atomic.h> // atomic_inc,atomic_dec

@@ -4,10 +4,10 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/syscall.h>
 
 #include <log.h>
 
+#include <kernel/syscall.h>
 #include <mem/page.h> // PG_SIZE
 #include <service.h>
 #include <ulib.h>

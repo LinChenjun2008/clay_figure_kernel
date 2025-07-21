@@ -20,9 +20,7 @@ struct Files
     file_info_t       Info;
 };
 
-struct Files Files[FILES_COUNT] = {
-    { L"Kernel\\clfgkrnl.sys", AllocateAddress, { 0x100000, 0, 0x80000001 } },
-    { L"Kernel\\typeface.ttf", AllocateAnyPages, { 0, 0, 0x80000002 } },
-};
+#define KERNEL_NAME    L"Kernel\\clfgkrnl.sys"
+#define INITRAMFS_NAME L"Kernel\\initramfs.img"
 
 #endif

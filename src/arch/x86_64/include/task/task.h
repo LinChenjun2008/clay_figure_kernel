@@ -8,11 +8,10 @@
 
 #ifndef __ASM_INCLUDE__
 
-#    include <kernel/syscall.h>
-
 #    include <device/cpu.h> // NR_CPUS
 #    include <device/spinlock.h>
 #    include <device/sse.h>
+#    include <kernel/syscall.h>
 #    include <lib/alloc_table.h>
 #    include <lib/list.h>
 #    include <sync/atomic.h>

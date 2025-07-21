@@ -4,11 +4,11 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/init.h> // segmdesc
 
-#include <device/cpu.h> // apic_id
-#include <std/string.h> // memset,memcpy
-#include <task/task.h>  // task_struct
+#include <device/cpu.h>  // apic_id
+#include <kernel/init.h> // segmdesc
+#include <std/string.h>  // memset,memcpy
+#include <task/task.h>   // task_struct
 
 extern segmdesc_t gdt_table[];
 

@@ -4,6 +4,7 @@
  */
 
 #include <kernel/global.h>
+
 #include <kernel/symbols.h>
 
 extern void              *kallsyms_address[] WEAK;

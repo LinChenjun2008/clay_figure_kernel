@@ -4,15 +4,16 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/init.h>
-#include <kernel/syscall.h>
 
 #include <log.h>
 
 #include <common.h>
 #include <intr.h>
 #include <io.h>
+#include <kernel/init.h>
+#include <kernel/syscall.h>
 #include <mem/page.h>
+#include <ramfs.h> //test
 #include <service.h>
 #include <std/stdio.h>
 #include <std/string.h>
@@ -57,8 +58,7 @@ PUBLIC void kernel_main(void)
     size_t bss_size = &_ebss[0] - &_bss[0];
     memset(&_bss, 0, bss_size);
 
-    g_graph_info = &g_boot_info->graph_info;
-
+    g_graph_info    = &g_boot_info->graph_info;
     g_tb.cur_pos.x  = 0;
     g_tb.cur_pos.y  = 0;
     g_tb.box_pos.x  = 8;
@@ -67,6 +67,12 @@ PUBLIC void kernel_main(void)
     g_tb.ysize      = g_graph_info->vertical_resolution - 16;
     g_tb.char_xsize = 9;
     g_tb.char_ysize = 16;
+
+    g_boot_info->initramfs = KADDR_P2V(g_boot_info->initramfs);
+
+    pr_log(0, "initramfs at address %p.\n", g_boot_info->initramfs);
+    status_t status = ramfs_check(g_boot_info->initramfs);
+    PANIC(ERROR(status), "initramfs check failed.\n");
 
     init_all();
 

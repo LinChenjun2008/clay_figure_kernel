@@ -4,9 +4,9 @@
  */
 
 #ifndef __INTR_H__
-#    define __INIT_H__
+#define __INTR_H__
 
-#    ifndef INTR_HANDLER
+#ifndef __ASM_INCLUDE__
 
 typedef struct intr_stack_s
 {
@@ -59,10 +59,12 @@ PUBLIC intr_status_t intr_set_status(intr_status_t status);
 PUBLIC intr_status_t intr_enable(void);
 PUBLIC intr_status_t intr_disable(void);
 
-#    else
+#endif /* __ASM_INCLUDE__ */
+#endif
 
-#        define CODE 0
-#        define ZERO 8
+#ifdef INTR_HANDLER
+#define CODE 0
+#define ZERO 8
 
 INTR_HANDLER(asm_intr0x00_handler, 0x00, ZERO)
 INTR_HANDLER(asm_intr0x01_handler, 0x01, ZERO)
@@ -335,6 +337,4 @@ INTR_HANDLER(asm_intr0xfd_handler, 0xfd, ZERO)
 INTR_HANDLER(asm_intr0xfe_handler, 0xfe, ZERO)
 INTR_HANDLER(asm_intr0xff_handler, 0xff, ZERO)
 
-#    endif /* INTR_HANDLER */
-
-#endif
+#endif /* INTR_HANDLER */

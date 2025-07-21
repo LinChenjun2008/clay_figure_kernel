@@ -9,3 +9,6 @@ MEMORY            := 256M
 
 TARGET_BOOTLOADER := $(ESP_PATH)/EFI/Boot/BootX64.efi
 TARGET_KERNEL     := $(ESP_PATH)/Kernel/clfgkrnl.sys
+TARGET_INITFAMFS  := $(ESP_PATH)/Kernel/initramfs.img
+TMP_KERNEL_TARGET := .tmp_kernel
+

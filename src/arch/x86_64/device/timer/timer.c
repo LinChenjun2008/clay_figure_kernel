@@ -4,7 +4,6 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/syscall.h> // inform_intr
 
 #include <log.h>
 
@@ -13,9 +12,10 @@
 #include <device/timer.h> // COUNTER0_VALUE_LO,COUNTER0_VALUE_HI,IRQ0_FREQUENCY
 #include <intr.h>         // register_handle
 #include <io.h>           // io_out8
-#include <mem/page.h>     // KADDR_P2V
-#include <service.h>      // TICK
-#include <task/task.h>    // do_schedule
+#include <kernel/syscall.h> // inform_intr
+#include <mem/page.h>       // KADDR_P2V
+#include <service.h>        // TICK
+#include <task/task.h>      // do_schedule
 
 PRIVATE volatile uint64_t current_ticks = 0;
 

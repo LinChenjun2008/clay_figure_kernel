@@ -4,18 +4,18 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/syscall.h> // sys_send_recv
 
 #include <log.h>
 
-#include <device/cpu.h>    // apic_id,IA32_KERNEL_GS_BASE
-#include <intr.h>          // intr_stack_t
-#include <io.h>            // set_cr3
-#include <mem/allocator.h> // pmalloc,pfree
-#include <mem/page.h>      // alloc_physical_page,page_map
-#include <service.h>       // MM_EXIT
-#include <std/string.h>    // memset,memcpy
-#include <task/task.h>     // task struct & functions,spinlock
+#include <device/cpu.h>     // apic_id,IA32_KERNEL_GS_BASE
+#include <intr.h>           // intr_stack_t
+#include <io.h>             // set_cr3
+#include <kernel/syscall.h> // sys_send_recv
+#include <mem/allocator.h>  // pmalloc,pfree
+#include <mem/page.h>       // alloc_physical_page,page_map
+#include <service.h>        // MM_EXIT
+#include <std/string.h>     // memset,memcpy
+#include <task/task.h>      // task struct & functions,spinlock
 
 extern taskmgr_t *tm;
 

@@ -3,8 +3,6 @@
  * Copyright (C) 2024-2025 LinChenjun
  */
 #include <kernel/global.h>
-#include <kernel/init.h>
-#include <kernel/syscall.h>
 
 #include <log.h>
 
@@ -14,7 +12,9 @@
 #include <device/sse.h>
 #include <device/timer.h>
 #include <intr.h>
-#include <io.h>       // get_cr3,set_cr3
+#include <io.h> // get_cr3,set_cr3
+#include <kernel/init.h>
+#include <kernel/syscall.h>
 #include <mem/mem.h>  // mem_init,total_pages,total_free_pages
 #include <mem/page.h> // KERNEL_PAGE_TABLE_POS
 #include <service.h>

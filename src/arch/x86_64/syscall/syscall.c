@@ -4,12 +4,12 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/syscall.h> // msg_send,msg_recv
 
 #include <log.h>
 
-#include <device/cpu.h> // wrmsr,rdmsr,IA32_EFER
-#include <service.h>    // is_service_id,service_id_to_pid
+#include <device/cpu.h>     // wrmsr,rdmsr,IA32_EFER
+#include <kernel/syscall.h> // msg_send,msg_recv
+#include <service.h>        // is_service_id,service_id_to_pid
 
 PUBLIC syscall_status_t ASMLINKAGE
 sys_send_recv(uint32_t nr, pid_t src_dest, message_t *msg)

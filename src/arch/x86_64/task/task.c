@@ -4,13 +4,13 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/syscall.h> // sys_send_recv
 
 #include <log.h>
 
-#include <device/cpu.h>    // apic_id
-#include <intr.h>          // intr functions
-#include <io.h>            // get_cr3 get_rsp
+#include <device/cpu.h>     // apic_id
+#include <intr.h>           // intr functions
+#include <io.h>             // get_cr3 get_rsp
+#include <kernel/syscall.h> // sys_send_recv
 #include <mem/allocator.h> // pmalloc,to_physical_address,init_alloc_physical_page
 #include <mem/page.h>      // KADDR_V2P,KADDR_P2V
 #include <service.h>       // MM_EXIT

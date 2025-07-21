@@ -4,15 +4,15 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/syscall.h> // inform_intr
 
 #include <log.h>
 
 #include <device/keyboard/ps2_keyboard.h>
-#include <device/pic.h> // eois
-#include <intr.h>       // register_handle
-#include <io.h>         // io_in8
-#include <lib/fifo.h>   // fifo functions
+#include <device/pic.h>     // eois
+#include <intr.h>           // register_handle
+#include <io.h>             // io_in8
+#include <kernel/syscall.h> // inform_intr
+#include <lib/fifo.h>       // fifo functions
 
 extern fifo_t key_fifo;
 

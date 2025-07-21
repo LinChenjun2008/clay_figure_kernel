@@ -32,7 +32,7 @@
 
 #include <kernel/const.h>
 #include <kernel/def.h>
-
+//
 #include <common.h>
 
 extern boot_info_t  *g_boot_info;
