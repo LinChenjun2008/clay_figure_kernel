@@ -9,7 +9,7 @@
 
 #include <device/cpu.h>
 #include <device/pic.h>   // ICRs
-#include <device/timer.h> // IRQ0_FREQUENCY
+#include <device/timer.h> // IRQ0_FREQUENCY,get_current_ticks
 #include <io.h>           // io_hlt,io_cli
 #include <std/stdarg.h>
 #include <std/stdio.h>
@@ -18,11 +18,14 @@ extern PUBLIC uint8_t ascii_character[][16];
 
 PUBLIC textbox_t g_tb;
 
-extern uint64_t global_ticks;
-
-PRIVATE char *print_time(char *buf, uint64_t msec)
+PRIVATE char *print_time(char *buf)
 {
-    sprintf(buf, "[%8u.%03u]", msec / IRQ0_FREQUENCY, msec % IRQ0_FREQUENCY);
+    sprintf(
+        buf,
+        "[%5u.%06u]",
+        get_nano_time() / 1000000000,
+        (get_nano_time() / 1000) % 1000000
+    );
     return buf;
 }
 
@@ -67,7 +70,7 @@ static inline void serial_pr_log(int level, const char *log, va_list ap)
     };
     if (level >= LOG_FATAL && level <= LOG_TRACE)
     {
-        serial_pr_log_sub(port, print_time(msg, global_ticks));
+        serial_pr_log_sub(port, print_time(msg));
         buf = (char *)level_str[level];
         serial_pr_log_sub(port, buf);
     }
@@ -103,7 +106,7 @@ PUBLIC void pr_log(int level, const char *log, ...)
     };
     if (level >= LOG_FATAL && level <= LOG_TRACE)
     {
-        print_time(msg, global_ticks);
+        print_time(msg);
         basic_print(&g_tb, level_color[0], msg);
         basic_print(&g_tb, level_color[level], level_str[level]);
     }
@@ -386,12 +389,12 @@ PUBLIC void free_ttf_info(ttf_info_t *ttf_info)
 //                        &ttf_info,
 //                        &g_tb,
 //                        0x00c5c5c5,
-//                        print_time(msg,global_ticks),
+//                        print_time(msg),
 //                        16.0);
 //         }
 //         else
 //         {
-//             basic_print(&g_tb,0x00c5c5c5,print_time(msg,global_ticks));
+//             basic_print(&g_tb,0x00c5c5c5,print_time(msg));
 //         }
 //         buf = (char*)level[*log - 1];
 //         uint32_t color = 0;

@@ -8,12 +8,11 @@
 #include <log.h>
 
 #include <device/cpu.h>   // apic_id
-#include <device/timer.h> // MSECOND_TO_TICKS
+#include <device/timer.h> // MSECOND_TO_TICKS,get_current_ticks
 #include <intr.h>         // intr functions
 #include <task/task.h>    // task structs & functions,list,sse
 
-extern taskmgr_t        *tm;
-extern volatile uint64_t global_ticks;
+extern taskmgr_t *tm;
 
 PRIVATE void update_min_vruntime(core_taskmgr_t *taskmgr, uint64_t vruntime)
 {
@@ -96,7 +95,7 @@ PUBLIC void schedule(void)
 
     if (next == NULL)
     {
-        task_unblock_without_spinlock(tm->core[cpu_id].idle_task);
+        task_unblock_without_spinlock(tm->core[cpu_id].idle_task->pid);
         next = get_next_task(&tm->core[cpu_id].task_list);
         ASSERT(next != NULL);
     }
@@ -154,6 +153,11 @@ PUBLIC void task_yield(void)
 
 PUBLIC void task_msleep(uint32_t milliseconds)
 {
-    uint32_t timeout_tick = global_ticks + MSECOND_TO_TICKS(milliseconds);
-    while ((int64_t)(global_ticks - timeout_tick) < 0) continue;
+    uint32_t timeout_tick =
+        get_current_ticks() + MSECOND_TO_TICKS(milliseconds);
+
+    while ((int64_t)(get_current_ticks() - timeout_tick) < 0)
+    {
+        task_yield();
+    }
 }

@@ -6,6 +6,7 @@
 .text
 
 .global asm_switch_to
+.type asm_switch_to,@function
 asm_switch_to:
     subq $16, %rsp
     movq %rsi,8(%rsp)
@@ -47,6 +48,7 @@ asm_switch_context:
 
 .extern intr_exit
 .global asm_process_start
+.type asm_process_start,@function
 asm_process_start:
     movq %rdi, %rsp
     jmp intr_exit

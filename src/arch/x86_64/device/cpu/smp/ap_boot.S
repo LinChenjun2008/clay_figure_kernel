@@ -3,10 +3,9 @@
  * Copyright (C) 2024 LinChenjun
  */
 
-#include <kernel/const.h>
-
 #define __ASM_INCLUDE__
 
+#include <kernel/const.h>
 #include <mem/page.h>
 
 .balign 0x1000

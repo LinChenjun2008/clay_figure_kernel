@@ -86,7 +86,7 @@ PUBLIC status_t smp_init(void)
         init_task_struct(
             idle_task, name, DEFAULT_PRIORITY, kstack_base, KERNEL_STACK_SIZE
         );
-        tm->core[i].idle_task = idle_task->pid;
+        tm->core[i].idle_task = idle_task;
         spinlock_lock(&tm->core[i].task_list_lock);
         list_append(&tm->core[i].task_list, &idle_task->general_tag);
         spinlock_unlock(&tm->core[i].task_list_lock);

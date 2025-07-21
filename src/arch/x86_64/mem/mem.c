@@ -8,6 +8,7 @@
 #include <mem/allocator.h> // previous for mem_alloctor_init
 #include <mem/mem.h>       // previous for mem_init
 #include <mem/page.h>      // previous for mem_page_init
+
 PUBLIC void mem_init(void)
 {
     mem_page_init();

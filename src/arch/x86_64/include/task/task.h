@@ -6,19 +6,28 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-#include <kernel/syscall.h>
+#ifndef __ASM_INCLUDE__
 
-#include <device/cpu.h> // NR_CPUS
-#include <device/spinlock.h>
-#include <device/sse.h>
-#include <lib/alloc_table.h>
-#include <lib/list.h>
-#include <sync/atomic.h>
+#    include <kernel/syscall.h>
+
+#    include <device/cpu.h> // NR_CPUS
+#    include <device/spinlock.h>
+#    include <device/sse.h>
+#    include <lib/alloc_table.h>
+#    include <lib/list.h>
+#    include <sync/atomic.h>
+
+#endif /* __ASM_INCLUDE__ */
 
 #define MAX_TASK 4096
 
 #define DEFAULT_PRIORITY 1
 #define SERVICE_PRIORITY 3
+
+#define TASK_STRUCT_KSTACK_BASE 8
+#define TASK_STRUCT_KSTACK_SIZE 16
+
+#ifndef __ASM_INCLUDE__
 
 typedef enum task_status_e
 {
@@ -88,12 +97,21 @@ typedef struct task_struct_s
     fxsave_region_t *fxsave_region;
 } task_struct_t;
 
+STATIC_ASSERT(
+    OFFSET(task_struct_t, kstack_base) == TASK_STRUCT_KSTACK_BASE,
+    ""
+);
+STATIC_ASSERT(
+    OFFSET(task_struct_t, kstack_size) == TASK_STRUCT_KSTACK_SIZE,
+    ""
+);
+
 typedef struct core_taskmgr_s
 {
-    list_t     task_list;
-    uint64_t   min_vruntime;
-    pid_t      idle_task;
-    spinlock_t task_list_lock;
+    list_t         task_list;
+    uint64_t       min_vruntime;
+    task_struct_t *idle_task;
+    spinlock_t     task_list_lock;
 } core_taskmgr_t;
 
 typedef struct taskmgr_s
@@ -235,9 +253,8 @@ PUBLIC void task_yield(void);
 PUBLIC void task_msleep(uint32_t milliseconds);
 
 /// tss.c
-PUBLIC void   init_tss(uint8_t cpu_id);
-PUBLIC void   update_tss_rsp0(task_struct_t *task);
-PUBLIC addr_t get_running_prog_kstack(void);
+PUBLIC void init_tss(uint8_t cpu_id);
+PUBLIC void update_tss_rsp0(task_struct_t *task);
 
 /// prog.c
 PUBLIC void prog_activate(task_struct_t *task);
@@ -257,5 +274,7 @@ PUBLIC task_struct_t *prog_execute(
     size_t      kstack_size,
     void       *prog
 );
+
+#endif /* __ASM_INCLUDE__ */
 
 #endif

@@ -54,27 +54,7 @@ PUBLIC bool task_exist(pid_t pid)
 // running_task() can only be called in ring 0
 PUBLIC task_struct_t *running_task(void)
 {
-    wordsize_t rsp;
-    rsp                        = get_rsp();
-    intr_status_t  intr_status = intr_disable();
-    task_struct_t *res         = NULL;
-    int            i;
-    for (i = 0; i < MAX_TASK; i++)
-    {
-        if (tm->task_table[i].status == TASK_NO_TASK)
-        {
-            continue;
-        }
-        if (rsp >= tm->task_table[i].kstack_base &&
-            rsp <=
-                tm->task_table[i].kstack_base + tm->task_table[i].kstack_size)
-        {
-            res = &tm->task_table[i];
-            break;
-        }
-    }
-    intr_set_status(intr_status);
-    return res;
+    return (task_struct_t *)rdmsr(IA32_KERNEL_GS_BASE);
 }
 
 PUBLIC status_t task_alloc(pid_t *pid)
@@ -275,10 +255,11 @@ PRIVATE void make_main_task(void)
         (addr_t)KADDR_P2V(KERNEL_STACK_BASE),
         KERNEL_STACK_SIZE
     );
-    tm->core[apic_id()].idle_task = main_task->pid;
+    tm->core[apic_id()].idle_task = main_task;
     spinlock_lock(&tm->core[apic_id()].task_list_lock);
     task_list_insert(&tm->core[apic_id()].task_list, main_task);
     spinlock_unlock(&tm->core[apic_id()].task_list_lock);
+    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)main_task);
 
     return;
 }

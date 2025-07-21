@@ -81,7 +81,8 @@ EFI_STATUS ReadFile(
     }
     UINTN                 FilePageSize = (FileInfo->FileSize + 0x0fff) / 0x1000;
     EFI_PHYSICAL_ADDRESS *FileBufferAddress = FileBufferBase;
-    Status                                  = gBS->AllocatePages(
+
+    Status = gBS->AllocatePages(
         BufferType, EfiLoaderData, FilePageSize, FileBufferAddress
     );
     gBS->SetMem((VOID *)*FileBufferAddress, FilePageSize * 0x1000, 0);

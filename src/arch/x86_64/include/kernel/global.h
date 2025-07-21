@@ -6,15 +6,15 @@
 #ifndef __GLOBAL_H__
 #define __GLOBAL_H__
 
-#define K_NAME    "Clay Figure Kernel"
-#define K_VERSION "v0.0.0"
+#define K_NAME    "Clay Figure"
+#define K_NAME_S  "CLFG"
+#define K_VERSION "0.0.0"
 
 // #define __DISABLE_SERIAL_LOG__
 
 // #define __DISABLE_ASSERT__
 
 // #define __DISABLE_APIC_TIMER__
-// #define __TIMER_HPET__
 
 #define K_SUCCESS         0
 #define K_ERROR           1
@@ -38,16 +38,16 @@
 extern boot_info_t  *g_boot_info;
 extern graph_info_t *g_graph_info;
 
-extern char _kernel_start[];
-extern char _text[];
-extern char _etext[];
-extern char _data[];
-extern char _edata[];
-extern char _rodata[];
-extern char _erodata[];
-extern char _bss[];
-extern char _ebss[];
-extern char _kernel_end[];
+extern uint8_t _kernel_start[];
+extern uint8_t _text[];
+extern uint8_t _etext[];
+extern uint8_t _data[];
+extern uint8_t _edata[];
+extern uint8_t _rodata[];
+extern uint8_t _erodata[];
+extern uint8_t _bss[];
+extern uint8_t _ebss[];
+extern uint8_t _kernel_end[];
 
 PUBLIC void kernel_main(void);
 PUBLIC void ap_kernel_main(void);

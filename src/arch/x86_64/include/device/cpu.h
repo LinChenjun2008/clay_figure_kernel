@@ -17,6 +17,10 @@
 #define IA32_LSTAR 0xc0000082
 #define IA32_FMASK 0xc0000084
 
+#define IA32_FS_BASE        0xc0000100
+#define IA32_GS_BASE        0xc0000101
+#define IA32_KERNEL_GS_BASE 0xc0000102
+
 #define NR_CPUS 256
 
 #ifndef __ASM_INCLUDE__
@@ -33,7 +37,7 @@ extern void asm_cpuid(
     uint32_t *d
 );
 
-static __inline__ void cpu_name(char *s)
+static __inline__ char *cpu_name(char *s)
 {
     uint32_t i;
     for (i = 0x80000002; i < 0x80000005; i++)
@@ -47,6 +51,7 @@ static __inline__ void cpu_name(char *s)
             (uint32_t *)s + (i - 0x80000002) * 4 + 3
         );
     }
+    return s;
 }
 
 static __inline__ bool is_virtual_machine()

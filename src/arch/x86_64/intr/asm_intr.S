@@ -7,6 +7,7 @@
 
 #define INTR_HANDLER(ENTRY,NR,ERROR_CODE) \
 .global ENTRY; \
+.type ENTRY,@function; \
 ENTRY:; \
     subq $ERROR_CODE,%rsp; \
     pushq $NR; \
@@ -53,6 +54,7 @@ save_all:
     callq *%rax
 
 .global intr_exit
+.type intr_exit,@function
 intr_exit:
     popq %rax
     movw %ax, %ds
