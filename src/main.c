@@ -15,6 +15,7 @@
 #include <mem/page.h>
 #include <service.h>
 #include <std/stdio.h>
+#include <std/string.h>
 #include <task/task.h>
 #include <ulib.h>
 
@@ -53,6 +54,9 @@ PRIVATE void ktask(void)
 
 PUBLIC void kernel_main(void)
 {
+    size_t bss_size = &_ebss[0] - &_bss[0];
+    memset(&_bss, 0, bss_size);
+
     g_graph_info = &g_boot_info->graph_info;
 
     g_tb.cur_pos.x  = 0;

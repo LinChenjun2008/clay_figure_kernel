@@ -38,16 +38,16 @@
 extern boot_info_t  *g_boot_info;
 extern graph_info_t *g_graph_info;
 
-extern char _kernel_start[];
-extern char _text[];
-extern char _etext[];
-extern char _data[];
-extern char _edata[];
-extern char _rodata[];
-extern char _erodata[];
-extern char _bss[];
-extern char _ebss[];
-extern char _kernel_end[];
+extern uint8_t _kernel_start[];
+extern uint8_t _text[];
+extern uint8_t _etext[];
+extern uint8_t _data[];
+extern uint8_t _edata[];
+extern uint8_t _rodata[];
+extern uint8_t _erodata[];
+extern uint8_t _bss[];
+extern uint8_t _ebss[];
+extern uint8_t _kernel_end[];
 
 PUBLIC void kernel_main(void);
 PUBLIC void ap_kernel_main(void);
