@@ -13,7 +13,7 @@ all:
 
 .PHONY: update-initramfs
 update-initramfs:
-	@$(RM) $(TARGET_INITFAMFS)
+	-@$(RM) $(TARGET_INITFAMFS)
 	@$(MAKE) -r $(TARGET_INITFAMFS)
 
 .PHONY: run
