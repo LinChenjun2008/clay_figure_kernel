@@ -37,7 +37,7 @@ extern void asm_cpuid(
     uint32_t *d
 );
 
-static __inline__ void cpu_name(char *s)
+static __inline__ char *cpu_name(char *s)
 {
     uint32_t i;
     for (i = 0x80000002; i < 0x80000005; i++)
@@ -51,6 +51,7 @@ static __inline__ void cpu_name(char *s)
             (uint32_t *)s + (i - 0x80000002) * 4 + 3
         );
     }
+    return s;
 }
 
 static __inline__ bool is_virtual_machine()

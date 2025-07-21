@@ -49,7 +49,8 @@
 
 #ifndef __ASM_INCLUDE__
 
-PUBLIC void mem_page_init(void);
+PUBLIC void   mem_page_init(void);
+PUBLIC size_t get_total_free_pages(void);
 
 /**
  * @brief 分配number_of_pages个连续的大小为PG_SIZE的物理页

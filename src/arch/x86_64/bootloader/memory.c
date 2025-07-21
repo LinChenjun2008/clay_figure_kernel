@@ -73,6 +73,10 @@ VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
     EFI_PHYSICAL_ADDRESS PDT;
 
     gBS->SetMem((void *)PG_TABLE, 9 * 0x1000, 0);
+
+    // Kernel
+    gBS->SetMem((VOID *)0x100000, 0x300000, 0);
+
     PML4T = PG_TABLE; // 0x1000-> PML4T
     PG_TABLE += 0x1000;
     /*

@@ -241,9 +241,14 @@ PUBLIC void mem_page_init(void)
     for (i = 0; i < 3; i++)
     {
         bitmap_set(&mem.page_bitmap, i, 1);
-        mem.total_free_pages -= 3;
+        mem.total_free_pages--;
     }
     return;
+}
+
+PUBLIC size_t get_total_free_pages(void)
+{
+    return mem.total_free_pages;
 }
 
 PUBLIC status_t alloc_physical_page(uint64_t number_of_pages, void *addr)

@@ -6,15 +6,15 @@
 #ifndef __GLOBAL_H__
 #define __GLOBAL_H__
 
-#define K_NAME    "Clay Figure Kernel"
-#define K_VERSION "v0.0.0"
+#define K_NAME    "Clay Figure"
+#define K_NAME_S  "CLFG"
+#define K_VERSION "0.0.0"
 
 // #define __DISABLE_SERIAL_LOG__
 
 // #define __DISABLE_ASSERT__
 
 // #define __DISABLE_APIC_TIMER__
-// #define __TIMER_HPET__
 
 #define K_SUCCESS         0
 #define K_ERROR           1

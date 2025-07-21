@@ -57,10 +57,10 @@ PUBLIC void kernel_main(void)
 
     g_tb.cur_pos.x  = 0;
     g_tb.cur_pos.y  = 0;
-    g_tb.box_pos.x  = g_graph_info->pixel_per_scanline - 100 * 9;
+    g_tb.box_pos.x  = 8;
     g_tb.box_pos.y  = 16;
-    g_tb.xsize      = 100 * 9;
-    g_tb.ysize      = g_graph_info->vertical_resolution / 2;
+    g_tb.xsize      = g_graph_info->pixel_per_scanline - 8;
+    g_tb.ysize      = g_graph_info->vertical_resolution - 16;
     g_tb.char_xsize = 9;
     g_tb.char_ysize = 16;
 

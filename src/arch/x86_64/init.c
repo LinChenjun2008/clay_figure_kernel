@@ -15,7 +15,7 @@
 #include <device/timer.h>
 #include <intr.h>
 #include <io.h>       // get_cr3,set_cr3
-#include <mem/mem.h>  // mem_init
+#include <mem/mem.h>  // mem_init,total_pages,total_free_pages
 #include <mem/page.h> // KERNEL_PAGE_TABLE_POS
 #include <service.h>
 #include <task/task.h>
@@ -68,11 +68,9 @@ PRIVATE void init_desc(void)
     load_tss(0);
 }
 
-extern uint64_t global_ticks;
 
 PUBLIC void init_all(void)
 {
-    pr_msg(K_NAME " - " K_VERSION "\n");
     intr_disable();
 
     PR_LOG(LOG_INFO, "Segment initializing ...\n");
@@ -92,6 +90,7 @@ PUBLIC void init_all(void)
 
     PR_LOG(LOG_INFO, "Memory initializing ...\n");
     mem_init();
+    size_t total_pages = get_total_free_pages();
 
     PR_LOG(LOG_INFO, "Task initializing ...\n");
     task_init();
@@ -132,13 +131,37 @@ PUBLIC void init_all(void)
     // | |     | |     |  __|  | ||_ |
     // | |___  | |___  | |     | |_| |
     // \_____| |_____| |_|     \_____/
+    const char *logo[] = {
+        "                                ",
+        " _____   _       _____   _____  ",
+        "/  ___| | |     |  ___| /  ___| ",
+        "| |     | |     | |__   | | __  ",
+        "| |     | |     |  __|  | ||_ | ",
+        "| |___  | |___  | |     | |_| | ",
+        "\\_____| |_____| |_|     \\_____/ ",
+    };
+    char     s[64];
+    uint32_t horz = g_boot_info->graph_info.horizontal_resolution;
+    uint32_t vert = g_boot_info->graph_info.vertical_resolution;
 
-    pr_log(0, " _____   _       _____   _____\n");
-    pr_log(0, "/  ___| | |     |  ___| /  ___|\n");
-    pr_log(0, "| |     | |     | |__   | | __\n");
-    pr_log(0, "| |     | |     |  __|  | ||_ |\n");
-    pr_log(0, "| |___  | |___  | |     | |_| |\n");
-    pr_log(0, "\\_____| |_____| |_|     \\_____/\n");
+    pr_log(0, "%s System Informations \n", logo[0]);
+    pr_log(0, "%s -----------------\n", logo[1]);
+    pr_log(0, "%s Kernel: %s (%s) %s\n", logo[2], K_NAME, K_NAME_S, K_VERSION);
+    pr_log(0, "%s Resolution: %dx%d\n", logo[3], horz, vert);
+    pr_log(0, "%s CPU: %s\n", logo[4], cpu_name(s));
+    pr_log(0, "%s Memory: %d MiB\n", logo[5], total_pages * 2);
+    pr_log(0, "%s\n", logo[6]);
+
+    pr_log(0, "\n");
+    pr_log(0, "Copyright (C) 2024-2025 " K_NAME " Developers.\n\n");
+
+    pr_log(
+        0,
+        "This is free software; see the source for copying conditions.  There "
+        "is NO\n"
+        "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR "
+        "PURPOSE.\n\n"
+    );
     PR_LOG(LOG_INFO, "Service initializing ...\n");
     service_init();
 

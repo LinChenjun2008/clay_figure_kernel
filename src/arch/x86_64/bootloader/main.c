@@ -100,43 +100,6 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
         Gop->Mode->Info->VerticalResolution;
     boot_info->graph_info.pixel_per_scanline =
         Gop->Mode->Info->PixelsPerScanLine;
-    // load file
-    uint8_t file_index;
-    boot_info->loaded_files = 0;
-    for (file_index = 0; file_index < FILES_COUNT; file_index++)
-    {
-        UINT64 FileSize = 0;
-        Status          = ReadFile(
-            Files[file_index].Name,
-            &Files[file_index].Info.base_address,
-            Files[file_index].FileBufferType,
-            &FileSize
-        );
-        if (EFI_ERROR(Status))
-        {
-            continue;
-        }
-        boot_info->loaded_file[boot_info->loaded_files] =
-            Files[file_index].Info;
-        boot_info->loaded_file[boot_info->loaded_files].size = FileSize;
-        boot_info->loaded_files++;
-    }
-
-    // Get memory map
-    boot_info->memory_map.map_size           = 4096 * 4;
-    boot_info->memory_map.buffer             = NULL;
-    boot_info->memory_map.map_key            = 0;
-    boot_info->memory_map.descriptor_size    = 0;
-    boot_info->memory_map.descriptor_version = 0;
-    Status = GetMemoryMap(&boot_info->memory_map);
-    if (EFI_ERROR(Status))
-    {
-        gST->ConOut->SetAttribute(gST->ConOut, 0x0C | 0x00);
-        gST->ConOut->OutputString(gST->ConOut, L"[ ERROR ] ");
-        gST->ConOut->SetAttribute(gST->ConOut, 0x0F | 0x00);
-        gST->ConOut->OutputString(gST->ConOut, L"Can not get memory map\n");
-        return EFI_ERR;
-    }
 
     // Get MADT
     //    Get RSDP
@@ -159,12 +122,13 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
     //    Get MADT
     XSDT_TABLE *xsdt    = (void *)rsdp->XsdtAddress;
     UINT32      entries = (xsdt->Header.Length - sizeof(xsdt->Header)) / 8;
-    uint64_t   *point_to_other_sdt = &xsdt->Entry;
+    UINT64     *point_to_other_sdt = &xsdt->Entry;
 
     for (i = 0; i < entries; i++)
     {
         EFI_ACPI_DESCRIPTION_HEADER *h =
             (EFI_ACPI_DESCRIPTION_HEADER *)point_to_other_sdt[i];
+
         if (h->Signature == MADT_SIGNATURE)
         {
             Status = gBS->AllocatePool(
@@ -183,11 +147,49 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
         return EFI_ERR;
     }
 
-    // Create Page
+    // Create Page table
     UINTN PG_TABLE_POS = 0x510000;
     gBS->AllocatePages(AllocateAddress, EfiLoaderData, 9, &PG_TABLE_POS);
 
     CreatePage(PG_TABLE_POS);
+
+    // Get memory map
+    boot_info->memory_map.map_size           = 4096 * 4;
+    boot_info->memory_map.buffer             = NULL;
+    boot_info->memory_map.map_key            = 0;
+    boot_info->memory_map.descriptor_size    = 0;
+    boot_info->memory_map.descriptor_version = 0;
+    Status = GetMemoryMap(&boot_info->memory_map);
+    if (EFI_ERROR(Status))
+    {
+        gST->ConOut->SetAttribute(gST->ConOut, 0x0C | 0x00);
+        gST->ConOut->OutputString(gST->ConOut, L"[ ERROR ] ");
+        gST->ConOut->SetAttribute(gST->ConOut, 0x0F | 0x00);
+        gST->ConOut->OutputString(gST->ConOut, L"Can not get memory map\n");
+        return EFI_ERR;
+    }
+
+    // load file
+    uint8_t file_index;
+    boot_info->loaded_files = 0;
+    for (file_index = 0; file_index < FILES_COUNT; file_index++)
+    {
+        UINT64 FileSize = 0;
+        Status          = ReadFile(
+            Files[file_index].Name,
+            &Files[file_index].Info.base_address,
+            Files[file_index].FileBufferType,
+            &FileSize
+        );
+        if (EFI_ERROR(Status))
+        {
+            continue;
+        }
+        boot_info->loaded_file[boot_info->loaded_files] =
+            Files[file_index].Info;
+        boot_info->loaded_file[boot_info->loaded_files].size = FileSize;
+        boot_info->loaded_files++;
+    }
 
     gBS->ExitBootServices(gImageHandle, boot_info->memory_map.map_key);
     UINT64 (*kernel_main)(void) = (void *)0x100000;

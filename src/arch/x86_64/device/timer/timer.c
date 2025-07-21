@@ -13,16 +13,30 @@
 #include <device/timer.h> // COUNTER0_VALUE_LO,COUNTER0_VALUE_HI,IRQ0_FREQUENCY
 #include <intr.h>         // register_handle
 #include <io.h>           // io_out8
+#include <mem/page.h>     // KADDR_P2V
 #include <service.h>      // TICK
 #include <task/task.h>    // do_schedule
 
-PUBLIC volatile uint64_t global_ticks;
+PRIVATE volatile uint64_t current_ticks = 0;
+
+typedef struct
+{
+    uint8_t  *addr;
+    uint64_t *gcap_id;
+    uint64_t *gen_conf;
+    uint64_t *main_cnt;
+    uint64_t *time0_conf;
+    uint64_t *time0_comp;
+    uint64_t  period_fs;
+} hpet_t;
+
+PRIVATE hpet_t hpet = { 0 };
 
 PRIVATE void pit_timer_handler(intr_stack_t *stack)
 {
     send_eoi(stack->int_vector);
     inform_intr(TICK);
-    global_ticks++;
+    current_ticks++;
 #ifdef __DISABLE_APIC_TIMER__
     // send IPI
     uint64_t icr;
@@ -48,24 +62,53 @@ PRIVATE void apic_timer_handler(intr_stack_t *stack)
     return;
 }
 
-PUBLIC void pit_init(void)
+PRIVATE status_t init_hpet(void)
 {
-    global_ticks = 0;
-    register_handle(0x20, pit_timer_handler);
-    register_handle(0x80, apic_timer_handler);
-    ioapic_enable(2, 0x20);
-#if defined __TIMER_HPET__
-    uint8_t *HPET_addr = (uint8_t *)0xfed00000;
+    /// TODO: Get HPET address from acpi table.
+    hpet.addr       = (uint8_t *)KADDR_P2V(0xfed00000);
+    hpet.gcap_id    = (uint64_t *)(hpet.addr + HPET_GCAP_ID);
+    hpet.gen_conf   = (uint64_t *)(hpet.addr + HPET_GEN_CONF);
+    hpet.main_cnt   = (uint64_t *)(hpet.addr + HPET_MAIN_CNT);
+    hpet.time0_conf = (uint64_t *)(hpet.addr + HPET_TIME0_CONF);
+    hpet.time0_comp = (uint64_t *)(hpet.addr + HPET_TIME0_COMP);
 
-    *(uint64_t *)(HPET_addr + 0x10)  = 3;
-    *(uint64_t *)(HPET_addr + 0x100) = 0x004c;
-    *(uint64_t *)(HPET_addr + 0x108) = 1428571;
-    *(uint64_t *)(HPET_addr + 0xf0)  = 0;
-#else
+    hpet.period_fs = (*hpet.gcap_id >> 32) & 0xffffffff;
+
+    *hpet.gen_conf   = 3;
+    *hpet.time0_conf = 0x004c;
+    *hpet.time0_comp = IRQ0_FREQUENCY * 1000000000 / hpet.period_fs;
+    *hpet.main_cnt   = 0;
+
+    int i = 10000;
+    while (i--) continue;
+    // HPET not available.
+    if (*hpet.main_cnt == 0)
+    {
+        return K_HW_NOSUPPORT;
+    }
+    return K_SUCCESS;
+}
+
+PRIVATE void init_8254pit(void)
+{
     io_out8(PIT_CTRL, 0x34);
     io_out8(PIT_CNT0, COUNTER0_VALUE_LO);
     io_out8(PIT_CNT0, COUNTER0_VALUE_HI);
-#endif
+    return;
+}
+
+PUBLIC void pit_init(void)
+{
+    current_ticks = 0;
+    register_handle(0x20, pit_timer_handler);
+    register_handle(0x80, apic_timer_handler);
+    ioapic_enable(2, 0x20);
+    status_t status;
+    status = init_hpet();
+    if (ERROR(status))
+    {
+        init_8254pit();
+    }
     return;
 }
 
@@ -78,8 +121,8 @@ PUBLIC void apic_timer_init()
     // map APIC timer to an interrupt, and by that enable it in one-shot mode.
     local_apic_write(APIC_REG_TIMER_ICNT, 0xffffffff);
     uint32_t          apic_ticks = 0;
-    volatile uint32_t ticks      = global_ticks + MSECOND_TO_TICKS(10);
-    while (ticks >= global_ticks) continue;
+    volatile uint32_t ticks      = get_current_ticks() + MSECOND_TO_TICKS(10);
+    while (ticks >= get_current_ticks()) continue;
 
     // Stop APIC timer
     local_apic_write(APIC_REG_LVT_TIMER, 0x10000);
@@ -93,4 +136,17 @@ PUBLIC void apic_timer_init()
     local_apic_write(APIC_REG_TIMER_ICNT, apic_ticks);
 #endif
     return;
+}
+
+PUBLIC uint64_t get_current_ticks(void)
+{
+    return current_ticks;
+}
+
+PUBLIC uint64_t get_nano_time(void)
+{
+    if (hpet.period_fs != 0)
+        return (*hpet.main_cnt) * hpet.period_fs / 1000000;
+    else
+        return current_ticks * IRQ0_FREQUENCY * 1000;
 }
