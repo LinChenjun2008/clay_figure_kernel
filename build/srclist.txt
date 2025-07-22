@@ -15,6 +15,9 @@ KERNEL_LINKER_SCRIPT    := ./kernel.lds
 include $(SRC_PATH)/arch/$(TARGET_ARCH)/arch_src_list.txt
 
 KERNEL_SRC += \
+    $(KERNEL_SRC_PATH)/main.c \
+    $(KERNEL_SRC_PATH)/symbols.c \
+    $(KERNEL_SRC_PATH)/config.c \
     $(KERNEL_SRC_PATH)/service/service.c \
     $(KERNEL_SRC_PATH)/service/tick/tick.c \
     $(KERNEL_SRC_PATH)/service/view/view.c \

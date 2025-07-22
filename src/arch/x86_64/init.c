@@ -141,8 +141,8 @@ PUBLIC void init_all(void)
         "\\_____| |_____| |_|     \\_____/ ",
     };
     char     s[64];
-    uint32_t horz = g_boot_info->graph_info.horizontal_resolution;
-    uint32_t vert = g_boot_info->graph_info.vertical_resolution;
+    uint32_t horz = G_BOOT_INFO->graph_info.horizontal_resolution;
+    uint32_t vert = G_BOOT_INFO->graph_info.vertical_resolution;
 
     pr_log(0, "%s System Informations \n", logo[0]);
     pr_log(0, "%s -----------------\n", logo[1]);

@@ -8,21 +8,20 @@
 #include <log.h>
 
 #include <common.h>
+#include <config.h>
 #include <intr.h>
 #include <io.h>
 #include <kernel/init.h>
 #include <kernel/syscall.h>
 #include <mem/page.h>
-#include <ramfs.h> //test
+#include <ramfs.h>
 #include <service.h>
 #include <std/stdio.h>
 #include <std/string.h>
 #include <task/task.h>
 #include <ulib.h>
 
-PUBLIC boot_info_t  *g_boot_info = (boot_info_t *)0xffff800000410000;
-PUBLIC graph_info_t *g_graph_info;
-extern textbox_t     g_tb;
+extern textbox_t g_tb;
 
 PRIVATE void ktask(void)
 {
@@ -57,8 +56,8 @@ PUBLIC void kernel_main(void)
 {
     size_t bss_size = &_ebss[0] - &_bss[0];
     memset(&_bss, 0, bss_size);
-
-    g_graph_info    = &g_boot_info->graph_info;
+    graph_info_t *g_graph_info;
+    g_graph_info    = &G_BOOT_INFO->graph_info;
     g_tb.cur_pos.x  = 0;
     g_tb.cur_pos.y  = 0;
     g_tb.box_pos.x  = 8;
@@ -68,11 +67,18 @@ PUBLIC void kernel_main(void)
     g_tb.char_xsize = 9;
     g_tb.char_ysize = 16;
 
-    g_boot_info->initramfs = KADDR_P2V(g_boot_info->initramfs);
-
-    pr_log(0, "initramfs at address %p.\n", g_boot_info->initramfs);
-    status_t status = ramfs_check(g_boot_info->initramfs);
+    G_BOOT_INFO->initramfs = KADDR_P2V(G_BOOT_INFO->initramfs);
+    PR_LOG(0, "initramfs: %p.\n", G_BOOT_INFO->initramfs);
+    status_t status = ramfs_check(G_BOOT_INFO->initramfs);
     PANIC(ERROR(status), "initramfs check failed.\n");
+
+    ramfs_file_t fp;
+    if (ERROR(ramfs_open(G_BOOT_INFO->initramfs, "config", &fp)))
+    {
+        pr_log(LOG_FATAL, "Can not read cinfig.\n");
+        while (1) io_stihlt();
+    }
+    parse_config(&fp);
 
     init_all();
 

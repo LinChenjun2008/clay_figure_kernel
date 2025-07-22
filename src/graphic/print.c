@@ -7,10 +7,12 @@
 
 #include <log.h>
 
+#include <config.h> // log level
 #include <device/cpu.h>
 #include <device/pic.h>   // ICRs
 #include <device/timer.h> // IRQ0_FREQUENCY,get_current_ticks
 #include <io.h>           // io_hlt,io_cli
+#include <ramfs.h>        // ramfs_open
 #include <std/stdarg.h>
 #include <std/stdio.h>
 
@@ -55,9 +57,29 @@ static void serial_pr_log_sub(uint16_t port, char *buf)
 
 static inline void serial_pr_log(int level, const char *log, va_list ap)
 {
-    if (level > DEBUG_LEVEL)
+    char   log_serial[2];
+    size_t log_serial_len = 2;
+    read_config("LOG_SERIAL", log_serial, &log_serial_len);
+    if (log_serial_len == 0)
     {
         return;
+    }
+    char   log_lv[2];
+    size_t log_lv_len = 2;
+    read_config("LOG_LEVEL", log_lv, &log_lv_len);
+    if (log_lv_len == 1)
+    {
+        if (level > (int)(log_lv[0] - '0'))
+        {
+            return;
+        }
+    }
+    else
+    {
+        if (level > DEBUG_LEVEL)
+        {
+            return;
+        }
     }
     char        msg[256];
     char       *buf;
@@ -89,9 +111,22 @@ PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str);
 
 PUBLIC void pr_log(int level, const char *log, ...)
 {
-    if (level > DEBUG_LEVEL)
+    char   log_lv[2];
+    size_t log_lv_len = 2;
+    read_config("LOG_LEVEL", log_lv, &log_lv_len);
+    if (log_lv_len == 1)
     {
-        return;
+        if (level > (int)(log_lv[0] - '0'))
+        {
+            return;
+        }
+    }
+    else
+    {
+        if (level > DEBUG_LEVEL)
+        {
+            return;
+        }
     }
     char        msg[256];
     char       *buf;
@@ -143,8 +178,9 @@ PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col)
     int      i;
     for (i = 0; i < 16; i++)
     {
-        uint8_t   data  = character[i];
-        uint32_t *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
+        uint8_t       data         = character[i];
+        graph_info_t *g_graph_info = &G_BOOT_INFO->graph_info;
+        uint32_t     *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
                           (tb->box_pos.y + tb->cur_pos.y + i) *
                               g_graph_info->pixel_per_scanline +
                           tb->box_pos.x + tb->cur_pos.x;
@@ -168,8 +204,9 @@ PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col)
         character = ascii_character[255];
         for (i = 0; i < 16; i++)
         {
-            uint8_t   data  = character[i];
-            uint32_t *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
+            uint8_t       data         = character[i];
+            graph_info_t *g_graph_info = &G_BOOT_INFO->graph_info;
+            uint32_t     *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
                               (tb->box_pos.y + tb->cur_pos.y + i) *
                                   g_graph_info->pixel_per_scanline +
                               tb->box_pos.x + tb->cur_pos.x + tb->char_xsize;
@@ -200,7 +237,8 @@ PRIVATE void clear_line(textbox_t *tb)
         uint32_t j;
         for (j = 0; j < tb->xsize; j++)
         {
-            uint32_t *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
+            graph_info_t *g_graph_info = &G_BOOT_INFO->graph_info;
+            uint32_t     *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
                               (tb->box_pos.y + tb->cur_pos.y + i) *
                                   g_graph_info->pixel_per_scanline +
                               (j + tb->box_pos.x);
@@ -217,7 +255,8 @@ PUBLIC void clear_textbox(textbox_t *tb)
         uint32_t j;
         for (j = 0; j < tb->xsize; j++)
         {
-            uint32_t *pixel =
+            graph_info_t *g_graph_info = &G_BOOT_INFO->graph_info;
+            uint32_t     *pixel =
                 (uint32_t *)g_graph_info->frame_buffer_base +
                 (tb->box_pos.y + i) * g_graph_info->pixel_per_scanline +
                 (j + tb->box_pos.x);
@@ -326,13 +365,13 @@ PUBLIC void init_ttf_info(ttf_info_t *ttf_info)
 {
     ttf_info->has_ttf = 0;
     // int i;
-    // for (i = 0; i < g_boot_info->loaded_files; i++)
+    // for (i = 0; i < G_BOOT_INFO->loaded_files; i++)
     // {
-    //     if (g_boot_info->loaded_file[i].flag == 0x80000002)
+    //     if (G_BOOT_INFO->loaded_file[i].flag == 0x80000002)
     //     {
     //         stbtt_InitFont(
     //             &ttf_info->info,
-    //             KADDR_P2V(g_boot_info->loaded_file[i].base_address),
+    //             KADDR_P2V(G_BOOT_INFO->loaded_file[i].base_address),
     //             0
     //         );
     //         uint8_t *btmp;

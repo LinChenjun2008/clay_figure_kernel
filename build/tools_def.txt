@@ -8,7 +8,7 @@ KALLSYMS := ./tools/kallsyms
 IMGCOPY    := ./tools/imgcopy
 
 IMGCOPY_FLAGS := \
-    -copy $(KERNEL_SRC_PATH)/services_list.txt services_list \
+    -copy $(KERNEL_SRC_PATH)/config.txt config \
 
 BOOTLOADER_FLAGS := -Wall -Wextra -Werror \
                     -I$(BOOTLOADER_INCLUDE_PATH) \

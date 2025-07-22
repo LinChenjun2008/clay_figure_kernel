@@ -10,12 +10,6 @@
 #define K_NAME_S  "CLFG"
 #define K_VERSION "0.0.0"
 
-// #define __DISABLE_SERIAL_LOG__
-
-// #define __DISABLE_ASSERT__
-
-// #define __DISABLE_APIC_TIMER__
-
 #define K_SUCCESS         0
 #define K_ERROR           1
 #define K_NOMEM           2
@@ -35,8 +29,7 @@
 //
 #include <common.h>
 
-extern boot_info_t  *g_boot_info;
-extern graph_info_t *g_graph_info;
+#define G_BOOT_INFO ((boot_info_t *)0xffff800000410000)
 
 extern uint8_t _kernel_start[];
 extern uint8_t _text[];
