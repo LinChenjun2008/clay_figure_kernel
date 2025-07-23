@@ -118,10 +118,10 @@ PUBLIC void mem_page_init(void)
     init_bitmap(&mem.page_bitmap);
     init_spinlock(&mem.lock);
     EFI_MEMORY_DESCRIPTOR *efi_memory_desc =
-        (EFI_MEMORY_DESCRIPTOR *)G_BOOT_INFO->memory_map.buffer;
+        (EFI_MEMORY_DESCRIPTOR *)BOOT_INFO->memory_map.buffer;
 
-    size_t map_size              = G_BOOT_INFO->memory_map.map_size;
-    size_t desc_size             = G_BOOT_INFO->memory_map.descriptor_size;
+    size_t map_size              = BOOT_INFO->memory_map.map_size;
+    size_t desc_size             = BOOT_INFO->memory_map.descriptor_size;
     int    number_of_memory_desc = map_size / desc_size;
 
 

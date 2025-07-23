@@ -54,7 +54,7 @@ PRIVATE void view_fill(message_t *msg)
 
 PUBLIC void view_main()
 {
-    graph_info_t *g_graph_info = &G_BOOT_INFO->graph_info;
+    graph_info_t *g_graph_info = &BOOT_INFO->graph_info;
     gi.vram                    = (uint32_t *)g_graph_info->frame_buffer_base;
     gi.xsize                   = g_graph_info->horizontal_resolution;
     gi.ysize                   = g_graph_info->vertical_resolution;

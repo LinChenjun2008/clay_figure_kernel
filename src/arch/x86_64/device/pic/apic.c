@@ -42,7 +42,7 @@ PUBLIC void detect_cores(void)
     apic.number_of_ioapic   = 0;
     memset(&apic.lapic_id, 0, sizeof(apic.lapic_id));
     memset(&apic.ioapic, 0, sizeof(apic.ioapic));
-    MADT_t *madt            = (MADT_t *)KADDR_P2V(G_BOOT_INFO->madt_addr);
+    MADT_t *madt            = (MADT_t *)KADDR_P2V(BOOT_INFO->madt_addr);
     apic.local_apic_address = madt->LocalApicAddress;
     uint8_t *p              = (uint8_t *)(madt + 1);
     uint8_t *p2             = (uint8_t *)madt + madt->Header.Length;

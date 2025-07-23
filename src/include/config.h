@@ -12,11 +12,11 @@ PUBLIC void parse_config(ramfs_file_t *fp);
 
 /**
  * @brief 读取配置信息
- * @param key 键名
- * @param value 键值
- * @param value_len 键长
+ * @param name 配置项名
+ * @param value 配置项值
+ * @param value_len 配置项值长度
  * @return
  */
-PUBLIC void read_config(const char *key, char *value, size_t *value_len);
+PUBLIC void read_config(const char *name, char *value, size_t *value_len);
 
 #endif

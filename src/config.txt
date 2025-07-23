@@ -1,6 +1,2 @@
-# Logger
-LOG_LEVEL: [6]
-LOG_SERIAL: [*]
-
-# Timer
-APIC_TIMER: [*]
+LOG_LEVEL  = [6]
+LOG_SERIAL = [*]

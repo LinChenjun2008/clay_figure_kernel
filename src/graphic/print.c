@@ -106,9 +106,6 @@ static inline void serial_pr_log(int level, const char *log, va_list ap)
 
 #undef IS_TRANSMIT_EMPTY
 
-PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col);
-PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str);
-
 PUBLIC void pr_log(int level, const char *log, ...)
 {
     char   log_lv[2];
@@ -142,8 +139,10 @@ PUBLIC void pr_log(int level, const char *log, ...)
     if (level >= LOG_FATAL && level <= LOG_TRACE)
     {
         print_time(msg);
-        basic_print(&g_tb, level_color[0], msg);
-        basic_print(&g_tb, level_color[level], level_str[level]);
+        basic_print(&BOOT_INFO->graph_info, &g_tb, level_color[0], msg);
+        basic_print(
+            &BOOT_INFO->graph_info, &g_tb, level_color[level], level_str[level]
+        );
     }
     va_start(ap, log);
     serial_pr_log(level, log, ap);
@@ -152,7 +151,7 @@ PUBLIC void pr_log(int level, const char *log, ...)
     va_start(ap, log);
     vsprintf(msg, log, ap);
     buf = msg;
-    basic_print(&g_tb, level_color[0], buf);
+    basic_print(&BOOT_INFO->graph_info, &g_tb, level_color[0], buf);
     va_end(ap);
     return;
 }
@@ -167,23 +166,23 @@ PUBLIC void pr_msg(const char *msg, ...)
 
     va_start(ap, msg);
     vsprintf(buf, msg, ap);
-    basic_print(&g_tb, 0x00c5c5c5, buf);
+    basic_print(&BOOT_INFO->graph_info, &g_tb, 0x00c5c5c5, buf);
     va_end(ap);
     return;
 }
 
-PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col)
+PUBLIC void
+basic_put_char(graph_info_t *gi, textbox_t *tb, unsigned char c, uint32_t col)
 {
     uint8_t *character = ascii_character[(uint32_t)c];
     int      i;
     for (i = 0; i < 16; i++)
     {
-        uint8_t       data         = character[i];
-        graph_info_t *g_graph_info = &G_BOOT_INFO->graph_info;
-        uint32_t     *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
-                          (tb->box_pos.y + tb->cur_pos.y + i) *
-                              g_graph_info->pixel_per_scanline +
-                          tb->box_pos.x + tb->cur_pos.x;
+        uint8_t   data = character[i];
+        uint32_t *pixel =
+            (uint32_t *)gi->frame_buffer_base +
+            (tb->box_pos.y + tb->cur_pos.y + i) * gi->pixel_per_scanline +
+            tb->box_pos.x + tb->cur_pos.x;
         int j;
         for (j = 0; j < 8; j++)
         {
@@ -204,12 +203,11 @@ PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col)
         character = ascii_character[255];
         for (i = 0; i < 16; i++)
         {
-            uint8_t       data         = character[i];
-            graph_info_t *g_graph_info = &G_BOOT_INFO->graph_info;
-            uint32_t     *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
-                              (tb->box_pos.y + tb->cur_pos.y + i) *
-                                  g_graph_info->pixel_per_scanline +
-                              tb->box_pos.x + tb->cur_pos.x + tb->char_xsize;
+            uint8_t   data = character[i];
+            uint32_t *pixel =
+                (uint32_t *)gi->frame_buffer_base +
+                (tb->box_pos.y + tb->cur_pos.y + i) * gi->pixel_per_scanline +
+                tb->box_pos.x + tb->cur_pos.x + tb->char_xsize;
             int j;
             for (j = 0; j < 8; j++)
             {
@@ -229,7 +227,7 @@ PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col)
     return;
 }
 
-PRIVATE void clear_line(textbox_t *tb)
+PRIVATE void clear_line(graph_info_t *gi, textbox_t *tb)
 {
     uint32_t i;
     for (i = 0; i < tb->char_ysize; i++)
@@ -237,17 +235,16 @@ PRIVATE void clear_line(textbox_t *tb)
         uint32_t j;
         for (j = 0; j < tb->xsize; j++)
         {
-            graph_info_t *g_graph_info = &G_BOOT_INFO->graph_info;
-            uint32_t     *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
-                              (tb->box_pos.y + tb->cur_pos.y + i) *
-                                  g_graph_info->pixel_per_scanline +
-                              (j + tb->box_pos.x);
+            uint32_t *pixel =
+                (uint32_t *)gi->frame_buffer_base +
+                (tb->box_pos.y + tb->cur_pos.y + i) * gi->pixel_per_scanline +
+                (j + tb->box_pos.x);
             *pixel = 0x00000000;
         }
     }
 }
 
-PUBLIC void clear_textbox(textbox_t *tb)
+PUBLIC void clear_textbox(graph_info_t *gi, textbox_t *tb)
 {
     uint32_t i;
     for (i = 0; i < tb->ysize; i++)
@@ -255,11 +252,9 @@ PUBLIC void clear_textbox(textbox_t *tb)
         uint32_t j;
         for (j = 0; j < tb->xsize; j++)
         {
-            graph_info_t *g_graph_info = &G_BOOT_INFO->graph_info;
-            uint32_t     *pixel =
-                (uint32_t *)g_graph_info->frame_buffer_base +
-                (tb->box_pos.y + i) * g_graph_info->pixel_per_scanline +
-                (j + tb->box_pos.x);
+            uint32_t *pixel = (uint32_t *)gi->frame_buffer_base +
+                              (tb->box_pos.y + i) * gi->pixel_per_scanline +
+                              (j + tb->box_pos.x);
             *pixel = 0x00000000;
         }
     }
@@ -267,7 +262,8 @@ PUBLIC void clear_textbox(textbox_t *tb)
     tb->cur_pos.y = 0;
 }
 
-PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str)
+PUBLIC void
+basic_print(graph_info_t *gi, textbox_t *tb, uint32_t col, const char *str)
 {
     const char *s = str;
     while (*s)
@@ -277,7 +273,7 @@ PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str)
         max_y = tb->ysize - tb->char_ysize;
         if (*s == '\n' || tb->cur_pos.x >= max_x)
         {
-            basic_put_char(tb, 255, 0);
+            basic_put_char(gi, tb, 255, 0);
             tb->cur_pos.x = 0;
             tb->cur_pos.y += tb->char_ysize;
             if (tb->cur_pos.y > max_y)
@@ -286,8 +282,8 @@ PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str)
             }
             s++;
             // clear line
-            clear_line(tb);
-            basic_put_char(tb, 255, 0x00ffffff);
+            clear_line(gi, tb);
+            basic_put_char(gi, tb, 255, 0x00ffffff);
             continue;
         }
         if (*s == '\b')
@@ -317,7 +313,7 @@ PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str)
             tb->cur_pos.x = 0;
             continue;
         }
-        basic_put_char(tb, *s++, col);
+        basic_put_char(gi, tb, *s++, col);
         tb->cur_pos.x += tb->char_xsize;
     }
     return;
@@ -365,13 +361,13 @@ PUBLIC void init_ttf_info(ttf_info_t *ttf_info)
 {
     ttf_info->has_ttf = 0;
     // int i;
-    // for (i = 0; i < G_BOOT_INFO->loaded_files; i++)
+    // for (i = 0; i < BOOT_INFO->loaded_files; i++)
     // {
-    //     if (G_BOOT_INFO->loaded_file[i].flag == 0x80000002)
+    //     if (BOOT_INFO->loaded_file[i].flag == 0x80000002)
     //     {
     //         stbtt_InitFont(
     //             &ttf_info->info,
-    //             KADDR_P2V(G_BOOT_INFO->loaded_file[i].base_address),
+    //             KADDR_P2V(BOOT_INFO->loaded_file[i].base_address),
     //             0
     //         );
     //         uint8_t *btmp;
@@ -596,7 +592,7 @@ PUBLIC void pr_ttf_str(
 {
     if (!ttf_info->has_ttf)
     {
-        basic_print(tb, color, str);
+        basic_print(graph_info, tb, color, str);
         return;
     }
     font_size *= 2;

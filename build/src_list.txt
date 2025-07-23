@@ -1,16 +1,16 @@
-SRC_PATH                := ../src
-BOOTLOADER_SRC_PATH     := $(SRC_PATH)/arch/$(TARGET_ARCH)/bootloader
-KERNEL_SRC_PATH         := $(SRC_PATH)
+SRC_PATH                = ../src
+BOOTLOADER_SRC_PATH     = $(SRC_PATH)/arch/$(TARGET_ARCH)/bootloader
+KERNEL_SRC_PATH         = $(SRC_PATH)
 
-BOOTLOADER_SRC          := \
+BOOTLOADER_SRC          = \
 $(BOOTLOADER_SRC_PATH)/main.c \
 $(BOOTLOADER_SRC_PATH)/video.c \
 $(BOOTLOADER_SRC_PATH)/memory.c \
 $(BOOTLOADER_SRC_PATH)/file.c \
 
-BOOTLOADER_INCLUDE_PATH := $(BOOTLOADER_SRC_PATH)/include
+BOOTLOADER_INCLUDE_PATH = $(BOOTLOADER_SRC_PATH)/include
 
-KERNEL_LINKER_SCRIPT    := ./kernel.lds
+KERNEL_LINKER_SCRIPT    = ./kernel.lds
 
 include $(SRC_PATH)/arch/$(TARGET_ARCH)/arch_src_list.txt
 
@@ -37,5 +37,5 @@ KERNEL_SRC += \
     \
     $(KERNEL_SRC_PATH)/ulib/ulib.c \
 
-KERNEL_ARCH_INCLUDE_PATH := $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include
-KERNEL_INCLUDE_PATH      := $(KERNEL_SRC_PATH)/include
+KERNEL_ARCH_INCLUDE_PATH = $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include
+KERNEL_INCLUDE_PATH      = $(KERNEL_SRC_PATH)/include

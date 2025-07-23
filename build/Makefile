@@ -1,6 +1,6 @@
 include target.txt
-include srclist.txt
 include tools_def.txt
+include src_list.txt
 
 KERNEL_ASM_SRC    := $(filter %.S,$(KERNEL_SRC))
 KERNEL_C_SRC      := $(filter %.c,$(KERNEL_SRC))

@@ -18,60 +18,60 @@
 
 typedef struct key_item_s
 {
-    char   key[64];
-    size_t key_len;
+    char   name[64];
+    size_t name_len;
     char   val[64];
     size_t val_len;
-} key_item_t;
+} conf_item_t;
 
 PRIVATE struct
 {
-    key_item_t items[64];
-    int        number_of_items;
+    conf_item_t items[64];
+    int         number_of_items;
 } configures;
 
-PRIVATE void skip_space(uint8_t **s, uint8_t *end)
+PRIVATE void skip_space(uint8_t **src, uint8_t *end)
 {
-    while (IS_SPACE(**s) && *s < end)
+    while (IS_SPACE(**src) && *src < end)
     {
-        (*s)++;
+        (*src)++;
     }
     return;
 }
 
-PRIVATE void skip_line(uint8_t **s, uint8_t *end)
+PRIVATE void skip_line(uint8_t **src, uint8_t *end)
 {
-    while (**s != '\n' && *s < end)
+    while (**src != '\n' && *src < end)
     {
-        (*s)++;
+        (*src)++;
     }
     return;
 }
 
-PRIVATE status_t read_item(uint8_t **s, uint8_t *end, key_item_t *item)
+PRIVATE status_t read_item(uint8_t **src, uint8_t *end, conf_item_t *item)
 {
-    item->key_len = 0;
-    item->val_len = 0;
-    skip_space(s, end);
-    // Key name
-    while (IS_KEY_NAME(**s) && **s != ':' && *s < end && item->key_len < 63)
+    item->name_len = 0;
+    item->val_len  = 0;
+    skip_space(src, end);
+    // Name
+    while (IS_KEY_NAME(**src) && *src < end && item->name_len < 63)
     {
-        item->key[item->key_len++] = *(*s)++;
+        item->name[item->name_len++] = *(*src)++;
     }
-    item->key[item->key_len] = 0;
+    item->name[item->name_len] = 0;
+    skip_space(src, end);
+    if (*(*src)++ != '=') return K_ERROR;
+    skip_space(src, end);
 
-    if (*(*s)++ != ':') return K_ERROR;
-    skip_space(s, end);
+    if (*(*src)++ != '[') return K_ERROR;
+    skip_space(src, end);
 
-    if (*(*s)++ != '[') return K_ERROR;
-    skip_space(s, end);
-
-    while (**s != ']' && *s < end && item->val_len < 63)
+    while (**src != ']' && *src < end && item->val_len < 63)
     {
-        item->val[item->val_len++] = *(*s)++;
+        item->val[item->val_len++] = *(*src)++;
     }
     item->val[item->val_len] = 0;
-    (*s)++;
+    (*src)++;
 
     return K_SUCCESS;
 }
@@ -79,50 +79,50 @@ PRIVATE status_t read_item(uint8_t **s, uint8_t *end, key_item_t *item)
 PUBLIC void parse_config(ramfs_file_t *fp)
 {
     configures.number_of_items = 0;
-    uint8_t *s;
+    uint8_t *src;
     uint8_t *end = ((uint8_t *)fp->data + fp->size);
-    for (s = (uint8_t *)fp->data; s < end; s++)
+    for (src = (uint8_t *)fp->data; src < end; src++)
     {
-        skip_space(&s, end);
+        skip_space(&src, end);
 
         // END
-        if (s >= end)
+        if (src >= end)
         {
             return;
         }
         // Comment
-        if (*s == '#')
+        if (*src == '#')
         {
-            skip_line(&s, end);
+            skip_line(&src, end);
             continue;
         }
         else
         {
-            key_item_t item;
-            if (ERROR(read_item(&s, end, &item)))
+            conf_item_t item;
+            if (ERROR(read_item(&src, end, &item)))
             {
-                skip_line(&s, end);
+                skip_line(&src, end);
                 continue;
             }
             configures.items[configures.number_of_items++] = item;
-            pr_log(0, "key=%s,value=%s.\n", item.key, item.val);
         }
     }
 }
 
-PUBLIC void read_config(const char *key, char *value, size_t *value_len)
+PUBLIC void read_config(const char *name, char *value, size_t *value_len)
 {
     int i;
     for (i = 0; i < configures.number_of_items; i++)
     {
-        if (strcmp(key, configures.items[i].key) == 0)
+        conf_item_t *item = &configures.items[i];
+        if (strcmp(name, item->name) == 0)
         {
-            if (*value_len < configures.items[i].val_len)
+            if (*value_len < item->val_len)
             {
                 break;
             }
-            strcpy((char *)value, configures.items[i].val);
-            *value_len = configures.items[i].val_len;
+            strcpy((char *)value, item->val);
+            *value_len = item->val_len;
             return;
         }
     }

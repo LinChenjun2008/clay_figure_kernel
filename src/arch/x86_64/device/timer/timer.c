@@ -17,6 +17,8 @@
 #include <service.h>        // TICK
 #include <task/task.h>      // do_schedule
 
+#define HPET_DEFAULT_ADDRESS 0xfed00000
+
 PRIVATE volatile uint64_t current_ticks = 0;
 
 typedef struct
@@ -30,28 +32,34 @@ typedef struct
     uint64_t  period_fs;
 } hpet_t;
 
-PRIVATE hpet_t hpet = { 0 };
+PRIVATE hpet_t hpet = { (uint8_t *)HPET_DEFAULT_ADDRESS,
+                        (uint64_t *)(HPET_DEFAULT_ADDRESS + HPET_GCAP_ID),
+                        (uint64_t *)(HPET_DEFAULT_ADDRESS + HPET_GEN_CONF),
+                        (uint64_t *)(HPET_DEFAULT_ADDRESS + HPET_MAIN_CNT),
+                        (uint64_t *)(HPET_DEFAULT_ADDRESS + HPET_TIME0_CONF),
+                        (uint64_t *)(HPET_DEFAULT_ADDRESS + HPET_TIME0_COMP),
+                        0 };
 
 PRIVATE void pit_timer_handler(intr_stack_t *stack)
 {
     send_eoi(stack->int_vector);
     inform_intr(TICK);
     current_ticks++;
-#ifdef __DISABLE_APIC_TIMER__
-    // send IPI
-    uint64_t icr;
-    icr = make_icr(
-        0x80,
-        ICR_DELIVER_MODE_FIXED,
-        ICR_DEST_MODE_PHY,
-        ICR_DELIVER_STATUS_IDLE,
-        ICR_LEVEL_DE_ASSEST,
-        ICR_TRIGGER_EDGE,
-        ICR_ALL_EXCLUDE_SELF,
-        0
-    );
-    send_IPI(icr);
-#endif
+
+    // // send IPI
+    // uint64_t icr;
+    // icr = make_icr(
+    //     0x80,
+    //     ICR_DELIVER_MODE_FIXED,
+    //     ICR_DEST_MODE_PHY,
+    //     ICR_DELIVER_STATUS_IDLE,
+    //     ICR_LEVEL_DE_ASSEST,
+    //     ICR_TRIGGER_EDGE,
+    //     ICR_ALL_EXCLUDE_SELF,
+    //     0
+    // );
+    // send_IPI(icr);
+
     return;
 }
 
@@ -65,7 +73,7 @@ PRIVATE void apic_timer_handler(intr_stack_t *stack)
 PRIVATE status_t init_hpet(void)
 {
     /// TODO: Get HPET address from acpi table.
-    hpet.addr       = (uint8_t *)KADDR_P2V(0xfed00000);
+    hpet.addr       = (uint8_t *)KADDR_P2V(HPET_DEFAULT_ADDRESS);
     hpet.gcap_id    = (uint64_t *)(hpet.addr + HPET_GCAP_ID);
     hpet.gen_conf   = (uint64_t *)(hpet.addr + HPET_GEN_CONF);
     hpet.main_cnt   = (uint64_t *)(hpet.addr + HPET_MAIN_CNT);
@@ -103,9 +111,7 @@ PUBLIC void pit_init(void)
     register_handle(0x20, pit_timer_handler);
     register_handle(0x80, apic_timer_handler);
     ioapic_enable(2, 0x20);
-    status_t status;
-    status = init_hpet();
-    if (ERROR(status))
+    if (ERROR(init_hpet()))
     {
         init_8254pit();
     }
@@ -114,7 +120,6 @@ PUBLIC void pit_init(void)
 
 PUBLIC void apic_timer_init()
 {
-#ifndef __DISABLE_APIC_TIMER__
     local_apic_write(APIC_REG_TPR, 0); // Set TPR
     local_apic_write(APIC_REG_TIMER_DIV, 0x00000003);
 
@@ -134,7 +139,6 @@ PUBLIC void apic_timer_init()
     local_apic_write(APIC_REG_LVT_TIMER, 0x80 | 0x20000);
     local_apic_write(APIC_REG_TIMER_DIV, 0x00000003);
     local_apic_write(APIC_REG_TIMER_ICNT, apic_ticks);
-#endif
     return;
 }
 
@@ -146,7 +150,8 @@ PUBLIC uint64_t get_current_ticks(void)
 PUBLIC uint64_t get_nano_time(void)
 {
     if (hpet.period_fs != 0)
+    {
         return (*hpet.main_cnt) * hpet.period_fs / 1000000;
-    else
-        return current_ticks * IRQ0_FREQUENCY * 1000;
+    }
+    return current_ticks * IRQ0_FREQUENCY * 1000;
 }

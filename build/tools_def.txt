@@ -4,13 +4,13 @@ else
     include win_tools_def.txt
 endif
 
-KALLSYMS := ./tools/kallsyms
-IMGCOPY    := ./tools/imgcopy
+KALLSYMS = ./tools/kallsyms
+IMGCOPY  = ./tools/imgcopy
 
-IMGCOPY_FLAGS := \
+IMGCOPY_FLAGS = \
     -copy $(KERNEL_SRC_PATH)/config.txt config \
 
-BOOTLOADER_FLAGS := -Wall -Wextra -Werror \
+BOOTLOADER_FLAGS  = -Wall -Wextra -Werror \
                     -I$(BOOTLOADER_INCLUDE_PATH) \
                     -I$(SRC_PATH) \
                     -I$(BOOTLOADER_SRC_PATH) \
