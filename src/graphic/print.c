@@ -88,9 +88,8 @@ static inline void serial_pr_log(int level, const char *log, va_list ap)
         "\033[0m[       ]\033[0m ",    "\033[0;91m[ FATAL ]\033[0m ",
         "\033[0;31m[ ERROR ]\033[0m ", "\033[0;33m[ WARN  ]\033[0m ",
         "\033[0;32m[ INFO  ]\033[0m ", "\033[0;36m[ DEBUG ]\033[0m ",
-        "\033[0;37m[ TRACE ]\033[0m ",
     };
-    if (level >= LOG_FATAL && level <= LOG_TRACE)
+    if (level >= LOG_FATAL && level <= LOG_DEBUG)
     {
         serial_pr_log_sub(port, print_time(msg));
         buf = (char *)level_str[level];
@@ -129,14 +128,14 @@ PUBLIC void pr_log(int level, const char *log, ...)
     char       *buf;
     va_list     ap;
     const char *level_str[] = {
-        "[       ] ", "[ FATAL ] ", "[ ERROR ] ", "[ WARN  ] ",
-        "[ INFO  ] ", "[ DEBUG ] ", "[ TRACE ] ",
+        "[       ] ", "[ FATAL ] ", "[ ERROR ] ",
+        "[ WARN  ] ", "[ INFO  ] ", "[ DEBUG ] ",
     };
     const uint32_t level_color[] = {
         0x00c5c5c5, 0x00ff0000, 0x00c00000, 0x00c0c000,
         0x0000c000, 0x0000c0c0, 0x00a0a0a0,
     };
-    if (level >= LOG_FATAL && level <= LOG_TRACE)
+    if (level >= LOG_FATAL && level <= LOG_DEBUG)
     {
         print_time(msg);
         basic_print(&BOOT_INFO->graph_info, &g_tb, level_color[0], msg);
