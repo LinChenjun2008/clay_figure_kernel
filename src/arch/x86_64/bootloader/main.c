@@ -170,29 +170,41 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
     }
 
     // load file
-    uint8_t file_index;
-    boot_info->loaded_files = 0;
-    for (file_index = 0; file_index < FILES_COUNT; file_index++)
+
+    UINT64 FileSize             = 0;
+    UINT64 (*kernel_main)(void) = (void *)0x100000;
+
+    // Kernel
+    Status = ReadFile(
+        KERNEL_NAME,
+        (EFI_PHYSICAL_ADDRESS *)&kernel_main,
+        AllocateAddress,
+        &FileSize
+    );
+    if (EFI_ERROR(Status))
     {
-        UINT64 FileSize = 0;
-        Status          = ReadFile(
-            Files[file_index].Name,
-            &Files[file_index].Info.base_address,
-            Files[file_index].FileBufferType,
-            &FileSize
+        gST->ConOut->OutputString(
+            gST->ConOut, L"Failed to read " KERNEL_NAME "\n"
         );
-        if (EFI_ERROR(Status))
-        {
-            continue;
-        }
-        boot_info->loaded_file[boot_info->loaded_files] =
-            Files[file_index].Info;
-        boot_info->loaded_file[boot_info->loaded_files].size = FileSize;
-        boot_info->loaded_files++;
+        while (1) continue;
     }
 
+    // initramfs
+    Status = ReadFile(
+        INITRAMFS_NAME,
+        (EFI_PHYSICAL_ADDRESS *)&boot_info->initramfs,
+        AllocateAnyPages,
+        &boot_info->initramfs_size
+    );
+    if (EFI_ERROR(Status))
+    {
+        gST->ConOut->OutputString(
+            gST->ConOut, L"Failed to read " INITRAMFS_NAME "\n"
+        );
+        while (1) continue;
+    }
     gBS->ExitBootServices(gImageHandle, boot_info->memory_map.map_key);
-    UINT64 (*kernel_main)(void) = (void *)0x100000;
+
     kernel_main();
     while (1) continue;
     return Status;

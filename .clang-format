@@ -282,15 +282,15 @@ SortIncludes: true
 #   Regroup - 重新分组
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex:           'kernel/*.*'
+  - Regex:           'kernel/global.h'
     Priority:        1
     SortPriority:    0
 
-  - Regex:           '<log\.h>'
+  - Regex:           'log.h'
     Priority:        2
     SortPriority:    0
 
-  - Regex:           '!(kernel/global|log).*'
+  - Regex:           '*.h'
     Priority:        3
     SortPriority:    1
 

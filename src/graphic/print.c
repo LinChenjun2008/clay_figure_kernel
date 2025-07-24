@@ -7,10 +7,12 @@
 
 #include <log.h>
 
+#include <config.h> // log level
 #include <device/cpu.h>
 #include <device/pic.h>   // ICRs
 #include <device/timer.h> // IRQ0_FREQUENCY,get_current_ticks
 #include <io.h>           // io_hlt,io_cli
+#include <ramfs.h>        // ramfs_open
 #include <std/stdarg.h>
 #include <std/stdio.h>
 
@@ -55,9 +57,29 @@ static void serial_pr_log_sub(uint16_t port, char *buf)
 
 static inline void serial_pr_log(int level, const char *log, va_list ap)
 {
-    if (level > DEBUG_LEVEL)
+    char   log_serial[2];
+    size_t log_serial_len = 2;
+    read_config("LOG_SERIAL", log_serial, &log_serial_len);
+    if (log_serial_len == 0)
     {
         return;
+    }
+    char   log_lv[2];
+    size_t log_lv_len = 2;
+    read_config("LOG_LEVEL", log_lv, &log_lv_len);
+    if (log_lv_len == 1)
+    {
+        if (level > (int)(log_lv[0] - '0'))
+        {
+            return;
+        }
+    }
+    else
+    {
+        if (level > DEBUG_LEVEL)
+        {
+            return;
+        }
     }
     char        msg[256];
     char       *buf;
@@ -66,9 +88,8 @@ static inline void serial_pr_log(int level, const char *log, va_list ap)
         "\033[0m[       ]\033[0m ",    "\033[0;91m[ FATAL ]\033[0m ",
         "\033[0;31m[ ERROR ]\033[0m ", "\033[0;33m[ WARN  ]\033[0m ",
         "\033[0;32m[ INFO  ]\033[0m ", "\033[0;36m[ DEBUG ]\033[0m ",
-        "\033[0;37m[ TRACE ]\033[0m ",
     };
-    if (level >= LOG_FATAL && level <= LOG_TRACE)
+    if (level >= LOG_FATAL && level <= LOG_DEBUG)
     {
         serial_pr_log_sub(port, print_time(msg));
         buf = (char *)level_str[level];
@@ -84,31 +105,43 @@ static inline void serial_pr_log(int level, const char *log, va_list ap)
 
 #undef IS_TRANSMIT_EMPTY
 
-PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col);
-PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str);
-
 PUBLIC void pr_log(int level, const char *log, ...)
 {
-    if (level > DEBUG_LEVEL)
+    char   log_lv[2];
+    size_t log_lv_len = 2;
+    read_config("LOG_LEVEL", log_lv, &log_lv_len);
+    if (log_lv_len == 1)
     {
-        return;
+        if (level > (int)(log_lv[0] - '0'))
+        {
+            return;
+        }
+    }
+    else
+    {
+        if (level > DEBUG_LEVEL)
+        {
+            return;
+        }
     }
     char        msg[256];
     char       *buf;
     va_list     ap;
     const char *level_str[] = {
-        "[       ] ", "[ FATAL ] ", "[ ERROR ] ", "[ WARN  ] ",
-        "[ INFO  ] ", "[ DEBUG ] ", "[ TRACE ] ",
+        "[       ] ", "[ FATAL ] ", "[ ERROR ] ",
+        "[ WARN  ] ", "[ INFO  ] ", "[ DEBUG ] ",
     };
     const uint32_t level_color[] = {
         0x00c5c5c5, 0x00ff0000, 0x00c00000, 0x00c0c000,
         0x0000c000, 0x0000c0c0, 0x00a0a0a0,
     };
-    if (level >= LOG_FATAL && level <= LOG_TRACE)
+    if (level >= LOG_FATAL && level <= LOG_DEBUG)
     {
         print_time(msg);
-        basic_print(&g_tb, level_color[0], msg);
-        basic_print(&g_tb, level_color[level], level_str[level]);
+        basic_print(&BOOT_INFO->graph_info, &g_tb, level_color[0], msg);
+        basic_print(
+            &BOOT_INFO->graph_info, &g_tb, level_color[level], level_str[level]
+        );
     }
     va_start(ap, log);
     serial_pr_log(level, log, ap);
@@ -117,7 +150,7 @@ PUBLIC void pr_log(int level, const char *log, ...)
     va_start(ap, log);
     vsprintf(msg, log, ap);
     buf = msg;
-    basic_print(&g_tb, level_color[0], buf);
+    basic_print(&BOOT_INFO->graph_info, &g_tb, level_color[0], buf);
     va_end(ap);
     return;
 }
@@ -132,22 +165,23 @@ PUBLIC void pr_msg(const char *msg, ...)
 
     va_start(ap, msg);
     vsprintf(buf, msg, ap);
-    basic_print(&g_tb, 0x00c5c5c5, buf);
+    basic_print(&BOOT_INFO->graph_info, &g_tb, 0x00c5c5c5, buf);
     va_end(ap);
     return;
 }
 
-PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col)
+PUBLIC void
+basic_put_char(graph_info_t *gi, textbox_t *tb, unsigned char c, uint32_t col)
 {
     uint8_t *character = ascii_character[(uint32_t)c];
     int      i;
     for (i = 0; i < 16; i++)
     {
-        uint8_t   data  = character[i];
-        uint32_t *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
-                          (tb->box_pos.y + tb->cur_pos.y + i) *
-                              g_graph_info->pixel_per_scanline +
-                          tb->box_pos.x + tb->cur_pos.x;
+        uint8_t   data = character[i];
+        uint32_t *pixel =
+            (uint32_t *)gi->frame_buffer_base +
+            (tb->box_pos.y + tb->cur_pos.y + i) * gi->pixel_per_scanline +
+            tb->box_pos.x + tb->cur_pos.x;
         int j;
         for (j = 0; j < 8; j++)
         {
@@ -168,11 +202,11 @@ PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col)
         character = ascii_character[255];
         for (i = 0; i < 16; i++)
         {
-            uint8_t   data  = character[i];
-            uint32_t *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
-                              (tb->box_pos.y + tb->cur_pos.y + i) *
-                                  g_graph_info->pixel_per_scanline +
-                              tb->box_pos.x + tb->cur_pos.x + tb->char_xsize;
+            uint8_t   data = character[i];
+            uint32_t *pixel =
+                (uint32_t *)gi->frame_buffer_base +
+                (tb->box_pos.y + tb->cur_pos.y + i) * gi->pixel_per_scanline +
+                tb->box_pos.x + tb->cur_pos.x + tb->char_xsize;
             int j;
             for (j = 0; j < 8; j++)
             {
@@ -192,7 +226,7 @@ PRIVATE void basic_put_char(textbox_t *tb, unsigned char c, uint32_t col)
     return;
 }
 
-PRIVATE void clear_line(textbox_t *tb)
+PRIVATE void clear_line(graph_info_t *gi, textbox_t *tb)
 {
     uint32_t i;
     for (i = 0; i < tb->char_ysize; i++)
@@ -200,16 +234,16 @@ PRIVATE void clear_line(textbox_t *tb)
         uint32_t j;
         for (j = 0; j < tb->xsize; j++)
         {
-            uint32_t *pixel = (uint32_t *)g_graph_info->frame_buffer_base +
-                              (tb->box_pos.y + tb->cur_pos.y + i) *
-                                  g_graph_info->pixel_per_scanline +
-                              (j + tb->box_pos.x);
+            uint32_t *pixel =
+                (uint32_t *)gi->frame_buffer_base +
+                (tb->box_pos.y + tb->cur_pos.y + i) * gi->pixel_per_scanline +
+                (j + tb->box_pos.x);
             *pixel = 0x00000000;
         }
     }
 }
 
-PUBLIC void clear_textbox(textbox_t *tb)
+PUBLIC void clear_textbox(graph_info_t *gi, textbox_t *tb)
 {
     uint32_t i;
     for (i = 0; i < tb->ysize; i++)
@@ -217,10 +251,9 @@ PUBLIC void clear_textbox(textbox_t *tb)
         uint32_t j;
         for (j = 0; j < tb->xsize; j++)
         {
-            uint32_t *pixel =
-                (uint32_t *)g_graph_info->frame_buffer_base +
-                (tb->box_pos.y + i) * g_graph_info->pixel_per_scanline +
-                (j + tb->box_pos.x);
+            uint32_t *pixel = (uint32_t *)gi->frame_buffer_base +
+                              (tb->box_pos.y + i) * gi->pixel_per_scanline +
+                              (j + tb->box_pos.x);
             *pixel = 0x00000000;
         }
     }
@@ -228,7 +261,8 @@ PUBLIC void clear_textbox(textbox_t *tb)
     tb->cur_pos.y = 0;
 }
 
-PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str)
+PUBLIC void
+basic_print(graph_info_t *gi, textbox_t *tb, uint32_t col, const char *str)
 {
     const char *s = str;
     while (*s)
@@ -238,7 +272,7 @@ PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str)
         max_y = tb->ysize - tb->char_ysize;
         if (*s == '\n' || tb->cur_pos.x >= max_x)
         {
-            basic_put_char(tb, 255, 0);
+            basic_put_char(gi, tb, 255, 0);
             tb->cur_pos.x = 0;
             tb->cur_pos.y += tb->char_ysize;
             if (tb->cur_pos.y > max_y)
@@ -247,8 +281,8 @@ PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str)
             }
             s++;
             // clear line
-            clear_line(tb);
-            basic_put_char(tb, 255, 0x00ffffff);
+            clear_line(gi, tb);
+            basic_put_char(gi, tb, 255, 0x00ffffff);
             continue;
         }
         if (*s == '\b')
@@ -278,7 +312,7 @@ PRIVATE void basic_print(textbox_t *tb, uint32_t col, const char *str)
             tb->cur_pos.x = 0;
             continue;
         }
-        basic_put_char(tb, *s++, col);
+        basic_put_char(gi, tb, *s++, col);
         tb->cur_pos.x += tb->char_xsize;
     }
     return;
@@ -325,30 +359,30 @@ PUBLIC void panic_spin(
 PUBLIC void init_ttf_info(ttf_info_t *ttf_info)
 {
     ttf_info->has_ttf = 0;
-    int i;
-    for (i = 0; i < g_boot_info->loaded_files; i++)
-    {
-        if (g_boot_info->loaded_file[i].flag == 0x80000002)
-        {
-            stbtt_InitFont(
-                &ttf_info->info,
-                KADDR_P2V(g_boot_info->loaded_file[i].base_address),
-                0
-            );
-            uint8_t *btmp;
-            status_t status  = pmalloc(sizeof(char[512 * 512]), 0, 0, &btmp);
-            ttf_info->bitmap = KADDR_P2V(btmp);
-            if (ERROR(status))
-            {
-                PR_LOG(
-                    LOG_ERROR, "Failed to allocate memory for ttf bitmap.\n"
-                );
-                return;
-            }
-            ttf_info->has_ttf = 1;
-            break;
-        }
-    }
+    // int i;
+    // for (i = 0; i < BOOT_INFO->loaded_files; i++)
+    // {
+    //     if (BOOT_INFO->loaded_file[i].flag == 0x80000002)
+    //     {
+    //         stbtt_InitFont(
+    //             &ttf_info->info,
+    //             KADDR_P2V(BOOT_INFO->loaded_file[i].base_address),
+    //             0
+    //         );
+    //         uint8_t *btmp;
+    //         status_t status  = pmalloc(sizeof(char[512 * 512]), 0, 0, &btmp);
+    //         ttf_info->bitmap = KADDR_P2V(btmp);
+    //         if (ERROR(status))
+    //         {
+    //             PR_LOG(
+    //                 LOG_ERROR, "Failed to allocate memory for ttf bitmap.\n"
+    //             );
+    //             return;
+    //         }
+    //         ttf_info->has_ttf = 1;
+    //         break;
+    //     }
+    // }
     return;
 }
 
@@ -557,7 +591,7 @@ PUBLIC void pr_ttf_str(
 {
     if (!ttf_info->has_ttf)
     {
-        basic_print(tb, color, str);
+        basic_print(graph_info, tb, color, str);
         return;
     }
     font_size *= 2;

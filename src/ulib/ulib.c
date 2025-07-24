@@ -1,6 +1,6 @@
 #include <kernel/global.h>
-#include <kernel/syscall.h>
 
+#include <kernel/syscall.h>
 #include <service.h>
 #include <ulib.h>
 

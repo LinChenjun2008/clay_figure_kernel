@@ -60,7 +60,7 @@ PUBLIC void task_update(void)
     return;
 }
 
-PRIVATE void task_unblock_without_spinlock(pid_t pid)
+PRIVATE void task_unblock_sub(pid_t pid)
 {
     task_struct_t *task = pid2task(pid);
     ASSERT(task != NULL);
@@ -95,7 +95,7 @@ PUBLIC void schedule(void)
 
     if (next == NULL)
     {
-        task_unblock_without_spinlock(tm->core[cpu_id].idle_task->pid);
+        task_unblock_sub(tm->core[cpu_id].idle_task->pid);
         next = get_next_task(&tm->core[cpu_id].task_list);
         ASSERT(next != NULL);
     }
@@ -131,7 +131,7 @@ PUBLIC void task_unblock(pid_t pid)
     spinlock_lock(&tm->core[task->cpu_id].task_list_lock);
 
     task->status = TASK_READY;
-    task_unblock_without_spinlock(pid);
+    task_unblock_sub(pid);
 
     spinlock_unlock(&tm->core[task->cpu_id].task_list_lock);
     intr_set_status(intr_status);

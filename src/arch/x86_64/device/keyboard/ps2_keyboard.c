@@ -4,15 +4,15 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/syscall.h> // inform_intr
 
 #include <log.h>
 
 #include <device/keyboard/ps2_keyboard.h>
-#include <device/pic.h> // eois
-#include <intr.h>       // register_handle
-#include <io.h>         // io_in8
-#include <lib/fifo.h>   // fifo functions
+#include <device/pic.h>     // eois
+#include <intr.h>           // register_handle
+#include <io.h>             // io_in8
+#include <kernel/syscall.h> // inform_intr
+#include <lib/fifo.h>       // fifo functions
 
 extern fifo_t key_fifo;
 
@@ -29,15 +29,12 @@ PRIVATE void wait_keyboard_write(void)
 PRIVATE void intr_keyboard_handler(intr_stack_t *stack)
 {
     send_eoi(stack->int_vector);
-    do
-    {
-        uint8_t scancode = io_in8(KEYBOARD_DATA_PORT);
-        PR_LOG(LOG_INFO, "Key: [%02x]\n", scancode);
-        // if (scancode != 0xfa)
-        // {
-        //     inform_intr(KBD_SRV);
-        // }
-    } while (io_in8(KEYBOARD_STA_PORT) & 0x01);
+    uint8_t scancode = io_in8(KEYBOARD_DATA_PORT);
+    PR_LOG(LOG_INFO, "Key: [%02x]\n", scancode);
+    // if (scancode != 0xfa)
+    // {
+    //     inform_intr(KBD_SRV);
+    // }
     return;
 }
 

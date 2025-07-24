@@ -106,8 +106,11 @@ typedef EFI_STATUS(EFIAPI *EFI_LOCATE_PROTOCOL)(
 );
 
 
-typedef VOID(EFIAPI
-                 *EFI_COPY_MEM)(VOID *Destination, VOID *Source, UINTN Length);
+typedef VOID(EFIAPI *EFI_COPY_MEM)(
+    VOID *Destination,
+    VOID *Source,
+    UINTN Length
+);
 
 typedef VOID(EFIAPI *EFI_SET_MEM)(VOID *Buffer, UINTN Size, UINT8 Value);
 

@@ -931,7 +931,7 @@ xhci_alloc_pipe(usb_device_t *usb_dev, usb_endpoint_descriptor_t *epdesc)
     ep->deq_ptr |= 1; // dcs
     ep->length = pipe->pipe.max_packet;
 
-    PR_LOG(LOG_DEBUG, "slot id %d, epid %d.\n", pipe->slot_id, pipe->epid);
+    // PR_LOG(LOG_DEBUG, "slot id %d, epid %d.\n", pipe->slot_id, pipe->epid);
 
     if (pipe->epid == 1)
     {

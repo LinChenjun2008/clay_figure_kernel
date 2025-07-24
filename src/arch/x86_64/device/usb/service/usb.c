@@ -281,15 +281,15 @@ PRIVATE int configure_usb_device(usb_device_t *usb_dev)
     {
         max_packet = 1 << dinfo.bMaxPacketSize0;
     }
-    PR_LOG(
-        LOG_DEBUG,
-        "device rev=%04x cls=%02x sub=%02x proto=%02x size=%d\n",
-        dinfo.bcdUSB,
-        dinfo.bDeviceClass,
-        dinfo.bDeviceSubClass,
-        dinfo.bDeviceProtocol,
-        max_packet
-    );
+    // PR_LOG(
+    //     LOG_DEBUG,
+    //     "device rev=%04x cls=%02x sub=%02x proto=%02x size=%d\n",
+    //     dinfo.bcdUSB,
+    //     dinfo.bDeviceClass,
+    //     dinfo.bDeviceSubClass,
+    //     dinfo.bDeviceProtocol,
+    //     max_packet
+    // );
 
     if (max_packet < 8)
     {
@@ -384,7 +384,7 @@ PRIVATE int configure_usb_device(usb_device_t *usb_dev)
     return 1;
 fail:
     pfree(KADDR_V2P(config));
-    return 0;
+    return -1;
 }
 
 PRIVATE int usb_hub_port_setup(usb_device_t *usb_dev)
@@ -396,7 +396,7 @@ PRIVATE int usb_hub_port_setup(usb_device_t *usb_dev)
     if (ret < 0)
     {
         PR_LOG(LOG_ERROR, "Port reset fail.ret=%d\n", ret);
-        goto reset_fail;
+        goto fail;
     }
     usb_dev->speed = ret;
     ret            = usb_set_address(usb_dev);
@@ -404,20 +404,23 @@ PRIVATE int usb_hub_port_setup(usb_device_t *usb_dev)
     {
         PR_LOG(LOG_ERROR, "usb set address failed.\n");
         hub->op->disconnect(hub, port);
-        goto reset_fail;
+        goto fail;
     }
-    PR_LOG(LOG_INFO, "usb set address success.\n");
+    // PR_LOG(LOG_INFO, "usb set address success.\n");
 
-    PR_LOG(LOG_INFO, "Configure the device.\n");
+    // PR_LOG(LOG_INFO, "Configure the device.\n");
     int count = configure_usb_device(usb_dev);
-
+    if (count < 0)
+    {
+        goto fail;
+    }
     return 0;
-    //
+    /// TODO:
     if (count == 0)
     {
         hub->op->disconnect(hub, port);
     }
-reset_fail:
+fail:
     pfree(KADDR_V2P(usb_dev));
     return ret;
 }
@@ -492,12 +495,10 @@ PUBLIC void usb_main(void)
             usb_port_connecton_event_t pc_evt;
             fifo_read(&xhci->port_evts, &pc_evt);
             pr_msg("=====================================================\n");
-            PR_LOG(
-                LOG_INFO,
-                "Port %d %s detected.\n",
-                pc_evt.port + 1,
-                pc_evt.is_connect ? "connect" : "disconnect"
-            );
+            if (!pc_evt.is_connect)
+            {
+                PR_LOG(LOG_INFO, "Port %d disconnected.\n", pc_evt.port + 1);
+            }
 
             if (pc_evt.is_connect)
             {
@@ -518,13 +519,13 @@ PUBLIC void usb_main(void)
                 if (ret < 0)
                 {
                     PR_LOG(
-                        LOG_ERROR, "Failed to setup port: %d.\n", pc_evt.port
+                        LOG_ERROR, "setup port: %d failed.\n", pc_evt.port + 1
                     );
                 }
                 else
                 {
                     PR_LOG(
-                        LOG_INFO, "setup port successful: %d.\n", pc_evt.port
+                        LOG_INFO, "setup successful: %d.\n", pc_evt.port + 1
                     );
                 }
             }
@@ -533,6 +534,7 @@ PUBLIC void usb_main(void)
                 /// TODO: process port disconnect event
                 hub->op->disconnect(hub, pc_evt.port);
             }
+            pr_msg("=====================================================\n");
         }
         task_yield();
     }

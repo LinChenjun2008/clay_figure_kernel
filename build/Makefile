@@ -1,16 +1,20 @@
 include target.txt
-include srclist.txt
 include tools_def.txt
+include src_list.txt
 
-TMP_KERNEL_TARGET := .tmp_kernel
 KERNEL_ASM_SRC    := $(filter %.S,$(KERNEL_SRC))
 KERNEL_C_SRC      := $(filter %.c,$(KERNEL_SRC))
 
 .PHONY: all
 all:
 	@$(ECHO) compiling...
-	@$(MAKE) -r $(TARGET_BOOTLOADER) $(TARGET_KERNEL)
+	@$(MAKE) -r $(TARGET_BOOTLOADER) $(TARGET_KERNEL) update-initramfs
 	@$(ECHO) done.
+
+.PHONY: update-initramfs
+update-initramfs:
+	-@$(RM) $(TARGET_INITFAMFS)
+	@$(MAKE) -r $(TARGET_INITFAMFS)
 
 .PHONY: run
 run: all
@@ -53,11 +57,15 @@ $(TARGET_KERNEL): $(TMP_KERNEL_TARGET)
 $(TMP_KERNEL_TARGET): $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o) $(KERNEL_LINKER_SCRIPT)
 	@$(ECHO) linking [1/2]
 	@"$(X86_64-ELF-LD)" -T $(KERNEL_LINKER_SCRIPT) -pie -o $@ $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o)
-	@"$(NM)" -W -n $@ | "./kallsyms" > $@_sym.c
+	@"$(NM)" -W -n $@ | "$(KALLSYMS)" > $@_sym.c
 	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -c -o $@_sym.o $@_sym.c
 	@$(ECHO) linking [2/2]
 	@"$(X86_64-ELF-LD)" -T $(KERNEL_LINKER_SCRIPT) -pie -o $@ $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o) $@_sym.o
 	@"$(RM)" $@_sym.c $@_sym.o
+
+$(TARGET_INITFAMFS):
+	@$(ECHO) make initramfs
+	@"$(IMGCOPY)" $(IMGCOPY_FLAGS) > $(ESP_PATH)/Kernel/initramfs.img
 
 -include $(KERNEL_ASM_SRC:S=dep)
 -include $(KERNEL_C_SRC:c=dep)

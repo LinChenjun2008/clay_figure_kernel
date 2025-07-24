@@ -4,10 +4,10 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/syscall.h>
 
 #include <log.h>
 
+#include <kernel/syscall.h>
 #include <mem/page.h> // PG_SIZE
 #include <service.h>
 #include <ulib.h>
@@ -54,10 +54,11 @@ PRIVATE void view_fill(message_t *msg)
 
 PUBLIC void view_main()
 {
-    gi.vram               = (uint32_t *)g_graph_info->frame_buffer_base;
-    gi.xsize              = g_graph_info->horizontal_resolution;
-    gi.ysize              = g_graph_info->vertical_resolution;
-    gi.pixel_per_scanline = g_graph_info->pixel_per_scanline;
+    graph_info_t *g_graph_info = &BOOT_INFO->graph_info;
+    gi.vram                    = (uint32_t *)g_graph_info->frame_buffer_base;
+    gi.xsize                   = g_graph_info->horizontal_resolution;
+    gi.ysize                   = g_graph_info->vertical_resolution;
+    gi.pixel_per_scanline      = g_graph_info->pixel_per_scanline;
     message_t msg;
     while (1)
     {

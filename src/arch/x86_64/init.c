@@ -2,21 +2,24 @@
 /**
  * Copyright (C) 2024-2025 LinChenjun
  */
+
 #include <kernel/global.h>
-#include <kernel/init.h>
-#include <kernel/syscall.h>
 
 #include <log.h>
 
+#include <config.h>
 #include <device/cpu.h>
 #include <device/pci.h>
 #include <device/pic.h>
 #include <device/sse.h>
 #include <device/timer.h>
 #include <intr.h>
-#include <io.h>       // get_cr3,set_cr3
+#include <io.h> // get_cr3,set_cr3
+#include <kernel/init.h>
+#include <kernel/syscall.h>
 #include <mem/mem.h>  // mem_init,total_pages,total_free_pages
 #include <mem/page.h> // KERNEL_PAGE_TABLE_POS
+#include <ramfs.h>
 #include <service.h>
 #include <task/task.h>
 
@@ -73,6 +76,18 @@ PUBLIC void init_all(void)
 {
     intr_disable();
 
+    PR_LOG(0, "initramfs: %p.\n", BOOT_INFO->initramfs);
+    status_t status = ramfs_check(BOOT_INFO->initramfs);
+    PANIC(ERROR(status), "initramfs check failed.\n");
+
+    ramfs_file_t fp;
+    if (ERROR(ramfs_open(BOOT_INFO->initramfs, "config", &fp)))
+    {
+        pr_log(LOG_FATAL, "Can not read cinfig.\n");
+        while (1) io_stihlt();
+    }
+    parse_config(&fp);
+
     PR_LOG(LOG_INFO, "Segment initializing ...\n");
     init_desc();
 
@@ -123,7 +138,7 @@ PUBLIC void init_all(void)
     PR_LOG(LOG_INFO, "Setting up APIC timer ...\n");
     apic_timer_init();
     PR_LOG(LOG_INFO, "Kernel initializing done.\n");
-    clear_textbox(&g_tb);
+    clear_textbox(&BOOT_INFO->graph_info, &g_tb);
 
     //  _____   _       _____   _____
     // /  ___| | |     |  ___| /  ___|
@@ -141,8 +156,8 @@ PUBLIC void init_all(void)
         "\\_____| |_____| |_|     \\_____/ ",
     };
     char     s[64];
-    uint32_t horz = g_boot_info->graph_info.horizontal_resolution;
-    uint32_t vert = g_boot_info->graph_info.vertical_resolution;
+    uint32_t horz = BOOT_INFO->graph_info.horizontal_resolution;
+    uint32_t vert = BOOT_INFO->graph_info.vertical_resolution;
 
     pr_log(0, "%s System Informations \n", logo[0]);
     pr_log(0, "%s -----------------\n", logo[1]);

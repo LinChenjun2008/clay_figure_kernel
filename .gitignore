@@ -1,6 +1,5 @@
 *.o
 *.dep
 build/.tmp_kernel
-build/kallsyms
-build/kallsyms.exe
+build/tools
 .vscode

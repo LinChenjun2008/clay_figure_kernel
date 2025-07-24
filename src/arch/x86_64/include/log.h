@@ -48,10 +48,6 @@ typedef struct
     uint8_t       *bitmap;
 } ttf_info_t;
 
-#if defined __DISABLE_SERIAL_LOG__
-#    define serial_pr_log(...) (void)0
-#endif /* __DISABLE_SERIAL_LOG__ */
-
 // log level
 #define DEBUG_LEVEL 6
 
@@ -60,11 +56,17 @@ typedef struct
 #define LOG_WARN  3
 #define LOG_INFO  4
 #define LOG_DEBUG 5
-#define LOG_TRACE 6
 
 PUBLIC void pr_log(int level, const char *log, ...);
 PUBLIC void pr_msg(const char *msg, ...);
-PUBLIC void clear_textbox(textbox_t *tb);
+
+PUBLIC void
+basic_put_char(graph_info_t *gi, textbox_t *tb, unsigned char c, uint32_t col);
+
+PUBLIC void
+basic_print(graph_info_t *gi, textbox_t *tb, uint32_t col, const char *str);
+
+PUBLIC void clear_textbox(graph_info_t *gi, textbox_t *tb);
 
 // PUBLIC void pr_log_ttf(const char* str,...);
 

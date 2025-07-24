@@ -61,6 +61,9 @@ PRIVATE struct
     size_t     free_pages;       // 当前空闲页数
 } mem;
 
+/**
+ * @brief 用于页分配的位图,bit为1表示对应的页空闲
+ */
 PRIVATE uint8_t page_bitmap_map[PAGE_BITMAP_BYTES_LEN];
 
 PRIVATE size_t page_size_round_up(addr_t page_addr)
@@ -117,12 +120,11 @@ PUBLIC void mem_page_init(void)
     mem.free_pages                 = 0;
     init_bitmap(&mem.page_bitmap);
     init_spinlock(&mem.lock);
-
     EFI_MEMORY_DESCRIPTOR *efi_memory_desc =
-        (EFI_MEMORY_DESCRIPTOR *)g_boot_info->memory_map.buffer;
+        (EFI_MEMORY_DESCRIPTOR *)BOOT_INFO->memory_map.buffer;
 
-    size_t map_size              = g_boot_info->memory_map.map_size;
-    size_t desc_size             = g_boot_info->memory_map.descriptor_size;
+    size_t map_size              = BOOT_INFO->memory_map.map_size;
+    size_t desc_size             = BOOT_INFO->memory_map.descriptor_size;
     int    number_of_memory_desc = map_size / desc_size;
 
 
@@ -185,18 +187,7 @@ PUBLIC void mem_page_init(void)
             mem_size >> 10,
             memory_type_str[curr_type]
         );
-        if (curr_type != FREE_MEMORY)
-        {
-            bit_start = page_size_round_down(mem_start);
-            bit_end   = page_size_round_up(mem_end);
-            bit_size  = bit_end - bit_start;
-            uint64_t bit_index;
-            for (bit_index = bit_start; bit_index < bit_end; bit_index++)
-            {
-                bitmap_set(&mem.page_bitmap, bit_index, 1);
-            }
-        }
-        else
+        if (curr_type == FREE_MEMORY)
         {
             mem.mem_size += mem_size;
             bit_start = page_size_round_up(mem_start);
@@ -206,6 +197,11 @@ PUBLIC void mem_page_init(void)
             {
                 mem.total_free_pages += bit_size;
                 mem.free_pages = mem.total_free_pages;
+            }
+            uint64_t bit_index;
+            for (bit_index = bit_start; bit_index < bit_end; bit_index++)
+            {
+                bitmap_set(&mem.page_bitmap, bit_index, 1);
             }
         }
         mem.total_pages += bit_size;
@@ -240,7 +236,7 @@ PUBLIC void mem_page_init(void)
     // 剔除被占用的内存(0 - 6M)
     for (i = 0; i < 3; i++)
     {
-        bitmap_set(&mem.page_bitmap, i, 1);
+        bitmap_set(&mem.page_bitmap, i, 0);
         mem.total_free_pages--;
     }
     return;
@@ -267,52 +263,36 @@ PUBLIC status_t alloc_physical_page(uint64_t number_of_pages, void *addr)
         return K_NOMEM;
     }
     spinlock_lock(&mem.lock);
+    status_t status = alloc_physical_page_sub(number_of_pages, addr);
+    spinlock_unlock(&mem.lock);
+    return status;
+}
+
+PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
+{
+    ASSERT(addr != NULL);
+    ASSERT(number_of_pages != 0);
     uint32_t index;
-    status_t status = bitmap_alloc(&mem.page_bitmap, number_of_pages, &index);
+    status_t status;
+    status = bitmap_alloc(&mem.page_bitmap, 1, number_of_pages, &index);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Out of Memory.\n");
-        status = K_NOMEM;
-        goto done;
+        return K_NOMEM;
     }
     phy_addr_t paddr = 0;
 
     uint64_t i;
     for (i = index; i < index + number_of_pages; i++)
     {
-        bitmap_set(&mem.page_bitmap, i, 1);
+        bitmap_set(&mem.page_bitmap, i, 0);
     }
     mem.free_pages -= number_of_pages;
     paddr               = (0UL + (phy_addr_t)index * PG_SIZE);
     *(phy_addr_t *)addr = paddr;
 
     // memset(KADDR_P2V(paddr), 0, number_of_pages * PG_SIZE);
-    status = K_SUCCESS;
-done:
-    spinlock_unlock(&mem.lock);
-    return status;
-}
-
-PUBLIC status_t init_alloc_physical_page(uint64_t number_of_pages, void *addr)
-{
-    ASSERT(addr != NULL);
-    ASSERT(number_of_pages != 0);
-    uint32_t index;
-    status_t status = bitmap_alloc(&mem.page_bitmap, number_of_pages, &index);
-    ASSERT(!ERROR(status));
-    (void)status;
-    phy_addr_t paddr = 0;
-
-    uint64_t i;
-    for (i = index; i < index + number_of_pages; i++)
-    {
-        bitmap_set(&mem.page_bitmap, i, 1);
-    }
-    paddr = (0UL + (phy_addr_t)index * PG_SIZE);
-    memset(KADDR_P2V(paddr), 0, number_of_pages * PG_SIZE);
-
-    *(phy_addr_t *)addr = paddr;
     return K_SUCCESS;
 }
 
@@ -326,7 +306,7 @@ PUBLIC void free_physical_page(void *addr, uint64_t number_of_pages)
          i < (phy_addr_t)addr / PG_SIZE + number_of_pages;
          i++)
     {
-        bitmap_set(&mem.page_bitmap, i, 0);
+        bitmap_set(&mem.page_bitmap, i, 1);
     }
     mem.free_pages += number_of_pages;
     spinlock_unlock(&mem.lock);

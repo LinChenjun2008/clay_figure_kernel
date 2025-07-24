@@ -4,14 +4,14 @@
  */
 
 #include <kernel/global.h>
-#include <kernel/init.h>
-#include <kernel/syscall.h>
 
 #include <log.h>
 
 #include <common.h>
 #include <intr.h>
 #include <io.h>
+#include <kernel/init.h>
+#include <kernel/syscall.h>
 #include <mem/page.h>
 #include <service.h>
 #include <std/stdio.h>
@@ -19,36 +19,48 @@
 #include <task/task.h>
 #include <ulib.h>
 
-PUBLIC boot_info_t  *g_boot_info = (boot_info_t *)0xffff800000410000;
-PUBLIC graph_info_t *g_graph_info;
-extern textbox_t     g_tb;
+extern textbox_t g_tb;
 
 PRIVATE void ktask(void)
 {
-    uint32_t  color = 0x00000000;
-    uint32_t  xsize = 10;
-    uint32_t  ysize = 10;
-    uint32_t *buf =
-        allocate_page(xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1);
+    uint32_t color = 0x00c5c5c5;
+    uint32_t xsize = 100;
+    uint32_t ysize = 16;
+
+    textbox_t tb;
+    tb.cur_pos.x  = 0;
+    tb.cur_pos.y  = 0;
+    tb.box_pos.x  = 0;
+    tb.box_pos.y  = 0;
+    tb.xsize      = xsize;
+    tb.ysize      = ysize;
+    tb.char_xsize = 9;
+    tb.char_ysize = 16;
+
+    graph_info_t gi;
+
+    int i = 0;
     while (1)
     {
+        uint32_t *buf =
+            allocate_page(xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1);
+        gi.frame_buffer_base     = (addr_t)buf;
+        gi.horizontal_resolution = xsize;
+        gi.vertical_resolution   = ysize;
+        gi.pixel_per_scanline    = xsize;
+        char s[10];
+        sprintf(s, "\n%d", i);
+        basic_print(&gi, &tb, color, s);
         fill(
             buf,
             xsize * ysize * sizeof(uint32_t),
             xsize,
             ysize,
-            (apic_id() - 1) * 10,
+            (apic_id() - 1) * xsize,
             0
         );
-        color = color ? color << 8 : 0xff;
-        uint32_t x, y;
-        for (y = 0; y < ysize; y++)
-        {
-            for (x = 0; x < xsize; x++)
-            {
-                *(buf + y * xsize + x) = color;
-            }
-        }
+        i++;
+        free_page(buf, xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1);
     };
 }
 
@@ -57,8 +69,10 @@ PUBLIC void kernel_main(void)
     size_t bss_size = &_ebss[0] - &_bss[0];
     memset(&_bss, 0, bss_size);
 
-    g_graph_info = &g_boot_info->graph_info;
+    BOOT_INFO->initramfs = KADDR_P2V(BOOT_INFO->initramfs);
 
+    graph_info_t *g_graph_info;
+    g_graph_info    = &BOOT_INFO->graph_info;
     g_tb.cur_pos.x  = 0;
     g_tb.cur_pos.y  = 0;
     g_tb.box_pos.x  = 8;
