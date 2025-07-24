@@ -67,7 +67,7 @@ PUBLIC status_t alloc_physical_page(uint64_t number_of_pages, void *addr);
  * @param addr 如果成功,addr指针处存储了分配到的物理页基地址
  * @return 成功将返回K_SUCCESS,失败返回对应的错误码
  */
-PUBLIC status_t init_alloc_physical_page(uint64_t number_of_pages, void *addr);
+PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr);
 
 /**
  * @brief 释放从addr地址开始,number_of_pages个大小为PG_SZIE的物理页

@@ -20,15 +20,17 @@ PUBLIC void init_bitmap(bitmap_t *btmp);
  * @param bit_index 索引(以bit为单位)
  * @return 当bit_index位为1时返回true
 */
-PUBLIC bool bitmap_scan_test(bitmap_t *btmp, int32_t bit_index);
+PUBLIC uint8_t bitmap_scan_test(bitmap_t *btmp, int32_t bit_index);
 
 /**
- * @brief 在位图中分配连续cnt个bit.
+ * @brief 在位图中分配连续cnt个值为alue的位.
  * @param btmp 位图结构指针
+ * @param value 要分配的bit值(0或1)
  * @param cnt 要分配的bit数
- * @param index 如果成功,index指针处保存了分配到的位
+ * @param index 如果成功,index指针处保存了分配到的位索引
 */
-PUBLIC status_t bitmap_alloc(bitmap_t *btmp, int32_t cnt, uint32_t *index);
+PUBLIC status_t
+bitmap_alloc(bitmap_t *btmp, uint8_t value, int32_t cnt, uint32_t *index);
 
 /**
  * @brief 设置位图中的位

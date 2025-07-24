@@ -268,7 +268,7 @@ PUBLIC void task_init(void)
 {
     addr_t   addr;
     status_t status;
-    status = init_alloc_physical_page(sizeof(*tm) / PG_SIZE + 1, &addr);
+    status = alloc_physical_page_sub(sizeof(*tm) / PG_SIZE + 1, &addr);
 
     PANIC(ERROR(status), "Can not allocate memory for task manager.");
 
