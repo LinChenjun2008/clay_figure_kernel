@@ -69,7 +69,7 @@ PUBLIC void kernel_main(void)
     size_t bss_size = &_ebss[0] - &_bss[0];
     memset(&_bss, 0, bss_size);
 
-    BOOT_INFO->initramfs = KADDR_P2V(BOOT_INFO->initramfs);
+    BOOT_INFO->initramfs = PHYS_TO_VIRT(BOOT_INFO->initramfs);
 
     graph_info_t *g_graph_info;
     g_graph_info    = &BOOT_INFO->graph_info;

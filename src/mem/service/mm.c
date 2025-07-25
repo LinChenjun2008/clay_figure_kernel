@@ -9,7 +9,7 @@
 
 #include <intr.h>           // intr functions
 #include <kernel/syscall.h> // sys_send_recv
-#include <mem/allocator.h>  // pfree
+#include <mem/allocator.h>  // kfree
 #include <mem/page.h>       // PG_SIZE
 #include <service.h>        // message type
 #include <std/string.h>     // memcpy
@@ -98,7 +98,7 @@ PRIVATE void mm_read_prog_addr(message_t *msg)
         msg->m1.i1 = 2;
         return;
     }
-    buffer = KADDR_P2V(buffer);
+    buffer = PHYS_TO_VIRT(buffer);
 
     uint64_t *pml4t = (uint64_t *)KERNEL_PAGE_DIR_TABLE_POS;
     if (cur->page_dir != NULL)
@@ -111,7 +111,7 @@ PRIVATE void mm_read_prog_addr(message_t *msg)
         msg->m1.i1 = 3;
         return;
     }
-    data = KADDR_P2V(data);
+    data = PHYS_TO_VIRT(data);
     memcpy(buffer, data, msg->m3.l1);
     msg->m1.i1 = SYSCALL_SUCCESS;
     return;
@@ -120,7 +120,7 @@ PRIVATE void mm_read_prog_addr(message_t *msg)
 PRIVATE void release_prog_page_pdt(uint64_t pdt)
 {
     uint64_t *v_pdt;
-    v_pdt = KADDR_P2V(pdt);
+    v_pdt = PHYS_TO_VIRT(pdt);
     int i;
     for (i = 0; i < 512; i++)
     {
@@ -129,13 +129,13 @@ PRIVATE void release_prog_page_pdt(uint64_t pdt)
             free_physical_page((void *)(v_pdt[i] & ~0xfffULL), 1);
         }
     }
-    pfree((void *)pdt);
+    kfree(v_pdt);
 }
 
 PRIVATE void release_prog_page_pdpt(uint64_t pdpt)
 {
     uint64_t *v_pdpt;
-    v_pdpt = KADDR_P2V(pdpt);
+    v_pdpt = PHYS_TO_VIRT(pdpt);
     int i;
     for (i = 0; i < 512; i++)
     {
@@ -144,13 +144,13 @@ PRIVATE void release_prog_page_pdpt(uint64_t pdpt)
             release_prog_page_pdt(v_pdpt[i] & ~0xfffULL);
         }
     }
-    pfree((void *)pdpt);
+    kfree(v_pdpt);
 }
 
 PRIVATE void release_prog_page(uint64_t *pml4t)
 {
     uint64_t *v_pml4t;
-    v_pml4t = KADDR_P2V(pml4t);
+    v_pml4t = PHYS_TO_VIRT(pml4t);
     int i;
     for (i = 0; i < 256; i++)
     {
@@ -159,7 +159,7 @@ PRIVATE void release_prog_page(uint64_t *pml4t)
             release_prog_page_pdpt(v_pml4t[i] & ~0xfffULL);
         }
     }
-    pfree(pml4t);
+    kfree(v_pml4t);
 }
 
 PRIVATE void mm_exit(message_t *msg)
@@ -176,10 +176,10 @@ PRIVATE void mm_exit(message_t *msg)
     if (src->page_dir != NULL)
     {
         release_prog_page(src->page_dir);
-        pfree(KADDR_V2P(src->vaddr_table.entries));
+        kfree(src->vaddr_table.entries);
     }
     // release kernel stack
-    pfree(KADDR_V2P(src->kstack_base));
+    kfree((void *)src->kstack_base);
     task_free(msg->src);
     return;
 }

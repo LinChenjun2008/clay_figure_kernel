@@ -11,7 +11,7 @@
 #include <intr.h>            // intr functions
 #include <lib/list.h>        // list functions
 #include <mem/allocator.h>   // MIN,MAX allocate size
-#include <mem/page.h>        // KADDR_P2V,KADDR_V2P
+#include <mem/page.h>        // PHYS_TO_VIRT,VIRT_TO_PHYS
 #include <std/string.h>      // memset
 
 typedef struct
@@ -132,7 +132,7 @@ done:
 }
 
 PUBLIC status_t
-pmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
+kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
 {
     status_t status = K_SUCCESS;
     ASSERT(addr != NULL);
@@ -171,7 +171,7 @@ pmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
             ASSERT(!ERROR(status));
             goto done;
         }
-        c = KADDR_P2V(cache_paddr);
+        c = PHYS_TO_VIRT(cache_paddr);
         memset(c, 0, PG_SIZE);
 
         c->group            = g;
@@ -200,13 +200,13 @@ pmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
     c->cnt--;
     ASSERT(c->group == g);
     c->group->total_free--;
-    *(phy_addr_t *)addr = (phy_addr_t)KADDR_V2P(b);
+    *(phy_addr_t *)addr = (phy_addr_t)b;
 done:
     spinlock_unlock(&g->lock);
     return status;
 }
 
-PUBLIC void pfree(void *addr)
+PUBLIC void kfree(void *addr)
 {
     if (addr == NULL)
     {
@@ -216,7 +216,7 @@ PUBLIC void pfree(void *addr)
     mem_cache_t *c = NULL;
     mem_block_t *b = NULL;
 
-    b = KADDR_P2V(addr);
+    b = (mem_block_t *)addr;
     ASSERT(b != NULL);
     c = block2cache(b);
 
@@ -243,7 +243,7 @@ PUBLIC void pfree(void *addr)
             list_remove(&b->node);
         }
         g->total_free -= c->number_of_blocks;
-        free_physical_page(KADDR_V2P(c), 1);
+        free_physical_page(VIRT_TO_PHYS(c), 1);
     }
     spinlock_unlock(&g->lock);
     return;

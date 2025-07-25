@@ -11,8 +11,8 @@
 #include <intr.h>           // intr functions
 #include <io.h>             // get_cr3 get_rsp
 #include <kernel/syscall.h> // sys_send_recv
-#include <mem/allocator.h> // pmalloc,to_physical_address,init_alloc_physical_page
-#include <mem/page.h>      // KADDR_V2P,KADDR_P2V
+#include <mem/allocator.h> // kmalloc,to_physical_address,init_alloc_physical_page
+#include <mem/page.h>      // VIRT_TO_PHYS,PHYS_TO_VIRT
 #include <service.h>       // MM_EXIT
 #include <std/string.h>    // memset,strlen,strcpy
 #include <sync/atomic.h>   // atomic functions
@@ -181,13 +181,13 @@ PUBLIC status_t init_task_struct(
     list_init(&task->sender_list);
 
     addr_t   fxsave_region;
-    status_t status =
-        pmalloc(sizeof(*task->fxsave_region), 0, 0, &fxsave_region);
+    status_t status;
+    status = kmalloc(sizeof(*task->fxsave_region), 0, 0, &fxsave_region);
     if (ERROR(status))
     {
         return status;
     }
-    task->fxsave_region = KADDR_P2V(fxsave_region);
+    task->fxsave_region = (fxsave_region_t *)fxsave_region;
     return K_SUCCESS;
 }
 
@@ -226,16 +226,14 @@ PUBLIC task_struct_t *task_start(
         return NULL;
     }
     void *kstack_base;
-    status = pmalloc(kstack_size, 0, 0, &kstack_base);
+    status = kmalloc(kstack_size, 0, 0, &kstack_base);
     if (ERROR(status))
     {
         task_free(pid);
         return NULL;
     }
     task_struct_t *task = pid2task(pid);
-    init_task_struct(
-        task, name, priority, (addr_t)KADDR_P2V(kstack_base), kstack_size
-    );
+    init_task_struct(task, name, priority, (addr_t)kstack_base, kstack_size);
     create_task_struct(task, func, arg);
 
     spinlock_lock(&tm->core[apic_id()].task_list_lock);
@@ -252,7 +250,7 @@ PRIVATE void make_main_task(void)
         main_task,
         "Main task",
         DEFAULT_PRIORITY,
-        (addr_t)KADDR_P2V(KERNEL_STACK_BASE),
+        (addr_t)PHYS_TO_VIRT(KERNEL_STACK_BASE),
         KERNEL_STACK_SIZE
     );
     tm->core[apic_id()].idle_task = main_task;
@@ -272,7 +270,7 @@ PUBLIC void task_init(void)
 
     PANIC(ERROR(status), "Can not allocate memory for task manager.");
 
-    tm = KADDR_P2V(addr);
+    tm = PHYS_TO_VIRT(addr);
     memset(tm, 0, sizeof(*tm));
     pid_t i;
     for (i = 0; i < MAX_TASK; i++)

@@ -10,7 +10,7 @@
 #include <device/cpu.h> // wrmsr,rdmsr,cpuid
 #include <device/pic.h> // apic_t,ioapic_t
 #include <io.h>         // io_mfence,io_out8
-#include <mem/page.h>   // KADDR_P2V
+#include <mem/page.h>   // PHYS_TO_VIRT
 #include <std/string.h> // memset
 /*
  Base Address | MSR address | Name               | Attribute
@@ -42,7 +42,7 @@ PUBLIC void detect_cores(void)
     apic.number_of_ioapic   = 0;
     memset(&apic.lapic_id, 0, sizeof(apic.lapic_id));
     memset(&apic.ioapic, 0, sizeof(apic.ioapic));
-    MADT_t *madt            = (MADT_t *)KADDR_P2V(BOOT_INFO->madt_addr);
+    MADT_t *madt            = (MADT_t *)PHYS_TO_VIRT(BOOT_INFO->madt_addr);
     apic.local_apic_address = madt->LocalApicAddress;
     uint8_t *p              = (uint8_t *)(madt + 1);
     uint8_t *p2             = (uint8_t *)madt + madt->Header.Length;
@@ -77,13 +77,13 @@ PUBLIC void detect_cores(void)
 
 PUBLIC void local_apic_write(uint16_t index, uint32_t value)
 {
-    *(uint32_t *)KADDR_P2V(apic.local_apic_address + index) = value;
+    *(uint32_t *)PHYS_TO_VIRT(apic.local_apic_address + index) = value;
     io_mfence();
 }
 
 PUBLIC uint32_t local_apic_read(uint16_t index)
 {
-    return *(uint32_t *)KADDR_P2V(apic.local_apic_address + index);
+    return *(uint32_t *)PHYS_TO_VIRT(apic.local_apic_address + index);
     io_mfence();
 }
 
@@ -151,15 +151,15 @@ PUBLIC void local_apic_init()
 // PRIVATE uint64_t ioapic_rte_read(uint8_t index)
 // {
 //     uint64_t ret;
-//     *(uint8_t*)KADDR_P2V(apic.ioapic[0].index_addr) = index + 1;
+//     *(uint8_t*)PHYS_TO_VIRT(apic.ioapic[0].index_addr) = index + 1;
 //     io_mfence();
-//     ret = *(uint32_t*)KADDR_P2V(apic.ioapic[0].data_addr);
+//     ret = *(uint32_t*)PHYS_TO_VIRT(apic.ioapic[0].data_addr);
 //     ret <<= 32;
 //     io_mfence();
 
-//     *(uint8_t*)KADDR_P2V(apic.ioapic[0].index_addr) = index;
+//     *(uint8_t*)PHYS_TO_VIRT(apic.ioapic[0].index_addr) = index;
 //     io_mfence();
-//     ret |= *(uint32_t*)KADDR_P2V(apic.ioapic[0].data_addr);
+//     ret |= *(uint32_t*)PHYS_TO_VIRT(apic.ioapic[0].data_addr);
 //     io_mfence();
 
 //     return ret;
@@ -167,15 +167,15 @@ PUBLIC void local_apic_init()
 
 PRIVATE void ioapic_rte_write(uint8_t index, uint64_t value)
 {
-    *(uint8_t *)KADDR_P2V(apic.ioapic[0].index_addr) = index;
+    *(uint8_t *)PHYS_TO_VIRT(apic.ioapic[0].index_addr) = index;
     io_mfence();
-    *(uint32_t *)KADDR_P2V(apic.ioapic[0].data_addr) = value & 0xffffffff;
+    *(uint32_t *)PHYS_TO_VIRT(apic.ioapic[0].data_addr) = value & 0xffffffff;
     value >>= 32;
     io_mfence();
 
-    *(uint8_t *)KADDR_P2V(apic.ioapic[0].index_addr) = index + 1;
+    *(uint8_t *)PHYS_TO_VIRT(apic.ioapic[0].index_addr) = index + 1;
     io_mfence();
-    *(uint32_t *)KADDR_P2V(apic.ioapic[0].data_addr) = value & 0xffffffff;
+    *(uint32_t *)PHYS_TO_VIRT(apic.ioapic[0].data_addr) = value & 0xffffffff;
     io_mfence();
     return;
 }
@@ -188,9 +188,9 @@ PUBLIC void ioapic_enable(uint64_t pin, uint64_t vector)
 
 PRIVATE void ioapic_init()
 {
-    *(uint8_t *)KADDR_P2V(apic.ioapic[0].index_addr) = 0;
+    *(uint8_t *)PHYS_TO_VIRT(apic.ioapic[0].index_addr) = 0;
     io_mfence();
-    *(uint32_t *)KADDR_P2V(apic.ioapic[0].data_addr) = 0x0f000000;
+    *(uint32_t *)PHYS_TO_VIRT(apic.ioapic[0].data_addr) = 0x0f000000;
     io_mfence();
 
     /* 屏蔽所有中断 */

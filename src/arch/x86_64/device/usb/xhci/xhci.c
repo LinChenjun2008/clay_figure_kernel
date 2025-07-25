@@ -11,8 +11,8 @@
 
 #include <device/pci.h>      // pci functions
 #include <device/usb/xhci.h> // xhci struct
-#include <mem/allocator.h>   // pmalloc,pfree
-#include <mem/page.h>        // KADDR_V2P,KADDR_P2V
+#include <mem/allocator.h>   // kmalloc,kfree
+#include <mem/page.h>        // VIRT_TO_PHYS,PHYS_TO_VIRT
 #include <std/string.h>      // memset
 #include <task/task.h>       // task_start
 
@@ -73,13 +73,12 @@ PRIVATE status_t xhci_controller_setup(void *mmio_base, xhci_t **xhci_addr)
 {
     xhci_t  *xhci;
     status_t status;
-    status = pmalloc(sizeof(*xhci), 0, 0, &xhci);
+    status = kmalloc(sizeof(*xhci), 0, 0, &xhci);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Alloc memory for xhci failed.\n");
         return status;
     }
-    xhci = KADDR_P2V(xhci);
     memset(xhci, 0, sizeof(*xhci));
     xhci->mmio_base = mmio_base;
     xhci->cap_regs  = xhci->mmio_base;
@@ -171,7 +170,7 @@ PRIVATE status_t xhci_controller_setup(void *mmio_base, xhci_t **xhci_addr)
         PR_LOG(
             LOG_ERROR, "XHCI Driver not support pagesize: %d.\n", pagesize << 12
         );
-        pfree(KADDR_V2P(xhci));
+        kfree(xhci);
         *xhci_addr = NULL;
         return K_ERROR;
     }
@@ -361,80 +360,70 @@ PRIVATE status_t configure_xhci(xhci_t *xhci, usb_hub_t *hub)
     void    *cmds_evt = NULL, *port_evt = NULL, *xfer_evt = NULL;
 
     size_t pc_evt_size = XHCI_RING_ITEMS * sizeof(usb_port_connecton_event_t);
-    status = pmalloc(sizeof(*xhci->devs) * (xhci->slots + 1), 64, 0, &devs);
+    status = kmalloc(sizeof(*xhci->devs) * (xhci->slots + 1), 64, 0, &devs);
     if (ERROR(status))
     {
         goto fail;
     }
 
-    status = pmalloc(sizeof(*xhci->eseg), 64, 0, &eseg);
+    status = kmalloc(sizeof(*xhci->eseg), 64, 0, &eseg);
     if (ERROR(status))
     {
         goto fail;
     }
 
-    status = pmalloc(XHCI_RING_SIZE, 64, 65536, &evts);
+    status = kmalloc(XHCI_RING_SIZE, 64, 65536, &evts);
     if (ERROR(status))
     {
         goto fail;
     }
 
-    status = pmalloc(XHCI_RING_SIZE, 64, 65536, &cmds);
+    status = kmalloc(XHCI_RING_SIZE, 64, 65536, &cmds);
     if (ERROR(status))
     {
         goto fail;
     }
 
-    status = pmalloc(XHCI_RING_SIZE, 0, 0, &cmds_evt);
+    status = kmalloc(XHCI_RING_SIZE, 0, 0, &cmds_evt);
     if (ERROR(status))
     {
         goto fail;
     }
 
-    status = pmalloc(pc_evt_size, 0, 0, &port_evt);
+    status = kmalloc(pc_evt_size, 0, 0, &port_evt);
     if (ERROR(status))
     {
         goto fail;
     }
-    status = pmalloc(XHCI_RING_SIZE, 0, 0, &xfer_evt);
+    status = kmalloc(XHCI_RING_SIZE, 0, 0, &xfer_evt);
     if (ERROR(status))
     {
         goto fail;
     }
-    xhci->devs      = KADDR_P2V(devs);
-    xhci->eseg      = KADDR_P2V(eseg);
-    xhci->evts.trbs = KADDR_P2V(evts);
-    xhci->cmds.trbs = KADDR_P2V(cmds);
+    xhci->devs      = devs;
+    xhci->eseg      = eseg;
+    xhci->evts.trbs = evts;
+    xhci->cmds.trbs = cmds;
 
     memset(xhci->devs, 0, sizeof(*xhci->devs) * (xhci->slots + 1));
     memset(xhci->eseg, 0, sizeof(*xhci->eseg));
     memset(xhci->evts.trbs, 0, XHCI_RING_SIZE);
     memset(xhci->cmds.trbs, 0, XHCI_RING_SIZE);
 
-    memset(KADDR_P2V(cmds_evt), 0, XHCI_RING_SIZE);
-    memset(KADDR_P2V(port_evt), 0, pc_evt_size);
-    memset(KADDR_P2V(xfer_evt), 0, XHCI_RING_SIZE);
+    memset(cmds_evt, 0, XHCI_RING_SIZE);
+    memset(port_evt, 0, pc_evt_size);
+    memset(xfer_evt, 0, XHCI_RING_SIZE);
 
-    init_fifo(
-        &xhci->cmds_evts,
-        KADDR_P2V(cmds_evt),
-        sizeof(xhci_trb_t),
-        XHCI_RING_ITEMS
-    );
+    init_fifo(&xhci->cmds_evts, cmds_evt, sizeof(xhci_trb_t), XHCI_RING_ITEMS);
 
     init_fifo(
         &xhci->port_evts,
-        KADDR_P2V(port_evt),
+        port_evt,
         sizeof(usb_port_connecton_event_t),
         XHCI_RING_ITEMS
     );
 
-    init_fifo(
-        &xhci->xfer_evts,
-        KADDR_P2V(xfer_evt),
-        sizeof(xhci_trb_t),
-        XHCI_RING_ITEMS
-    );
+    init_fifo(&xhci->xfer_evts, xfer_evt, sizeof(xhci_trb_t), XHCI_RING_ITEMS);
 
 
     if (ERROR(xhci_halt(xhci)))
@@ -451,20 +440,20 @@ PRIVATE status_t configure_xhci(xhci_t *xhci, usb_hub_t *hub)
     xhci_write_opt(xhci, XHCI_OPT_CONFIG, xhci->slots);
 
     // Write DCBAA
-    uint32_t dcbaap_lo = (uint64_t)devs & 0xffffffff;
-    uint32_t dcbaap_hi = (uint64_t)devs >> 32;
+    uint32_t dcbaap_lo = (uint64_t)VIRT_TO_PHYS(devs) & 0xffffffff;
+    uint32_t dcbaap_hi = (uint64_t)VIRT_TO_PHYS(devs) >> 32;
     xhci_write_opt(xhci, XHCI_OPT_DCBAAP_LO, dcbaap_lo);
     xhci_write_opt(xhci, XHCI_OPT_DCBAAP_HI, dcbaap_hi);
 
     // Write ERSTBA
-    xhci->eseg->ptr_lo = (uint64_t)evts & 0xffffffff;
-    xhci->eseg->ptr_hi = (uint64_t)evts >> 32;
+    xhci->eseg->ptr_lo = (uint64_t)VIRT_TO_PHYS(evts) & 0xffffffff;
+    xhci->eseg->ptr_hi = (uint64_t)VIRT_TO_PHYS(evts) >> 32;
     xhci->eseg->size   = XHCI_RING_ITEMS;
 
     xhci_write_run(xhci, XHCI_IRS_ERSTSZ(0), ERSTSZ_SET(1));
 
-    uint32_t erstba_lo = (uint64_t)eseg & 0xffffffff;
-    uint32_t erstba_hi = (uint64_t)eseg >> 32;
+    uint32_t erstba_lo = (uint64_t)VIRT_TO_PHYS(eseg) & 0xffffffff;
+    uint32_t erstba_hi = (uint64_t)VIRT_TO_PHYS(eseg) >> 32;
     xhci_write_run(xhci, XHCI_IRS_ERSTBA_LO(0), erstba_lo);
     xhci_write_run(xhci, XHCI_IRS_ERSTBA_HI(0), erstba_hi);
 
@@ -473,8 +462,8 @@ PRIVATE status_t configure_xhci(xhci_t *xhci, usb_hub_t *hub)
     xhci->evts.cs        = 1;
     xhci->evts.enqueue   = 0;
     xhci->evts.dequeue   = 0;
-    uint32_t erdp_lo     = (uint64_t)evts & 0xffffffff;
-    uint32_t erdp_hi     = (uint64_t)evts >> 32;
+    uint32_t erdp_lo     = (uint64_t)VIRT_TO_PHYS(evts) & 0xffffffff;
+    uint32_t erdp_hi     = (uint64_t)VIRT_TO_PHYS(evts) >> 32;
     xhci_write_run(xhci, XHCI_IRS_ERDP_LO(0), erdp_lo);
     xhci_write_run(xhci, XHCI_IRS_ERDP_HI(0), erdp_hi);
 
@@ -483,8 +472,8 @@ PRIVATE status_t configure_xhci(xhci_t *xhci, usb_hub_t *hub)
     xhci->cmds.cs        = 1;
     xhci->cmds.enqueue   = 0;
     xhci->cmds.dequeue   = 0;
-    uint32_t crcr_lo     = (uint64_t)cmds & 0xffffffff;
-    uint32_t crcr_hi     = (uint64_t)cmds >> 32;
+    uint32_t crcr_lo     = (uint64_t)VIRT_TO_PHYS(cmds) & 0xffffffff;
+    uint32_t crcr_hi     = (uint64_t)VIRT_TO_PHYS(cmds) >> 32;
     xhci_write_opt(xhci, XHCI_OPT_CRCR_LO, crcr_lo | xhci->cmds.cs);
     xhci_write_opt(xhci, XHCI_OPT_CRCR_HI, crcr_hi);
 
@@ -493,7 +482,7 @@ PRIVATE status_t configure_xhci(xhci_t *xhci, usb_hub_t *hub)
     if (spb != 0)
     {
         uint64_t *spba;
-        status = pmalloc(sizeof(uint64_t) * spb, 64, 4096, &spba);
+        status = kmalloc(sizeof(uint64_t) * spb, 64, 4096, &spba);
         if (ERROR(status))
         {
             PR_LOG(LOG_ERROR, "Failed to alloc spba.\n");
@@ -504,20 +493,20 @@ PRIVATE status_t configure_xhci(xhci_t *xhci, usb_hub_t *hub)
         {
             void *pad = NULL;
             status =
-                pmalloc(XHCI_PAGE_SIZE, XHCI_PAGE_SIZE, XHCI_PAGE_SIZE, &pad);
+                kmalloc(XHCI_PAGE_SIZE, XHCI_PAGE_SIZE, XHCI_PAGE_SIZE, &pad);
             if (ERROR(status))
             {
                 PR_LOG(LOG_ERROR, "Failed to alloc sctatch pad buf.\n");
                 while (--i >= 0)
                 {
-                    pfree(((uint64_t **)KADDR_P2V(spba))[i]);
+                    kfree(PHYS_TO_VIRT(((uint64_t **)spba)[i]));
                 }
-                pfree(spba);
+                kfree(spba);
                 goto fail;
             }
-            ((uint64_t **)KADDR_P2V(spba))[i] = pad;
+            ((uint64_t **)spba)[i] = VIRT_TO_PHYS(pad);
         }
-        xhci->devs[0].ptr = (uint64_t)spba;
+        xhci->devs[0].ptr = (uint64_t)VIRT_TO_PHYS(spba);
     }
     xhci_run(xhci);
 
@@ -530,14 +519,14 @@ PRIVATE status_t configure_xhci(xhci_t *xhci, usb_hub_t *hub)
     return K_SUCCESS;
 
 fail:
-    pfree(xfer_evt);
-    pfree(port_evt);
-    pfree(cmds_evt);
+    kfree(xfer_evt);
+    kfree(port_evt);
+    kfree(cmds_evt);
 
-    pfree(cmds);
-    pfree(evts);
-    pfree(eseg);
-    pfree(devs);
+    kfree(cmds);
+    kfree(evts);
+    kfree(eseg);
+    kfree(devs);
 
     return K_ERROR;
 }
@@ -547,13 +536,12 @@ PUBLIC status_t xhci_setup(usb_hub_set_t *hub_set)
     int number_of_xhci;
     number_of_xhci = pci_dev_count(0x0c, 0x03, 0x30);
     status_t status =
-        pmalloc(sizeof(*hub_set->hubs) * number_of_xhci, 0, 0, &hub_set->hubs);
+        kmalloc(sizeof(*hub_set->hubs) * number_of_xhci, 0, 0, &hub_set->hubs);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Failed to alloc hub_set.\n");
         return status;
     }
-    hub_set->hubs  = KADDR_P2V(hub_set->hubs);
     hub_set->count = number_of_xhci;
 
     pci_device_t *pci;
@@ -565,14 +553,14 @@ PUBLIC status_t xhci_setup(usb_hub_set_t *hub_set)
         page_map(
             (uint64_t *)KERNEL_PAGE_DIR_TABLE_POS,
             (void *)mmio_base,
-            (void *)KADDR_P2V(mmio_base)
+            (void *)PHYS_TO_VIRT(mmio_base)
         );
         if ((pci_dev_config_read(pci, 0) & 0xffff) == 0x8086)
         {
             switch_to_xhci(pci);
         }
         xhci_t *xhci = NULL;
-        xhci_controller_setup(KADDR_P2V(mmio_base), &xhci);
+        xhci_controller_setup(PHYS_TO_VIRT(mmio_base), &xhci);
         xhci->usb.pci = pci;
 
         configure_xhci(xhci, &hub_set->hubs[i]);
@@ -635,7 +623,7 @@ PUBLIC void xhci_process_events(xhci_t *xhci)
             evts->cs = cs;
         }
         evts->dequeue = dequeue;
-        uint64_t addr = (uint64_t)KADDR_V2P(&evts->trbs[dequeue]);
+        uint64_t addr = (uint64_t)VIRT_TO_PHYS(&evts->trbs[dequeue]);
 
         uint32_t erdp_lo = (addr & 0xffffffff) | (1 << 3); // clear EHB
         uint32_t erdp_hi = addr >> 32;
@@ -728,7 +716,7 @@ xhci_cmd_address_device(xhci_t *xhci, uint32_t slot_id, xhci_in_ctx_t *in_ctx)
 {
     xhci_trb_t trb;
     memset(&trb, 0, sizeof(trb));
-    trb.ptr     = (uint64_t)in_ctx;
+    trb.ptr     = (uint64_t)VIRT_TO_PHYS(in_ctx);
     trb.control = CR_ADDRESS_DEVICE << 10 | slot_id << 24;
     return xhci_cmd_submit(xhci, &trb);
 }
@@ -741,7 +729,7 @@ PRIVATE trb_comp_code_t xhci_cmd_configure_endpoint(
 {
     xhci_trb_t trb;
     memset(&trb, 0, sizeof(trb));
-    trb.ptr     = (uint64_t)in_ctx;
+    trb.ptr     = (uint64_t)VIRT_TO_PHYS(in_ctx);
     trb.control = CR_CONFIGURE_ENDPOINT << 10 | slot_id << 24;
     return xhci_cmd_submit(xhci, &trb);
 }
@@ -751,7 +739,7 @@ xhci_cmd_evaluate_context(xhci_t *xhci, uint32_t slot_id, xhci_in_ctx_t *in_ctx)
 {
     xhci_trb_t trb;
     memset(&trb, 0, sizeof(trb));
-    trb.ptr     = (uint64_t)in_ctx;
+    trb.ptr     = (uint64_t)VIRT_TO_PHYS(in_ctx);
     trb.control = CR_EVALUATE_CONTEXT << 10 | slot_id << 24;
     return xhci_cmd_submit(xhci, &trb);
 }
@@ -767,13 +755,12 @@ PRIVATE xhci_in_ctx_t *xhci_alloc_in_ctx(usb_device_t *usb_dev, int max_epid)
     xhci_t        *xhci = CONTAINER_OF(xhci_t, usb, usb_dev->hub->ctrl);
     size_t         size = (sizeof(xhci_in_ctx_t) * 33) << xhci->context64;
     xhci_in_ctx_t *in_ctx;
-    status_t       status = pmalloc(size, 64, 4096, &in_ctx);
+    status_t       status = kmalloc(size, 64, 4096, &in_ctx);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Failed to alloc in_ctx.\n");
         return NULL;
     }
-    in_ctx = KADDR_P2V(in_ctx);
     memset(in_ctx, 0, size);
 
     xhci_slot_ctx_t *slot_ctx = (void *)&in_ctx[1 << xhci->context64];
@@ -796,7 +783,7 @@ PRIVATE xhci_in_ctx_t *xhci_alloc_in_ctx(usb_device_t *usb_dev, int max_epid)
             else
             {
                 xhci_slot_ctx_t *hslot;
-                hslot            = KADDR_P2V(xhci->devs[hpipe->slot_id].ptr);
+                hslot            = PHYS_TO_VIRT(xhci->devs[hpipe->slot_id].ptr);
                 slot_ctx->ctx[2] = hslot->ctx[2];
             }
         }
@@ -817,7 +804,8 @@ PRIVATE int xhci_configure_hub(usb_hub_t *hub)
 {
     xhci_t      *xhci = CONTAINER_OF(xhci_t, usb, hub->ctrl);
     xhci_pipe_t *pipe = CONTAINER_OF(xhci_pipe_t, pipe, hub->usb_dev->defpipe);
-    xhci_slot_ctx_t *hd_slot = (void *)KADDR_P2V(xhci->devs[pipe->slot_id].ptr);
+    xhci_slot_ctx_t *hd_slot;
+    hd_slot = (void *)PHYS_TO_VIRT(xhci->devs[pipe->slot_id].ptr);
     if ((hd_slot->ctx[3] >> 27) == 3)
     {
         // Already configured
@@ -834,8 +822,8 @@ PRIVATE int xhci_configure_hub(usb_hub_t *hub)
     slot->ctx[1] |= hub->portcount << 24;
     // configure endpoint
     trb_comp_code_t cc;
-    cc = xhci_cmd_configure_endpoint(xhci, pipe->slot_id, KADDR_V2P(in_ctx));
-    pfree(KADDR_V2P(in_ctx));
+    cc = xhci_cmd_configure_endpoint(xhci, pipe->slot_id, in_ctx);
+    kfree(in_ctx);
     if (cc != CC_SUCCESS)
     {
         PR_LOG(LOG_ERROR, "Failed to configure ep.\n");
@@ -868,28 +856,27 @@ xhci_alloc_pipe(usb_device_t *usb_dev, usb_endpoint_descriptor_t *epdesc)
         epid += (epdesc->bEndpointAddress & USB_DIR_IN) ? 1 : 0;
     }
 
-    status_t status = pmalloc(sizeof(*pipe), 64, 4096, &pipe);
+    status_t status = kmalloc(sizeof(*pipe), 64, 4096, &pipe);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Failed to alloc pipe.\n");
         return NULL;
     }
-    pipe = KADDR_P2V(pipe);
     memset(pipe, 0, sizeof(*pipe));
 
     void *pipe_reqs = NULL;
-    status          = pmalloc(XHCI_RING_SIZE, 64, 65536, &pipe_reqs);
+    status          = kmalloc(XHCI_RING_SIZE, 64, 65536, &pipe_reqs);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Failed to alloc pipe reqs.trbs.\n");
-        pfree(KADDR_V2P(pipe));
+        kfree(pipe);
         return NULL;
     }
 
     usb_desc2pipe(&pipe->pipe, usb_dev, epdesc);
     pipe->epid           = epid;
     pipe->reqs.cs        = 1;
-    pipe->reqs.trbs      = KADDR_P2V(pipe_reqs);
+    pipe->reqs.trbs      = pipe_reqs;
     pipe->reqs.enqueue   = 0;
     pipe->reqs.dequeue   = 0;
     pipe->reqs.trb_count = XHCI_RING_ITEMS;
@@ -897,13 +884,13 @@ xhci_alloc_pipe(usb_device_t *usb_dev, usb_endpoint_descriptor_t *epdesc)
 
     if (eptype == USB_ENDPOINT_XFER_INT)
     {
-        status = pmalloc(pipe->pipe.max_packet, 0, 0, &pipe_buf);
+        status = kmalloc(pipe->pipe.max_packet, 0, 0, &pipe_buf);
         if (ERROR(status))
         {
-            pfree(KADDR_V2P(pipe));
+            kfree(pipe);
             return NULL;
         }
-        pipe->buf = KADDR_P2V(pipe_buf);
+        pipe->buf = pipe_buf;
     }
 
     // Allocate input context and initialize endpoint info.
@@ -927,7 +914,7 @@ xhci_alloc_pipe(usb_device_t *usb_dev, usb_endpoint_descriptor_t *epdesc)
         ep->ctx[1] |= 1 << 5;
     }
     ep->ctx[1] |= pipe->pipe.max_packet << 16;
-    ep->deq_ptr = (uint64_t)KADDR_V2P(&pipe->reqs.trbs[0]);
+    ep->deq_ptr = (uint64_t)VIRT_TO_PHYS(&pipe->reqs.trbs[0]);
     ep->deq_ptr |= 1; // dcs
     ep->length = pipe->pipe.max_packet;
 
@@ -947,7 +934,7 @@ xhci_alloc_pipe(usb_device_t *usb_dev, usb_endpoint_descriptor_t *epdesc)
         // Enable slot
         size_t size = (sizeof(xhci_slot_ctx_t) * 32) << xhci->context64;
         xhci_slot_ctx_t *dev;
-        status = pmalloc(size, 1024 << xhci->context64, 4096, &dev);
+        status = kmalloc(size, 1024 << xhci->context64, 4096, &dev);
         if (ERROR(status))
         {
             goto fail;
@@ -956,15 +943,14 @@ xhci_alloc_pipe(usb_device_t *usb_dev, usb_endpoint_descriptor_t *epdesc)
         if (slot_id < 0)
         {
             PR_LOG(LOG_ERROR, "Failed to enable slot.\n");
-            pfree(dev);
+            kfree(dev);
             goto fail;
         }
-        memset(KADDR_P2V(dev), 0, size);
-        xhci->devs[slot_id].ptr = (uint64_t)dev;
+        memset(dev, 0, size);
+        xhci->devs[slot_id].ptr = (uint64_t)VIRT_TO_PHYS(dev);
 
         // Address device
-        trb_comp_code_t cc =
-            xhci_cmd_address_device(xhci, slot_id, KADDR_V2P(in_ctx));
+        trb_comp_code_t cc = xhci_cmd_address_device(xhci, slot_id, in_ctx);
         if (cc != CC_SUCCESS)
         {
             PR_LOG(LOG_ERROR, "Failed to address device: cc = %d.\n", cc);
@@ -975,7 +961,7 @@ xhci_alloc_pipe(usb_device_t *usb_dev, usb_endpoint_descriptor_t *epdesc)
                 goto fail;
             }
             xhci->devs[slot_id].ptr = 0;
-            pfree(dev);
+            kfree(dev);
             goto fail;
         }
         pipe->slot_id = slot_id;
@@ -987,21 +973,21 @@ xhci_alloc_pipe(usb_device_t *usb_dev, usb_endpoint_descriptor_t *epdesc)
         pipe->slot_id = defpipe->slot_id;
 
         // Send configure command.
-        trb_comp_code_t cc =
-            xhci_cmd_configure_endpoint(xhci, pipe->slot_id, KADDR_V2P(in_ctx));
+        trb_comp_code_t cc;
+        cc = xhci_cmd_configure_endpoint(xhci, pipe->slot_id, in_ctx);
         if (cc != CC_SUCCESS)
         {
             PR_LOG(LOG_ERROR, "Failed to configure ep.\n");
             goto fail;
         }
     }
-    pfree(KADDR_V2P(in_ctx));
+    kfree(in_ctx);
     return &pipe->pipe;
 fail:
-    pfree(pipe_buf);
-    pfree(pipe_reqs);
-    pfree(KADDR_V2P(pipe));
-    pfree(KADDR_V2P(in_ctx));
+    kfree(pipe_buf);
+    kfree(pipe_reqs);
+    kfree(pipe);
+    kfree(in_ctx);
 
     return NULL;
 }
@@ -1043,13 +1029,12 @@ PUBLIC usb_pipe_t *xhci_realloc_pipe(
     ep->ctx[1] |= pipe->pipe.max_packet << 16;
 
     // Evaluate context
-    trb_comp_code_t cc =
-        xhci_cmd_evaluate_context(xhci, pipe->slot_id, KADDR_V2P(in_ctx));
+    trb_comp_code_t cc = xhci_cmd_evaluate_context(xhci, pipe->slot_id, in_ctx);
     if (cc != CC_SUCCESS)
     {
         PR_LOG(LOG_ERROR, "Failed to evaluate context.\n");
     }
-    pfree(KADDR_V2P(in_ctx));
+    kfree(in_ctx);
     return upipe;
 }
 
@@ -1094,7 +1079,7 @@ xhci_xfer_setup(xhci_pipe_t *pipe, int dir, void *cmd, void *data, int data_len)
     {
         xhci_trb_t data_trb;
         memset(&data_trb, 0, sizeof(data_trb));
-        data_trb.ptr     = (uint64_t)KADDR_V2P(data);
+        data_trb.ptr     = (uint64_t)VIRT_TO_PHYS(data);
         data_trb.status  = data_len;
         data_trb.control = (TR_DATA << 10);
         data_trb.control |= (dir ? 1 : 0) << 16;

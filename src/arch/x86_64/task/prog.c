@@ -11,7 +11,7 @@
 #include <intr.h>           // intr_stack_t
 #include <io.h>             // set_cr3
 #include <kernel/syscall.h> // sys_send_recv
-#include <mem/allocator.h>  // pmalloc,pfree
+#include <mem/allocator.h>  // kmalloc,kfree
 #include <mem/page.h>       // alloc_physical_page,page_map
 #include <service.h>        // MM_EXIT
 #include <std/string.h>     // memset,memcpy
@@ -110,33 +110,31 @@ PUBLIC void prog_activate(task_struct_t *task)
 PRIVATE uint64_t *create_page_dir(void)
 {
     uint64_t *pgdir_v;
-    status_t  status = pmalloc(PT_SIZE, 0, PT_SIZE, &pgdir_v);
+    status_t  status = kmalloc(PT_SIZE, 0, PT_SIZE, &pgdir_v);
     if (ERROR(status))
     {
         return NULL;
     }
-    pgdir_v = KADDR_P2V(pgdir_v);
     memset(pgdir_v, 0, PT_SIZE);
     memcpy(
         pgdir_v + 0x100,
-        (uint64_t *)KADDR_P2V(KERNEL_PAGE_DIR_TABLE_POS) + 0x100,
+        (uint64_t *)PHYS_TO_VIRT(KERNEL_PAGE_DIR_TABLE_POS) + 0x100,
         2048
     );
-    return (uint64_t *)KADDR_V2P(pgdir_v);
+    return (uint64_t *)VIRT_TO_PHYS(pgdir_v);
 }
 
 PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
 {
     size_t   entry_size        = sizeof(*task->vaddr_table.entries);
     uint64_t number_of_entries = 1024;
-    void    *p;
-    status_t status = pmalloc(entry_size * number_of_entries, 0, 0, &p);
+    void    *entries;
+    status_t status = kmalloc(entry_size * number_of_entries, 0, 0, &entries);
     if (ERROR(status))
     {
         return status;
     }
-    p = KADDR_P2V(p);
-    allocate_table_init(&task->vaddr_table, p, number_of_entries);
+    allocate_table_init(&task->vaddr_table, entries, number_of_entries);
 
     uint64_t index = USER_VADDR_START / PG_SIZE;
     uint64_t cnt   = (USER_STACK_VADDR_BASE - USER_VADDR_START) / PG_SIZE;
@@ -155,23 +153,25 @@ PUBLIC task_struct_t *prog_execute(
     status_t status;
 
     pid_t pid = MAX_TASK;
-    status    = task_alloc(&pid);
+
+    status = task_alloc(&pid);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
         return NULL;
     }
+
     void *kstack_base = NULL;
-    status            = pmalloc(kstack_size, 0, 0, &kstack_base);
+
+    status = kmalloc(kstack_size, 0, 0, &kstack_base);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
         goto fail;
     }
+
     task_struct_t *task = pid2task(pid);
-    init_task_struct(
-        task, name, priority, (addr_t)KADDR_P2V(kstack_base), kstack_size
-    );
+    init_task_struct(task, name, priority, (addr_t)kstack_base, kstack_size);
     create_task_struct(task, start_process, (uint64_t)prog);
     task->page_dir = create_page_dir();
     ASSERT(task->page_dir != NULL);
@@ -193,8 +193,8 @@ PUBLIC task_struct_t *prog_execute(
     return task;
 
 fail:
-    pfree(kstack_base);
-    pfree(task->page_dir);
+    kfree(kstack_base);
+    kfree(PHYS_TO_VIRT(task->page_dir));
     task_free(pid);
     return NULL;
 }

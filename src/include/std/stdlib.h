@@ -11,14 +11,14 @@ static inline void *malloc(size_t size)
 {
     void    *addr;
     status_t ret;
-    ret = pmalloc(size, 0, 0, &addr);
+    ret = kmalloc(size, 0, 0, &addr);
     if (ret != K_SUCCESS)
     {
         return NULL;
     }
-    return KADDR_P2V(addr);
+    return addr;
 }
 
-#define free(addr) pfree(KADDR_V2P(addr))
+#define free(addr) kfree(addr)
 
 #endif

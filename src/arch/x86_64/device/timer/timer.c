@@ -13,7 +13,7 @@
 #include <intr.h>         // register_handle
 #include <io.h>           // io_out8
 #include <kernel/syscall.h> // inform_intr
-#include <mem/page.h>       // KADDR_P2V
+#include <mem/page.h>       // PHYS_TO_VIRT
 #include <service.h>        // TICK
 #include <task/task.h>      // do_schedule
 
@@ -73,7 +73,7 @@ PRIVATE void apic_timer_handler(intr_stack_t *stack)
 PRIVATE status_t init_hpet(void)
 {
     /// TODO: Get HPET address from acpi table.
-    hpet.addr       = (uint8_t *)KADDR_P2V(HPET_DEFAULT_ADDRESS);
+    hpet.addr       = (uint8_t *)PHYS_TO_VIRT(HPET_DEFAULT_ADDRESS);
     hpet.gcap_id    = (uint64_t *)(hpet.addr + HPET_GCAP_ID);
     hpet.gen_conf   = (uint64_t *)(hpet.addr + HPET_GEN_CONF);
     hpet.main_cnt   = (uint64_t *)(hpet.addr + HPET_MAIN_CNT);
