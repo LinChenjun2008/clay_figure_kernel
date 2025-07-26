@@ -8,13 +8,12 @@ KERNEL_C_SRC      := $(filter %.c,$(KERNEL_SRC))
 .PHONY: all
 all:
 	@$(ECHO) compiling...
-	@$(MAKE) -r $(TARGET_BOOTLOADER) $(TARGET_KERNEL) update-initramfs
+	@$(MAKE) $(TARGET_BOOTLOADER) $(TARGET_KERNEL) update-initramfs
 	@$(ECHO) done.
 
 .PHONY: update-initramfs
 update-initramfs:
-	-@$(RM) $(TARGET_INITFAMFS)
-	@$(MAKE) -r $(TARGET_INITFAMFS)
+	@$(MAKE) $(TARGET_INITFAMFS)
 
 .PHONY: run
 run: all
@@ -28,7 +27,8 @@ debug: all
 clean:
 	-@"$(RM)" $(KERNEL_C_SRC:c=o) $(KERNEL_C_SRC:c=dep)   \
 	$(KERNEL_ASM_SRC:S=o) $(KERNEL_ASM_SRC:S=dep) \
-	$(TMP_KERNEL_TARGET) $(TARGET_BOOTLOADER)
+	$(TMP_KERNEL_TARGET) $(TARGET_BOOTLOADER) \
+	$(TARGET_INITFAMFS)
 
 .PHONY: init
 init:
@@ -63,7 +63,7 @@ $(TMP_KERNEL_TARGET): $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o) $(KERNEL_LINKER_
 	@"$(X86_64-ELF-LD)" -T $(KERNEL_LINKER_SCRIPT) -pie -o $@ $(KERNEL_ASM_SRC:S=o) $(KERNEL_C_SRC:c=o) $@_sym.o
 	@"$(RM)" $@_sym.c $@_sym.o
 
-$(TARGET_INITFAMFS):
+$(TARGET_INITFAMFS): $(KERNEL_SRC_PATH)/config.txt
 	@$(ECHO) make initramfs
 	@"$(IMGCOPY)" $(IMGCOPY_FLAGS) > $(ESP_PATH)/Kernel/initramfs.img
 

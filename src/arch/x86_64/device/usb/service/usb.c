@@ -10,8 +10,8 @@
 
 #include <device/usb/hid.h>  // USB_INTERFACE_SUBCLASS_BOOT
 #include <device/usb/xhci.h> // xhci_setup
-#include <mem/allocator.h>   // pmalloc
-#include <mem/page.h>        // KADDR_V2P,KADDR_P2V
+#include <mem/allocator.h>   // kmalloc
+#include <mem/page.h>        // VIRT_TO_PHYS,PHYS_TO_VIRT
 #include <service.h>         // previous prototype for 'usb_main'
 #include <std/string.h>      // memset
 #include <task/task.h>       // task_msleep,task_start
@@ -190,18 +190,17 @@ PRIVATE usb_config_descriptor_t *get_device_config(usb_pipe_t *pipe)
         return NULL;
     }
     usb_config_descriptor_t *p_config;
-    status_t status = pmalloc(config.wTotalLength, 16, 0, &p_config);
+    status_t status = kmalloc(config.wTotalLength, 16, 0, &p_config);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Failed to alloc config.\n");
         return NULL;
     }
-    p_config    = KADDR_P2V(p_config);
     req.wLength = config.wTotalLength;
     ret         = usb_send_default_control(pipe, &req, p_config);
     if (ret != 0 || p_config->wTotalLength != config.wTotalLength)
     {
-        pfree(KADDR_V2P(p_config));
+        kfree(p_config);
         return NULL;
     }
     return p_config;
@@ -380,10 +379,10 @@ PRIVATE int configure_usb_device(usb_device_t *usb_dev)
     {
         usb_hid_setup(usb_dev);
     }
-    pfree(KADDR_V2P(config));
+    kfree(config);
     return 1;
 fail:
-    pfree(KADDR_V2P(config));
+    kfree(config);
     return -1;
 }
 
@@ -421,7 +420,7 @@ PRIVATE int usb_hub_port_setup(usb_device_t *usb_dev)
         hub->op->disconnect(hub, port);
     }
 fail:
-    pfree(KADDR_V2P(usb_dev));
+    kfree(usb_dev);
     return ret;
 }
 
@@ -504,13 +503,12 @@ PUBLIC void usb_main(void)
             {
                 usb_device_t *usb_dev;
                 status_t      status;
-                status = pmalloc(sizeof(*usb_dev), 16, 0, &usb_dev);
+                status = kmalloc(sizeof(*usb_dev), 16, 0, &usb_dev);
                 if (ERROR(status))
                 {
                     PR_LOG(LOG_ERROR, "Failed to alloc usb dev.\n");
                     continue;
                 }
-                usb_dev = KADDR_P2V(usb_dev);
                 memset(usb_dev, 0, sizeof(*usb_dev));
 
                 usb_dev->hub  = hub;

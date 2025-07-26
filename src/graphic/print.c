@@ -366,12 +366,12 @@ PUBLIC void init_ttf_info(ttf_info_t *ttf_info)
     //     {
     //         stbtt_InitFont(
     //             &ttf_info->info,
-    //             KADDR_P2V(BOOT_INFO->loaded_file[i].base_address),
+    //             PHYS_TO_VIRT(BOOT_INFO->loaded_file[i].base_address),
     //             0
     //         );
     //         uint8_t *btmp;
-    //         status_t status  = pmalloc(sizeof(char[512 * 512]), 0, 0, &btmp);
-    //         ttf_info->bitmap = KADDR_P2V(btmp);
+    //         status_t status  = kmalloc(sizeof(char[512 * 512]), 0, 0, &btmp);
+    //         ttf_info->bitmap = PHYS_TO_VIRT(btmp);
     //         if (ERROR(status))
     //         {
     //             PR_LOG(
@@ -390,7 +390,7 @@ PUBLIC void free_ttf_info(ttf_info_t *ttf_info)
 {
     if (ttf_info->has_ttf)
     {
-        pfree(ttf_info->bitmap);
+        kfree(ttf_info->bitmap);
         ttf_info->has_ttf = 0;
     }
     return;

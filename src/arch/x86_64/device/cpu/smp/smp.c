@@ -48,7 +48,7 @@ PUBLIC status_t smp_init(void)
 {
     // copy ap_boot
     size_t ap_boot_size = (addr_t)AP_BOOT_END - (addr_t)AP_BOOT_BASE;
-    memcpy((void *)KADDR_P2V(0x10000), AP_BOOT_BASE, ap_boot_size);
+    memcpy((void *)PHYS_TO_VIRT(0x10000), AP_BOOT_BASE, ap_boot_size);
 
     // allocate stack for apu
     status_t status;
@@ -82,7 +82,7 @@ PUBLIC status_t smp_init(void)
         task_struct_t *idle_task = pid2task(ap_main_pid);
         addr_t         kstack_base;
         kstack_base =
-            (addr_t)KADDR_P2V(apu_stack_base + (i - 1) * KERNEL_STACK_SIZE);
+            (addr_t)PHYS_TO_VIRT(apu_stack_base + (i - 1) * KERNEL_STACK_SIZE);
         init_task_struct(
             idle_task, name, DEFAULT_PRIORITY, kstack_base, KERNEL_STACK_SIZE
         );
