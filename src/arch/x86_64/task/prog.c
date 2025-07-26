@@ -17,8 +17,6 @@
 #include <std/string.h>     // memset,memcpy
 #include <task/task.h>      // task struct & functions,spinlock
 
-extern taskmgr_t *tm;
-
 PRIVATE void prog_exit(int (*func)(void *), wordsize_t arg)
 {
     int ret_value = func((void *)arg);
@@ -119,7 +117,7 @@ PRIVATE uint64_t *create_page_dir(void)
     memcpy(
         pgdir_v + 0x100,
         (uint64_t *)PHYS_TO_VIRT(KERNEL_PAGE_DIR_TABLE_POS) + 0x100,
-        2048
+        PT_SIZE / 2
     );
     return (uint64_t *)VIRT_TO_PHYS(pgdir_v);
 }
@@ -187,9 +185,10 @@ PUBLIC task_struct_t *prog_execute(
         PR_LOG(LOG_ERROR, "Can not init vaddr table.\n");
         goto fail;
     }
-    spinlock_lock(&tm->core[apic_id()].task_list_lock);
-    task_list_insert(&tm->core[apic_id()].task_list, task);
-    spinlock_unlock(&tm->core[apic_id()].task_list_lock);
+    cpu_task_man_t *cur_cpu = get_task_man(apic_id());
+    spinlock_lock(&cur_cpu->task_list_lock);
+    task_list_insert(cur_cpu, task);
+    spinlock_unlock(&cur_cpu->task_list_lock);
     return task;
 
 fail:

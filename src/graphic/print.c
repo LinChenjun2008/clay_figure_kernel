@@ -196,33 +196,6 @@ basic_put_char(graph_info_t *gi, textbox_t *tb, unsigned char c, uint32_t col)
         if ((data & 0x02) != 0) pixel[6] = col;
         if ((data & 0x01) != 0) pixel[7] = col;
     }
-    if (c != 255)
-    {
-        col       = 0x00ffffff;
-        character = ascii_character[255];
-        for (i = 0; i < 16; i++)
-        {
-            uint8_t   data = character[i];
-            uint32_t *pixel =
-                (uint32_t *)gi->frame_buffer_base +
-                (tb->box_pos.y + tb->cur_pos.y + i) * gi->pixel_per_scanline +
-                tb->box_pos.x + tb->cur_pos.x + tb->char_xsize;
-            int j;
-            for (j = 0; j < 8; j++)
-            {
-                pixel[j] = 0x00000000;
-            }
-            if ((data & 0x80) != 0) pixel[0] = col;
-            if ((data & 0x40) != 0) pixel[1] = col;
-            if ((data & 0x20) != 0) pixel[2] = col;
-            if ((data & 0x10) != 0) pixel[3] = col;
-            if ((data & 0x08) != 0) pixel[4] = col;
-            if ((data & 0x04) != 0) pixel[5] = col;
-            if ((data & 0x02) != 0) pixel[6] = col;
-            if ((data & 0x01) != 0) pixel[7] = col;
-        }
-    }
-
     return;
 }
 
@@ -272,7 +245,6 @@ basic_print(graph_info_t *gi, textbox_t *tb, uint32_t col, const char *str)
         max_y = tb->ysize - tb->char_ysize;
         if (*s == '\n' || tb->cur_pos.x >= max_x)
         {
-            basic_put_char(gi, tb, 255, 0);
             tb->cur_pos.x = 0;
             tb->cur_pos.y += tb->char_ysize;
             if (tb->cur_pos.y > max_y)
@@ -282,7 +254,6 @@ basic_print(graph_info_t *gi, textbox_t *tb, uint32_t col, const char *str)
             s++;
             // clear line
             clear_line(gi, tb);
-            basic_put_char(gi, tb, 255, 0x00ffffff);
             continue;
         }
         if (*s == '\b')
@@ -339,10 +310,10 @@ PUBLIC void panic_spin(
     );
     send_IPI(icr);
     io_cli();
-    pr_log(0, "\n");
-    pr_log(0, ">>> PANIC <<<\n");
-    pr_log(0, "%s: In function '%s':\n", filename, func);
-    pr_log(0, "%s:%d: %s\n", filename, line, message);
+    pr_msg("\n");
+    pr_msg(">>> PANIC <<<\n");
+    pr_msg("%s: In function '%s':\n", filename, func);
+    pr_msg("%s:%d: %s\n", filename, line, message);
     asm_debug_intr();
     while (1) io_hlt();
 }

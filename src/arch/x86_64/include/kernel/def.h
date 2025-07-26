@@ -27,7 +27,7 @@ typedef int bool;
 #    define FALSE (1 == 0)
 #endif
 
-#define SIGNATURE32(A, B, C, D) (D << 24 | C << 16 | B << 8 | A)
+#define SIGNATURE32(A, B, C, D) ((D) << 24 | (C) << 16 | (B) << 8 | (A))
 
 #define GET_FIELD(X, FIELD) (((X) >> FIELD##_SHIFT) & FIELD##_MASK)
 #define SET_FIELD(X, FIELD, VALUE)              \
@@ -43,6 +43,9 @@ typedef int bool;
 #endif
 
 #define DIV_ROUND_UP(X, STEP) (((X) + (STEP - 1)) / STEP)
+
+#define MAX(A, B) ((A) > (B) ? (A) : (B))
+#define MIN(A, B) ((A) < (B) ? (A) : (B))
 
 typedef signed char          int8_t;
 typedef signed short         int16_t;

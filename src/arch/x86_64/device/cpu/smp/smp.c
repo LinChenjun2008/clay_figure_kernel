@@ -15,8 +15,7 @@
 #include <std/string.h> // memcpy
 #include <task/task.h>  // init_task_struct,spinlock,list
 
-extern apic_t     apic;
-extern taskmgr_t *tm;
+extern apic_t apic;
 
 PUBLIC uint64_t make_icr(
     uint8_t  vector,
@@ -86,10 +85,12 @@ PUBLIC status_t smp_init(void)
         init_task_struct(
             idle_task, name, DEFAULT_PRIORITY, kstack_base, KERNEL_STACK_SIZE
         );
-        tm->core[i].idle_task = idle_task;
-        spinlock_lock(&tm->core[i].task_list_lock);
-        list_append(&tm->core[i].task_list, &idle_task->general_tag);
-        spinlock_unlock(&tm->core[i].task_list_lock);
+
+        cpu_task_man_t *cpu_task_man = get_task_man(i);
+        cpu_task_man->idle_task      = idle_task;
+        spinlock_lock(&cpu_task_man->task_list_lock);
+        list_append(&cpu_task_man->task_list, &idle_task->general_tag);
+        spinlock_unlock(&cpu_task_man->task_list_lock);
     }
 
     // register IPI

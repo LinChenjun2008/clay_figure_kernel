@@ -20,11 +20,24 @@
 
 #define MAX_TASK 4096
 
-#define DEFAULT_PRIORITY 1
-#define SERVICE_PRIORITY 3
+#define MAX_NICE 20
+#define MIN_NICE -19
+
+#define NICE_TO_PRIO(NICE) ((NICE) + 19)
+
+#define DEFAULT_PRIORITY NICE_TO_PRIO(0)
+#define SERVICE_PRIORITY NICE_TO_PRIO(-10)
 
 #define TASK_STRUCT_KSTACK_BASE 8
 #define TASK_STRUCT_KSTACK_SIZE 16
+
+// 目标调度延迟(ns) = 24ms
+// 所有可运行进程在此时段内至少运行一次
+#define SCHED_LATENCY_NS 24000000
+
+// 最小调度粒度(ns) = 6ms
+// 进程被调度后的最小运行时间
+#define SCHED_MIN_GRANULARITY_NS 6000000
 
 #ifndef __ASM_INCLUDE__
 
@@ -57,23 +70,24 @@ typedef struct task_context_s
 
 typedef struct task_struct_s
 {
-    task_context_t *context;
-    addr_t          kstack_base;
-    size_t          kstack_size;
+    task_context_t *context;     // 任务上下文
+    addr_t          kstack_base; // 内核栈基地值
+    size_t          kstack_size; // 内核栈大小(字节)
 
-    addr_t ustack_base;
-    size_t ustack_size;
+    addr_t ustack_base; // 用户栈基址(如果有)
+    size_t ustack_size; // 用户栈大小(如果有)
 
-    pid_t pid;
-    pid_t ppid;
+    pid_t pid;  // 任务id
+    pid_t ppid; // 父级任务id
 
-    char                   name[32];
-    volatile task_status_t status;
-    uint64_t               spinlock_count;
-    uint64_t               priority;
-    uint64_t               jiffies;
-    uint64_t               ideal_runtime;
-    uint64_t               vrun_time;
+    char                   name[32];       // 任务名
+    volatile task_status_t status;         // 任务状态
+    uint64_t               spinlock_count; // 任务持有的自旋锁
+    uint64_t               priority;       // 任务优先级
+    uint64_t               jiffies;        // 任务运行时间(总计)
+    uint64_t               runtime;        // 任务被调度后的运行时间
+    uint64_t               ideal_runtime;  // 任务本次调度可运行的时间
+    uint64_t               vrun_time;      // 虚拟运行时间
 
     list_node_t general_tag;
 
@@ -105,20 +119,41 @@ STATIC_ASSERT(
     ""
 );
 
-typedef struct core_taskmgr_s
+/**
+ * @brief the task management struct for each cpu
+ */
+typedef struct cpu_task_man_s
 {
-    list_t         task_list;
-    uint64_t       min_vruntime;
+    list_t         task_list;     // 进程队列
+    uint64_t       min_vruntime;  // 最小虚拟运行时间
+    uint64_t       running_tasks; // 正在运行的任务数量
+    uint64_t       total_weight;  // 已运行任务的总权重
     task_struct_t *idle_task;
     spinlock_t     task_list_lock;
-} core_taskmgr_t;
+} cpu_task_man_t;
 
-typedef struct taskmgr_s
+/**
+ * @brief the task management struct
+ */
+typedef struct global_task_man_s
 {
-    task_struct_t  task_table[MAX_TASK];
-    spinlock_t     task_table_lock;
-    core_taskmgr_t core[NR_CPUS];
-} taskmgr_t;
+    task_struct_t  tasks[MAX_TASK];
+    spinlock_t     tasks_lock;
+    cpu_task_man_t cpus[NR_CPUS];
+} global_task_man_t;
+
+/**
+ * @brief 获取global_task_man指针
+ * @return global_task_man
+ */
+PUBLIC global_task_man_t *get_global_task_man(void);
+
+/**
+ * @brief 获取对应cpu的cpu_task_man_t指针
+ * @param cpu_id cpu id
+ * @return &global_task_man->cpu[cpu_id]
+ */
+PUBLIC cpu_task_man_t *get_task_man(uint32_t cpu_id);
 
 /**
  * @brief 将pid转换为task结构体
@@ -148,17 +183,18 @@ PUBLIC status_t task_alloc(pid_t *pid);
 
 /**
  * @brief 将任务添加到列表中
- * @param list 任务列表
+ * @param task_man 任务管理结构
  * @param task 要添加的任务结构体指针
+ * @note 使用此函数前请确保获取了taskmgr的task_list_lock锁
  */
-PUBLIC void task_list_insert(list_t *list, task_struct_t *task);
+PUBLIC void task_list_insert(cpu_task_man_t *task_man, task_struct_t *task);
 
 /**
  * @brief 在列表中获取下一个可以运行的任务
- * @param list 任务列表
+ * @param task_man 任务管理结构
  * @return 成功将返回下一个任务结构,失败则返回NULL
  */
-PUBLIC task_struct_t *get_next_task(list_t *list);
+PUBLIC task_struct_t *get_next_task(cpu_task_man_t *task_man);
 
 /**
  * @brief 将pid对应的任务结构体标记为未使用
@@ -218,7 +254,7 @@ PUBLIC void task_init(void);
 PUBLIC uint64_t get_core_min_vruntime(uint32_t cpu_id);
 
 /**
- * @brief 更新vrun_time
+ * @brief 更新当前任务的runtime,runtime以及min_runtime,并计算ideal_runtime
  */
 PUBLIC void task_update(void);
 
@@ -241,6 +277,12 @@ PUBLIC void task_block(task_status_t status);
 PUBLIC void task_unblock(pid_t pid);
 
 /**
+ * @brief 将pid对应的进程解除阻塞,但不会操作task_list_lock锁
+ * @param pid pid
+ */
+PUBLIC void task_unblock_sub(pid_t pid);
+
+/**
  * @brief 使当前进程让出cpu
  */
 PUBLIC void task_yield(void);
@@ -256,6 +298,12 @@ PUBLIC void init_tss(uint8_t cpu_id);
 PUBLIC void update_tss_rsp0(task_struct_t *task);
 
 /// prog.c
+
+/**
+ * @brief 激活任务的页表,更新tss的rsp0,设置gs_base
+ * @param task
+ * @return
+ */
 PUBLIC void prog_activate(task_struct_t *task);
 
 /**

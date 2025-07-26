@@ -15,8 +15,6 @@
 #include <std/string.h>     // memcpy
 #include <task/task.h>      // task functions,include list,spinlock,alloc_table
 
-extern taskmgr_t *tm;
-
 typedef struct
 {
     uint64_t page_index;
@@ -164,14 +162,15 @@ PRIVATE void release_prog_page(uint64_t *pml4t)
 
 PRIVATE void mm_exit(message_t *msg)
 {
-    task_struct_t *src         = pid2task(msg->src);
-    intr_status_t  intr_status = intr_disable();
-    spinlock_lock(&tm->core[src->cpu_id].task_list_lock);
-    if (list_find(&tm->core[src->cpu_id].task_list, &src->general_tag))
+    task_struct_t  *src         = pid2task(msg->src);
+    intr_status_t   intr_status = intr_disable();
+    cpu_task_man_t *cur_cpu     = get_task_man(src->cpu_id);
+    spinlock_lock(&cur_cpu->task_list_lock);
+    if (list_find(&cur_cpu->task_list, &src->general_tag))
     {
         list_remove(&src->general_tag);
     }
-    spinlock_unlock(&tm->core[src->cpu_id].task_list_lock);
+    spinlock_unlock(&cur_cpu->task_list_lock);
     intr_set_status(intr_status);
     if (src->page_dir != NULL)
     {
