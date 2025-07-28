@@ -28,7 +28,7 @@
 extern uint64_t rdmsr(uint64_t address);
 extern void     wrmsr(uint64_t address, uint64_t value);
 
-extern void asm_cpuid(
+extern void ASMLINKAGE asm_cpuid(
     uint32_t  mop,
     uint32_t  sop,
     uint32_t *a,

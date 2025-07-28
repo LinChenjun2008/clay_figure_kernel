@@ -44,11 +44,11 @@ $(TARGET_BOOTLOADER): $(BOOTLOADER_SRC)
 
 %.o: %.c
 	@$(ECHO) compiling $*.c
-	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -MP -MD -MF $*.dep -c -o $*.o $*.c
+	@"$(X86_64-ELF-GCC)" $(KERNEL_C_FLAGS) -MP -MD -MF $*.dep -c -o $*.o $*.c
 
 %.o: %.S
 	@$(ECHO) compiling $*.S
-	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -MP -MD -MF $*.dep -c -o $*.o $*.S
+	@"$(X86_64-ELF-GCC)" $(KERNEL_S_FLAGS) -MP -MD -MF $*.dep -c -o $*.o $*.S
 
 $(TARGET_KERNEL): $(TMP_KERNEL_TARGET)
 	@$(ECHO) making $@

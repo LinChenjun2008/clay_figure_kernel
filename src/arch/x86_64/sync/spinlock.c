@@ -16,7 +16,8 @@ PUBLIC void init_spinlock(spinlock_t *spinlock)
     return;
 }
 
-extern void asm_spinlock_lock(volatile uint64_t *lock);
+extern void ASMLINKAGE asm_spinlock_lock(volatile uint64_t *lock);
+
 PUBLIC void spinlock_lock(spinlock_t *spinlock)
 {
     running_task()->spinlock_count++;

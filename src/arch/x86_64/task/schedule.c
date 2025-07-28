@@ -7,12 +7,11 @@
 
 #include <log.h>
 
-#include <device/cpu.h>   // apic_id
 #include <device/timer.h> // MS_TO_TICKS,get_current_ticks
 #include <intr.h>         // intr functions
 #include <task/task.h>    // task structs & functions,list,sse
 
-PRIVATE const int task_prio_to_weight[40] = {
+PRIVATE const uint64_t task_prio_to_weight[40] = {
     /* -20 */ 88761, 71755, 56483, 46273, 36291,
     /* -15 */ 29154, 23254, 18705, 14949, 11916,
     /* -10 */ 9548,  7620,  6100,  4904,  3906,
@@ -25,13 +24,10 @@ PRIVATE const int task_prio_to_weight[40] = {
 
 PRIVATE void update_min_vruntime(task_man_t *task_man, uint64_t vruntime)
 {
-    uint64_t min_vruntime = vruntime;
+    uint64_t min_vruntime     = vruntime;
+    uint64_t cur_min_vruntime = task_man->min_vruntime;
 
-    // 确保task_man->min_vruntime单调递增
-    if ((int64_t)(task_man->min_vruntime - min_vruntime) < 0)
-    {
-        task_man->min_vruntime = min_vruntime;
-    }
+    task_man->min_vruntime = MAX_VRUNTIME(cur_min_vruntime, min_vruntime);
     return;
 }
 
@@ -82,6 +78,7 @@ PUBLIC void task_update(void)
         uint64_t weight       = task_prio_to_weight[cur_task->priority];
         uint64_t total_weight = task_man->total_weight + weight;
 
+        ASSERT(total_weight != 0);
         // 根据权重计算ideal_runtime
         uint64_t period_ns  = SCHED_MIN_GRANULARITY_NS * running_tasks;
         uint64_t runtime_ns = period_ns * weight / total_weight;
@@ -101,7 +98,7 @@ asm_switch_to(task_context_t **cur, task_context_t **next);
 PUBLIC void schedule(void)
 {
     task_struct_t *cur_task = running_task();
-    uint32_t       cpu_id   = apic_id();
+    uint32_t       cpu_id   = cur_task->cpu_id;
     task_man_t    *task_man = get_task_man(cpu_id);
 
     if (cur_task->spinlock_count > 0)
@@ -123,7 +120,6 @@ PUBLIC void schedule(void)
 
     ASSERT(next != NULL);
 
-    list_remove(&next->general_tag);
     spinlock_unlock(&task_man->task_list_lock);
     next->status = TASK_RUNNING;
     prog_activate(next);
@@ -153,7 +149,6 @@ PUBLIC void task_list_insert(task_man_t *task_man, task_struct_t *task)
         node = list_next(node);
     }
     list_in(&task->general_tag, node);
-
     task_man->running_tasks++;
     task_man->total_weight += task_prio_to_weight[task->priority];
 
@@ -189,10 +184,9 @@ PUBLIC task_struct_t *get_next_task(task_man_t *task_man)
         node = &task_man->idle_task->general_tag;
     }
     next = CONTAINER_OF(task_struct_t, general_tag, node);
-
     task_man->running_tasks--;
     task_man->total_weight -= task_prio_to_weight[next->priority];
-
+    list_remove(node);
     return next;
 }
 

@@ -44,11 +44,3 @@ asm_switch_context:
     popq %rdi
 
     retq
-
-
-.extern intr_exit
-.global asm_process_start
-.type asm_process_start,@function
-asm_process_start:
-    movq %rdi, %rsp
-    jmp intr_exit

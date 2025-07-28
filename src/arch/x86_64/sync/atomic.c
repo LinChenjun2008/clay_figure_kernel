@@ -18,11 +18,11 @@ PUBLIC uint64_t atomic_read(atomic_t *atom)
     return atom->value;
 }
 
-extern void asm_atomic_add(volatile uint64_t *atom, uint64_t value);
-extern void asm_atomic_sub(volatile uint64_t *atom, uint64_t value);
-extern void asm_atomic_inc(volatile uint64_t *atom);
-extern void asm_atomic_dec(volatile uint64_t *atom);
-extern void asm_atomic_mask(volatile uint64_t *atom, uint64_t mask);
+extern void ASMLINKAGE asm_atomic_add(volatile uint64_t *atom, uint64_t value);
+extern void ASMLINKAGE asm_atomic_sub(volatile uint64_t *atom, uint64_t value);
+extern void ASMLINKAGE asm_atomic_inc(volatile uint64_t *atom);
+extern void ASMLINKAGE asm_atomic_dec(volatile uint64_t *atom);
+extern void ASMLINKAGE asm_atomic_mask(volatile uint64_t *atom, uint64_t mask);
 
 PUBLIC void atomic_add(atomic_t *atom, uint64_t value)
 {

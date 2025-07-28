@@ -34,9 +34,11 @@ PRIVATE bool deadlock(pid_t src, pid_t dest)
             {
                 return FALSE;
             }
-            continue;
         }
-        break;
+        else
+        {
+            break;
+        }
     }
     return FALSE;
 }

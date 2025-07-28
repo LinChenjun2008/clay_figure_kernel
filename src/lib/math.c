@@ -27,7 +27,8 @@ PUBLIC double round(double x)
     return x > 0 ? floor(x + 0.5) : ceil(x - 0.5);
 }
 
-extern double asm_sqrt(double);
+extern double ASMLINKAGE asm_sqrt(double);
+
 PUBLIC double sqrt(double x)
 {
     return asm_sqrt(x);

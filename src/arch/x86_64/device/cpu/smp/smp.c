@@ -85,12 +85,12 @@ PUBLIC status_t smp_init(void)
         init_task_struct(
             idle_task, name, DEFAULT_PRIORITY, kstack_base, KERNEL_STACK_SIZE
         );
-
-        task_man_t *cpu_task_man = get_task_man(i);
-        cpu_task_man->idle_task  = idle_task;
-        spinlock_lock(&cpu_task_man->task_list_lock);
-        list_append(&cpu_task_man->task_list, &idle_task->general_tag);
-        spinlock_unlock(&cpu_task_man->task_list_lock);
+        idle_task->cpu_id    = i;
+        task_man_t *task_man = get_task_man(i);
+        task_man->idle_task  = idle_task;
+        spinlock_lock(&task_man->task_list_lock);
+        task_list_insert(task_man, idle_task);
+        spinlock_unlock(&task_man->task_list_lock);
     }
 
     // register IPI

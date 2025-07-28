@@ -23,8 +23,8 @@
 #define MAX_NICE 20
 #define MIN_NICE -19
 
-#define NICE_TO_PRIO(NICE) ((NICE) + 19)
-#define PRIO_TO_NICE(PRIO) ((PRIO) - 19)
+#define NICE_TO_PRIO(NICE) ((NICE) + 20)
+#define PRIO_TO_NICE(PRIO) ((PRIO) - 20)
 
 #define DEFAULT_PRIORITY NICE_TO_PRIO(0)
 #define SERVICE_PRIORITY NICE_TO_PRIO(-10)

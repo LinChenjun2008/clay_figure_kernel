@@ -40,7 +40,8 @@ PUBLIC segmdesc_t make_segmdesc(uint32_t base, uint32_t limit, uint16_t access)
 
 PUBLIC segmdesc_t gdt_table[8192];
 
-extern void asm_load_gdt(void *gdt_ptr, uint16_t code, uint16_t data);
+extern void ASMLINKAGE
+asm_load_gdt(void *gdt_ptr, uint16_t code, uint16_t data);
 
 PRIVATE void load_gdt(void)
 {
@@ -51,7 +52,7 @@ PRIVATE void load_gdt(void)
     return;
 }
 
-extern void asm_ltr(uint64_t sel);
+extern void ASMLINKAGE asm_ltr(uint64_t sel);
 
 PRIVATE void load_tss(uint8_t cpu_id)
 {
