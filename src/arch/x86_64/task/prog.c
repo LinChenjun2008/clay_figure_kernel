@@ -168,7 +168,7 @@ PUBLIC task_struct_t *prog_execute(
         goto fail;
     }
 
-    task_struct_t *task = pid2task(pid);
+    task_struct_t *task = pid_to_task(pid);
     init_task_struct(task, name, priority, (addr_t)kstack_base, kstack_size);
     create_task_struct(task, start_process, (uint64_t)prog);
     task->page_dir = create_page_dir();
@@ -185,10 +185,10 @@ PUBLIC task_struct_t *prog_execute(
         PR_LOG(LOG_ERROR, "Can not init vaddr table.\n");
         goto fail;
     }
-    cpu_task_man_t *cur_cpu = get_task_man(apic_id());
-    spinlock_lock(&cur_cpu->task_list_lock);
-    task_list_insert(cur_cpu, task);
-    spinlock_unlock(&cur_cpu->task_list_lock);
+    task_man_t *task_man = get_task_man(apic_id());
+    spinlock_lock(&task_man->task_list_lock);
+    task_list_insert(task_man, task);
+    spinlock_unlock(&task_man->task_list_lock);
     return task;
 
 fail:

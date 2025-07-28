@@ -37,12 +37,12 @@ PUBLIC global_task_man_t *get_global_task_man(void)
     return global_task_man;
 }
 
-PUBLIC cpu_task_man_t *get_task_man(uint32_t cpu_id)
+PUBLIC task_man_t *get_task_man(uint32_t cpu_id)
 {
     return &global_task_man->cpus[cpu_id];
 }
 
-PUBLIC task_struct_t *pid2task(pid_t pid)
+PUBLIC task_struct_t *pid_to_task(pid_t pid)
 {
     ASSERT(pid <= MAX_TASK);
     if (pid > MAX_TASK)
@@ -91,68 +91,6 @@ PUBLIC status_t task_alloc(pid_t *pid)
     return res;
 }
 
-PUBLIC void task_list_insert(cpu_task_man_t *task_man, task_struct_t *task)
-{
-    ASSERT(task_man != NULL);
-    list_t *list = &task_man->task_list;
-    ASSERT(!list_find(list, &task->general_tag));
-    list_node_t   *node = list->head.next;
-    task_struct_t *tmp;
-    while (node != &list->tail)
-    {
-        tmp = CONTAINER_OF(task_struct_t, general_tag, node);
-        if ((int64_t)(task->vrun_time - tmp->vrun_time) < 0)
-        {
-            break;
-        }
-        node = list_next(node);
-    }
-    list_in(&task->general_tag, node);
-
-    task_man->running_tasks++;
-    task_man->total_weight += task->priority;
-
-    return;
-}
-
-PRIVATE bool task_ckeck(list_node_t *node, uint64_t arg)
-{
-    (void)arg;
-    task_struct_t *task = CONTAINER_OF(task_struct_t, general_tag, node);
-    if (atomic_read(&task->recv_flag) == 1)
-    {
-        return FALSE;
-    }
-    if ((int64_t)atomic_read(&task->send_flag) > 0)
-    {
-        task_struct_t *receiver = pid2task(task->send_to);
-        atomic_set(&receiver->recv_flag, 0);
-        return FALSE;
-    }
-    return TRUE;
-}
-
-PUBLIC task_struct_t *get_next_task(cpu_task_man_t *task_man)
-{
-    list_t        *list = &task_man->task_list;
-    list_node_t   *node = list_traversal(list, task_ckeck, 0);
-    task_struct_t *next = NULL;
-    if (node == NULL)
-    {
-        // 无任务可运行 - 唤醒idle
-        task_unblock_sub(task_man->idle_task->pid);
-        node = &task_man->idle_task->general_tag;
-    }
-    next = CONTAINER_OF(task_struct_t, general_tag, node);
-
-    // 为便于管理,将下一个被调度的任务权重信息移除
-    // 实际计算时应加上当前任务的信息
-    task_man->running_tasks--;
-    task_man->total_weight -= next->priority;
-
-    return next;
-}
-
 PUBLIC void task_free(pid_t pid)
 {
     PANIC(pid >= MAX_TASK, "Invailable pid");
@@ -198,7 +136,7 @@ PUBLIC status_t init_task_struct(
     task->runtime        = 0;
     task->ideal_runtime  = 0;
 
-    task->vrun_time = get_core_min_vruntime(apic_id());
+    task->vrun_time = get_min_vruntime(apic_id());
 
     task->cpu_id   = apic_id();
     task->page_dir = NULL;
@@ -264,21 +202,21 @@ PUBLIC task_struct_t *task_start(
         task_free(pid);
         return NULL;
     }
-    task_struct_t *task = pid2task(pid);
+    task_struct_t *task = pid_to_task(pid);
     init_task_struct(task, name, priority, (addr_t)kstack_base, kstack_size);
     create_task_struct(task, func, arg);
 
-    cpu_task_man_t *cur_cpu = get_task_man(apic_id());
-    spinlock_lock(&cur_cpu->task_list_lock);
-    task_list_insert(cur_cpu, task);
-    spinlock_unlock(&cur_cpu->task_list_lock);
+    task_man_t *task_man = get_task_man(apic_id());
+    spinlock_lock(&task_man->task_list_lock);
+    task_list_insert(task_man, task);
+    spinlock_unlock(&task_man->task_list_lock);
     return task;
 }
 
 PRIVATE void make_main_task(void)
 {
     get_global_task_man()->tasks[0].status = TASK_USING;
-    task_struct_t *main_task               = pid2task(0);
+    task_struct_t *main_task               = pid_to_task(0);
     init_task_struct(
         main_task,
         "Main task",
@@ -286,11 +224,11 @@ PRIVATE void make_main_task(void)
         (addr_t)PHYS_TO_VIRT(KERNEL_STACK_BASE),
         KERNEL_STACK_SIZE
     );
-    cpu_task_man_t *cur_cpu = get_task_man(apic_id());
-    cur_cpu->idle_task      = main_task;
-    spinlock_lock(&cur_cpu->task_list_lock);
-    task_list_insert(cur_cpu, main_task);
-    spinlock_unlock(&cur_cpu->task_list_lock);
+    task_man_t *task_man = get_task_man(apic_id());
+    task_man->idle_task  = main_task;
+    spinlock_lock(&task_man->task_list_lock);
+    task_list_insert(task_man, main_task);
+    spinlock_unlock(&task_man->task_list_lock);
     wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)main_task);
 
     return;
@@ -314,12 +252,12 @@ PUBLIC void task_init(void)
     }
     for (i = 0; i < NR_CPUS; i++)
     {
-        cpu_task_man_t *cur_cpu = &global_task_man->cpus[i];
-        list_init(&cur_cpu->task_list);
-        cur_cpu->min_vruntime  = 0;
-        cur_cpu->running_tasks = 0;
-        cur_cpu->total_weight  = 0;
-        init_spinlock(&cur_cpu->task_list_lock);
+        task_man_t *task_man = &global_task_man->cpus[i];
+        list_init(&task_man->task_list);
+        task_man->min_vruntime  = 0;
+        task_man->running_tasks = 0;
+        task_man->total_weight  = 0;
+        init_spinlock(&task_man->task_list_lock);
     }
     init_spinlock(&global_task_man->tasks_lock);
 

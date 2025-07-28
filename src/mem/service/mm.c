@@ -26,7 +26,7 @@ PRIVATE void mm_allocate_page(message_t *msg)
 {
     void          *paddr;
     addr_t         vaddr_start, vaddr;
-    task_struct_t *src = pid2task(msg->src);
+    task_struct_t *src = pid_to_task(msg->src);
     if (src->page_dir == NULL)
     {
         msg->m2.p1 = NULL;
@@ -67,7 +67,7 @@ PRIVATE void mm_allocate_page(message_t *msg)
 
 PRIVATE void mm_free_page(message_t *msg)
 {
-    task_struct_t *src   = pid2task(msg->src);
+    task_struct_t *src   = pid_to_task(msg->src);
     addr_t         vaddr = (addr_t)msg->m3.p1;
     free_units(&src->vaddr_table, (addr_t)vaddr & ~(PG_SIZE - 1), msg->m3.i1);
 
@@ -83,8 +83,8 @@ PRIVATE void mm_free_page(message_t *msg)
 
 PRIVATE void mm_read_prog_addr(message_t *msg)
 {
-    task_struct_t *src = pid2task(msg->src);
-    task_struct_t *cur = pid2task(msg->m3.i1);
+    task_struct_t *src = pid_to_task(msg->src);
+    task_struct_t *cur = pid_to_task(msg->m3.i1);
     if (cur == NULL)
     {
         msg->m1.i1 = 1;
@@ -162,15 +162,15 @@ PRIVATE void release_prog_page(uint64_t *pml4t)
 
 PRIVATE void mm_exit(message_t *msg)
 {
-    task_struct_t  *src         = pid2task(msg->src);
-    intr_status_t   intr_status = intr_disable();
-    cpu_task_man_t *cur_cpu     = get_task_man(src->cpu_id);
-    spinlock_lock(&cur_cpu->task_list_lock);
-    if (list_find(&cur_cpu->task_list, &src->general_tag))
+    task_struct_t *src         = pid_to_task(msg->src);
+    intr_status_t  intr_status = intr_disable();
+    task_man_t    *task_man    = get_task_man(src->cpu_id);
+    spinlock_lock(&task_man->task_list_lock);
+    if (list_find(&task_man->task_list, &src->general_tag))
     {
         list_remove(&src->general_tag);
     }
-    spinlock_unlock(&cur_cpu->task_list_lock);
+    spinlock_unlock(&task_man->task_list_lock);
     intr_set_status(intr_status);
     if (src->page_dir != NULL)
     {

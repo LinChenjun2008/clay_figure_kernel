@@ -24,6 +24,7 @@
 #define MIN_NICE -19
 
 #define NICE_TO_PRIO(NICE) ((NICE) + 19)
+#define PRIO_TO_NICE(PRIO) ((PRIO) - 19)
 
 #define DEFAULT_PRIORITY NICE_TO_PRIO(0)
 #define SERVICE_PRIORITY NICE_TO_PRIO(-10)
@@ -38,6 +39,8 @@
 // 最小调度粒度(ns) = 6ms
 // 进程被调度后的最小运行时间
 #define SCHED_MIN_GRANULARITY_NS 6000000
+
+#define MAX_VRUNTIME(A, B) ((int64_t)((A) - (B)) > 0 ? (A) : (B))
 
 #ifndef __ASM_INCLUDE__
 
@@ -122,24 +125,24 @@ STATIC_ASSERT(
 /**
  * @brief the task management struct for each cpu
  */
-typedef struct cpu_task_man_s
+typedef struct task_man_s
 {
     list_t         task_list;     // 进程队列
     uint64_t       min_vruntime;  // 最小虚拟运行时间
-    uint64_t       running_tasks; // 正在运行的任务数量
-    uint64_t       total_weight;  // 已运行任务的总权重
+    uint64_t       running_tasks; // task_list中的任务数量
+    uint64_t       total_weight;  // task_list中的任务总权重
     task_struct_t *idle_task;
     spinlock_t     task_list_lock;
-} cpu_task_man_t;
+} task_man_t;
 
 /**
  * @brief the task management struct
  */
 typedef struct global_task_man_s
 {
-    task_struct_t  tasks[MAX_TASK];
-    spinlock_t     tasks_lock;
-    cpu_task_man_t cpus[NR_CPUS];
+    task_struct_t tasks[MAX_TASK];
+    spinlock_t    tasks_lock;
+    task_man_t    cpus[NR_CPUS];
 } global_task_man_t;
 
 /**
@@ -153,14 +156,14 @@ PUBLIC global_task_man_t *get_global_task_man(void);
  * @param cpu_id cpu id
  * @return &global_task_man->cpu[cpu_id]
  */
-PUBLIC cpu_task_man_t *get_task_man(uint32_t cpu_id);
+PUBLIC task_man_t *get_task_man(uint32_t cpu_id);
 
 /**
  * @brief 将pid转换为task结构体
  * @param pid pid
  * @note 0 <= pid <= MAX_TASK
  */
-PUBLIC task_struct_t *pid2task(pid_t pid);
+PUBLIC task_struct_t *pid_to_task(pid_t pid);
 
 /**
  * @brief 判断pid对应的任务是否存在
@@ -180,21 +183,6 @@ PUBLIC task_struct_t *running_task(void);
  * @return 成功将返回K_SUCCESS,失败则返回错误码
  */
 PUBLIC status_t task_alloc(pid_t *pid);
-
-/**
- * @brief 将任务添加到列表中
- * @param task_man 任务管理结构
- * @param task 要添加的任务结构体指针
- * @note 使用此函数前请确保获取了taskmgr的task_list_lock锁
- */
-PUBLIC void task_list_insert(cpu_task_man_t *task_man, task_struct_t *task);
-
-/**
- * @brief 在列表中获取下一个可以运行的任务
- * @param task_man 任务管理结构
- * @return 成功将返回下一个任务结构,失败则返回NULL
- */
-PUBLIC task_struct_t *get_next_task(cpu_task_man_t *task_man);
 
 /**
  * @brief 将pid对应的任务结构体标记为未使用
@@ -251,7 +239,7 @@ PUBLIC void task_init(void);
  * @brief 获取cpu的最小vrun_time
  * @param cpu_id cpu id
  */
-PUBLIC uint64_t get_core_min_vruntime(uint32_t cpu_id);
+PUBLIC uint64_t get_min_vruntime(uint32_t cpu_id);
 
 /**
  * @brief 更新当前任务的runtime,runtime以及min_runtime,并计算ideal_runtime
@@ -263,6 +251,21 @@ PUBLIC void task_update(void);
  * @note 如果进程持有自旋锁,则不会触发调度
  */
 PUBLIC void schedule(void);
+
+/**
+ * @brief 将任务添加到列表中
+ * @param task_man 任务管理结构
+ * @param task 要添加的任务结构体指针
+ * @note 使用此函数前请确保获取了taskmgr的task_list_lock锁
+ */
+PUBLIC void task_list_insert(task_man_t *task_man, task_struct_t *task);
+
+/**
+ * @brief 在列表中获取下一个可以运行的任务
+ * @param task_man 任务管理结构
+ * @return 成功将返回下一个任务结构,失败则返回NULL
+ */
+PUBLIC task_struct_t *get_next_task(task_man_t *task_man);
 
 /**
  * @brief 阻塞当前任务,并将任务状态设为status

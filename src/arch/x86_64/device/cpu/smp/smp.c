@@ -78,7 +78,7 @@ PUBLIC status_t smp_init(void)
             );
             return K_NOMEM;
         }
-        task_struct_t *idle_task = pid2task(ap_main_pid);
+        task_struct_t *idle_task = pid_to_task(ap_main_pid);
         addr_t         kstack_base;
         kstack_base =
             (addr_t)PHYS_TO_VIRT(apu_stack_base + (i - 1) * KERNEL_STACK_SIZE);
@@ -86,8 +86,8 @@ PUBLIC status_t smp_init(void)
             idle_task, name, DEFAULT_PRIORITY, kstack_base, KERNEL_STACK_SIZE
         );
 
-        cpu_task_man_t *cpu_task_man = get_task_man(i);
-        cpu_task_man->idle_task      = idle_task;
+        task_man_t *cpu_task_man = get_task_man(i);
+        cpu_task_man->idle_task  = idle_task;
         spinlock_lock(&cpu_task_man->task_list_lock);
         list_append(&cpu_task_man->task_list, &idle_task->general_tag);
         spinlock_unlock(&cpu_task_man->task_list_lock);
