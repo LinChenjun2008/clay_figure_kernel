@@ -17,7 +17,20 @@
 #include <service.h>        // TICK
 #include <task/task.h>      // do_schedule
 
+// HPET
 #define HPET_DEFAULT_ADDRESS 0xfed00000
+
+#define HPET_GCAP_ID    00
+#define HPET_GEN_CONF   0x10
+#define HPET_MAIN_CNT   0xf0
+#define HPET_TIME0_CONF 0x100
+#define HPET_TIME0_COMP 0x108
+
+// 8254
+#define INPUT_FREQUENCY   1193180
+#define COUNTER0_VALUE    (INPUT_FREQUENCY / IRQ0_FREQUENCY)
+#define COUNTER0_VALUE_LO ((INPUT_FREQUENCY / IRQ0_FREQUENCY) & 0xff)
+#define COUNTER0_VALUE_HI (((INPUT_FREQUENCY / IRQ0_FREQUENCY) >> 8) & 0xff)
 
 PRIVATE volatile uint64_t current_ticks = 0;
 
@@ -45,21 +58,6 @@ PRIVATE void pit_timer_handler(intr_stack_t *stack)
     send_eoi(stack->int_vector);
     inform_intr(TICK);
     current_ticks++;
-
-    // // send IPI
-    // uint64_t icr;
-    // icr = make_icr(
-    //     0x80,
-    //     ICR_DELIVER_MODE_FIXED,
-    //     ICR_DEST_MODE_PHY,
-    //     ICR_DELIVER_STATUS_IDLE,
-    //     ICR_LEVEL_DE_ASSEST,
-    //     ICR_TRIGGER_EDGE,
-    //     ICR_ALL_EXCLUDE_SELF,
-    //     0
-    // );
-    // send_IPI(icr);
-
     return;
 }
 
@@ -126,7 +124,7 @@ PUBLIC void apic_timer_init()
     // map APIC timer to an interrupt, and by that enable it in one-shot mode.
     local_apic_write(APIC_REG_TIMER_ICNT, 0xffffffff);
     uint32_t          apic_ticks = 0;
-    volatile uint32_t ticks      = get_current_ticks() + MSECOND_TO_TICKS(10);
+    volatile uint32_t ticks      = get_current_ticks() + MS_TO_TICKS(10);
     while (ticks >= get_current_ticks()) continue;
 
     // Stop APIC timer

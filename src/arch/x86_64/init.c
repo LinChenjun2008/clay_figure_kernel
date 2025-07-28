@@ -76,7 +76,6 @@ PUBLIC void init_all(void)
 {
     intr_disable();
 
-    PR_LOG(0, "initramfs: %p.\n", BOOT_INFO->initramfs);
     status_t status = ramfs_check(BOOT_INFO->initramfs);
     PANIC(ERROR(status), "initramfs check failed.\n");
 
@@ -159,16 +158,16 @@ PUBLIC void init_all(void)
     uint32_t horz = BOOT_INFO->graph_info.horizontal_resolution;
     uint32_t vert = BOOT_INFO->graph_info.vertical_resolution;
 
-    pr_log(0, "%s System Informations \n", logo[0]);
-    pr_log(0, "%s -----------------\n", logo[1]);
-    pr_log(0, "%s Kernel: %s (%s) %s\n", logo[2], K_NAME, K_NAME_S, K_VERSION);
-    pr_log(0, "%s Resolution: %dx%d\n", logo[3], horz, vert);
-    pr_log(0, "%s CPU: %s\n", logo[4], cpu_name(s));
-    pr_log(0, "%s Memory: %d MiB\n", logo[5], total_pages * 2);
-    pr_log(0, "%s\n", logo[6]);
+    pr_msg("%s System Informations \n", logo[0]);
+    pr_msg("%s -----------------\n", logo[1]);
+    pr_msg("%s Kernel: %s (%s) %s\n", logo[2], K_NAME, K_NAME_S, K_VERSION);
+    pr_msg("%s Resolution: %dx%d\n", logo[3], horz, vert);
+    pr_msg("%s CPU: %s\n", logo[4], cpu_name(s));
+    pr_msg("%s Memory: %d MiB\n", logo[5], total_pages * 2);
+    pr_msg("%s\n", logo[6]);
 
-    pr_log(0, "\n");
-    pr_log(0, "Copyright (C) 2024-2025 " K_NAME " Developers.\n\n");
+    pr_msg("\n");
+    pr_msg("Copyright (C) 2024-2025 " K_NAME " Developers.\n\n");
 
     pr_log(
         0,
@@ -187,16 +186,15 @@ PUBLIC void init_all(void)
     return;
 }
 
-extern taskmgr_t *tm;
-
 PUBLIC void ap_init_all(void)
 {
+    uint32_t cpu_id = apic_id();
     intr_disable();
-    init_tss(apic_id());
+    init_tss(cpu_id);
     load_gdt();
-    load_tss(apic_id());
+    load_tss(cpu_id);
 
-    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)tm->core[apic_id()].idle_task);
+    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)get_task_man(cpu_id)->idle_task);
 
     ap_intr_init();
     local_apic_init();
