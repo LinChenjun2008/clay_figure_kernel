@@ -3,8 +3,6 @@
  * Copyright (C) 2024 LinChenjun
  */
 
-#define __ASM_INCLUDE__
-
 #include <kernel/const.h>
 #include <mem/page.h>
 

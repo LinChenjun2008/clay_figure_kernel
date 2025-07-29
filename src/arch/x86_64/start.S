@@ -5,7 +5,6 @@
 
 #include <kernel/const.h>
 
-#define __ASM_INCLUDE__
 #include <device/cpu.h> // IA32_APIC_BASE
 #include <mem/page.h>   // KERNEL_PAGE_DIR_TABLE_POS
 

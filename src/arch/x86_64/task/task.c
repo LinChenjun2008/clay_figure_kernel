@@ -112,8 +112,8 @@ PUBLIC status_t init_task_struct(
     size_t         kstack_size
 )
 {
-    // 不要在这里使用memset,否则会出现数据错误
-    // memset(task,0,sizeof(*task));
+    /// FIXME:
+    // memset(task, 0, sizeof(*task));
     addr_t kstack     = kstack_base + kstack_size;
     task->context     = (task_context_t *)kstack;
     task->kstack_base = kstack_base;
@@ -165,7 +165,6 @@ PUBLIC void create_task_struct(task_struct_t *task, void *func, uint64_t arg)
 {
     ASSERT(task->context != NULL);
     addr_t kstack = (addr_t)task->context;
-    kstack -= sizeof(intr_stack_t);
     kstack -= sizeof(addr_t);
     *(addr_t *)kstack = (addr_t)kernel_task;
     kstack -= sizeof(task_context_t);
@@ -206,7 +205,7 @@ PUBLIC task_struct_t *task_start(
     init_task_struct(task, name, priority, (addr_t)kstack_base, kstack_size);
     create_task_struct(task, func, arg);
 
-    task_man_t *task_man = get_task_man(apic_id());
+    task_man_t *task_man = get_task_man(task->cpu_id);
     spinlock_lock(&task_man->task_list_lock);
     task_list_insert(task_man, task);
     spinlock_unlock(&task_man->task_list_lock);
@@ -224,12 +223,12 @@ PRIVATE void make_main_task(void)
         (addr_t)PHYS_TO_VIRT(KERNEL_STACK_BASE),
         KERNEL_STACK_SIZE
     );
-    task_man_t *task_man = get_task_man(apic_id());
+    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)main_task);
+    task_man_t *task_man = get_task_man(main_task->cpu_id);
     task_man->idle_task  = main_task;
     spinlock_lock(&task_man->task_list_lock);
     task_list_insert(task_man, main_task);
     spinlock_unlock(&task_man->task_list_lock);
-    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)main_task);
 
     return;
 }

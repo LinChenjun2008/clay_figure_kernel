@@ -12,7 +12,7 @@ PUBLIC status_t check_sse(void);
 extern void     sse_enable(void);
 extern void     sse_init(void);
 
-extern void asm_fxsave(fxsave_region_t *fxsave_region);
-extern void asm_fxrstor(fxsave_region_t *fxsave_region);
+extern void ASMLINKAGE asm_fxsave(fxsave_region_t *fxsave_region);
+extern void ASMLINKAGE asm_fxrstor(fxsave_region_t *fxsave_region);
 
 #endif

@@ -8,7 +8,6 @@
 #include <log.h>
 
 #include <device/cpu.h>     // apic_id,IA32_KERNEL_GS_BASE
-#include <intr.h>           // intr_stack_t
 #include <io.h>             // set_cr3
 #include <kernel/syscall.h> // sys_send_recv
 #include <mem/allocator.h>  // kmalloc,kfree
@@ -28,13 +27,25 @@ PRIVATE void prog_exit(int (*func)(void *), wordsize_t arg)
     while (1) continue;
 }
 
-extern void  asm_process_start(void *stack);
+/**
+ * @brief 切换到用户态
+ * @param func 在用户态中执行的函数(rdi)
+ * @param arg 在用户态函数的参数 (rsi)
+ * @param kstack 内核栈地址 (rdx)
+ * @param ustack 用户栈地址 (rcx)
+ * @param rflags 用户态rflags寄存器值(r8)
+ */
+extern void ASMLINKAGE asm_switch_to_user(
+    void    *func,
+    void    *arg,
+    uint64_t kstack,
+    uint64_t ustack,
+    uint64_t rflags
+);
 PRIVATE void start_process(void *process)
 {
-    void          *func   = process;
-    task_struct_t *cur    = running_task();
-    addr_t         kstack = (addr_t)cur->context;
-    kstack += sizeof(task_context_t);
+    void          *func = process;
+    task_struct_t *cur  = running_task();
 
     addr_t   ustack;
     status_t status = alloc_physical_page(1, &ustack);
@@ -45,42 +56,25 @@ PRIVATE void start_process(void *process)
         msg.type  = MM_EXIT;
         msg.m1.i1 = K_NOMEM;
         sys_send_recv(NR_BOTH, MM, &msg);
-        PR_LOG(LOG_FATAL, "%s: Shuold not be here.", __func__);
+        PR_LOG(LOG_FATAL, "Shuold not be here.");
         while (1) continue;
     }
     cur->ustack_base = ustack;
     cur->ustack_size = PG_SIZE;
     page_map(cur->page_dir, (void *)ustack, (void *)USER_STACK_VADDR_BASE);
+    set_cr3((uint64_t)cur->page_dir);
 
-    intr_stack_t *proc_stack = (intr_stack_t *)kstack;
-    memset(proc_stack, 0, sizeof(*proc_stack));
-    proc_stack->r15 = 0;
-    proc_stack->r14 = 0;
-    proc_stack->r13 = 0;
-    proc_stack->r12 = 0;
-    proc_stack->r11 = 0;
-    proc_stack->r10 = 0;
-    proc_stack->r9  = 0;
-    proc_stack->r8  = 0;
-
-    proc_stack->rdi = (wordsize_t)func;
-    proc_stack->rsi = 0;
-    proc_stack->rbp = 0;
-    proc_stack->rdx = 0;
-    proc_stack->rcx = 0;
-    proc_stack->rbx = 0;
-    proc_stack->rax = 0;
-
-    proc_stack->gs     = SELECTOR_DATA64_U;
-    proc_stack->fs     = SELECTOR_DATA64_U;
-    proc_stack->es     = SELECTOR_DATA64_U;
-    proc_stack->ds     = SELECTOR_DATA64_U;
-    proc_stack->rip    = (void (*)(void))prog_exit;
-    proc_stack->cs     = SELECTOR_CODE64_U;
-    proc_stack->rflags = (EFLAGS_IOPL_0 | EFLAGS_MBS | EFLAGS_IF_1);
-    proc_stack->rsp    = USER_STACK_VADDR_BASE + PG_SIZE;
-    proc_stack->ss     = SELECTOR_DATA64_U;
-    asm_process_start((void *)proc_stack);
+    uint64_t kstack = (uint64_t)cur->context;
+    kstack += sizeof(task_context_t);
+    asm_switch_to_user(
+        prog_exit,
+        func,
+        kstack,
+        USER_STACK_VADDR_BASE + PG_SIZE,
+        EFLAGS_IOPL_0 | EFLAGS_MBS | EFLAGS_IF_1
+    );
+    PR_LOG(LOG_FATAL, "Shuold not be here.");
+    return; // 应该永远不会到这里
 }
 
 PRIVATE void page_dir_activate(task_struct_t *task)
@@ -185,7 +179,7 @@ PUBLIC task_struct_t *prog_execute(
         PR_LOG(LOG_ERROR, "Can not init vaddr table.\n");
         goto fail;
     }
-    task_man_t *task_man = get_task_man(apic_id());
+    task_man_t *task_man = get_task_man(task->cpu_id);
     spinlock_lock(&task_man->task_list_lock);
     task_list_insert(task_man, task);
     spinlock_unlock(&task_man->task_list_lock);

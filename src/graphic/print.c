@@ -11,7 +11,8 @@
 #include <device/cpu.h>
 #include <device/pic.h>   // ICRs
 #include <device/timer.h> // IRQ0_FREQUENCY,get_current_ticks
-#include <io.h>           // io_hlt,io_cli
+#include <intr.h>         // intr_disable
+#include <io.h>           // io_hlt
 #include <ramfs.h>        // ramfs_open
 #include <std/stdarg.h>
 #include <std/stdio.h>
@@ -289,7 +290,8 @@ basic_print(graph_info_t *gi, textbox_t *tb, uint32_t col, const char *str)
     return;
 }
 
-extern void asm_debug_intr();
+extern void ASMLINKAGE asm_debug_intr();
+
 PUBLIC void panic_spin(
     const char *filename,
     int         line,
@@ -309,7 +311,7 @@ PUBLIC void panic_spin(
         0
     );
     send_IPI(icr);
-    io_cli();
+    intr_disable();
     pr_msg("\n");
     pr_msg(">>> PANIC <<<\n");
     pr_msg("%s: In function '%s':\n", filename, func);

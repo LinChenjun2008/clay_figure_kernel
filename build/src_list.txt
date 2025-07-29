@@ -31,6 +31,7 @@ KERNEL_SRC += \
     $(KERNEL_SRC_PATH)/lib/list.c \
     $(KERNEL_SRC_PATH)/lib/fifo.c \
     $(KERNEL_SRC_PATH)/lib/stdio.c \
+    $(KERNEL_SRC_PATH)/lib/string.c \
     $(KERNEL_SRC_PATH)/lib/math.c \
     $(KERNEL_SRC_PATH)/graphic/print.c \
     $(KERNEL_SRC_PATH)/graphic/character.c \

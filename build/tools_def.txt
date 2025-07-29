@@ -49,6 +49,9 @@ KERNEL_FLAGS += -mno-red-zone -m64 -mcmodel=large -march=x86-64 \
 
 KERNEL_FLAGS += -Wa,--noexecstack \
 
+KERNEL_C_FLAGS = $(KERNEL_FLAGS)
+KERNEL_S_FLAGS = $(KERNEL_FLAGS) -D__ASM_INCLUDE__
+
 QEMU_FLAGS := -m $(MEMORY) -bios $(OVMF) \
  -smp $(SMP_CORES),cores=$(SMP_CORES),threads=1,sockets=1 \
  -drive file=fat:rw:$(ESP_PATH),index=0,format=vvfat -net none \

@@ -3,7 +3,6 @@
  * Copyright (C) 2024 LinChenjun
  */
 
-#define __ASM_INCLUDE__
 #include <task/task.h>
 
 .global send_recv

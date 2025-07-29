@@ -3,7 +3,6 @@
  * Copyright (C) 2024-2025 LinChenjun
  */
 
-#define __ASM_INCLUDE__
 #include <kernel/const.h>
 
 #define INTR_HANDLER(ENTRY,NR,ERROR_CODE) \
@@ -17,6 +16,10 @@ ENTRY:; \
     jmp *%rax; \
 
 .text
+
+.extern do_irq
+.extern do_softirq
+.extern schedule
 
 #include <intr.h>
 
@@ -52,6 +55,9 @@ save_all:
     movq %rsp, %rdi
 
     leaq do_irq(%rip), %rax
+    callq *%rax
+
+    leaq schedule(%rip),%rax
     callq *%rax
 
 .global intr_exit

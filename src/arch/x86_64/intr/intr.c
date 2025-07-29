@@ -14,6 +14,7 @@
 #include <io.h>             // get_flags
 #include <kernel/symbols.h> // addr_to_symbol
 #include <kernel/syscall.h> // sys_send_recv
+#include <mem/mem.h>        // IS_AVAILABLE_ADDRESS
 #include <service.h>        // MM_EXIT
 #include <task/task.h>      // task_struct_t,running_task
 
@@ -141,6 +142,10 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
             index_to_symbol(sym_idx),
             (addr_t)rip - (addr_t)index_to_addr(sym_idx)
         );
+        if (!IS_AVAILABLE_ADDRESS(rbp + 1))
+        {
+            break;
+        }
         rip = (addr_t *)*(rbp + 1);
         rbp = (addr_t *)*rbp;
     }
@@ -184,7 +189,6 @@ PUBLIC void ASMLINKAGE do_irq(intr_stack_t *stack)
     int int_vector                  = stack->int_vector;
     void (*handler)(intr_stack_t *) = irq_handler[int_vector];
     handler != NULL ? handler(stack) : default_irq_handler(stack);
-    schedule();
     return;
 }
 
@@ -200,7 +204,8 @@ PRIVATE void idt_desc_init(void)
 #undef INTR_HANDLER
 }
 
-extern void asm_lidt(void *idt_ptr);
+extern void ASMLINKAGE asm_lidt(void *idt_ptr);
+
 PUBLIC void intr_init(void)
 {
     idt_desc_init();
