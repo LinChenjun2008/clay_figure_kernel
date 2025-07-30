@@ -44,20 +44,22 @@
 
 #ifndef __ASM_INCLUDE__
 
+// 任务状态标志
 typedef enum task_status_e
 {
-    TASK_NO_TASK = 0,
-    TASK_USING,
-    TASK_RUNNING,
-    TASK_READY,
-    TASK_BLOCKED,
-    TASK_SENDING,
-    TASK_RECEIVING,
-    TASK_WAITING,
-    TASK_HANGING,
-    TASK_DIED
+    TASK_NO_TASK = 0, // 未被使用的任务
+    TASK_USING,       // 任务已被分配,但位就绪
+    TASK_RUNNING,     // 任务正在运行
+    TASK_READY,       // 任务就绪,随时进入运行状态
+    TASK_BLOCKED,     // 任务阻塞
+    TASK_SENDING,     // 任务正在发送消息(已弃用)
+    TASK_RECEIVING,   // 任务正在接收消息(已弃用)
+    TASK_WAITING,     // 任务等待
+    TASK_HANGING,     // 任务挂起
+    TASK_DIED         // 任务结束
 } task_status_t;
 
+// 任务上下文结构
 typedef struct task_context_s
 {
     wordsize_t r15;
@@ -83,34 +85,32 @@ typedef struct task_struct_s
     pid_t pid;  // 任务id
     pid_t ppid; // 父级任务id
 
-    char                   name[32];       // 任务名
-    volatile task_status_t status;         // 任务状态
-    uint64_t               spinlock_count; // 任务持有的自旋锁
-    uint64_t               priority;       // 任务优先级
-    uint64_t               jiffies;        // 任务运行时间(总计)
-    uint64_t               runtime;        // 任务被调度后的运行时间
-    uint64_t               ideal_runtime;  // 任务本次调度可运行的时间
-    uint64_t               vrun_time;      // 虚拟运行时间
+    char                   name[32];      // 任务名
+    volatile task_status_t status;        // 任务状态
+    uint64_t               preempt_count; // 抢占计数
+    uint64_t               priority;      // 任务优先级
+    uint64_t               run_time;      // 任务运行时间(总计)
+    uint64_t               vrun_time;     // 虚拟运行时间
 
-    list_node_t general_tag;
+    list_node_t general_tag; // 任务在任务列表中的节点
 
-    uint64_t         cpu_id;
-    uint64_t        *page_dir;
-    allocate_table_t vaddr_table;
+    uint64_t         cpu_id;      // 任务所在cpu的id
+    uint64_t        *page_dir;    // 任务页表地址(物理地址)
+    allocate_table_t vaddr_table; // 任务虚拟地址表
 
-    message_t msg;
-    pid_t     send_to;
-    pid_t     recv_from;
+    message_t msg;       // 任务消息结构体
+    pid_t     send_to;   // 任务发送消息的目的地
+    pid_t     recv_from; // 任务接收消息的来源
 
-    atomic_t send_flag;
-    atomic_t recv_flag;
+    atomic_t send_flag; // 任务发送消息的状态标志
+    atomic_t recv_flag; // 任务接收消息的状态标志
 
-    uint8_t     has_intr_msg;
-    spinlock_t  send_lock;
-    list_t      sender_list;
-    list_node_t send_tag;
+    uint8_t     has_intr_msg; // 任务如果有来自中断的消息,由此变量记录
+    spinlock_t  send_lock;    // 要操作任务的sender_list时需要获取此锁
+    list_t      sender_list;  // 向任务发送消息的所有任务列表
+    list_node_t send_tag; // 向其他任务发送消息时,用于加入目标任务的sender_list
 
-    fxsave_region_t *fxsave_region;
+    fxsave_region_t *fxsave_region; // 用于fxsave/fxrstor指令
 } task_struct_t;
 
 STATIC_ASSERT(
@@ -128,7 +128,7 @@ STATIC_ASSERT(
 typedef struct task_man_s
 {
     list_t         task_list;     // 进程队列
-    uint64_t       min_vruntime;  // 最小虚拟运行时间
+    uint64_t       min_vrun_time; // 最小虚拟运行时间
     uint64_t       running_tasks; // task_list中的任务数量
     uint64_t       total_weight;  // task_list中的任务总权重
     task_struct_t *idle_task;
@@ -239,10 +239,10 @@ PUBLIC void task_init(void);
  * @brief 获取cpu的最小vrun_time
  * @param cpu_id cpu id
  */
-PUBLIC uint64_t get_min_vruntime(uint32_t cpu_id);
+PUBLIC uint64_t get_min_vrun_time(uint32_t cpu_id);
 
 /**
- * @brief 更新当前任务的runtime,runtime以及min_runtime,并计算ideal_runtime
+ * @brief 更新当前任务的run_time,run_time以及min_run_time,并计算ideal_run_time
  */
 PUBLIC void task_update(void);
 

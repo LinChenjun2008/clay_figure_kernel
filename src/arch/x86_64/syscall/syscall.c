@@ -12,26 +12,26 @@
 #include <service.h>        // is_service_id,service_id_to_pid
 
 PUBLIC syscall_status_t ASMLINKAGE
-sys_send_recv(uint32_t nr, pid_t src_dest, message_t *msg)
+sys_send_recv(uint32_t nr, pid_t src_dst, message_t *msg)
 {
-    if (is_service_id(src_dest))
+    if (is_service_id(src_dst))
     {
-        src_dest = service_id_to_pid(src_dest);
+        src_dst = service_id_to_pid(src_dst);
     }
     syscall_status_t res;
     switch (nr)
     {
         case NR_SEND:
-            res = msg_send(src_dest, msg);
+            res = msg_send(src_dst, msg);
             break;
         case NR_RECV:
-            res = msg_recv(src_dest, msg);
+            res = msg_recv(src_dst, msg);
             break;
         case NR_BOTH:
-            res = msg_send(src_dest, msg);
+            res = msg_send(src_dst, msg);
             if (res == SYSCALL_SUCCESS)
             {
-                res = msg_recv(src_dest, msg);
+                res = msg_recv(src_dst, msg);
             }
             break;
         default:

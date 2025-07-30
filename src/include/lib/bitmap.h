@@ -8,7 +8,7 @@
 
 typedef struct bitmap_s
 {
-    int32_t  btmp_bytes_len;
+    size_t   btmp_bytes_len;
     uint8_t *map;
 } bitmap_t;
 
@@ -20,7 +20,7 @@ PUBLIC void init_bitmap(bitmap_t *btmp);
  * @param bit_index 索引(以bit为单位)
  * @return 当bit_index位为1时返回true
 */
-PUBLIC uint8_t bitmap_scan_test(bitmap_t *btmp, int32_t bit_index);
+PUBLIC int bitmap_scan_test(bitmap_t *btmp, size_t bit_index);
 
 /**
  * @brief 在位图中分配连续cnt个值为alue的位.
@@ -30,7 +30,7 @@ PUBLIC uint8_t bitmap_scan_test(bitmap_t *btmp, int32_t bit_index);
  * @param index 如果成功,index指针处保存了分配到的位索引
 */
 PUBLIC status_t
-bitmap_alloc(bitmap_t *btmp, uint8_t value, int32_t cnt, uint32_t *index);
+bitmap_alloc(bitmap_t *btmp, uint8_t value, size_t cnt, uint32_t *index);
 
 /**
  * @brief 设置位图中的位
@@ -39,6 +39,6 @@ bitmap_alloc(bitmap_t *btmp, uint8_t value, int32_t cnt, uint32_t *index);
  * @param value 位值
  * @note value的取值为0或1
  */
-PUBLIC void bitmap_set(bitmap_t *btmp, int32_t bit_index, uint8_t value);
+PUBLIC void bitmap_set(bitmap_t *btmp, size_t bit_index, uint8_t value);
 
 #endif

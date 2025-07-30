@@ -61,13 +61,25 @@ typedef uint32_t syscall_status_t;
 PUBLIC void syscall_init(void);
 
 PUBLIC syscall_status_t ASMLINKAGE
-send_recv(uint32_t nr, pid_t src_dest, void *msg);
+send_recv(uint32_t nr, pid_t src_dst, void *msg);
 PUBLIC syscall_status_t ASMLINKAGE
-sys_send_recv(uint32_t nr, pid_t src_dest, message_t *msg);
+sys_send_recv(uint32_t nr, pid_t src_dst, message_t *msg);
 
-PUBLIC void inform_intr(pid_t dest);
+/**
+ * @brief 检查task的ipc状态
+ * @param pid
+ * @return
+ */
+PUBLIC int task_ipc_check(pid_t pid);
 
-PUBLIC syscall_status_t msg_send(pid_t dest, message_t *msg);
+/**
+ * @brief 通知接收到中断消息
+ * @param dst
+ * @return
+ */
+PUBLIC void inform_intr(pid_t dst);
+
+PUBLIC syscall_status_t msg_send(pid_t dst, message_t *msg);
 PUBLIC syscall_status_t msg_recv(pid_t src, message_t *msg);
 
 #endif
