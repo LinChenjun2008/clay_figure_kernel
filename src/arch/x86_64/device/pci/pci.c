@@ -264,7 +264,7 @@ PUBLIC void pci_scan_all_bus(void)
 PUBLIC uint32_t
 pci_dev_count(uint8_t base_class, uint8_t sub_class, uint8_t prog_if)
 {
-    int res = 0;
+    int ret = 0;
     int i;
     for (i = 0; i < number_of_pci_device; i++)
     {
@@ -272,10 +272,10 @@ pci_dev_count(uint8_t base_class, uint8_t sub_class, uint8_t prog_if)
         if (((uint32_t)base_class << 16 | (uint32_t)sub_class << 8 | prog_if) ==
             class_code)
         {
-            res++;
+            ret++;
         }
     }
-    return res;
+    return ret;
 }
 
 PUBLIC pci_device_t *pci_dev_match(

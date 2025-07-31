@@ -3,7 +3,7 @@
 clay figure kernel采用微内核设计,所有系统调用在下方的表格(表1)中列出,
 
 对于内核进程,系统调用应通过`sys_send_recv`函数进行.对于用户进程,系统调用应使用`send_recv`函数进行.
-无论何种方式进行系统调用,函数的参数均为`(uint32_t nr,pid_t src_dest,message_t *msg)`.
+无论何种方式进行系统调用,函数的参数均为`(uint32_t function,pid_t src_dest,message_t *msg)`.
 有关函数参数的说明,见下方表2.
 
 表1:
@@ -14,7 +14,7 @@ NR_RECV | 从指定进程/中断/任意进程接收一个消息
 NR_BOTH | 依次执行`NR_SEND`与`NR_RECV`
 
 表2:
-nr | src_dest | msg
+function | src_dest | msg
 ---|----------|----
 表1中显示的系统调用号 | 发送消息的目的地或接收消息的来源 | 指向消息结构体的指针
 

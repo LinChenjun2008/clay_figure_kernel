@@ -7,7 +7,6 @@
 
 .text
 
-.extern prog_exit
 .global asm_switch_to_user
 .type asm_switch_to_user,@function
 asm_switch_to_user:

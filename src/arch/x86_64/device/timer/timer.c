@@ -53,7 +53,7 @@ PRIVATE hpet_t hpet = { (uint8_t *)HPET_DEFAULT_ADDRESS,
                         (uint64_t *)(HPET_DEFAULT_ADDRESS + HPET_TIME0_COMP),
                         0 };
 
-PRIVATE void pit_timer_handler(intr_stack_t *stack)
+PRIVATE void timer_handler(intr_stack_t *stack)
 {
     send_eoi(stack->int_vector);
     inform_intr(TICK);
@@ -106,7 +106,7 @@ PRIVATE void init_8254pit(void)
 PUBLIC void pit_init(void)
 {
     current_ticks = 0;
-    register_handle(0x20, pit_timer_handler);
+    register_handle(0x20, timer_handler);
     register_handle(0x80, apic_timer_handler);
     ioapic_enable(2, 0x20);
     if (ERROR(init_hpet()))

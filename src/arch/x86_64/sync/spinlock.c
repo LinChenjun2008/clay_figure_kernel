@@ -20,7 +20,7 @@ extern void ASMLINKAGE asm_spinlock_lock(volatile uint64_t *lock);
 
 PUBLIC void spinlock_lock(spinlock_t *spinlock)
 {
-    running_task()->spinlock_count++;
+    running_task()->preempt_count++;
     asm_spinlock_lock(&spinlock->lock);
     return;
 }
@@ -28,6 +28,6 @@ PUBLIC void spinlock_lock(spinlock_t *spinlock)
 PUBLIC void spinlock_unlock(spinlock_t *spinlock)
 {
     spinlock->lock = 1;
-    running_task()->spinlock_count--;
+    running_task()->preempt_count--;
     return;
 }
