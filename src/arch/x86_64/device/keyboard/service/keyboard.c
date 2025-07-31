@@ -10,7 +10,8 @@
 #include <device/keyboard/ps2_keyboard.h>
 #include <kernel/syscall.h> // send_recv
 #include <lib/fifo.h>       // fifo functions
-#include <std/string.h>     // memset
+#include <service.h>
+#include <std/string.h> // memset
 
 #define KEY_BUF_SIZE 128
 

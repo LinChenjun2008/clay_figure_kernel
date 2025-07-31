@@ -24,7 +24,7 @@ PUBLIC void pic_init(void)
 
 PUBLIC void send_eoi(uint8_t irq)
 {
-    (void)irq;
+    UNUSED(irq);
 #ifndef __PIC_8259A__
     local_apic_write(APIC_REG_EOI, 0);
 #else

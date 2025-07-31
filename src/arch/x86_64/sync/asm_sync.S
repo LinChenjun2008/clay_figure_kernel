@@ -49,3 +49,36 @@ asm_atomic_dec:
 asm_atomic_mask:
     lock andq %rsi,(%rdi)
     ret
+
+.global asm_atomic_bts
+.type asm_atomic_bts,@function
+asm_atomic_bts:
+    lock btsq %rsi,(%rdi)
+    jnc bts_zero
+    movq $1,%rax
+    ret
+    bts_zero:
+    movq $0,%rax
+    ret
+
+.global asm_atomic_btr
+.type asm_atomic_btr,@function
+asm_atomic_btr:
+    lock btrq %rsi,(%rdi)
+    jnc btr_zero
+    movq $1,%rax
+    ret
+    btr_zero:
+    movq $0,%rax
+    ret
+
+.global asm_atomic_btc
+.type asm_atomic_btc,@function
+asm_atomic_btc:
+    lock btcq %rsi,(%rdi)
+    jnc btc_zero
+    movq $1,%rax
+    ret
+    btc_zero:
+    movq $0,%rax
+    ret

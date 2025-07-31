@@ -47,6 +47,8 @@ typedef int bool;
 #define MAX(A, B) ((A) > (B) ? (A) : (B))
 #define MIN(A, B) ((A) < (B) ? (A) : (B))
 
+#define UNUSED(X) ((void)(X))
+
 typedef signed char          int8_t;
 typedef signed short         int16_t;
 typedef signed int           int32_t;

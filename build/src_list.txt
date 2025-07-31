@@ -18,6 +18,7 @@ KERNEL_SRC += \
     $(KERNEL_SRC_PATH)/main.c \
     $(KERNEL_SRC_PATH)/symbols.c \
     $(KERNEL_SRC_PATH)/config.c \
+    $(KERNEL_SRC_PATH)/softirq/softirq.c \
     $(KERNEL_SRC_PATH)/service/service.c \
     $(KERNEL_SRC_PATH)/service/tick/tick.c \
     $(KERNEL_SRC_PATH)/service/view/view.c \

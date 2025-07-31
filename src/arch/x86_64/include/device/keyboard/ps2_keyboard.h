@@ -16,6 +16,4 @@
 
 PUBLIC void ps2_keyboard_init(void);
 
-PUBLIC void keyboard_main(void);
-
 #endif

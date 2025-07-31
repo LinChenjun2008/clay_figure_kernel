@@ -57,6 +57,9 @@ save_all:
     leaq do_irq(%rip), %rax
     callq *%rax
 
+    leaq do_softirq(%rip),%rax
+    callq *%rax
+
     leaq schedule(%rip),%rax
     callq *%rax
 

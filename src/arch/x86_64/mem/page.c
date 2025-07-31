@@ -275,10 +275,9 @@ PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
     uint32_t index;
     status_t status;
     status = bitmap_alloc(&mem.page_bitmap, 1, number_of_pages, &index);
-    ASSERT(!ERROR(status));
     if (ERROR(status))
     {
-        PR_LOG(LOG_ERROR, "Out of Memory.\n");
+        PR_LOG(LOG_ERROR, "Out of Memory: %d.\n", status);
         return K_NOMEM;
     }
     phy_addr_t paddr = 0;
@@ -378,7 +377,7 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
     {
         status = kmalloc(PT_SIZE, 0, PT_SIZE, &v_pdpt);
         ASSERT(!ERROR(status));
-        (void)status;
+        UNUSED(status);
         pdpt = VIRT_TO_PHYS(v_pdpt);
         memset(v_pdpt, 0, PT_SIZE);
         *v_pml4e = (uint64_t)pdpt | PG_US_U | PG_RW_W | PG_P;
@@ -390,7 +389,7 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
     {
         status = kmalloc(PT_SIZE, 0, PT_SIZE, &v_pdt);
         ASSERT(!ERROR(status));
-        (void)status;
+        UNUSED(status);
         pdt = VIRT_TO_PHYS(v_pdt);
         memset(v_pdt, 0, PT_SIZE);
         *v_pdpte = (uint64_t)pdt | PG_US_U | PG_RW_W | PG_P;
