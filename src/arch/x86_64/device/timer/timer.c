@@ -15,6 +15,7 @@
 #include <kernel/syscall.h> // inform_intr
 #include <mem/page.h>       // PHYS_TO_VIRT
 #include <service.h>        // TICK
+#include <softirq.h>        // register_softirq,rasie_softirq
 #include <task/task.h>      // do_schedule
 
 // HPET
@@ -56,8 +57,15 @@ PRIVATE hpet_t hpet = { (uint8_t *)HPET_DEFAULT_ADDRESS,
 PRIVATE void timer_handler(intr_stack_t *stack)
 {
     send_eoi(stack->int_vector);
-    inform_intr(TICK);
+    raise_softirq(SOFTIRQ_TIMER);
     current_ticks++;
+    return;
+}
+
+PRIVATE void timer_softirq(void *data)
+{
+    UNUSED(data);
+    inform_intr(TICK);
     return;
 }
 
@@ -86,7 +94,7 @@ PRIVATE status_t init_hpet(void)
     *hpet.main_cnt   = 0;
 
     int i = 10000;
-    while (i--) continue;
+    while (i-- > 0) continue;
     // HPET not available.
     if (*hpet.main_cnt == 0)
     {
@@ -108,6 +116,7 @@ PUBLIC void pit_init(void)
     current_ticks = 0;
     register_handle(0x20, timer_handler);
     register_handle(0x80, apic_timer_handler);
+    register_softirq(SOFTIRQ_TIMER, timer_softirq, NULL);
     ioapic_enable(2, 0x20);
     if (ERROR(init_hpet()))
     {

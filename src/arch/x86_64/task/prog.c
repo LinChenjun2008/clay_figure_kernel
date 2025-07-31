@@ -159,7 +159,8 @@ PUBLIC task_struct_t *prog_execute(
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
-        goto fail;
+        task_free(pid);
+        return NULL;
     }
 
     task_struct_t *task = pid_to_task(pid);

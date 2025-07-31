@@ -53,3 +53,25 @@ PUBLIC void atomic_mask(atomic_t *atom, uint64_t mask)
     asm_atomic_mask(&atom->value, mask);
     return;
 }
+
+extern uint64_t ASMLINKAGE
+asm_atomic_bts(volatile uint64_t *atom, uint64_t bit);
+extern uint64_t ASMLINKAGE
+asm_atomic_btr(volatile uint64_t *atom, uint64_t bit);
+extern uint64_t ASMLINKAGE
+asm_atomic_btc(volatile uint64_t *atom, uint64_t bit);
+
+PUBLIC uint64_t atomic_bts(atomic_t *atom, uint64_t bit)
+{
+    return asm_atomic_bts(&atom->value, bit);
+}
+
+PUBLIC uint64_t atomic_btr(atomic_t *atom, uint64_t bit)
+{
+    return asm_atomic_btr(&atom->value, bit);
+}
+
+PUBLIC uint64_t atomic_btc(atomic_t *atom, uint64_t bit)
+{
+    return asm_atomic_btc(&atom->value, bit);
+}

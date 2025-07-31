@@ -24,7 +24,7 @@
 #define APIC_REG_TIMER_CCNT 0x390
 #define APIC_REG_TIMER_DIV  0x3e0
 
-#define IRQ_CNT 0xff
+#define IRQ_CNT 0x100
 
 #define PIC_M_CTRL 0x20 /* 8259A主片的控制端口是0x20 */
 #define PIC_M_DATA 0x21 /* 8259A主片的数据端口是0x21 */

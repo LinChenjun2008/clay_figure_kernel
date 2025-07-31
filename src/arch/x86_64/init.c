@@ -21,6 +21,7 @@
 #include <mem/page.h> // KERNEL_PAGE_TABLE_POS
 #include <ramfs.h>
 #include <service.h>
+#include <softirq.h>
 #include <task/task.h>
 
 extern textbox_t g_tb;
@@ -93,6 +94,7 @@ PUBLIC void init_all(void)
 
     PR_LOG(LOG_INFO, "Interrrupt initializing ...\n");
     intr_init();
+    softirq_init();
 
     PR_LOG(LOG_INFO, "SSE initializing ...\n");
     if (ERROR(check_sse()))

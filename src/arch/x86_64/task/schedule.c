@@ -135,7 +135,7 @@ PUBLIC void task_list_insert(task_man_t *task_man, task_struct_t *task)
 
 PRIVATE bool task_check(list_node_t *node, uint64_t arg)
 {
-    (void)arg;
+    UNUSED(arg);
     task_struct_t *task = CONTAINER_OF(task_struct_t, general_tag, node);
     return task_ipc_check(task->pid);
 }

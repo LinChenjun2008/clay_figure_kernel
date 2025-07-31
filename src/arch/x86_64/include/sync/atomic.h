@@ -19,4 +19,8 @@ PUBLIC void     atomic_inc(atomic_t *atom);
 PUBLIC void     atomic_dec(atomic_t *atom);
 PUBLIC void     atomic_mask(atomic_t *atom, uint64_t mask);
 
+PUBLIC uint64_t atomic_bts(atomic_t *atom, uint64_t bit);
+PUBLIC uint64_t atomic_btr(atomic_t *atom, uint64_t bit);
+PUBLIC uint64_t atomic_btc(atomic_t *atom, uint64_t bit);
+
 #endif

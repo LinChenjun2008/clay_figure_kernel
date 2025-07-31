@@ -340,8 +340,8 @@ PRIVATE int xhci_hub_portmap(usb_hub_t *hub, uint32_t port)
 PRIVATE int xhci_hub_disconnect(usb_hub_t *hub, uint32_t port)
 {
     // turn the port power off
-    (void)hub;
-    (void)port;
+    UNUSED(hub);
+    UNUSED(port);
     return 0;
 }
 
