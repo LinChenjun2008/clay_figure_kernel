@@ -89,7 +89,7 @@ intr_exit:
     popq %r14
     popq %r15
 
-    addq $16, %rsp // error code,nr
+    addq $16, %rsp
     iretq
 
 .global asm_debug_intr

@@ -36,7 +36,7 @@ PUBLIC void         list_append(list_t *list, list_node_t *node);
 PUBLIC void         list_remove(list_node_t *node);
 PUBLIC list_node_t *list_pop(list_t *list);
 PUBLIC bool         list_find(list_t *list, list_node_t *objnode);
-PUBLIC list_node_t *list_traversal(list_t *list, func_t function, int arg);
+PUBLIC list_node_t *list_traversal(list_t *list, func_t function, uint64_t arg);
 PUBLIC int          list_len(list_t *list);
 PUBLIC bool         list_empty(list_t *list);
 

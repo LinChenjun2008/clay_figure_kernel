@@ -85,17 +85,17 @@ PRIVATE size_t block_index(mem_cache_t *c, mem_block_t *b)
 }
 
 PRIVATE mem_block_t *
-pmalloc_find_block(list_t *list, size_t size, size_t alignment, size_t boundary)
+kmalloc_find_block(list_t *list, size_t size, size_t alignment, size_t boundary)
 {
-    list_node_t *res = list->head.next;
-    ASSERT(res->next->prev == res);
+    list_node_t *node = list->head.next;
+    ASSERT(node->next->prev == node);
     if (alignment <= size && boundary == 0)
     {
         goto done;
     }
-    for (; res != &list->tail; res = list_next(res))
+    for (; node != &list->tail; node = list_next(node))
     {
-        mem_block_t *b   = CONTAINER_OF(mem_block_t, node, res);
+        mem_block_t *b   = CONTAINER_OF(mem_block_t, node, node);
         mem_cache_t *c   = block2cache(b);
         size_t       idx = block_index(c, b);
         // Check magic
@@ -108,7 +108,7 @@ pmalloc_find_block(list_t *list, size_t size, size_t alignment, size_t boundary)
             );
         }
 
-        ASSERT(res->next->prev == res);
+        ASSERT(node->next->prev == node);
         addr_t addr = (addr_t)b;
         if ((addr & (alignment - 1)) != 0)
         {
@@ -126,8 +126,8 @@ pmalloc_find_block(list_t *list, size_t size, size_t alignment, size_t boundary)
     return NULL;
 
 done:
-    list_remove(res);
-    mem_block_t *b = CONTAINER_OF(mem_block_t, node, res);
+    list_remove(node);
+    mem_block_t *b = CONTAINER_OF(mem_block_t, node, node);
     return b;
 }
 
@@ -189,7 +189,7 @@ kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
         }
     }
 
-    b = pmalloc_find_block(&g->free_block_list, size, alignment, boundary);
+    b = kmalloc_find_block(&g->free_block_list, size, alignment, boundary);
     if (b == NULL)
     {
         PR_LOG(LOG_WARN, "Can not find avilable memory block.\n");

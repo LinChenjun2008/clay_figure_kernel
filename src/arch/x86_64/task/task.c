@@ -69,7 +69,7 @@ PUBLIC task_struct_t *running_task(void)
 
 PUBLIC status_t task_alloc(pid_t *pid)
 {
-    status_t res = K_ERROR;
+    status_t status = K_ERROR;
 
     spinlock_lock(&global_task_man->tasks_lock);
     pid_t i;
@@ -81,12 +81,12 @@ PUBLIC status_t task_alloc(pid_t *pid)
             // memset(&task_man->tasks[i], 0, sizeof(task_man->tasks[i]));
             global_task_man->tasks[i].status = TASK_USING;
             *pid                             = i;
-            res                              = K_SUCCESS;
+            status                           = K_SUCCESS;
             break;
         }
     }
     spinlock_unlock(&global_task_man->tasks_lock);
-    return res;
+    return status;
 }
 
 PUBLIC void task_free(pid_t pid)
