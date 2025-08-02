@@ -48,7 +48,7 @@ sys_send_recv(uint32_t function, pid_t src_dst, message_t *msg)
 PUBLIC void syscall_entry(void);
 PUBLIC void syscall_init(void)
 {
-    wordsize_t val;
+    uint64_t val;
     val = rdmsr(IA32_EFER);
     val |= IA32_EFER_SCE;
     wrmsr(IA32_EFER, val);

@@ -44,11 +44,11 @@ typedef enum
 
 typedef struct
 {
-    uint32_t   Type;
-    phy_addr_t PhysicalStart;
-    addr_t     VirtualStart;
-    uint64_t   NumberOfPages;
-    uint64_t   Attribute;
+    uint32_t  Type;
+    uintptr_t PhysicalStart;
+    uintptr_t VirtualStart;
+    uint64_t  NumberOfPages;
+    uint64_t  Attribute;
 } ALIGNED(16) EFI_MEMORY_DESCRIPTOR;
 
 PRIVATE struct
@@ -66,12 +66,12 @@ PRIVATE struct
  */
 PRIVATE uint8_t page_bitmap_map[PAGE_BITMAP_BYTES_LEN];
 
-PRIVATE size_t page_size_round_up(addr_t page_addr)
+PRIVATE size_t page_size_round_up(uintptr_t page_addr)
 {
     return DIV_ROUND_UP(page_addr, PG_SIZE);
 }
 
-PRIVATE size_t page_size_round_down(addr_t page_addr)
+PRIVATE size_t page_size_round_down(uintptr_t page_addr)
 {
     return page_addr / PG_SIZE;
 }
@@ -129,14 +129,14 @@ PUBLIC void mem_page_init(void)
 
 
     // mem_xxx - 同类内存块的起始地址,大小,结束地址和类型
-    phy_addr_t    mem_start = 0;
-    phy_addr_t    mem_end   = 0;
+    uintptr_t     mem_start = 0;
+    uintptr_t     mem_end   = 0;
     size_t        mem_size  = 0;
     memory_type_t mem_type  = MAX_MEMORY_TYPE;
 
     // curr_xxx - 当前内存块(efi_memory_desc[i])的起始地址,大小,结束地址和类型
-    phy_addr_t    curr_start = 0;
-    phy_addr_t    curr_end   = 0;
+    uintptr_t     curr_start = 0;
+    uintptr_t     curr_end   = 0;
     size_t        curr_size  = 0;
     memory_type_t curr_type  = memory_type(efi_memory_desc[0].Type);
 
@@ -280,7 +280,7 @@ PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
         PR_LOG(LOG_ERROR, "Out of Memory: %d.\n", status);
         return K_NOMEM;
     }
-    phy_addr_t paddr = 0;
+    uintptr_t paddr = 0;
 
     uint64_t i;
     for (i = index; i < index + number_of_pages; i++)
@@ -288,8 +288,8 @@ PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
         bitmap_set(&mem.page_bitmap, i, 0);
     }
     mem.free_pages -= number_of_pages;
-    paddr               = (0UL + (phy_addr_t)index * PG_SIZE);
-    *(phy_addr_t *)addr = paddr;
+    paddr              = (0UL + (uintptr_t)index * PG_SIZE);
+    *(uintptr_t *)addr = paddr;
 
     // memset(PHYS_TO_VIRT(paddr), 0, number_of_pages * PG_SIZE);
     return K_SUCCESS;
@@ -298,11 +298,11 @@ PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
 PUBLIC void free_physical_page(void *addr, uint64_t number_of_pages)
 {
     ASSERT(number_of_pages != 0);
-    ASSERT(addr != NULL && ((((phy_addr_t)addr) & 0x1fffff) == 0));
+    ASSERT(addr != NULL && ((((uintptr_t)addr) & 0x1fffff) == 0));
     spinlock_lock(&mem.lock);
-    phy_addr_t i;
-    for (i = (phy_addr_t)addr / PG_SIZE;
-         i < (phy_addr_t)addr / PG_SIZE + number_of_pages;
+    uintptr_t i;
+    for (i = (uintptr_t)addr / PG_SIZE;
+         i < (uintptr_t)addr / PG_SIZE + number_of_pages;
          i++)
     {
         bitmap_set(&mem.page_bitmap, i, 1);
@@ -315,21 +315,21 @@ PUBLIC void free_physical_page(void *addr, uint64_t number_of_pages)
 
 PUBLIC uint64_t *pml4t_entry(void *pml4t, void *vaddr)
 {
-    return (uint64_t *)pml4t + GET_FIELD((addr_t)vaddr, ADDR_PML4T_INDEX);
+    return (uint64_t *)pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
 }
 
 PUBLIC uint64_t *pdpt_entry(void *pml4t, void *vaddr)
 {
     return (uint64_t *)(*(uint64_t *)PHYS_TO_VIRT(pml4t_entry(pml4t, vaddr)) &
                         ~0xfff) +
-           GET_FIELD((addr_t)vaddr, ADDR_PDPT_INDEX);
+           GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
 }
 
 PUBLIC uint64_t *pdt_entry(void *pml4t, void *vaddr)
 {
     return (uint64_t *)(*(uint64_t *)PHYS_TO_VIRT(pdpt_entry(pml4t, vaddr)) &
                         ~0xfff) +
-           GET_FIELD((addr_t)vaddr, ADDR_PDT_INDEX);
+           GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
 }
 
 PUBLIC void *to_physical_address(void *pml4t, void *vaddr)
@@ -338,14 +338,14 @@ PUBLIC void *to_physical_address(void *pml4t, void *vaddr)
     uint64_t *pdpt, *v_pdpte, *pdpte;
     uint64_t *pdt, *v_pde, *pde;
     v_pml4t = PHYS_TO_VIRT(pml4t);
-    v_pml4e = v_pml4t + GET_FIELD((addr_t)vaddr, ADDR_PML4T_INDEX);
+    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
     if (!(*v_pml4e & PG_P))
     {
         PR_LOG(LOG_WARN, "vaddr pml4e not exist: %p\n", vaddr);
         return NULL;
     }
     pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
-    pdpte   = pdpt + GET_FIELD((addr_t)vaddr, ADDR_PDPT_INDEX);
+    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
     v_pdpte = PHYS_TO_VIRT(pdpte);
     if (!(*v_pdpte & PG_P))
     {
@@ -353,25 +353,26 @@ PUBLIC void *to_physical_address(void *pml4t, void *vaddr)
         return NULL;
     }
     pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
-    pde   = pdt + GET_FIELD((addr_t)vaddr, ADDR_PDT_INDEX);
+    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
     v_pde = PHYS_TO_VIRT(pde);
     if (!(*v_pde & PG_P))
     {
         PR_LOG(LOG_WARN, "vaddr pde not exist: %p\n", vaddr);
         return NULL;
     }
-    return (void *)((*v_pde & ~0xfff) + GET_FIELD((addr_t)vaddr, ADDR_OFFSET));
+    return (void *)((*v_pde & ~0xfff) +
+                    GET_FIELD((uintptr_t)vaddr, ADDR_OFFSET));
 }
 
 PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
 {
-    paddr = (void *)((phy_addr_t)paddr & ~(PG_SIZE - 1));
-    vaddr = (void *)((addr_t)vaddr & ~(PG_SIZE - 1));
+    paddr = (void *)((uintptr_t)paddr & ~(PG_SIZE - 1));
+    vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
     uint64_t *v_pml4t, *v_pml4e;
     uint64_t *v_pdpt, *pdpt, *v_pdpte, *pdpte;
     uint64_t *v_pdt, *pdt, *v_pde, *pde;
     v_pml4t = PHYS_TO_VIRT(pml4t);
-    v_pml4e = v_pml4t + GET_FIELD((addr_t)vaddr, ADDR_PML4T_INDEX);
+    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
     status_t status;
     if (!(*v_pml4e & PG_P))
     {
@@ -383,7 +384,7 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
         *v_pml4e = (uint64_t)pdpt | PG_US_U | PG_RW_W | PG_P;
     }
     pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
-    pdpte   = pdpt + GET_FIELD((addr_t)vaddr, ADDR_PDPT_INDEX);
+    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
     v_pdpte = PHYS_TO_VIRT(pdpte);
     if (!(*v_pdpte & PG_P))
     {
@@ -395,7 +396,7 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
         *v_pdpte = (uint64_t)pdt | PG_US_U | PG_RW_W | PG_P;
     }
     pdt    = (uint64_t *)(*v_pdpte & (~0xfff));
-    pde    = pdt + GET_FIELD((addr_t)vaddr, ADDR_PDT_INDEX);
+    pde    = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
     v_pde  = PHYS_TO_VIRT(pde);
     *v_pde = (uint64_t)paddr | PG_DEFAULT_FLAGS;
     return;
@@ -403,21 +404,21 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
 
 PUBLIC void page_unmap(uint64_t *pml4t, void *vaddr)
 {
-    vaddr = (void *)((addr_t)vaddr & ~(PG_SIZE - 1));
+    vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
     uint64_t *v_pml4t, *v_pml4e;
     uint64_t *pdpt, *v_pdpte, *pdpte;
     uint64_t *pdt, *v_pde, *pde;
     v_pml4t = PHYS_TO_VIRT(pml4t);
-    v_pml4e = v_pml4t + GET_FIELD((addr_t)vaddr, ADDR_PML4T_INDEX);
+    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
     ASSERT(*v_pml4e & PG_P);
 
     pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
-    pdpte   = pdpt + GET_FIELD((addr_t)vaddr, ADDR_PDPT_INDEX);
+    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
     v_pdpte = PHYS_TO_VIRT(pdpte);
     ASSERT(*v_pdpte & PG_P);
 
     pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
-    pde   = pdt + GET_FIELD((addr_t)vaddr, ADDR_PDT_INDEX);
+    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
     v_pde = PHYS_TO_VIRT(pde);
     ASSERT(*v_pde & PG_P);
     *v_pde &= ~PG_P;
@@ -426,21 +427,21 @@ PUBLIC void page_unmap(uint64_t *pml4t, void *vaddr)
 
 PUBLIC void set_page_flags(uint64_t *pml4t, void *vaddr, uint64_t flags)
 {
-    vaddr = (void *)((addr_t)vaddr & ~(PG_SIZE - 1));
+    vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
     uint64_t *v_pml4t, *v_pml4e;
     uint64_t *pdpt, *v_pdpte, *pdpte;
     uint64_t *pdt, *v_pde, *pde;
     v_pml4t = PHYS_TO_VIRT(pml4t);
-    v_pml4e = v_pml4t + GET_FIELD((addr_t)vaddr, ADDR_PML4T_INDEX);
+    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
     ASSERT(*v_pml4e & PG_P);
 
     pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
-    pdpte   = pdpt + GET_FIELD((addr_t)vaddr, ADDR_PDPT_INDEX);
+    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
     v_pdpte = PHYS_TO_VIRT(pdpte);
     ASSERT(*v_pdpte & PG_P);
 
     pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
-    pde   = pdt + GET_FIELD((addr_t)vaddr, ADDR_PDT_INDEX);
+    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
     v_pde = PHYS_TO_VIRT(pde);
     ASSERT(*v_pde & PG_P);
     *v_pde = (*v_pde & ~0xfff) | flags;

@@ -88,17 +88,15 @@ PRIVATE void wait_receviced(void)
 
 PUBLIC syscall_status_t msg_send(pid_t dst, message_t *msg)
 {
-    ASSERT(task_exist(dst));
     if (!task_exist(dst))
     {
-        running_task()->send_to = MAX_TASK;
+        running_task()->send_to = PID_NO_TASK;
         return SYSCALL_DEST_NOT_EXIST;
     }
     task_struct_t *sender   = running_task();
     task_struct_t *receiver = pid_to_task(dst);
     sender->send_to         = dst;
     msg->src                = sender->pid;
-    ASSERT(!deadlock(sender->pid, dst));
     if (deadlock(sender->pid, dst))
     {
         PR_LOG(
@@ -108,7 +106,7 @@ PUBLIC syscall_status_t msg_send(pid_t dst, message_t *msg)
     }
     memcpy(&sender->msg, msg, sizeof(message_t));
     wait_receviced();
-    sender->send_to = MAX_TASK;
+    sender->send_to = PID_NO_TASK;
     return SYSCALL_SUCCESS;
 }
 
@@ -188,7 +186,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src, message_t *msg)
         ASSERT(task_exist(src));
         if (!task_exist(src))
         {
-            receiver->recv_from = MAX_TASK;
+            receiver->recv_from = PID_NO_TASK;
             return SYSCALL_SRC_NOT_EXIST;
         }
         sender = pid_to_task(src);
@@ -202,7 +200,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src, message_t *msg)
     {
         if (receiver->has_intr_msg)
         {
-            receiver->recv_from    = MAX_TASK;
+            receiver->recv_from    = PID_NO_TASK;
             receiver->has_intr_msg = 0;
             msg->src               = RECV_FROM_INT;
             msg->type              = RECV_FROM_INT;
@@ -222,7 +220,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src, message_t *msg)
         spinlock_unlock(&receiver->send_lock);
     }
     memcpy(msg, &sender->msg, sizeof(message_t));
-    receiver->recv_from = MAX_TASK;
+    receiver->recv_from = PID_NO_TASK;
     inform_received(sender->pid);
     return SYSCALL_SUCCESS;
 }

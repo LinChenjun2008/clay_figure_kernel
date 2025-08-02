@@ -100,7 +100,7 @@ PUBLIC uint64_t make_icr(
 
 PUBLIC status_t smp_init(void);
 PUBLIC status_t smp_start(void);
-PUBLIC void     send_IPI(uint64_t icr);
+PUBLIC void     send_ipi(uint64_t icr);
 
 extern uint8_t AP_BOOT_BASE[];
 extern uint8_t AP_BOOT_END[];

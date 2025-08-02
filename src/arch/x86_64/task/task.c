@@ -20,11 +20,11 @@
 
 PRIVATE global_task_man_t *global_task_man;
 
-PRIVATE void kernel_task(addr_t func, wordsize_t arg)
+PRIVATE void kernel_task(uintptr_t func, uint64_t arg)
 {
     intr_enable();
     sse_init();
-    ((void (*)(size_t))func)((size_t)arg);
+    ((void (*)(uint64_t))func)(arg);
     message_t msg;
     msg.type = MM_EXIT;
     sys_send_recv(NR_BOTH, MM, &msg);
@@ -44,19 +44,33 @@ PUBLIC task_man_t *get_task_man(uint32_t cpu_id)
 
 PUBLIC task_struct_t *pid_to_task(pid_t pid)
 {
-    ASSERT(pid <= MAX_TASK);
-    if (pid > MAX_TASK)
+    if (pid > MAX_PID || !task_exist(pid))
     {
         return NULL;
     }
     return &global_task_man->tasks[pid];
 }
 
+PRIVATE pid_t task_to_pid(task_struct_t *task)
+{
+    pid_t ret;
+
+    ret = ((uintptr_t)task - (uintptr_t)&global_task_man->tasks);
+    ret = ret / sizeof(*task);
+
+    if (ret > MAX_PID)
+    {
+        return PID_NO_TASK;
+    }
+
+    return ret;
+}
+
 PUBLIC bool task_exist(pid_t pid)
 {
-    if (pid >= 0 && pid <= MAX_TASK)
+    if (pid >= 0 && pid <= MAX_PID)
     {
-        return get_global_task_man()->tasks[pid].status != TASK_NO_TASK;
+        return get_global_task_man()->tasks[pid].pid != PID_NO_TASK;
     }
     return 0;
 }
@@ -67,37 +81,33 @@ PUBLIC task_struct_t *running_task(void)
     return (task_struct_t *)rdmsr(IA32_KERNEL_GS_BASE);
 }
 
-PUBLIC status_t task_alloc(pid_t *pid)
+PUBLIC task_struct_t *task_alloc(void)
 {
-    status_t status = K_ERROR;
-
+    task_struct_t *task = NULL;
     spinlock_lock(&global_task_man->tasks_lock);
     pid_t i;
-    for (i = 0; i < MAX_TASK; i++)
+    for (i = 0; i < TASKS; i++)
     {
-        if (global_task_man->tasks[i].status == TASK_NO_TASK)
+        if (global_task_man->tasks[i].pid == PID_NO_TASK)
         {
-            // 在init_task_struct中进行memset,减少占用锁的时间
-            // memset(&task_man->tasks[i], 0, sizeof(task_man->tasks[i]));
-            global_task_man->tasks[i].status = TASK_USING;
-            *pid                             = i;
-            status                           = K_SUCCESS;
+            task = &global_task_man->tasks[i];
+            memset(task, 0, sizeof(*task));
+            task->pid = i;
             break;
         }
     }
     spinlock_unlock(&global_task_man->tasks_lock);
-    return status;
+    return task;
 }
 
-PUBLIC void task_free(pid_t pid)
+PUBLIC void task_free(task_struct_t *task)
 {
-    PANIC(pid >= MAX_TASK, "Invailable pid");
-    if (pid >= MAX_TASK)
+    if (task == NULL)
     {
         return;
     }
     spinlock_lock(&global_task_man->tasks_lock);
-    global_task_man->tasks[pid].status = TASK_NO_TASK;
+    task->pid = PID_NO_TASK;
     spinlock_unlock(&global_task_man->tasks_lock);
     return;
 }
@@ -106,20 +116,19 @@ PUBLIC status_t init_task_struct(
     task_struct_t *task,
     const char    *name,
     uint64_t       priority,
-    addr_t         kstack_base,
+    uintptr_t      kstack_base,
     size_t         kstack_size
 )
 {
     memset(task, 0, sizeof(*task));
-    addr_t kstack     = kstack_base + kstack_size;
-    task->context     = (task_context_t *)kstack;
+    task->context     = (task_context_t *)(kstack_base + kstack_size);
     task->kstack_base = kstack_base;
     task->kstack_size = kstack_size;
 
     task->ustack_base = 0;
     task->ustack_size = 0;
 
-    task->pid = ((addr_t)task - (addr_t)global_task_man->tasks) / sizeof(*task);
+    task->pid  = task_to_pid(task);
     task->ppid = running_task()->pid;
 
     strncpy(task->name, name, 31);
@@ -134,8 +143,8 @@ PUBLIC status_t init_task_struct(
     task->cpu_id   = running_task()->cpu_id;
     task->page_dir = NULL;
 
-    task->send_to   = MAX_TASK;
-    task->recv_from = MAX_TASK;
+    task->send_to   = PID_NO_TASK;
+    task->recv_from = PID_NO_TASK;
     atomic_set(&task->send_flag, 0);
     atomic_set(&task->recv_flag, 0);
 
@@ -143,28 +152,29 @@ PUBLIC status_t init_task_struct(
     init_spinlock(&task->send_lock);
     list_init(&task->sender_list);
 
-    addr_t   fxsave_region;
-    status_t status;
+    fxsave_region_t *fxsave_region;
+    status_t         status;
     status = kmalloc(sizeof(*task->fxsave_region), 0, 0, &fxsave_region);
     if (ERROR(status))
     {
         return status;
     }
-    task->fxsave_region = (fxsave_region_t *)fxsave_region;
+    task->fxsave_region = fxsave_region;
     return K_SUCCESS;
 }
 
 PUBLIC void create_task_struct(task_struct_t *task, void *func, uint64_t arg)
 {
     ASSERT(task->context != NULL);
-    addr_t kstack = (addr_t)task->context;
-    kstack -= sizeof(addr_t);
-    *(addr_t *)kstack = (addr_t)kernel_task;
+    uintptr_t kstack = (uintptr_t)task->context;
+    kstack -= sizeof(uintptr_t);
+    *(uintptr_t *)kstack = (uintptr_t)kernel_task;
     kstack -= sizeof(task_context_t);
     task->context           = (task_context_t *)kstack;
     task_context_t *context = task->context;
-    context->rsi            = (wordsize_t)arg;
-    context->rdi            = (wordsize_t)func;
+    context->rsi            = (uint64_t)arg;
+    context->rdi            = (uint64_t)func;
+    return;
 }
 
 PUBLIC task_struct_t *task_start(
@@ -175,27 +185,24 @@ PUBLIC task_struct_t *task_start(
     uint64_t    arg
 )
 {
-    // kstack_size == 2 ** n
     if (kstack_size & (kstack_size - 1))
     {
         return NULL;
     }
-    status_t status;
-    pid_t    pid;
-    status = task_alloc(&pid);
-    if (ERROR(status))
+    task_struct_t *task = task_alloc();
+    if (task == NULL)
     {
         return NULL;
     }
-    void *kstack_base;
-    status = kmalloc(kstack_size, 0, 0, &kstack_base);
+    void    *kstack_base;
+    status_t status = kmalloc(kstack_size, 0, 0, &kstack_base);
     if (ERROR(status))
     {
-        task_free(pid);
+        task_free(task);
         return NULL;
     }
-    task_struct_t *task = pid_to_task(pid);
-    init_task_struct(task, name, priority, (addr_t)kstack_base, kstack_size);
+
+    init_task_struct(task, name, priority, (uintptr_t)kstack_base, kstack_size);
     create_task_struct(task, func, arg);
 
     task_man_t *task_man = get_task_man(task->cpu_id);
@@ -207,14 +214,13 @@ PUBLIC task_struct_t *task_start(
 
 PRIVATE void make_main_task(void)
 {
-    global_task_man->tasks[0].status = TASK_USING;
-    task_struct_t *main_task         = pid_to_task(0);
+    task_struct_t *main_task = task_alloc();
     wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)main_task);
     init_task_struct(
         main_task,
         "Main task",
         DEFAULT_PRIORITY,
-        (addr_t)PHYS_TO_VIRT(KERNEL_STACK_BASE),
+        (uintptr_t)PHYS_TO_VIRT(KERNEL_STACK_BASE),
         KERNEL_STACK_SIZE
     );
     main_task->cpu_id    = apic_id();
@@ -229,8 +235,8 @@ PRIVATE void make_main_task(void)
 
 PUBLIC void task_init(void)
 {
-    addr_t   addr;
-    status_t status;
+    uintptr_t addr;
+    status_t  status;
     status =
         alloc_physical_page_sub(sizeof(*global_task_man) / PG_SIZE + 1, &addr);
 
@@ -239,9 +245,9 @@ PUBLIC void task_init(void)
     global_task_man = PHYS_TO_VIRT(addr);
     memset(global_task_man, 0, sizeof(*global_task_man));
     pid_t i;
-    for (i = 0; i < MAX_TASK; i++)
+    for (i = 0; i < TASKS; i++)
     {
-        global_task_man->tasks[i].status = TASK_NO_TASK;
+        global_task_man->tasks[i].pid = PID_NO_TASK;
     }
     for (i = 0; i < NR_CPUS; i++)
     {

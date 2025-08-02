@@ -49,25 +49,22 @@ PRIVATE mem_group_t mem_groups[NUMBER_OF_MEMORY_BLOCK_TYPES];
 
 PUBLIC void mem_allocator_init(void)
 {
-    ASSERT(MIN_ALLOCATE_MEMORY_SIZE >= sizeof(mem_block_t));
     size_t block_size = MIN_ALLOCATE_MEMORY_SIZE;
     int    i;
     for (i = 0; i < NUMBER_OF_MEMORY_BLOCK_TYPES; i++)
     {
-        ASSERT(!(block_size & (block_size - 1)));
         mem_groups[i].block_size = block_size;
         mem_groups[i].total_free = 0;
         list_init(&mem_groups[i].free_block_list);
         init_spinlock(&mem_groups[i].lock);
         block_size <<= 1;
     }
-    ASSERT((block_size >> 1) == MAX_ALLOCATE_MEMORY_SIZE);
     return;
 }
 
 PRIVATE mem_block_t *cache2block(mem_cache_t *c, size_t idx)
 {
-    addr_t addr = (addr_t)c + c->group->block_size;
+    uintptr_t addr = (uintptr_t)c + c->group->block_size;
     return ((mem_block_t *)(addr + (idx * (c->group->block_size))));
 }
 
@@ -78,8 +75,8 @@ PRIVATE mem_cache_t *block2cache(mem_block_t *b)
 
 PRIVATE size_t block_index(mem_cache_t *c, mem_block_t *b)
 {
-    addr_t addr = (addr_t)b;
-    addr -= (addr_t)c + c->group->block_size;
+    uintptr_t addr = (uintptr_t)b;
+    addr -= (uintptr_t)c + c->group->block_size;
     size_t idx = addr / c->group->block_size;
     return idx;
 }
@@ -109,7 +106,7 @@ kmalloc_find_block(list_t *list, size_t size, size_t alignment, size_t boundary)
         }
 
         ASSERT(node->next->prev == node);
-        addr_t addr = (addr_t)b;
+        uintptr_t addr = (uintptr_t)b;
         if ((addr & (alignment - 1)) != 0)
         {
             continue;
@@ -144,7 +141,6 @@ kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
     mem_cache_t *c = NULL;
     mem_block_t *b = NULL;
     mem_group_t *g = NULL;
-    ASSERT(size <= MAX_ALLOCATE_MEMORY_SIZE);
 
     if (size > MAX_ALLOCATE_MEMORY_SIZE)
     {
@@ -159,16 +155,14 @@ kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
             break;
         }
     }
-    ASSERT(i < NUMBER_OF_MEMORY_BLOCK_TYPES);
 
     spinlock_lock(&g->lock);
     if (list_empty(&g->free_block_list))
     {
-        phy_addr_t cache_paddr;
+        uintptr_t cache_paddr;
         status = alloc_physical_page(1, &cache_paddr);
         if (ERROR(status))
         {
-            ASSERT(!ERROR(status));
             goto done;
         }
         c = PHYS_TO_VIRT(cache_paddr);
@@ -185,7 +179,6 @@ kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
             list_append(&c->group->free_block_list, &b->node);
             // Set Magic
             b->magic = block_index + c->number_of_blocks;
-            ASSERT(b->node.next != NULL && NULL != b->node.prev);
         }
     }
 
@@ -198,9 +191,8 @@ kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
     memset(b, 0, g->block_size);
     c = block2cache(b);
     c->cnt--;
-    ASSERT(c->group == g);
     c->group->total_free--;
-    *(phy_addr_t *)addr = (phy_addr_t)b;
+    *(uintptr_t *)addr = (uintptr_t)b;
 done:
     spinlock_unlock(&g->lock);
     return status;
@@ -217,16 +209,16 @@ PUBLIC void kfree(void *addr)
     mem_block_t *b = NULL;
 
     b = (mem_block_t *)addr;
-    ASSERT(b != NULL);
     c = block2cache(b);
 
     b->magic = block_index(c, b) + c->number_of_blocks;
 
     mem_group_t *g = c->group;
-    ASSERT(((addr_t)addr & (g->block_size - 1)) == 0);
+
+    ASSERT(((uintptr_t)addr & (g->block_size - 1)) == 0);
+
     spinlock_lock(&g->lock);
     list_append(&g->free_block_list, &b->node);
-    ASSERT(b->node.next != NULL && NULL != b->node.prev);
     g->total_free++;
     c->cnt++;
     if (c->cnt == c->number_of_blocks)
@@ -235,8 +227,6 @@ PUBLIC void kfree(void *addr)
         for (idx = 0; idx < c->number_of_blocks; idx++)
         {
             b = cache2block(c, idx);
-            ASSERT(b != NULL);
-            ASSERT(b->node.next != NULL && NULL != b->node.prev);
             // Check magic
             ASSERT(b->magic == idx + c->number_of_blocks);
 

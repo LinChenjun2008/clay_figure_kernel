@@ -7,22 +7,24 @@
 #define __COMMON_H__
 
 #ifdef __BOOTLOADER__
+
 typedef unsigned char          uint8_t;
 typedef unsigned short         uint16_t;
 typedef unsigned int           uint32_t;
 typedef unsigned long long int uint64_t;
 
-typedef unsigned long long int addr_t;
+typedef unsigned long long int uintptr_t;
 typedef unsigned long long int size_t;
+
 #endif
 
 #pragma pack(1)
 typedef struct
 {
-    addr_t   frame_buffer_base;
-    uint32_t horizontal_resolution;
-    uint32_t vertical_resolution;
-    uint32_t pixel_per_scanline;
+    uintptr_t frame_buffer_base;
+    uint32_t  horizontal_resolution;
+    uint32_t  vertical_resolution;
+    uint32_t  pixel_per_scanline;
 } graph_info_t;
 
 typedef struct
@@ -36,9 +38,9 @@ typedef struct
 
 typedef struct
 {
-    addr_t   base_address;
-    uint64_t size;
-    uint32_t flag;
+    uintptr_t base_address;
+    uint64_t  size;
+    uint32_t  flag;
 } file_info_t;
 
 typedef struct

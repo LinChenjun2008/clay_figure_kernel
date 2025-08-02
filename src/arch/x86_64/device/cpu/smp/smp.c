@@ -46,7 +46,7 @@ PRIVATE void ipi_panic_handler(intr_stack_t *stack)
 PUBLIC status_t smp_init(void)
 {
     // copy ap_boot
-    size_t ap_boot_size = (addr_t)AP_BOOT_END - (addr_t)AP_BOOT_BASE;
+    size_t ap_boot_size = (uintptr_t)AP_BOOT_END - (uintptr_t)AP_BOOT_BASE;
     memcpy((void *)PHYS_TO_VIRT(0x10000), AP_BOOT_BASE, ap_boot_size);
 
     // allocate stack for apu
@@ -60,16 +60,15 @@ PUBLIC status_t smp_init(void)
         PR_LOG(LOG_FATAL, "can not alloc memory for apu. \n");
         return K_NOMEM;
     }
-    *(phy_addr_t *)AP_STACK_BASE_PTR = (phy_addr_t)apu_stack_base;
+    *(uintptr_t *)AP_STACK_BASE_PTR = (uintptr_t)apu_stack_base;
 
     int i;
     for (i = 1; i < NR_CPUS; i++)
     {
         char name[16];
         sprintf(name, "idle(%d)", i);
-        pid_t ap_main_pid;
-        status = task_alloc(&ap_main_pid);
-        if (ERROR(status))
+        task_struct_t *idle_task = task_alloc();
+        if (idle_task == NULL)
         {
             PR_LOG(LOG_FATAL, "Alloc task for AP error.\n");
             free_physical_page(
@@ -78,10 +77,11 @@ PUBLIC status_t smp_init(void)
             );
             return K_NOMEM;
         }
-        task_struct_t *idle_task = pid_to_task(ap_main_pid);
-        addr_t         kstack_base;
-        kstack_base =
-            (addr_t)PHYS_TO_VIRT(apu_stack_base + (i - 1) * KERNEL_STACK_SIZE);
+        uintptr_t kstack_base = (uintptr_t)apu_stack_base;
+        kstack_base += (i - 1) * KERNEL_STACK_SIZE;
+
+        kstack_base = (uintptr_t)PHYS_TO_VIRT(kstack_base);
+
         init_task_struct(
             idle_task, name, DEFAULT_PRIORITY, kstack_base, KERNEL_STACK_SIZE
         );
@@ -107,7 +107,7 @@ PUBLIC status_t smp_init(void)
         ICR_ALL_EXCLUDE_SELF,
         0
     );
-    send_IPI(icr);
+    send_ipi(icr);
     return K_SUCCESS;
 }
 
@@ -124,8 +124,8 @@ PUBLIC status_t smp_start(void)
         ICR_ALL_EXCLUDE_SELF,
         0
     );
-    send_IPI(icr);
-    send_IPI(icr);
+    send_ipi(icr);
+    send_ipi(icr);
 
     // waiting for AP start.
     uint64_t cores = apic.number_of_cores;
@@ -134,7 +134,7 @@ PUBLIC status_t smp_start(void)
     return K_SUCCESS;
 }
 
-PUBLIC void send_IPI(uint64_t icr)
+PUBLIC void send_ipi(uint64_t icr)
 {
     local_apic_write(0x310, icr >> 32);
     local_apic_write(0x300, icr & 0xffffffff);

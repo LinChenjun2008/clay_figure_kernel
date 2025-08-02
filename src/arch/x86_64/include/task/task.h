@@ -18,7 +18,14 @@
 
 #endif /* __ASM_INCLUDE__ */
 
-#define MAX_TASK 4096
+// 最大支持的任务数
+#define TASKS 4096
+
+// PID的最大值
+#define MAX_PID (TASKS - 1)
+
+// 表示"任务不存在"时使用的pid
+#define PID_NO_TASK TASKS
 
 #define MAX_NICE 20
 #define MIN_NICE -19
@@ -47,40 +54,38 @@
 // 任务状态标志
 typedef enum task_status_e
 {
-    TASK_NO_TASK = 0, // 未被使用的任务
-    TASK_USING,       // 任务已被分配,但位就绪
-    TASK_RUNNING,     // 任务正在运行
-    TASK_READY,       // 任务就绪,随时进入运行状态
-    TASK_BLOCKED,     // 任务阻塞
-    TASK_SENDING,     // 任务正在发送消息(已弃用)
-    TASK_RECEIVING,   // 任务正在接收消息(已弃用)
-    TASK_WAITING,     // 任务等待
-    TASK_HANGING,     // 任务挂起
-    TASK_DIED         // 任务结束
+    TASK_READY = 1, // 任务就绪,随时进入运行状态
+    TASK_RUNNING,   // 任务正在运行
+    TASK_BLOCKED,   // 任务阻塞
+    TASK_SENDING,   // 任务正在发送消息(已弃用)
+    TASK_RECEIVING, // 任务正在接收消息(已弃用)
+    TASK_WAITING,   // 任务等待
+    TASK_HANGING,   // 任务挂起
+    TASK_DIED       // 任务结束
 } task_status_t;
 
 // 任务上下文结构
 typedef struct task_context_s
 {
-    wordsize_t r15;
-    wordsize_t r14;
-    wordsize_t r13;
-    wordsize_t r12;
+    uint64_t r15;
+    uint64_t r14;
+    uint64_t r13;
+    uint64_t r12;
 
-    wordsize_t rbp;
-    wordsize_t rbx;
-    wordsize_t rsi;
-    wordsize_t rdi;
+    uint64_t rbp;
+    uint64_t rbx;
+    uint64_t rsi;
+    uint64_t rdi;
 } task_context_t;
 
 typedef struct task_struct_s
 {
     task_context_t *context;     // 任务上下文
-    addr_t          kstack_base; // 内核栈基地值
+    uintptr_t       kstack_base; // 内核栈基地值
     size_t          kstack_size; // 内核栈大小(字节)
 
-    addr_t ustack_base; // 用户栈基址(如果有)
-    size_t ustack_size; // 用户栈大小(如果有)
+    uintptr_t ustack_base; // 用户栈基址(如果有)
+    size_t    ustack_size; // 用户栈大小(如果有)
 
     pid_t pid;  // 任务id
     pid_t ppid; // 父级任务id
@@ -140,7 +145,7 @@ typedef struct task_man_s
  */
 typedef struct global_task_man_s
 {
-    task_struct_t tasks[MAX_TASK];
+    task_struct_t tasks[TASKS];
     spinlock_t    tasks_lock;
     task_man_t    cpus[NR_CPUS];
 } global_task_man_t;
@@ -161,7 +166,7 @@ PUBLIC task_man_t *get_task_man(uint32_t cpu_id);
 /**
  * @brief 将pid转换为task结构体
  * @param pid pid
- * @note 0 <= pid <= MAX_TASK
+ * @note 0 <= pid <= MAX_PID
  */
 PUBLIC task_struct_t *pid_to_task(pid_t pid);
 
@@ -179,16 +184,15 @@ PUBLIC task_struct_t *running_task(void);
 
 /**
  * @brief 在任务表中分配一个任务
- * @param pid 如果成功,pid指针处将写入分配的pid
- * @return 成功将返回K_SUCCESS,失败则返回错误码
+ * @return 成功将返回任务结构体指针,失败返回NULL
  */
-PUBLIC status_t task_alloc(pid_t *pid);
+PUBLIC task_struct_t *task_alloc(void);
 
 /**
  * @brief 将pid对应的任务结构体标记为未使用
- * @param pid pid
+ * @param task task结构体
  */
-PUBLIC void task_free(pid_t pid);
+PUBLIC void task_free(task_struct_t *task);
 
 /**
  * @brief 初始化一个任务结构体
@@ -202,7 +206,7 @@ PUBLIC status_t init_task_struct(
     task_struct_t *task,
     const char    *name,
     uint64_t       priority,
-    addr_t         kstack_base,
+    uintptr_t      kstack_base,
     size_t         kstack_size
 );
 

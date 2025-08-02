@@ -10,7 +10,7 @@
     (uint64_t)(&((CONTAINER_TYPE *)0)->MEMBER_NAME)
 
 #define CONTAINER_OF(CONTAINER_TYPE, MEMBER_NAME, MEMBER_PTR) \
-    ((CONTAINER_TYPE *)((addr_t)MEMBER_PTR -                  \
+    ((CONTAINER_TYPE *)((uintptr_t)MEMBER_PTR -               \
                         OFFSET(CONTAINER_TYPE, MEMBER_NAME)))
 
 typedef struct list_node_s list_node_t;

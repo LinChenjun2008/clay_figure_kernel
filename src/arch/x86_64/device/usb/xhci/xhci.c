@@ -107,8 +107,8 @@ PRIVATE status_t xhci_controller_setup(void *mmio_base, xhci_t **xhci_addr)
 
     if (xhci->xecp != 0)
     {
-        uint32_t offset;
-        addr_t   addr = (addr_t)xhci->cap_regs + xhci->xecp;
+        uint32_t  offset;
+        uintptr_t addr = (uintptr_t)xhci->cap_regs + xhci->xecp;
         do
         {
             xhci_xcap_regs_t *xcap = (xhci_xcap_regs_t *)addr;
@@ -548,8 +548,8 @@ PUBLIC status_t xhci_setup(usb_hub_set_t *hub_set)
     int           i;
     for (i = 0; i < number_of_xhci; i++)
     {
-        pci              = pci_dev_match(0x0c, 0x03, 0x30, i);
-        addr_t mmio_base = pci_dev_read_bar(pci, 0);
+        pci                 = pci_dev_match(0x0c, 0x03, 0x30, i);
+        uintptr_t mmio_base = pci_dev_read_bar(pci, 0);
         page_map(
             (uint64_t *)KERNEL_PAGE_DIR_TABLE_POS,
             (void *)mmio_base,

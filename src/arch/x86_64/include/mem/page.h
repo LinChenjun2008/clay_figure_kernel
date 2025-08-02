@@ -42,8 +42,8 @@
 
 #define PADDR_AVAILABLE(ADDR) (ADDR <= 0x00007fffffffffff)
 
-#define PHYS_TO_VIRT(ADDR) ((void *)((addr_t)(ADDR) + KERNEL_VMA_BASE))
-#define VIRT_TO_PHYS(ADDR) ((void *)((addr_t)(ADDR) - KERNEL_VMA_BASE))
+#define PHYS_TO_VIRT(ADDR) ((void *)((uintptr_t)(ADDR) + KERNEL_VMA_BASE))
+#define VIRT_TO_PHYS(ADDR) ((void *)((uintptr_t)(ADDR) - KERNEL_VMA_BASE))
 
 #define PAGE_BITMAP_BYTES_LEN 2048
 

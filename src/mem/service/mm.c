@@ -25,7 +25,7 @@ typedef struct
 PRIVATE void mm_allocate_page(message_t *msg)
 {
     void          *paddr;
-    addr_t         vaddr_start, vaddr;
+    uintptr_t      vaddr_start, vaddr;
     task_struct_t *src = pid_to_task(msg->src);
     if (src->page_dir == NULL)
     {
@@ -68,8 +68,8 @@ PRIVATE void mm_allocate_page(message_t *msg)
 PRIVATE void mm_free_page(message_t *msg)
 {
     task_struct_t *src   = pid_to_task(msg->src);
-    addr_t         vaddr = (addr_t)msg->m3.p1;
-    free_units(&src->vaddr_table, (addr_t)vaddr & ~(PG_SIZE - 1), msg->m3.i1);
+    uintptr_t      vaddr = (uintptr_t)msg->m3.p1;
+    free_units(&src->vaddr_table, vaddr & ~(PG_SIZE - 1), msg->m3.i1);
 
     uint32_t i;
     for (i = 0; i < msg->m3.i1; i++)
@@ -179,7 +179,7 @@ PRIVATE void mm_exit(message_t *msg)
     }
     // release kernel stack
     kfree((void *)src->kstack_base);
-    task_free(msg->src);
+    task_free(src);
     return;
 }
 
