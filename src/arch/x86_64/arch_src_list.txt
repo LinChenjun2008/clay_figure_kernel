@@ -9,6 +9,7 @@ KERNEL_SRC += \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pic/pic.c \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pic/8259a.c \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/pic/apic.c \
+    $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/cpu/cpu.c \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/cpu/smp/smp.c \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/cpu/smp/ap_boot.S \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/device/sse.c \
