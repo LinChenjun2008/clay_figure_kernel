@@ -236,15 +236,14 @@ PRIVATE void make_main_task(void)
 PUBLIC void task_init(void)
 {
     uintptr_t addr;
-    status_t  status;
-    status =
-        alloc_physical_page_sub(sizeof(*global_task_man) / PG_SIZE + 1, &addr);
+    uint64_t  pages  = sizeof(*global_task_man) / PG_SIZE + 1;
+    status_t  status = alloc_physical_page_sub(pages, &addr);
 
     PANIC(ERROR(status), "Can not allocate memory for task manager.");
 
     global_task_man = PHYS_TO_VIRT(addr);
     memset(global_task_man, 0, sizeof(*global_task_man));
-    pid_t i;
+    int i;
     for (i = 0; i < TASKS; i++)
     {
         global_task_man->tasks[i].pid = PID_NO_TASK;
@@ -252,11 +251,16 @@ PUBLIC void task_init(void)
     for (i = 0; i < NR_CPUS; i++)
     {
         task_man_t *task_man = &global_task_man->cpus[i];
+
         list_init(&task_man->task_list);
+        init_spinlock(&task_man->task_list_lock);
+
+        list_init(&task_man->send_recv_list);
+
         task_man->min_vrun_time = 0;
         task_man->running_tasks = 0;
         task_man->total_weight  = 0;
-        init_spinlock(&task_man->task_list_lock);
+        task_man->idle_task     = NULL;
     }
     init_spinlock(&global_task_man->tasks_lock);
 

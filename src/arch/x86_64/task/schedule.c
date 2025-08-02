@@ -70,6 +70,61 @@ PUBLIC void task_update(void)
     return;
 }
 
+/**
+ * @brief 检查send_recv_list中是否有可以运行的任务
+ * @param task_man
+ * @return
+ */
+PRIVATE void check_send_recv_list(task_man_t *task_man)
+{
+    if (list_empty(&task_man->send_recv_list))
+    {
+        return;
+    }
+    list_node_t *node      = list_head(&task_man->send_recv_list);
+    list_node_t *node_next = list_next(node);
+    do
+    {
+        node                = node_next;
+        node_next           = list_next(node);
+        task_struct_t *task = CONTAINER_OF(task_struct_t, general_tag, node);
+        if (task_ipc_check(task->pid))
+        {
+            list_remove(node);
+            spinlock_lock(&task_man->task_list_lock);
+            task_list_insert(task_man, task);
+            spinlock_unlock(&task_man->task_list_lock);
+        }
+    } while (node_next != list_tail(&task_man->send_recv_list));
+    return;
+}
+
+/**
+ * @brief 在列表中获取下一个可以运行的任务
+ * @param task_man 任务管理结构
+ * @return 成功将返回下一个任务结构,失败则返回NULL
+ */
+PRIVATE task_struct_t *get_next_task(task_man_t *task_man)
+{
+    list_t      *list = &task_man->task_list;
+    list_node_t *node = NULL;
+    if (!list_empty(list))
+    {
+        node = list_pop(list);
+    }
+    else
+    {
+        // 无任务可运行 - 唤醒idle
+        task_unblock_sub(task_man->idle_task->pid);
+        node = &task_man->idle_task->general_tag;
+        list_remove(node);
+    }
+    task_struct_t *next = CONTAINER_OF(task_struct_t, general_tag, node);
+    task_man->running_tasks--;
+    task_man->total_weight -= task_prio_to_weight[next->priority];
+    return next;
+}
+
 extern void ASMLINKAGE
 asm_switch_to(task_context_t **cur, task_context_t **next);
 
@@ -85,20 +140,26 @@ PUBLIC void schedule(void)
     }
 
     intr_status_t intr_status = intr_disable();
+
     if (cur_task->status == TASK_RUNNING)
     {
         spinlock_lock(&task_man->task_list_lock);
         task_list_insert(task_man, cur_task);
         spinlock_unlock(&task_man->task_list_lock);
-        cur_task->status = TASK_READY;
     }
+
+    if (cur_task->status == TASK_SENDING || cur_task->status == TASK_RECEIVING)
+    {
+        list_append(&task_man->send_recv_list, &cur_task->general_tag);
+    }
+    check_send_recv_list(task_man);
+
     task_struct_t *next = NULL;
+
     spinlock_lock(&task_man->task_list_lock);
     next = get_next_task(task_man);
-
-    ASSERT(next != NULL);
-
     spinlock_unlock(&task_man->task_list_lock);
+
     next->status = TASK_RUNNING;
     prog_activate(next);
     asm_fxsave(cur_task->fxsave_region);
@@ -133,33 +194,8 @@ PUBLIC void task_list_insert(task_man_t *task_man, task_struct_t *task)
     list_in(&task->general_tag, node);
     task_man->running_tasks++;
     task_man->total_weight += task_prio_to_weight[task->priority];
-
+    task->status = TASK_READY;
     return;
-}
-
-PRIVATE bool task_check(list_node_t *node, uint64_t arg)
-{
-    UNUSED(arg);
-    task_struct_t *task = CONTAINER_OF(task_struct_t, general_tag, node);
-    return task_ipc_check(task->pid);
-}
-
-PUBLIC task_struct_t *get_next_task(task_man_t *task_man)
-{
-    list_t        *list = &task_man->task_list;
-    list_node_t   *node = list_traversal(list, task_check, 0);
-    task_struct_t *next = NULL;
-    if (node == NULL)
-    {
-        // 无任务可运行 - 唤醒idle
-        task_unblock_sub(task_man->idle_task->pid);
-        node = &task_man->idle_task->general_tag;
-    }
-    next = CONTAINER_OF(task_struct_t, general_tag, node);
-    task_man->running_tasks--;
-    task_man->total_weight -= task_prio_to_weight[next->priority];
-    list_remove(node);
-    return next;
 }
 
 PUBLIC void task_block(task_status_t status)
@@ -194,21 +230,12 @@ PUBLIC void task_unblock_sub(pid_t pid)
     task_man_t    *task_man = get_task_man(task->cpu_id);
     ASSERT(task != NULL);
     task_list_insert(task_man, task);
-    task->status = TASK_READY;
     return;
 }
 
 PUBLIC void task_yield(void)
 {
-    intr_status_t  intr_status = intr_disable();
-    task_struct_t *task        = running_task();
-    task_man_t    *task_man    = get_task_man(task->cpu_id);
-    spinlock_lock(&task_man->task_list_lock);
-
-    task->status = TASK_READY;
-    task_list_insert(task_man, task);
-
-    spinlock_unlock(&task_man->task_list_lock);
+    intr_status_t intr_status = intr_disable();
     schedule();
     intr_set_status(intr_status);
     return;

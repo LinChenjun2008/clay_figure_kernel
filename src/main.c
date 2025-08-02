@@ -66,25 +66,10 @@ PRIVATE void ktask(void)
 
 PUBLIC void kernel_main(void)
 {
-    BOOT_INFO->initramfs = PHYS_TO_VIRT(BOOT_INFO->initramfs);
-
-    graph_info_t *g_graph_info;
-    g_graph_info    = &BOOT_INFO->graph_info;
-    g_tb.cur_pos.x  = 0;
-    g_tb.cur_pos.y  = 0;
-    g_tb.box_pos.x  = 8;
-    g_tb.box_pos.y  = 16;
-    g_tb.xsize      = g_graph_info->pixel_per_scanline - 8;
-    g_tb.ysize      = g_graph_info->vertical_resolution - 16;
-    g_tb.char_xsize = 9;
-    g_tb.char_ysize = 16;
-
     init_all();
-
     while (1)
     {
         task_block(TASK_BLOCKED);
-        io_stihlt();
     };
 }
 
@@ -97,6 +82,5 @@ PUBLIC void ap_kernel_main(void)
     while (1)
     {
         task_block(TASK_BLOCKED);
-        io_stihlt();
     };
 }

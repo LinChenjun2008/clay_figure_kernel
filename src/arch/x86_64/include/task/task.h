@@ -39,14 +39,6 @@
 #define TASK_STRUCT_KSTACK_BASE 8
 #define TASK_STRUCT_KSTACK_SIZE 16
 
-// 目标调度延迟(ns) = 24ms
-// 所有可运行进程在此时段内至少运行一次
-#define SCHED_LATENCY_NS 24000000
-
-// 最小调度粒度(ns) = 6ms
-// 进程被调度后的最小运行时间
-#define SCHED_MIN_GRANULARITY_NS 6000000
-
 #define MAX_VRUNTIME(A, B) ((int64_t)((A) - (B)) > 0 ? (A) : (B))
 
 #ifndef __ASM_INCLUDE__
@@ -57,10 +49,8 @@ typedef enum task_status_e
     TASK_READY = 1, // 任务就绪,随时进入运行状态
     TASK_RUNNING,   // 任务正在运行
     TASK_BLOCKED,   // 任务阻塞
-    TASK_SENDING,   // 任务正在发送消息(已弃用)
-    TASK_RECEIVING, // 任务正在接收消息(已弃用)
-    TASK_WAITING,   // 任务等待
-    TASK_HANGING,   // 任务挂起
+    TASK_SENDING,   // 任务正在发送消息
+    TASK_RECEIVING, // 任务正在接收消息
     TASK_DIED       // 任务结束
 } task_status_t;
 
@@ -132,12 +122,17 @@ STATIC_ASSERT(
  */
 typedef struct task_man_s
 {
-    list_t         task_list;     // 进程队列
+    list_t     task_list; // 任务队列
+    spinlock_t task_list_lock;
+
+    // 正在进行IPC的任务队列
+    // 只能操作各个cpu自己的send_recv_list,因此不用上锁
+    list_t send_recv_list;
+
     uint64_t       min_vrun_time; // 最小虚拟运行时间
     uint64_t       running_tasks; // task_list中的任务数量
     uint64_t       total_weight;  // task_list中的任务总权重
     task_struct_t *idle_task;
-    spinlock_t     task_list_lock;
 } task_man_t;
 
 /**
@@ -263,13 +258,6 @@ PUBLIC void schedule(void);
  * @note 使用此函数前请确保获取了taskmgr的task_list_lock锁
  */
 PUBLIC void task_list_insert(task_man_t *task_man, task_struct_t *task);
-
-/**
- * @brief 在列表中获取下一个可以运行的任务
- * @param task_man 任务管理结构
- * @return 成功将返回下一个任务结构,失败则返回NULL
- */
-PUBLIC task_struct_t *get_next_task(task_man_t *task_man);
 
 /**
  * @brief 阻塞当前任务,并将任务状态设为status
