@@ -60,11 +60,7 @@ typedef unsigned int           uint32_t;
 typedef unsigned long long int uint64_t;
 
 typedef unsigned long long int uintptr_t;
-typedef unsigned long long int wordsize_t;
 typedef unsigned long long int size_t;
-
-typedef unsigned long long int phy_addr_t;
-typedef unsigned long long int addr_t;
 
 typedef int32_t pid_t;
 

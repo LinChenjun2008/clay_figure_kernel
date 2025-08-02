@@ -310,7 +310,7 @@ PUBLIC void panic_spin(
         ICR_ALL_EXCLUDE_SELF,
         0
     );
-    send_IPI(icr);
+    send_ipi(icr);
     intr_disable();
     pr_msg("\n");
     pr_msg(">>> PANIC <<<\n");

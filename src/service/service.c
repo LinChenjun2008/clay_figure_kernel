@@ -21,7 +21,7 @@ PUBLIC pid_t service_id_to_pid(uint32_t sid)
     {
         return service_pid_table[sid - SERVICE_ID_BASE];
     }
-    return MAX_TASK;
+    return PID_NO_TASK;
 }
 
 PUBLIC void service_init(void)

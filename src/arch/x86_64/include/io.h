@@ -19,10 +19,11 @@ extern void     io_out8(uint32_t port, uint32_t data);
 extern void     io_out16(uint32_t port, uint32_t data);
 extern void     io_out32(uint32_t port, uint32_t data);
 
-extern wordsize_t get_flags(void);
+extern uint64_t get_flags(void);
 
-extern wordsize_t get_rsp();
-extern wordsize_t get_cr2();
-extern wordsize_t get_cr3();
-extern void       set_cr3(wordsize_t cr3);
+extern uint64_t get_rsp();
+extern uint64_t get_cr2();
+extern uint64_t get_cr3();
+extern void     set_cr3(uint64_t cr3);
+
 #endif

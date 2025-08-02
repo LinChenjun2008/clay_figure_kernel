@@ -44,7 +44,7 @@ VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
     * 0x410000 - 0x50ffff (  1MB) - bootinfo
     * 0x510000 - 0x518fff ( 36KB) - 内核页表(部分)
     * 0x519000 - 0x5fffff (924KB) - 空闲
-    * 0x600000 - ...             -空闲内存
+    * 0x600000 - ...              -空闲内存
     映射:
         0x0000000000000000 - 0x00000000ffffffff
     ==> 0x0000000000000000 - 0x00000000ffffffff
@@ -72,6 +72,7 @@ VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
     EFI_PHYSICAL_ADDRESS PDPT;
     EFI_PHYSICAL_ADDRESS PDT;
 
+    gBS->SetMem((void *)0x100000, 0x310000, 0);
     gBS->SetMem((void *)PG_TABLE, 9 * 0x1000, 0);
 
     PML4T = PG_TABLE; // 0x1000-> PML4T

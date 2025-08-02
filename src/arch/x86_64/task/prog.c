@@ -16,7 +16,7 @@
 #include <std/string.h>     // memset,memcpy
 #include <task/task.h>      // task struct & functions,spinlock
 
-PRIVATE void prog_exit(int (*func)(void *), wordsize_t arg)
+PRIVATE void prog_exit(int (*func)(void *), uint64_t arg)
 {
     int ret_value = func((void *)arg);
 
@@ -47,8 +47,8 @@ PRIVATE void start_process(void *process)
     void          *func = process;
     task_struct_t *cur  = running_task();
 
-    addr_t   ustack;
-    status_t status = alloc_physical_page(1, &ustack);
+    uintptr_t ustack;
+    status_t  status = alloc_physical_page(1, &ustack);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Alloc User Stack error.\n");
@@ -79,12 +79,12 @@ PRIVATE void start_process(void *process)
 
 PRIVATE void page_dir_activate(task_struct_t *task)
 {
-    void *page_dir_table_pos = (void *)KERNEL_PAGE_DIR_TABLE_POS;
+    uint64_t page_dir_table_pos = KERNEL_PAGE_DIR_TABLE_POS;
     if (task->page_dir != NULL)
     {
-        page_dir_table_pos = task->page_dir;
+        page_dir_table_pos = (uint64_t)task->page_dir;
     }
-    set_cr3((wordsize_t)page_dir_table_pos);
+    set_cr3(page_dir_table_pos);
     return;
 }
 
@@ -144,13 +144,10 @@ PUBLIC task_struct_t *prog_execute(
     ASSERT(!(kstack_size & (kstack_size - 1)));
     status_t status;
 
-    pid_t pid = MAX_TASK;
-
-    status = task_alloc(&pid);
-    ASSERT(!ERROR(status));
-    if (ERROR(status))
+    task_struct_t *task = task_alloc();
+    if (task == NULL)
     {
-        return NULL;
+        goto fail;
     }
 
     void *kstack_base = NULL;
@@ -159,12 +156,10 @@ PUBLIC task_struct_t *prog_execute(
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
-        task_free(pid);
-        return NULL;
+        goto fail;
     }
 
-    task_struct_t *task = pid_to_task(pid);
-    init_task_struct(task, name, priority, (addr_t)kstack_base, kstack_size);
+    init_task_struct(task, name, priority, (uintptr_t)kstack_base, kstack_size);
     create_task_struct(task, start_process, (uint64_t)prog);
     task->page_dir = create_page_dir();
     ASSERT(task->page_dir != NULL);
@@ -189,6 +184,6 @@ PUBLIC task_struct_t *prog_execute(
 fail:
     kfree(kstack_base);
     kfree(PHYS_TO_VIRT(task->page_dir));
-    task_free(pid);
+    task_free(task);
     return NULL;
 }

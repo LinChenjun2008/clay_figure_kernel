@@ -35,6 +35,7 @@ KERNEL_FLAGS += -Wall -Wextra -Werror \
                 -Wpointer-arith \
                 -Wmissing-prototypes \
                 -Wmissing-declarations \
+                -Wuninitialized \
                 -Wno-long-long \
                 -Wno-implicit-fallthrough
 

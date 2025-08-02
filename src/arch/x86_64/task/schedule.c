@@ -114,7 +114,11 @@ PUBLIC void task_list_insert(task_man_t *task_man, task_struct_t *task)
 {
     ASSERT(task_man != NULL);
     list_t *list = &task_man->task_list;
-    ASSERT(!list_find(list, &task->general_tag));
+    if (list_find(list, &task->general_tag))
+    {
+        PR_LOG(LOG_WARN, "this task is already in the list: %s.\n", task->name);
+        return;
+    }
     list_node_t   *node = list->head.next;
     task_struct_t *tmp;
     while (node != &list->tail)
@@ -189,9 +193,6 @@ PUBLIC void task_unblock_sub(pid_t pid)
     task_struct_t *task     = pid_to_task(pid);
     task_man_t    *task_man = get_task_man(task->cpu_id);
     ASSERT(task != NULL);
-    ASSERT(task->status != TASK_READY);
-    ASSERT(!list_find(&task_man->task_list, &task->general_tag));
-
     task_list_insert(task_man, task);
     task->status = TASK_READY;
     return;

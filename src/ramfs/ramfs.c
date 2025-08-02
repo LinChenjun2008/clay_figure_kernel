@@ -53,7 +53,10 @@ ramfs_open(void *ramfs_addr, const char *name, ramfs_file_t *file)
     }
     ramfs_info_t *ramfs_info;
     ramfs_info = ramfs_addr;
-    ASSERT(ramfs_info->magic == 0xffaaffaaffaaffaa);
+    if (ramfs_info->magic != 0xffaaffaaffaaffaa)
+    {
+        return K_ERROR;
+    }
     uint8_t                *data  = (uint8_t *)ramfs_addr + sizeof(*ramfs_info);
     ramfs_file_meta_data_t *fdata = (ramfs_file_meta_data_t *)data;
     size_t                  offset;

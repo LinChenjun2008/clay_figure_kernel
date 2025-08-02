@@ -18,7 +18,7 @@ PUBLIC void tick_main(void)
         switch (msg.type)
         {
             case RECV_FROM_INT:
-                ticks += msg.m1.i1;
+                ticks++;
                 break;
             case TICK_GET_TICKS:
                 msg.m3.l1 = ticks;

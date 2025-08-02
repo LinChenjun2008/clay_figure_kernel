@@ -329,7 +329,7 @@ PUBLIC int vsprintf(char *buf, const char *fmt, va_list ap)
                     flag |= FORMAT_ZERO;
                 }
                 str = number_to_string(
-                    str, va_arg(ap, addr_t), 16, width, precision, flag
+                    str, va_arg(ap, uintptr_t), 16, width, precision, flag
                 );
                 break;
 

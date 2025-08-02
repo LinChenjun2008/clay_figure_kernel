@@ -126,9 +126,9 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
         pr_msg("=====");
     }
     pr_msg("\nKernel Stack Backtrace:\n\n");
-    int     sym_idx;
-    addr_t *rip = (addr_t *)stack->rip;
-    addr_t *rbp = (addr_t *)stack->rbp;
+    int        sym_idx;
+    uintptr_t *rip = (uintptr_t *)stack->rip;
+    uintptr_t *rbp = (uintptr_t *)stack->rbp;
     for (i = 0; i < 8; i++)
     {
         status_t status = get_symbol_index_by_addr(rip, &sym_idx);
@@ -140,14 +140,14 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
             "    At address: %p [ %s + %#x ]\n",
             rip,
             index_to_symbol(sym_idx),
-            (addr_t)rip - (addr_t)index_to_addr(sym_idx)
+            (uintptr_t)rip - (uintptr_t)index_to_addr(sym_idx)
         );
         if (!IS_AVAILABLE_ADDRESS(rbp + 1))
         {
             break;
         }
-        rip = (addr_t *)*(rbp + 1);
-        rbp = (addr_t *)*rbp;
+        rip = (uintptr_t *)*(rbp + 1);
+        rbp = (uintptr_t *)*rbp;
     }
     for (i = 0; i < 19; i++)
     {
@@ -240,7 +240,7 @@ PUBLIC void register_handle(uint8_t int_vector, void (*handle)(intr_stack_t *))
 
 PUBLIC intr_status_t intr_get_status(void)
 {
-    wordsize_t flags;
+    uint64_t flags;
     flags = get_flags();
     return ((flags & 0x00000200) ? INTR_ON : INTR_OFF);
 }

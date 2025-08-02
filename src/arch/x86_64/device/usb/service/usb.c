@@ -146,7 +146,7 @@ usb_find_desc(usb_device_t *usb_dev, int type, int dir)
     usb_endpoint_descriptor_t *epdesc = (void *)&usb_dev->iface[1];
     while (1)
     {
-        if ((addr_t)epdesc >= (addr_t)usb_dev->iface + usb_dev->imax)
+        if ((uintptr_t)epdesc >= (uintptr_t)usb_dev->iface + usb_dev->imax)
         {
             return NULL;
         }

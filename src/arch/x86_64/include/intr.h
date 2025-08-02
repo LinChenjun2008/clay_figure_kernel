@@ -11,36 +11,36 @@
 typedef struct intr_stack_s
 {
     /* 低地址 */
-    wordsize_t ds;
-    wordsize_t es;
-    wordsize_t fs;
-    wordsize_t gs;
+    uint64_t ds;
+    uint64_t es;
+    uint64_t fs;
+    uint64_t gs;
 
-    wordsize_t rax;
-    wordsize_t rbx;
-    wordsize_t rcx;
-    wordsize_t rdx;
-    wordsize_t rbp;
-    wordsize_t rsi;
-    wordsize_t rdi;
+    uint64_t rax;
+    uint64_t rbx;
+    uint64_t rcx;
+    uint64_t rdx;
+    uint64_t rbp;
+    uint64_t rsi;
+    uint64_t rdi;
 
-    wordsize_t r8;
-    wordsize_t r9;
-    wordsize_t r10;
-    wordsize_t r11;
-    wordsize_t r12;
-    wordsize_t r13;
-    wordsize_t r14;
-    wordsize_t r15;
+    uint64_t r8;
+    uint64_t r9;
+    uint64_t r10;
+    uint64_t r11;
+    uint64_t r12;
+    uint64_t r13;
+    uint64_t r14;
+    uint64_t r15;
 
-    wordsize_t int_vector;
+    uint64_t int_vector;
 
-    wordsize_t error_code;
-    void (*rip)(void);
-    wordsize_t cs;
-    wordsize_t rflags;
-    wordsize_t rsp;
-    wordsize_t ss;
+    uint64_t error_code;
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
+    uint64_t rsp;
+    uint64_t ss;
     /* 高地址 */
 } intr_stack_t;
 
