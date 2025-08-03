@@ -30,7 +30,7 @@ bitmap_alloc(bitmap_t *btmp, uint8_t value, size_t cnt, uint32_t *index)
 {
     if (index == NULL || (value != 0 && value != 1))
     {
-        return K_INVAILD_PARAM;
+        return K_INVALID_PARAM;
     }
     uint8_t byte_full = (value == 0 ? 0xff : 0);
 

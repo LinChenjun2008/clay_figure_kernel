@@ -5,8 +5,24 @@
 
 #include <kernel/global.h>
 
+#include <kernel/syscall.h> // message_t
 #include <service.h>
 #include <task/task.h>
+
+PRIVATE struct
+{
+    uint32_t    kernel_task;
+    pid_t       service_id;
+    const char *name;
+    size_t      kstack_size;
+    void       *func;
+} services[SERVICES] = {
+    { 0, TICK, "TICK", 4096, tick_main },
+    { 1, MM, "MM", 4096, mm_main },
+    { 0, VIEW, "VIEW", 4096, view_main },
+    { 1, USB_SRV, "USB Service", 4096, usb_main },
+    { 1, KBD_SRV, "Keyboard Services", 4096, keyboard_main },
+};
 
 PRIVATE pid_t service_pid_table[SERVICES];
 
@@ -26,16 +42,25 @@ PUBLIC pid_t service_id_to_pid(uint32_t sid)
 
 PUBLIC void service_init(void)
 {
-    service_pid_table[TICK - SERVICE_ID_BASE] =
-        prog_execute("TICK", SERVICE_PRIORITY, 4096, tick_main)->pid;
-    service_pid_table[MM - SERVICE_ID_BASE] =
-        task_start("MM", SERVICE_PRIORITY, 4096, mm_main, 0)->pid;
-    service_pid_table[VIEW - SERVICE_ID_BASE] =
-        prog_execute("VIEW", SERVICE_PRIORITY, 4096, view_main)->pid;
-    service_pid_table[USB_SRV - SERVICE_ID_BASE] =
-        task_start("USB service", SERVICE_PRIORITY, 4096, usb_main, 0)->pid;
-    service_pid_table[KBD_SRV - SERVICE_ID_BASE] =
-        task_start("Keyboard service", SERVICE_PRIORITY, 4096, keyboard_main, 0)
-            ->pid;
+    int i;
+    for (i = 0; i < SERVICES; i++)
+    {
+        task_struct_t *task;
+        const char    *name        = services[i].name;
+        size_t         kstack_size = services[i].kstack_size;
+        void          *func        = services[i].func;
+        if (services[i].kernel_task)
+        {
+            task = task_start(name, SERVICE_PRIORITY, kstack_size, func, 0);
+        }
+        else
+        {
+            task = prog_execute(name, SERVICE_PRIORITY, kstack_size, func);
+        }
+
+        int index = services[i].service_id - SERVICE_ID_BASE;
+
+        service_pid_table[index] = task->pid;
+    }
     return;
 }

@@ -18,12 +18,9 @@
 
 PRIVATE void prog_exit(int (*func)(void *), uint64_t arg)
 {
-    int ret_value = func((void *)arg);
-
-    message_t msg;
-    msg.type  = MM_EXIT;
-    msg.m1.i1 = ret_value;
-    send_recv(NR_SEND, MM, &msg);
+    // int ret_value = func((void *)arg);
+    func((void *)arg);
+    /// TODO: Exit process
     while (1) continue;
 }
 
@@ -52,10 +49,7 @@ PRIVATE void start_process(void *process)
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Alloc User Stack error.\n");
-        message_t msg;
-        msg.type  = MM_EXIT;
-        msg.m1.i1 = K_NOMEM;
-        sys_send_recv(NR_BOTH, MM, &msg);
+        /// TODO: Exit process
         PR_LOG(LOG_FATAL, "Shuold not be here.");
         while (1) continue;
     }

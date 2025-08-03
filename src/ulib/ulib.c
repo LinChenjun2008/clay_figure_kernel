@@ -12,34 +12,32 @@ PUBLIC uint64_t get_ticks(void)
     return msg.m3.l1;
 }
 
-PUBLIC void *allocate_page(uint32_t count)
+PUBLIC void *allocate_page(void)
 {
     message_t msg;
-    msg.type  = MM_ALLOCATE_PAGE;
-    msg.m1.i1 = count;
-    send_recv(NR_BOTH, MM, &msg);
+    msg.type = KERN_ALLOCATE_PAGE;
+    send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     return msg.m2.p1;
 }
 
-PUBLIC void free_page(void *addr, uint32_t count)
+PUBLIC void free_page(void *addr)
 {
     message_t msg;
-    msg.type  = MM_FREE_PAGE;
-    msg.m3.p1 = addr;
-    msg.m3.i1 = count;
-    send_recv(NR_SEND, MM, &msg);
+    msg.type  = KERN_FREE_PAGE;
+    msg.m2.p1 = addr;
+    send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     return;
 }
 
 PUBLIC void read_prog_addr(pid_t pid, void *addr, size_t size, void *buffer)
 {
     message_t msg;
-    msg.type  = MM_READ_PROG_ADDR;
+    msg.type  = KERN_READ_PROC_MEM;
     msg.m3.i1 = pid;
     msg.m3.p1 = addr;
     msg.m3.l1 = size;
     msg.m3.p2 = buffer;
-    send_recv(NR_BOTH, MM, &msg);
+    send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     return;
 }
 

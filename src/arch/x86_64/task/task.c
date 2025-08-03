@@ -25,9 +25,7 @@ PRIVATE void kernel_task(uintptr_t func, uint64_t arg)
     intr_enable();
     sse_init();
     ((void (*)(uint64_t))func)(arg);
-    message_t msg;
-    msg.type = MM_EXIT;
-    sys_send_recv(NR_BOTH, MM, &msg);
+    /// TODO: Exit process
     while (1) continue;
     return;
 }

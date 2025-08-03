@@ -28,7 +28,7 @@ PRIVATE void view_put_pixel(message_t *msg)
 PRIVATE void view_fill(message_t *msg)
 {
     // alloc buffer
-    uint32_t *buf = allocate_page(msg->m3.l1 / PG_SIZE + 1);
+    uint32_t *buf = allocate_page();
     if (buf == NULL)
     {
         return;
@@ -48,7 +48,7 @@ PRIVATE void view_fill(message_t *msg)
               x)           = pixel;
         }
     }
-    free_page(buf, msg->m3.l1 / PG_SIZE + 1);
+    free_page(buf);
     return;
 }
 

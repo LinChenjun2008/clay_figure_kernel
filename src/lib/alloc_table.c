@@ -27,11 +27,11 @@ PUBLIC status_t allocate_units(
 {
     if (index == NULL)
     {
-        return K_INVAILD_PARAM;
+        return K_INVALID_PARAM;
     }
     uint64_t i;
     uint64_t j;
-    for (i = 0; i < table->number_of_entries; i++)
+    for (i = 0; i < table->frees; i++)
     {
         if (table->entries[i].number_of_units >= number_of_units)
         {

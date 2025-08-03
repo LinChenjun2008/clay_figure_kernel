@@ -13,8 +13,10 @@
 #define NR_RECV (0x80000000 | FUNC_RECV)
 #define NR_BOTH (0x80000000 | FUNC_SEND | FUNC_RECV)
 
-#define RECV_FROM_INT -1
-#define RECV_FROM_ANY -2
+
+#define SEND_TO_KERNEL -1
+#define RECV_FROM_INT  -2
+#define RECV_FROM_ANY  -3
 
 #define SYSCALL_SUCCESS        0
 #define SYSCALL_ERROR          1

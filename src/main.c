@@ -19,8 +19,6 @@
 #include <task/task.h>
 #include <ulib.h>
 
-extern textbox_t g_tb;
-
 PRIVATE void ktask(void)
 {
     uint32_t color = 0x00c5c5c5;
@@ -38,16 +36,20 @@ PRIVATE void ktask(void)
     tb.char_ysize = 16;
 
     graph_info_t gi;
+    gi.horizontal_resolution = xsize;
+    gi.vertical_resolution   = ysize;
+    gi.pixel_per_scanline    = xsize;
 
     int i = 0;
     while (1)
     {
-        uint32_t *buf =
-            allocate_page(xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1);
-        gi.frame_buffer_base     = (uintptr_t)buf;
-        gi.horizontal_resolution = xsize;
-        gi.vertical_resolution   = ysize;
-        gi.pixel_per_scanline    = xsize;
+        uint32_t *buf = allocate_page();
+        if (buf == NULL)
+        {
+            continue;
+        }
+        gi.frame_buffer_base = (uintptr_t)buf;
+
         char s[10];
         sprintf(s, "\n%d", i);
         basic_print(&gi, &tb, color, s);
@@ -60,7 +62,7 @@ PRIVATE void ktask(void)
             0
         );
         i++;
-        free_page(buf, xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1);
+        free_page(buf);
     };
 }
 

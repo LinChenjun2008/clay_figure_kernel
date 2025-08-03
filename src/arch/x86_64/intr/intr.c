@@ -176,10 +176,7 @@ PRIVATE void default_irq_handler(intr_stack_t *stack)
     task_struct_t *running = running_task();
     if (running->page_dir != NULL)
     {
-        message_t msg;
-        msg.type  = MM_EXIT;
-        msg.m1.i1 = K_ERROR;
-        sys_send_recv(NR_BOTH, MM, &msg);
+        /// TODO: Exit process
     }
     while (1) continue;
 }

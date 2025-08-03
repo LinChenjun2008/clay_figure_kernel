@@ -1,0 +1,93 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2025 LinChenjun
+ */
+
+#include <kernel/global.h>
+
+#include <kernel/syscall.h>
+#include <mem/page.h> // allocate page
+#include <service.h>
+#include <std/string.h> // memcpy
+#include <task/task.h>  // pid_to_task
+
+PRIVATE syscall_status_t kern_get_pid(message_t *msg)
+{
+    msg3_t *m3 = &msg->m3;
+    m3->l1     = msg->src;
+    return SYSCALL_SUCCESS;
+}
+
+PRIVATE syscall_status_t kern_allocate_page(message_t *msg)
+{
+    msg2_t  *m2     = &msg->m2;
+    void    *addr   = NULL;
+    status_t status = alloc_physical_page(1, &addr);
+    if (ERROR(status))
+    {
+        return SYSCALL_ERROR;
+    }
+    m2->p1 = PHYS_TO_VIRT(addr);
+
+    return SYSCALL_SUCCESS;
+}
+
+PRIVATE syscall_status_t kern_free_page(message_t *msg)
+{
+    msg2_t *m2 = &msg->m2;
+    m2->p1     = VIRT_TO_PHYS(m2->p1);
+    free_physical_page(m2->p1, 1);
+    return SYSCALL_SUCCESS;
+}
+
+PRIVATE syscall_status_t kern_read_proc_mem(message_t *msg)
+{
+    msg3_t *m3    = &msg->m3;
+    void   *p_src = m3->p1;
+    void   *p_dst = m3->p2;
+    size_t  size  = m3->l1;
+
+    task_struct_t *task = pid_to_task(m3->i1);
+    p_src               = to_physical_address(task->page_dir, p_src);
+    if (p_src == NULL)
+    {
+        return SYSCALL_ERROR;
+    }
+    p_src = PHYS_TO_VIRT(p_src);
+
+    memcpy(p_dst, p_src, size);
+    return SYSCALL_SUCCESS;
+}
+
+PUBLIC syscall_status_t kernel_services(message_t *msg)
+{
+    syscall_status_t ret = SYSCALL_ERROR;
+    switch (msg->type)
+    {
+        case KERN_GET_PID:
+            ret = kern_get_pid(msg);
+            break;
+        /// TODO:
+        case KERN_CREATE_PROCESS:
+            break;
+        /// TODO:
+        case KERN_EXIT:
+            break;
+        case KERN_ALLOCATE_PAGE:
+            ret = kern_allocate_page(msg);
+            break;
+
+        case KERN_FREE_PAGE:
+            ret = kern_free_page(msg);
+            break;
+
+        case KERN_READ_PROC_MEM:
+            ret = kern_read_proc_mem(msg);
+            break;
+
+        default:
+            ret = SYSCALL_NO_SYSCALL;
+            break;
+    }
+    return ret;
+}
