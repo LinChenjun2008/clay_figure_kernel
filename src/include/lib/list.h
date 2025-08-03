@@ -40,6 +40,8 @@ PUBLIC list_node_t *list_traversal(list_t *list, func_t function, uint64_t arg);
 PUBLIC int          list_len(list_t *list);
 PUBLIC bool         list_empty(list_t *list);
 
+PUBLIC list_node_t *list_head(list_t *list);
+PUBLIC list_node_t *list_tail(list_t *list);
 PUBLIC list_node_t *list_next(list_node_t *node);
 PUBLIC list_node_t *list_prev(list_node_t *node);
 

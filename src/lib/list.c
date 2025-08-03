@@ -104,6 +104,16 @@ PUBLIC bool list_empty(list_t *list)
     return list->head.next == &list->tail;
 }
 
+PUBLIC list_node_t *list_head(list_t *list)
+{
+    return &list->head;
+}
+
+PUBLIC list_node_t *list_tail(list_t *list)
+{
+    return &list->tail;
+}
+
 PUBLIC list_node_t *list_next(list_node_t *node)
 {
     return node->next;

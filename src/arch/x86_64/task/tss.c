@@ -49,15 +49,16 @@ PUBLIC void init_tss(uint8_t cpu_id)
     uint64_t tss_base_l = ((uint64_t)&tss[cpu_id]) & 0xffffffff;
     uint64_t tss_base_h = (((uint64_t)&tss[cpu_id]) >> 32) & 0xffffffff;
 
-    gdt_table[5 + cpu_id * 2] = make_segmdesc(
-        (uint32_t)(tss_base_l & 0xffffffff), tss_size - 1, AR_TSS64
-    );
-    memcpy(&gdt_table[5 + cpu_id * 2 + 1], &tss_base_h, 8);
+    segmdesc_t *gdt_entry = &gdt_table[5 + cpu_id * 2];
+
+    *gdt_entry = make_segmdesc(tss_base_l, tss_size - 1, AR_TSS64);
+    memcpy(gdt_entry + 1, &tss_base_h, 8);
+
     return;
 }
 
 PUBLIC void update_tss_rsp0(task_struct_t *task)
 {
-    tss[apic_id()].rsp0 = task->kstack_base + task->kstack_size;
+    tss[running_task()->cpu_id].rsp0 = task->kstack_base + task->kstack_size;
     return;
 }
