@@ -7,7 +7,7 @@
 
 #include <lib/list.h>
 
-PUBLIC void list_init(list_t *list)
+PUBLIC void init_list(list_t *list)
 {
     list->head.prev = NULL;
     list->head.next = &list->tail;

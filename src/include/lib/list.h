@@ -15,11 +15,11 @@
 
 typedef struct list_node_s list_node_t;
 
-typedef struct list_node_s
+struct list_node_s
 {
     list_node_t *prev;
     list_node_t *next;
-} list_node_t;
+};
 
 typedef struct list_s
 {
@@ -29,7 +29,7 @@ typedef struct list_s
 
 typedef bool(func_t)(list_node_t *, uint64_t);
 
-PUBLIC void         list_init(list_t *list);
+PUBLIC void         init_list(list_t *list);
 PUBLIC void         list_in(list_node_t *node, list_node_t *in_before);
 PUBLIC void         list_push(list_t *list, list_node_t *node);
 PUBLIC void         list_append(list_t *list, list_node_t *node);

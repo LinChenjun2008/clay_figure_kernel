@@ -19,11 +19,8 @@ PUBLIC void allocate_table_init(
     return;
 }
 
-PUBLIC status_t allocate_units(
-    allocate_table_t *table,
-    uint64_t          number_of_units,
-    uint64_t         *index
-)
+PUBLIC status_t
+allocate_units(allocate_table_t *table, uint64_t count, uint64_t *index)
 {
     if (index == NULL)
     {
@@ -33,12 +30,12 @@ PUBLIC status_t allocate_units(
     uint64_t j;
     for (i = 0; i < table->frees; i++)
     {
-        if (table->entries[i].number_of_units >= number_of_units)
+        if (table->entries[i].count >= count)
         {
             j = table->entries[i].index;
-            table->entries[i].index += number_of_units;
-            table->entries[i].number_of_units -= number_of_units;
-            if (table->entries[i].number_of_units == 0)
+            table->entries[i].index += count;
+            table->entries[i].count -= count;
+            if (table->entries[i].count == 0)
             {
                 table->frees--;
                 while (i < table->frees)
@@ -54,8 +51,7 @@ PUBLIC status_t allocate_units(
     return K_OUT_OF_RESOURCE;
 }
 
-PUBLIC void
-free_units(allocate_table_t *table, uint64_t index, uint64_t number_of_units)
+PUBLIC void free_units(allocate_table_t *table, uint64_t index, uint64_t count)
 {
     uint64_t i, j;
     for (i = 0; i < table->frees; i++)
@@ -67,17 +63,14 @@ free_units(allocate_table_t *table, uint64_t index, uint64_t number_of_units)
     }
     if (i > 0)
     {
-        if (table->entries[i - 1].index +
-                table->entries[i - 1].number_of_units ==
-            index)
+        if (table->entries[i - 1].index + table->entries[i - 1].count == index)
         {
-            table->entries[i - 1].number_of_units += number_of_units;
+            table->entries[i - 1].count += count;
             if (i < table->frees)
             {
-                if (index + number_of_units == table->entries[i].index)
+                if (index + count == table->entries[i].index)
                 {
-                    table->entries[i - 1].number_of_units +=
-                        table->entries[i].number_of_units;
+                    table->entries[i - 1].count += table->entries[i].count;
                     table->frees--;
                     while (i < table->frees)
                     {
@@ -91,10 +84,10 @@ free_units(allocate_table_t *table, uint64_t index, uint64_t number_of_units)
     }
     if (i < table->frees)
     {
-        if (index + number_of_units == table->entries[i].index)
+        if (index + count == table->entries[i].index)
         {
             table->entries[i].index = index;
-            table->entries[i].number_of_units += number_of_units;
+            table->entries[i].count += count;
             return;
         }
     }
@@ -105,8 +98,8 @@ free_units(allocate_table_t *table, uint64_t index, uint64_t number_of_units)
             table->entries[j] = table->entries[j - 1];
         }
         table->frees++;
-        table->entries[i].index           = index;
-        table->entries[i].number_of_units = number_of_units;
+        table->entries[i].index = index;
+        table->entries[i].count = count;
         return;
     }
     return;
@@ -118,7 +111,7 @@ PUBLIC uint64_t total_free_units(allocate_table_t *table)
     uint64_t free_units = 0;
     for (i = 0; i < table->frees; i++)
     {
-        free_units += table->entries[i].number_of_units;
+        free_units += table->entries[i].count;
     }
     return free_units;
 }

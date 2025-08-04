@@ -18,7 +18,7 @@ PUBLIC void init_semaphore(semaphore_t *sema, uint32_t value)
     sema->value.value      = value;
     sema->holder           = NULL;
     sema->holder_repeat_nr = 0;
-    list_init(&sema->waiters);
+    init_list(&sema->waiters);
     return;
 }
 

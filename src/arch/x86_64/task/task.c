@@ -148,7 +148,7 @@ PUBLIC status_t init_task_struct(
 
     task->has_intr_msg = 0;
     init_spinlock(&task->send_lock);
-    list_init(&task->sender_list);
+    init_list(&task->sender_list);
 
     fxsave_region_t *fxsave_region;
     status_t         status;
@@ -250,10 +250,10 @@ PUBLIC void task_init(void)
     {
         task_man_t *task_man = &global_task_man->cpus[i];
 
-        list_init(&task_man->task_list);
+        init_list(&task_man->task_list);
         init_spinlock(&task_man->task_list_lock);
 
-        list_init(&task_man->send_recv_list);
+        init_list(&task_man->send_recv_list);
 
         task_man->min_vrun_time = 0;
         task_man->running_tasks = 0;

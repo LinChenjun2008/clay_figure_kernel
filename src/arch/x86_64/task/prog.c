@@ -122,8 +122,8 @@ PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
     }
     allocate_table_init(&task->vaddr_table, entries, number_of_entries);
 
-    uint64_t index = USER_VADDR_START / PG_SIZE;
-    uint64_t cnt   = (USER_STACK_VADDR_BASE - USER_VADDR_START) / PG_SIZE;
+    uint64_t index = USER_VADDR_START;
+    uint64_t cnt   = (USER_STACK_VADDR_BASE - USER_VADDR_START);
     free_units(&task->vaddr_table, index, cnt);
     return K_SUCCESS;
 }

@@ -9,7 +9,7 @@
 typedef struct allocate_table_entry_s
 {
     uint64_t index;
-    uint64_t number_of_units;
+    uint64_t count;
 } allocate_table_entry_t;
 
 typedef struct allocate_table_s
@@ -25,14 +25,10 @@ PUBLIC void allocate_table_init(
     uint64_t                number_of_entries
 );
 
-PUBLIC status_t allocate_units(
-    allocate_table_t *table,
-    uint64_t          number_of_units,
-    uint64_t         *index
-);
+PUBLIC status_t
+allocate_units(allocate_table_t *table, uint64_t count, uint64_t *index);
 
-PUBLIC void
-free_units(allocate_table_t *table, uint64_t index, uint64_t number_of_units);
+PUBLIC void free_units(allocate_table_t *table, uint64_t index, uint64_t count);
 
 PUBLIC uint64_t total_free_units(allocate_table_t *table);
 
