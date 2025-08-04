@@ -112,19 +112,19 @@ PRIVATE uint64_t *create_page_dir(void)
 
 PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
 {
-    size_t   entry_size        = sizeof(*task->vaddr_table.entries);
-    uint64_t number_of_entries = 1024;
-    void    *entries;
-    status_t status = kmalloc(entry_size * number_of_entries, 0, 0, &entries);
+    size_t   block_size   = sizeof(*task->vaddr_table.blocks);
+    uint64_t total_blocks = 1024;
+    void    *blocks;
+    status_t status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
     if (ERROR(status))
     {
         return status;
     }
-    allocate_table_init(&task->vaddr_table, entries, number_of_entries);
+    vmm_struct_init(&task->vaddr_table, blocks, total_blocks);
 
-    uint64_t index = USER_VADDR_START;
-    uint64_t cnt   = (USER_STACK_VADDR_BASE - USER_VADDR_START);
-    free_units(&task->vaddr_table, index, cnt);
+    uintptr_t vm_start = USER_VADDR_START;
+    size_t    vm_size  = (USER_STACK_VADDR_BASE - USER_VADDR_START);
+    vmm_free(&task->vaddr_table, vm_start, vm_size);
     return K_SUCCESS;
 }
 

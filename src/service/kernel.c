@@ -5,6 +5,7 @@
 
 #include <kernel/global.h>
 
+#include <io.h> // set_cr3
 #include <kernel/syscall.h>
 #include <mem/page.h> // allocate page
 #include <service.h>
@@ -20,23 +21,40 @@ PRIVATE syscall_status_t kern_get_pid(message_t *msg)
 
 PRIVATE syscall_status_t kern_allocate_page(message_t *msg)
 {
-    msg2_t  *m2     = &msg->m2;
-    void    *addr   = NULL;
-    status_t status = alloc_physical_page(1, &addr);
+    status_t  status;
+    msg2_t   *m2    = &msg->m2;
+    uintptr_t vaddr = 0;
+    uintptr_t paddr = 0;
+
+    status = vmm_alloc(&running_task()->vaddr_table, PG_SIZE, &vaddr);
     if (ERROR(status))
     {
         return SYSCALL_ERROR;
     }
-    m2->p1 = PHYS_TO_VIRT(addr);
+    status = alloc_physical_page(1, &paddr);
+    if (ERROR(status))
+    {
+        vmm_free(&running_task()->vaddr_table, (uintptr_t)vaddr, PG_SIZE);
+        return SYSCALL_ERROR;
+    }
+    page_map(running_task()->page_dir, (void *)paddr, (void *)vaddr);
+    set_cr3((uint64_t)running_task()->page_dir);
+    m2->p1 = (void *)vaddr;
 
     return SYSCALL_SUCCESS;
 }
 
 PRIVATE syscall_status_t kern_free_page(message_t *msg)
 {
-    msg2_t *m2 = &msg->m2;
-    m2->p1     = VIRT_TO_PHYS(m2->p1);
-    free_physical_page(m2->p1, 1);
+    msg2_t   *m2 = &msg->m2;
+    uintptr_t vaddr;
+    void     *paddr;
+
+    vaddr = (uintptr_t)m2->p1;
+    paddr = to_physical_address(running_task()->page_dir, (void *)vaddr);
+
+    free_physical_page(paddr, 1);
+    vmm_free(&running_task()->vaddr_table, vaddr, PG_SIZE);
     return SYSCALL_SUCCESS;
 }
 
@@ -48,7 +66,8 @@ PRIVATE syscall_status_t kern_read_proc_mem(message_t *msg)
     size_t  size  = m3->l1;
 
     task_struct_t *task = pid_to_task(m3->i1);
-    p_src               = to_physical_address(task->page_dir, p_src);
+
+    p_src = to_physical_address(task->page_dir, p_src);
     if (p_src == NULL)
     {
         return SYSCALL_ERROR;

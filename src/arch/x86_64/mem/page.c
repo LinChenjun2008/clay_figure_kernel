@@ -381,7 +381,7 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
         UNUSED(status);
         pdpt = VIRT_TO_PHYS(v_pdpt);
         memset(v_pdpt, 0, PT_SIZE);
-        *v_pml4e = (uint64_t)pdpt | PG_US_U | PG_RW_W | PG_P;
+        *v_pml4e = (uintptr_t)pdpt | PG_US_U | PG_RW_W | PG_P;
     }
     pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
     pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
@@ -393,12 +393,12 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
         UNUSED(status);
         pdt = VIRT_TO_PHYS(v_pdt);
         memset(v_pdt, 0, PT_SIZE);
-        *v_pdpte = (uint64_t)pdt | PG_US_U | PG_RW_W | PG_P;
+        *v_pdpte = (uintptr_t)pdt | PG_US_U | PG_RW_W | PG_P;
     }
     pdt    = (uint64_t *)(*v_pdpte & (~0xfff));
     pde    = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
     v_pde  = PHYS_TO_VIRT(pde);
-    *v_pde = (uint64_t)paddr | PG_DEFAULT_FLAGS;
+    *v_pde = (uintptr_t)paddr | PG_DEFAULT_FLAGS;
     return;
 }
 
