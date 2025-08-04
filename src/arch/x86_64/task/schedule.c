@@ -161,7 +161,7 @@ PUBLIC void schedule(void)
     spinlock_unlock(&task_man->task_list_lock);
 
     next->status = TASK_RUNNING;
-    prog_activate(next);
+    proc_activate(next);
     asm_fxsave(cur_task->fxsave_region);
     asm_fxrstor(next->fxsave_region);
     next->cpu_id = cpu_id;

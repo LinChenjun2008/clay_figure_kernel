@@ -28,8 +28,8 @@ KERNEL_SRC += \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/task.c \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/schedule.c \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/asm_schedule.S \
-    $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/prog.c \
-    $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/asm_prog.S \
+    $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/proc.c \
+    $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/task/asm_proc.S \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/sync/atomic.c \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/sync/spinlock.c \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/sync/asm_sync.S \

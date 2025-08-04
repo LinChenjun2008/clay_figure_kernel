@@ -16,7 +16,7 @@
 #include <std/string.h>     // memset,memcpy
 #include <task/task.h>      // task struct & functions,spinlock
 
-PRIVATE void prog_exit(int (*func)(void *), uint64_t arg)
+PRIVATE void proc_exit(int (*func)(void *), uint64_t arg)
 {
     // int ret_value = func((void *)arg);
     func((void *)arg);
@@ -61,7 +61,7 @@ PRIVATE void start_process(void *process)
     uint64_t kstack = (uint64_t)cur->context;
     kstack += sizeof(task_context_t);
     asm_switch_to_user(
-        prog_exit,
+        proc_exit,
         func,
         kstack,
         USER_STACK_VADDR_BASE + PG_SIZE,
@@ -82,7 +82,7 @@ PRIVATE void page_dir_activate(task_struct_t *task)
     return;
 }
 
-PUBLIC void prog_activate(task_struct_t *task)
+PUBLIC void proc_activate(task_struct_t *task)
 {
     page_dir_activate(task);
     if (task->page_dir != NULL)
@@ -112,7 +112,7 @@ PRIVATE uint64_t *create_page_dir(void)
 
 PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
 {
-    size_t   block_size   = sizeof(*task->vaddr_table.blocks);
+    size_t   block_size   = sizeof(*task->vmm.blocks);
     uint64_t total_blocks = 1024;
     void    *blocks;
     status_t status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
@@ -120,19 +120,19 @@ PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
     {
         return status;
     }
-    vmm_struct_init(&task->vaddr_table, blocks, total_blocks);
+    vmm_struct_init(&task->vmm, blocks, total_blocks);
 
     uintptr_t vm_start = USER_VADDR_START;
     size_t    vm_size  = (USER_STACK_VADDR_BASE - USER_VADDR_START);
-    vmm_free(&task->vaddr_table, vm_start, vm_size);
+    vmm_free(&task->vmm, vm_start, vm_size);
     return K_SUCCESS;
 }
 
-PUBLIC task_struct_t *prog_execute(
+PUBLIC task_struct_t *proc_execute(
     const char *name,
     uint64_t    priority,
     size_t      kstack_size,
-    void       *prog
+    void       *proc
 )
 {
     ASSERT(!(kstack_size & (kstack_size - 1)));
@@ -154,7 +154,7 @@ PUBLIC task_struct_t *prog_execute(
     }
 
     init_task_struct(task, name, priority, (uintptr_t)kstack_base, kstack_size);
-    create_task_struct(task, start_process, (uint64_t)prog);
+    create_task_struct(task, start_process, (uint64_t)proc);
     task->page_dir = create_page_dir();
     ASSERT(task->page_dir != NULL);
     if (task->page_dir == NULL)

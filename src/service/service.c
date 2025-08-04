@@ -55,7 +55,7 @@ PUBLIC void service_init(void)
         }
         else
         {
-            task = prog_execute(name, SERVICE_PRIORITY, kstack_size, func);
+            task = proc_execute(name, SERVICE_PRIORITY, kstack_size, func);
         }
 
         int index = services[i].service_id - SERVICE_ID_BASE;

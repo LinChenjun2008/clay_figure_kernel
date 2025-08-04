@@ -42,7 +42,7 @@ PUBLIC void keyboard_main(void);
 #define KERN_FREE_PAGE     5
 #define KERN_MMAP          6
 #define KERN_MUNMAP        7
-#define KERN_READ_PROC_MEM 8
+#define KERN_READ_TASK_MEM 8
 
 PUBLIC syscall_status_t kernel_services(message_t *msg);
 

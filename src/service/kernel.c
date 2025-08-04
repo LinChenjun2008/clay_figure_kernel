@@ -26,7 +26,7 @@ PRIVATE syscall_status_t kern_allocate_page(message_t *msg)
     uintptr_t vaddr = 0;
     uintptr_t paddr = 0;
 
-    status = vmm_alloc(&running_task()->vaddr_table, PG_SIZE, &vaddr);
+    status = vmm_alloc(&running_task()->vmm, PG_SIZE, &vaddr);
     if (ERROR(status))
     {
         return SYSCALL_ERROR;
@@ -34,7 +34,7 @@ PRIVATE syscall_status_t kern_allocate_page(message_t *msg)
     status = alloc_physical_page(1, &paddr);
     if (ERROR(status))
     {
-        vmm_free(&running_task()->vaddr_table, (uintptr_t)vaddr, PG_SIZE);
+        vmm_free(&running_task()->vmm, (uintptr_t)vaddr, PG_SIZE);
         return SYSCALL_ERROR;
     }
     page_map(running_task()->page_dir, (void *)paddr, (void *)vaddr);
@@ -54,7 +54,7 @@ PRIVATE syscall_status_t kern_free_page(message_t *msg)
     paddr = to_physical_address(running_task()->page_dir, (void *)vaddr);
 
     free_physical_page(paddr, 1);
-    vmm_free(&running_task()->vaddr_table, vaddr, PG_SIZE);
+    vmm_free(&running_task()->vmm, vaddr, PG_SIZE);
     return SYSCALL_SUCCESS;
 }
 
@@ -100,7 +100,7 @@ PUBLIC syscall_status_t kernel_services(message_t *msg)
             ret = kern_free_page(msg);
             break;
 
-        case KERN_READ_PROC_MEM:
+        case KERN_READ_TASK_MEM:
             ret = kern_read_proc_mem(msg);
             break;
 

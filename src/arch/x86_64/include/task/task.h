@@ -89,9 +89,9 @@ typedef struct task_struct_s
 
     list_node_t general_tag; // 任务在任务列表中的节点
 
-    uint64_t     cpu_id;      // 任务所在cpu的id
-    uint64_t    *page_dir;    // 任务页表地址(物理地址)
-    vmm_struct_t vaddr_table; // 任务虚拟地址表
+    uint64_t     cpu_id;   // 任务所在cpu的id
+    uint64_t    *page_dir; // 任务页表地址(物理地址)
+    vmm_struct_t vmm;      // 任务虚拟地址表
 
     message_t msg;       // 任务消息结构体
     pid_t     send_to;   // 任务发送消息的目的地
@@ -292,14 +292,14 @@ PUBLIC void task_msleep(uint32_t milliseconds);
 PUBLIC void init_tss(uint8_t cpu_id);
 PUBLIC void update_tss_rsp0(task_struct_t *task);
 
-/// prog.c
+/// proc.c
 
 /**
  * @brief 激活任务的页表,更新tss的rsp0,设置gs_base
  * @param task
  * @return
  */
-PUBLIC void prog_activate(task_struct_t *task);
+PUBLIC void proc_activate(task_struct_t *task);
 
 /**
  * @brief 启动一个任务,运行在用户态下
@@ -310,11 +310,11 @@ PUBLIC void prog_activate(task_struct_t *task);
  * @param arg 给任务的参数
  * @return 成功将返回对应的任务结构体,失败则返回NULL
  */
-PUBLIC task_struct_t *prog_execute(
+PUBLIC task_struct_t *proc_execute(
     const char *name,
     uint64_t    priority,
     size_t      kstack_size,
-    void       *prog
+    void       *proc
 );
 
 #endif /* __ASM_INCLUDE__ */

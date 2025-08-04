@@ -29,10 +29,10 @@ PUBLIC void free_page(void *addr)
     return;
 }
 
-PUBLIC void read_prog_addr(pid_t pid, void *addr, size_t size, void *buffer)
+PUBLIC void read_task_addr(pid_t pid, void *addr, size_t size, void *buffer)
 {
     message_t msg;
-    msg.type  = KERN_READ_PROC_MEM;
+    msg.type  = KERN_READ_TASK_MEM;
     msg.m3.i1 = pid;
     msg.m3.p1 = addr;
     msg.m3.l1 = size;

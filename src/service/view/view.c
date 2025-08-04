@@ -35,7 +35,7 @@ PRIVATE void view_fill(message_t *msg)
     }
 
     // read buffer
-    read_prog_addr(msg->src, msg->m3.p1, msg->m3.l1, buf);
+    read_task_addr(msg->src, msg->m3.p1, msg->m3.l1, buf);
 
     // print buf to screen.
     uint32_t x, y;
