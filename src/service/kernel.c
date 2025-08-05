@@ -5,7 +5,6 @@
 
 #include <kernel/global.h>
 
-#include <io.h> // set_cr3
 #include <kernel/syscall.h>
 #include <mem/page.h> // allocate page
 #include <service.h>
@@ -21,40 +20,45 @@ PRIVATE syscall_status_t kern_get_pid(message_t *msg)
 
 PRIVATE syscall_status_t kern_allocate_page(message_t *msg)
 {
+    msg2_t        *m2       = &msg->m2;
+    task_struct_t *cur_task = running_task();
+
     status_t  status;
-    msg2_t   *m2    = &msg->m2;
     uintptr_t vaddr = 0;
-    uintptr_t paddr = 0;
 
-    status = vmm_alloc(&running_task()->vmm, PG_SIZE, &vaddr);
+    status = vmm_alloc(&cur_task->vmm_free, PG_SIZE, &vaddr);
     if (ERROR(status))
     {
         return SYSCALL_ERROR;
     }
-    status = alloc_physical_page(1, &paddr);
+
+    status = vmm_add_range(&cur_task->vmm_using, vaddr, PG_SIZE);
     if (ERROR(status))
     {
-        vmm_free(&running_task()->vmm, (uintptr_t)vaddr, PG_SIZE);
+        vmm_add_range(&cur_task->vmm_free, vaddr, PG_SIZE);
         return SYSCALL_ERROR;
     }
-    page_map(running_task()->page_dir, (void *)paddr, (void *)vaddr);
-    set_cr3((uint64_t)running_task()->page_dir);
     m2->p1 = (void *)vaddr;
-
     return SYSCALL_SUCCESS;
 }
 
 PRIVATE syscall_status_t kern_free_page(message_t *msg)
 {
-    msg2_t   *m2 = &msg->m2;
+    msg2_t        *m2       = &msg->m2;
+    task_struct_t *cur_task = running_task();
+
     uintptr_t vaddr;
     void     *paddr;
-
     vaddr = (uintptr_t)m2->p1;
-    paddr = to_physical_address(running_task()->page_dir, (void *)vaddr);
+    paddr = to_physical_address(cur_task->page_dir, (void *)vaddr);
+
+    vmm_remove_range(&cur_task->vmm_using, vaddr, PG_SIZE);
+    vmm_add_range(&cur_task->vmm_free, vaddr, PG_SIZE);
 
     free_physical_page(paddr, 1);
-    vmm_free(&running_task()->vmm, vaddr, PG_SIZE);
+    page_unmap(cur_task->page_dir, (void *)vaddr);
+
+    set_page_table(cur_task->page_dir);
     return SYSCALL_SUCCESS;
 }
 
@@ -86,18 +90,29 @@ PUBLIC syscall_status_t kernel_services(message_t *msg)
         case KERN_GET_PID:
             ret = kern_get_pid(msg);
             break;
+
         /// TODO:
         case KERN_CREATE_PROCESS:
             break;
+
         /// TODO:
         case KERN_EXIT:
             break;
+
         case KERN_ALLOCATE_PAGE:
             ret = kern_allocate_page(msg);
             break;
 
         case KERN_FREE_PAGE:
             ret = kern_free_page(msg);
+            break;
+
+        /// TODO:
+        case KERN_MMAP:
+            break;
+
+        /// TODO:
+        case KERN_MUNMAP:
             break;
 
         case KERN_READ_TASK_MEM:

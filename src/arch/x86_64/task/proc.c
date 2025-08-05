@@ -8,10 +8,9 @@
 #include <log.h>
 
 #include <device/cpu.h>     // apic_id,IA32_KERNEL_GS_BASE
-#include <io.h>             // set_cr3
 #include <kernel/syscall.h> // sys_send_recv
 #include <mem/allocator.h>  // kmalloc,kfree
-#include <mem/page.h>       // alloc_physical_page,page_map
+#include <mem/page.h>       // alloc_physical_page,page_map,set_page_table
 #include <service.h>        // MM_EXIT
 #include <std/string.h>     // memset,memcpy
 #include <task/task.h>      // task struct & functions,spinlock
@@ -56,7 +55,7 @@ PRIVATE void start_process(void *process)
     cur->ustack_base = ustack;
     cur->ustack_size = PG_SIZE;
     page_map(cur->page_dir, (void *)ustack, (void *)USER_STACK_VADDR_BASE);
-    set_cr3((uint64_t)cur->page_dir);
+    set_page_table(cur->page_dir);
 
     uint64_t kstack = (uint64_t)cur->context;
     kstack += sizeof(task_context_t);
@@ -73,12 +72,12 @@ PRIVATE void start_process(void *process)
 
 PRIVATE void page_dir_activate(task_struct_t *task)
 {
-    uint64_t page_dir_table_pos = KERNEL_PAGE_DIR_TABLE_POS;
+    void *page_dir_table_pos = (void *)KERNEL_PAGE_DIR_TABLE_POS;
     if (task->page_dir != NULL)
     {
-        page_dir_table_pos = (uint64_t)task->page_dir;
+        page_dir_table_pos = task->page_dir;
     }
-    set_cr3(page_dir_table_pos);
+    set_page_table(page_dir_table_pos);
     return;
 }
 
@@ -112,7 +111,7 @@ PRIVATE uint64_t *create_page_dir(void)
 
 PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
 {
-    size_t   block_size   = sizeof(*task->vmm.blocks);
+    size_t   block_size   = sizeof(*task->vmm_free.blocks);
     uint64_t total_blocks = 1024;
     void    *blocks;
     status_t status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
@@ -120,11 +119,18 @@ PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
     {
         return status;
     }
-    vmm_struct_init(&task->vmm, blocks, total_blocks);
+    vmm_struct_init(&task->vmm_free, blocks, total_blocks);
 
     uintptr_t vm_start = USER_VADDR_START;
     size_t    vm_size  = (USER_STACK_VADDR_BASE - USER_VADDR_START);
-    vmm_free(&task->vmm, vm_start, vm_size);
+    vmm_add_range(&task->vmm_free, vm_start, vm_size);
+
+    status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
+    if (ERROR(status))
+    {
+        return status;
+    }
+    vmm_struct_init(&task->vmm_using, blocks, total_blocks);
     return K_SUCCESS;
 }
 

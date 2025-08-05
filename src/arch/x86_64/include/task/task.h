@@ -89,9 +89,10 @@ typedef struct task_struct_s
 
     list_node_t general_tag; // 任务在任务列表中的节点
 
-    uint64_t     cpu_id;   // 任务所在cpu的id
-    uint64_t    *page_dir; // 任务页表地址(物理地址)
-    vmm_struct_t vmm;      // 任务虚拟地址表
+    uint64_t     cpu_id;    // 任务所在cpu的id
+    uint64_t    *page_dir;  // 任务页表地址(物理地址)
+    vmm_struct_t vmm_free;  // 任务可以使用的虚拟地址表
+    vmm_struct_t vmm_using; // 任务正在使用的虚拟地址表
 
     message_t msg;       // 任务消息结构体
     pid_t     send_to;   // 任务发送消息的目的地

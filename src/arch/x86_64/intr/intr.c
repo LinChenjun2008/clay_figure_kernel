@@ -156,7 +156,7 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
     pr_msg("\n");
 }
 
-PRIVATE void default_irq_handler(intr_stack_t *stack)
+PUBLIC void default_irq_handler(intr_stack_t *stack)
 {
     int int_vector = stack->int_vector;
     if (int_vector == 0x27)
@@ -232,6 +232,12 @@ PUBLIC void ap_intr_init(void)
 PUBLIC void register_handle(uint8_t int_vector, void (*handle)(intr_stack_t *))
 {
     irq_handler[int_vector] = handle;
+    return;
+}
+
+PUBLIC void unregister_handle(uint8_t int_vector)
+{
+    irq_handler[int_vector] = NULL;
     return;
 }
 

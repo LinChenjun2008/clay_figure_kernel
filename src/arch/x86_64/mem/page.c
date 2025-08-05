@@ -8,10 +8,15 @@
 #include <log.h>
 
 #include <device/spinlock.h> // spinlock
+#include <io.h>              // get_cr2,get_cr3
 #include <lib/bitmap.h>      // bitmap
 #include <mem/allocator.h>   // kmalloc
 #include <mem/page.h>        // previous
 #include <std/string.h>      // memset
+
+// do_page_fault
+#include <intr.h>      // register_handler
+#include <task/task.h> // task_struct
 
 typedef enum
 {
@@ -110,6 +115,34 @@ PRIVATE const char *memory_type_str[] = {
     "Invaild",         "Free memory",      "Reserved", "ACPI memory",
     "ACPI memory NVS", "Unuseable memory", "Invaild",
 };
+
+PRIVATE void do_page_fault(intr_stack_t *stack)
+{
+    task_struct_t *task          = running_task();
+    uintptr_t      fault_address = get_cr2();
+    uintptr_t      cr3           = get_cr3();
+
+    // 内核任务 - 错误
+    if (cr3 == KERNEL_PAGE_DIR_TABLE_POS)
+    {
+        default_irq_handler(stack);
+    }
+
+    // 未分配地址 - 错误
+    if (!vmm_find(&task->vmm_using, fault_address))
+    {
+        default_irq_handler(stack);
+    }
+    uintptr_t paddr;
+    status_t  status = alloc_physical_page(1, &paddr);
+    if (ERROR(status))
+    {
+        default_irq_handler(stack);
+    }
+    page_map(task->page_dir, (void *)paddr, (void *)fault_address);
+    set_page_table(task->page_dir);
+    return;
+}
 
 PUBLIC void mem_page_init(void)
 {
@@ -239,6 +272,9 @@ PUBLIC void mem_page_init(void)
         bitmap_set(&mem.page_bitmap, i, 0);
         mem.total_free_pages--;
     }
+
+    register_handle(0x0e, do_page_fault);
+
     return;
 }
 
@@ -445,5 +481,11 @@ PUBLIC void set_page_flags(uint64_t *pml4t, void *vaddr, uint64_t flags)
     v_pde = PHYS_TO_VIRT(pde);
     ASSERT(*v_pde & PG_P);
     *v_pde = (*v_pde & ~0xfff) | flags;
+    return;
+}
+
+PUBLIC void set_page_table(void *page_table_pos)
+{
+    set_cr3((uint64_t)page_table_pos);
     return;
 }

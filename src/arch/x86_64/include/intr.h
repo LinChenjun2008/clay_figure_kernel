@@ -50,10 +50,12 @@ typedef enum intr_status_e
     INTR_ON,
 } intr_status_t;
 
+PUBLIC void            default_irq_handler(intr_stack_t *stack);
 PUBLIC void ASMLINKAGE do_irq(intr_stack_t *stack);
 PUBLIC void            intr_init(void);
 PUBLIC void            ap_intr_init(void);
 PUBLIC void register_handle(uint8_t int_vector, void (*handle)(intr_stack_t *));
+PUBLIC void unregister_handle(uint8_t int_vector);
 PUBLIC intr_status_t intr_get_status(void);
 PUBLIC intr_status_t intr_set_status(intr_status_t status);
 PUBLIC intr_status_t intr_enable(void);
