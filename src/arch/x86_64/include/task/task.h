@@ -70,9 +70,10 @@ typedef struct task_context_s
 
 typedef struct task_struct_s
 {
-    task_context_t *context;     // 任务上下文
-    uintptr_t       kstack_base; // 内核栈基地值
-    size_t          kstack_size; // 内核栈大小(字节)
+    task_context_t *context; // 任务上下文
+
+    uintptr_t kstack_base; // 内核栈基地值
+    size_t    kstack_size; // 内核栈大小(字节)
 
     uintptr_t ustack_base; // 用户栈基址(如果有)
     size_t    ustack_size; // 用户栈大小(如果有)
@@ -231,6 +232,27 @@ PUBLIC task_struct_t *task_start(
     uint64_t    arg
 );
 
+/**
+ * @brief 结束任务
+ * @param ret_val 任务返回值
+ * @return
+ */
+PUBLIC void task_exit(int ret_val);
+
+/**
+ * @brief 回收任务所有的资源
+ * @param pid
+ * @return
+ */
+PUBLIC void task_release_resource(pid_t pid);
+
+/**
+ * @brief 创建idle任务
+ * @param
+ * @return
+ */
+PUBLIC void create_idle_task(void);
+
 PUBLIC void task_init(void);
 
 /// schedule.c
@@ -296,6 +318,13 @@ PUBLIC void update_tss_rsp0(task_struct_t *task);
 /// proc.c
 
 /**
+ * @brief 激活任务的页表
+ * @param task
+ * @return
+ */
+PUBLIC void page_table_activate(task_struct_t *task);
+
+/**
  * @brief 激活任务的页表,更新tss的rsp0,设置gs_base
  * @param task
  * @return
@@ -317,6 +346,13 @@ PUBLIC task_struct_t *proc_execute(
     size_t      kstack_size,
     void       *proc
 );
+
+/**
+ * @brief 结束用户进程,回收proc_execute阶段分配的资源
+ * @param ret_val 返回值
+ * @return
+ */
+PUBLIC void proc_exit(int ret_val);
 
 #endif /* __ASM_INCLUDE__ */
 

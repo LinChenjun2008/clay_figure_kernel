@@ -32,17 +32,19 @@ PUBLIC void keyboard_main(void);
 // Kernel services                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-// task
+#define KERN_EXIT           0
 #define KERN_GET_PID        1
 #define KERN_CREATE_PROCESS 2
-#define KERN_EXIT           3
+#define KERN_FORK           3
+#define KERN_WAIT           4
+#define KERN_WAITPID        5
+#define KERN_ALLOCATE_PAGE  6
+#define KERN_FREE_PAGE      7
+#define KERN_MMAP           8
+#define KERN_MUNMAP         9
+#define KERN_READ_TASK_MEM  10
 
-// memory
-#define KERN_ALLOCATE_PAGE 4
-#define KERN_FREE_PAGE     5
-#define KERN_MMAP          6
-#define KERN_MUNMAP        7
-#define KERN_READ_TASK_MEM 8
+#define KERN_SYSCALLS 11
 
 PUBLIC syscall_status_t kernel_services(message_t *msg);
 

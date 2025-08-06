@@ -25,7 +25,8 @@ PRIVATE void kernel_task(uintptr_t func, uint64_t arg)
     intr_enable();
     sse_init();
     ((void (*)(uint64_t))func)(arg);
-    /// TODO: Exit process
+
+    task_exit(0);
     while (1) continue;
     return;
 }
@@ -192,15 +193,15 @@ PUBLIC task_struct_t *task_start(
     {
         return NULL;
     }
-    void    *kstack_base;
-    status_t status = kmalloc(kstack_size, 0, 0, &kstack_base);
+    uintptr_t kstack_base;
+    status_t  status = kmalloc(kstack_size, 0, 0, &kstack_base);
     if (ERROR(status))
     {
         task_free(task);
         return NULL;
     }
 
-    init_task_struct(task, name, priority, (uintptr_t)kstack_base, kstack_size);
+    init_task_struct(task, name, priority, kstack_base, kstack_size);
     create_task_struct(task, func, arg);
 
     task_man_t *task_man = get_task_man(task->cpu_id);
@@ -210,10 +211,49 @@ PUBLIC task_struct_t *task_start(
     return task;
 }
 
+PUBLIC void task_exit(int ret_val)
+{
+    task_struct_t *task = running_task();
+
+    /// TODO: 处理未完成的IPC
+
+    // 通知父进程任务退出
+    message_t msg;
+    msg.type  = KERN_EXIT;
+    msg.m1.i1 = ret_val;
+    sys_send_recv(NR_SEND, task->ppid, &msg);
+
+    task_block(TASK_DIED);
+    return;
+}
+
+PUBLIC void task_release_resource(pid_t pid)
+{
+    task_struct_t *task = pid_to_task(pid);
+
+    while (task->status != TASK_DIED) continue;
+
+    kfree(task->fxsave_region);
+    kfree((void *)task->kstack_base);
+    task_free(task);
+    return;
+}
+
+PRIVATE void idle_task()
+{
+    while (1)
+    {
+        task_block(TASK_BLOCKED);
+    }
+    return;
+}
+
 PRIVATE void make_main_task(void)
 {
     task_struct_t *main_task = task_alloc();
+    main_task->cpu_id        = apic_id();
     wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)main_task);
+
     init_task_struct(
         main_task,
         "Main task",
@@ -221,12 +261,18 @@ PRIVATE void make_main_task(void)
         (uintptr_t)PHYS_TO_VIRT(KERNEL_STACK_BASE),
         KERNEL_STACK_SIZE
     );
-    main_task->cpu_id    = apic_id();
-    task_man_t *task_man = get_task_man(main_task->cpu_id);
-    task_man->idle_task  = main_task;
-    spinlock_lock(&task_man->task_list_lock);
-    task_list_insert(task_man, main_task);
-    spinlock_unlock(&task_man->task_list_lock);
+    main_task->status = TASK_RUNNING; // main_task已经在运行
+    return;
+}
+
+PUBLIC void create_idle_task(void)
+{
+    task_struct_t *task     = running_task();
+    task_man_t    *task_man = get_task_man(task->cpu_id);
+
+    task_struct_t *idle;
+    idle = task_start("idle", DEFAULT_PRIORITY, 4096, idle_task, 0);
+    task_man->idle_task = idle;
 
     return;
 }
@@ -263,5 +309,6 @@ PUBLIC void task_init(void)
     init_spinlock(&global_task_man->tasks_lock);
 
     make_main_task();
+    create_idle_task();
     return;
 }

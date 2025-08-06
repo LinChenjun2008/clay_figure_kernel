@@ -91,9 +91,7 @@ PRIVATE void check_send_recv_list(task_man_t *task_man)
         if (task_ipc_check(task->pid))
         {
             list_remove(node);
-            spinlock_lock(&task_man->task_list_lock);
-            task_list_insert(task_man, task);
-            spinlock_unlock(&task_man->task_list_lock);
+            task_unblock(task->pid);
         }
     } while (node_next != list_tail(&task_man->send_recv_list));
     return;
@@ -108,6 +106,7 @@ PRIVATE task_struct_t *get_next_task(task_man_t *task_man)
 {
     list_t      *list = &task_man->task_list;
     list_node_t *node = NULL;
+
     if (!list_empty(list))
     {
         node = list_pop(list);

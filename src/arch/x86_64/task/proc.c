@@ -15,11 +15,13 @@
 #include <std/string.h>     // memset,memcpy
 #include <task/task.h>      // task struct & functions,spinlock
 
-PRIVATE void proc_exit(int (*func)(void *), uint64_t arg)
+PRIVATE void proc_start(int (*func)(void *), uint64_t arg)
 {
-    // int ret_value = func((void *)arg);
-    func((void *)arg);
-    /// TODO: Exit process
+    int       ret_value = func((void *)arg);
+    message_t msg;
+    msg.type  = KERN_EXIT;
+    msg.m1.i1 = ret_value;
+    send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     while (1) continue;
 }
 
@@ -48,19 +50,19 @@ PRIVATE void start_process(void *process)
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Alloc User Stack error.\n");
-        /// TODO: Exit process
+        proc_exit(-1);
         PR_LOG(LOG_FATAL, "Shuold not be here.");
         while (1) continue;
     }
     cur->ustack_base = ustack;
     cur->ustack_size = PG_SIZE;
     page_map(cur->page_dir, (void *)ustack, (void *)USER_STACK_VADDR_BASE);
-    set_page_table(cur->page_dir);
+    page_table_activate(cur);
 
     uint64_t kstack = (uint64_t)cur->context;
     kstack += sizeof(task_context_t);
     asm_switch_to_user(
-        proc_exit,
+        proc_start,
         func,
         kstack,
         USER_STACK_VADDR_BASE + PG_SIZE,
@@ -70,7 +72,7 @@ PRIVATE void start_process(void *process)
     return; // 应该永远不会到这里
 }
 
-PRIVATE void page_dir_activate(task_struct_t *task)
+PUBLIC void page_table_activate(task_struct_t *task)
 {
     void *page_dir_table_pos = (void *)KERNEL_PAGE_DIR_TABLE_POS;
     if (task->page_dir != NULL)
@@ -83,7 +85,7 @@ PRIVATE void page_dir_activate(task_struct_t *task)
 
 PUBLIC void proc_activate(task_struct_t *task)
 {
-    page_dir_activate(task);
+    page_table_activate(task);
     if (task->page_dir != NULL)
     {
         update_tss_rsp0(task);
@@ -131,6 +133,13 @@ PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
         return status;
     }
     vmm_struct_init(&task->vmm_using, blocks, total_blocks);
+    return K_SUCCESS;
+}
+
+PRIVATE status_t free_user_vaddr_table(task_struct_t *task)
+{
+    kfree(task->vmm_free.blocks);
+    kfree(task->vmm_using.blocks);
     return K_SUCCESS;
 }
 
@@ -182,8 +191,26 @@ PUBLIC task_struct_t *proc_execute(
     return task;
 
 fail:
-    kfree(kstack_base);
+    free_user_vaddr_table(task);
     kfree(PHYS_TO_VIRT(task->page_dir));
+    kfree(kstack_base);
     task_free(task);
     return NULL;
+}
+
+PUBLIC void proc_exit(int ret_val)
+{
+    task_struct_t *task   = running_task();
+    void          *pg_dir = task->page_dir;
+
+    free_physical_page((void *)task->ustack_base, 1);
+    // 使用内核页表,以便回收任务自身的页表
+    task->page_dir = NULL;
+    page_table_activate(task);
+
+    free_page_table(pg_dir);
+    free_user_vaddr_table(task);
+
+    task_exit(ret_val);
+    return;
 }

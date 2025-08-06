@@ -140,7 +140,7 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
         default_irq_handler(stack);
     }
     page_map(task->page_dir, (void *)paddr, (void *)fault_address);
-    set_page_table(task->page_dir);
+    page_table_activate(task);
     return;
 }
 
@@ -487,5 +487,55 @@ PUBLIC void set_page_flags(uint64_t *pml4t, void *vaddr, uint64_t flags)
 PUBLIC void set_page_table(void *page_table_pos)
 {
     set_cr3((uint64_t)page_table_pos);
+    return;
+}
+
+PRIVATE void free_pdt(uintptr_t pdt)
+{
+    uint64_t *v_pdt = PHYS_TO_VIRT(pdt);
+    void     *paddr = NULL;
+
+    int i;
+    for (i = 0; i < 512; i++)
+    {
+        if (v_pdt[i] & PG_P)
+        {
+            paddr = (void *)(v_pdt[i] & (~0xfff));
+            free_physical_page(paddr, 1);
+        }
+    }
+    kfree(v_pdt);
+    return;
+}
+
+PRIVATE void free_pdpt(uintptr_t pdpt)
+{
+    uint64_t *v_pdpt = PHYS_TO_VIRT(pdpt);
+
+    int i;
+    for (i = 0; i < 512; i++)
+    {
+        if (v_pdpt[i] & PG_P)
+        {
+            free_pdt(v_pdpt[i] & (~0xfff));
+        }
+    }
+    kfree(v_pdpt);
+    return;
+}
+
+PUBLIC void free_page_table(uint64_t *pml4t)
+{
+    uint64_t *v_pml4t = PHYS_TO_VIRT(pml4t);
+
+    int i;
+    for (i = 0; i < 256; i++) // 仅限用户空间
+    {
+        if (v_pml4t[i] & PG_P)
+        {
+            free_pdpt(v_pml4t[i] & (~0xfff));
+        }
+    }
+    kfree(v_pml4t);
     return;
 }

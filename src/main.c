@@ -46,7 +46,7 @@ PRIVATE void ktask(void)
         uint32_t *buf = allocate_page();
         if (buf == NULL)
         {
-            continue;
+            return;
         }
         gi.frame_buffer_base = (uintptr_t)buf;
 
@@ -69,9 +69,15 @@ PRIVATE void ktask(void)
 PUBLIC void kernel_main(void)
 {
     init_all();
+
+    message_t msg;
     while (1)
     {
-        task_block(TASK_BLOCKED);
+        sys_send_recv(NR_RECV, RECV_FROM_ANY, &msg);
+        if (msg.type == KERN_EXIT)
+        {
+            task_release_resource(msg.src);
+        }
     };
 }
 
@@ -79,10 +85,15 @@ PUBLIC void ap_kernel_main(void)
 {
     ap_init_all();
     char name[31];
-    sprintf(name, "k task %d", apic_id());
+    sprintf(name, "k task %d", running_task()->cpu_id);
     proc_execute(name, DEFAULT_PRIORITY, 4096, ktask);
+    message_t msg;
     while (1)
     {
-        task_block(TASK_BLOCKED);
+        sys_send_recv(NR_RECV, RECV_FROM_ANY, &msg);
+        if (msg.type == KERN_EXIT)
+        {
+            task_release_resource(msg.src);
+        }
     };
 }

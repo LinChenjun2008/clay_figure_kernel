@@ -114,11 +114,13 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
     b >>= 24;
     pr_msg("CPUID: %d\n", b);
 
-    PANIC(running_task() == NULL, "Can not Get Running Task.");
+    if (running_task() != NULL)
+    {
+        task_struct_t *running = running_task();
+        pr_msg("running task: %s\n", running->name);
+        pr_msg("task context: %p\n", running->context);
+    }
 
-    task_struct_t *running = running_task();
-    pr_msg("running task: %s\n", running->name);
-    pr_msg("task context: %p\n", running->context);
 
     // Backtrace
     for (i = 0; i < 19; i++)
@@ -176,7 +178,7 @@ PUBLIC void default_irq_handler(intr_stack_t *stack)
     task_struct_t *running = running_task();
     if (running->page_dir != NULL)
     {
-        /// TODO: Exit process
+        proc_exit(-1);
     }
     while (1) continue;
 }

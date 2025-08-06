@@ -144,7 +144,6 @@ PUBLIC void init_all(void)
     PR_LOG(LOG_INFO, "System Call initializing ...\n");
     syscall_init();
 
-
     intr_enable();
 
     // Call apic_timer_init() after intr_enable()
@@ -197,7 +196,7 @@ PUBLIC void init_all(void)
     smp_start();
 
     *((uint64_t *)KERNEL_PAGE_DIR_TABLE_POS) = 0;
-    set_page_table((void *)KERNEL_PAGE_DIR_TABLE_POS);
+    page_table_activate(running_task());
     return;
 }
 
@@ -209,7 +208,11 @@ PUBLIC void ap_init_all(void)
     load_gdt();
     load_tss(cpu_id);
 
+    // ap_main_task存储在idle_task中
     wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)get_task_man(cpu_id)->idle_task);
+    running_task()->status = TASK_RUNNING;
+    // 创建真正的idle_task
+    create_idle_task();
 
     ap_intr_init();
     local_apic_init();
@@ -217,6 +220,8 @@ PUBLIC void ap_init_all(void)
 
     sse_enable();
     syscall_init();
+
     intr_enable();
+
     return;
 }
