@@ -13,11 +13,13 @@
 // previous prototype for each function
 PUBLIC syscall_status_t kern_exit(message_t *msg);
 PUBLIC syscall_status_t kern_get_pid(message_t *msg);
+PUBLIC syscall_status_t kern_get_ppid(message_t *msg);
 
 PUBLIC syscall_status_t kern_exit(message_t *msg)
 {
     // in:
     // m1.i1 = return value
+
     msg1_t *m1 = &msg->m1;
 
     proc_exit(m1->i1);
@@ -32,8 +34,23 @@ PUBLIC syscall_status_t kern_get_pid(message_t *msg)
     // out:
     // m1.i1 = current pid
 
-    msg1_t *m1 = &msg->m1;
-    m1->i1     = msg->src;
+    msg1_t        *m1   = &msg->m1;
+    task_struct_t *task = running_task();
+
+    m1->i1 = task->pid; // or msg->src
 
     return SYSCALL_SUCCESS;
+}
+
+PUBLIC syscall_status_t kern_get_ppid(message_t *msg)
+{
+    // out
+    // m1.i1 = ppid
+
+    msg1_t        *m1   = &msg->m1;
+    task_struct_t *task = running_task();
+
+    m1->i1 = task->ppid;
+
+    return K_SUCCESS;
 }
