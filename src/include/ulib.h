@@ -1,6 +1,7 @@
 #ifndef __ULIB_H__
 #define __ULIB_H__
 
+PUBLIC void     exit(int status);
 PUBLIC uint64_t get_ticks(void);
 
 PUBLIC void *allocate_page(void);

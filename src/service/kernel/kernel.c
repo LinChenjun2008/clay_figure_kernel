@@ -26,13 +26,10 @@ PRIVATE kern_syscall_t kern_syscalls[KERN_SYSCALLS] = {
     kern_exit, // exit
     kern_get_pid,
     kern_get_ppid,
-    NULL, //fork
-    NULL, // exec
+    NULL, // create_proc
     NULL, // waitpid
     kern_allocate_page,
     kern_free_page,
-    NULL, // mmap
-    NULL, // munmap
     kern_read_task_mem,
 };
 

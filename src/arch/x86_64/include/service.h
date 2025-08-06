@@ -35,16 +35,13 @@ PUBLIC void keyboard_main(void);
 #define KERN_EXIT          0
 #define KERN_GET_PID       1
 #define KERN_GET_PPID      2
-#define KERN_FORK          3
-#define KERN_EXEC          4
-#define KERN_WAITPID       5
-#define KERN_ALLOCATE_PAGE 6
-#define KERN_FREE_PAGE     7
-#define KERN_MMAP          8
-#define KERN_MUNMAP        9
-#define KERN_READ_TASK_MEM 10
+#define KERN_CREATE_PROC   3
+#define KERN_WAITPID       4
+#define KERN_ALLOCATE_PAGE 5
+#define KERN_FREE_PAGE     6
+#define KERN_READ_TASK_MEM 7
 
-#define KERN_SYSCALLS 11
+#define KERN_SYSCALLS 8
 
 PUBLIC syscall_status_t kernel_services(message_t *msg);
 

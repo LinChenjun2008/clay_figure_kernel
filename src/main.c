@@ -46,7 +46,7 @@ PRIVATE void ktask(void)
         uint32_t *buf = allocate_page();
         if (buf == NULL)
         {
-            return;
+            exit(-1);
         }
         gi.frame_buffer_base = (uintptr_t)buf;
 
