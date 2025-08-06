@@ -91,7 +91,7 @@ PRIVATE void check_send_recv_list(task_man_t *task_man)
         if (task_ipc_check(task->pid))
         {
             list_remove(node);
-            task_unblock(task->pid);
+            task_unblock_sub(task->pid);
         }
     } while (node_next != list_tail(&task_man->send_recv_list));
     return;
@@ -139,12 +139,11 @@ PUBLIC void schedule(void)
     }
 
     intr_status_t intr_status = intr_disable();
+    spinlock_lock(&task_man->task_list_lock);
 
     if (cur_task->status == TASK_RUNNING)
     {
-        spinlock_lock(&task_man->task_list_lock);
         task_list_insert(task_man, cur_task);
-        spinlock_unlock(&task_man->task_list_lock);
     }
 
     if (cur_task->status == TASK_SENDING || cur_task->status == TASK_RECEIVING)
@@ -155,7 +154,6 @@ PUBLIC void schedule(void)
 
     task_struct_t *next = NULL;
 
-    spinlock_lock(&task_man->task_list_lock);
     next = get_next_task(task_man);
     spinlock_unlock(&task_man->task_list_lock);
 
