@@ -8,12 +8,14 @@
 #include <log.h>
 
 #include <kernel/syscall.h>
-#include <task/task.h> // running_task
+#include <std/string.h> // memcpy
+#include <task/task.h>  // running_task
 
 // previous prototype for each function
 PUBLIC syscall_status_t kern_exit(message_t *msg);
 PUBLIC syscall_status_t kern_get_pid(message_t *msg);
 PUBLIC syscall_status_t kern_get_ppid(message_t *msg);
+PUBLIC syscall_status_t kern_create_proc(message_t *msg);
 
 PUBLIC syscall_status_t kern_exit(message_t *msg)
 {
@@ -26,7 +28,7 @@ PUBLIC syscall_status_t kern_exit(message_t *msg)
     while (1);
 
     // Never return
-    return K_ERROR;
+    return SYSCALL_ERROR;
 }
 
 PUBLIC syscall_status_t kern_get_pid(message_t *msg)
@@ -52,5 +54,22 @@ PUBLIC syscall_status_t kern_get_ppid(message_t *msg)
 
     m1->i1 = task->ppid;
 
-    return K_SUCCESS;
+    return SYSCALL_SUCCESS;
+}
+
+PUBLIC syscall_status_t kern_create_proc(message_t *msg)
+{
+    task_struct_t *task = running_task();
+
+    msg3_t *m3 = &msg->m3;
+    char    name[32];
+    /// TODO: 验证地址
+    memcpy(name, m3->p1, 32);
+    name[31] = '\0';
+    task_struct_t *new_task;
+    new_task = proc_execute(name, task->priority, task->kstack_size, m3->p2);
+
+    msg1_t *m1 = &msg->m1;
+    m1->i1     = new_task->pid;
+    return SYSCALL_SUCCESS;
 }

@@ -16,6 +16,7 @@ typedef syscall_status_t (*kern_syscall_t)(message_t *);
 PUBLIC syscall_status_t kern_exit(message_t *msg);
 PUBLIC syscall_status_t kern_get_pid(message_t *msg);
 PUBLIC syscall_status_t kern_get_ppid(message_t *msg);
+PUBLIC syscall_status_t kern_create_proc(message_t *msg);
 
 // kern_mem.c
 PUBLIC syscall_status_t kern_allocate_page(message_t *msg);
@@ -23,10 +24,10 @@ PUBLIC syscall_status_t kern_free_page(message_t *msg);
 PUBLIC syscall_status_t kern_read_task_mem(message_t *msg);
 
 PRIVATE kern_syscall_t kern_syscalls[KERN_SYSCALLS] = {
-    kern_exit, // exit
+    kern_exit,
     kern_get_pid,
     kern_get_ppid,
-    NULL, // create_proc
+    kern_create_proc,
     NULL, // waitpid
     kern_allocate_page,
     kern_free_page,

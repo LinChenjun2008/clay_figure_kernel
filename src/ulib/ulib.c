@@ -14,12 +14,30 @@ PUBLIC void exit(int status)
     return;
 }
 
-PUBLIC uint64_t get_ticks(void)
+PUBLIC int get_pid(void)
 {
     message_t msg;
-    msg.type = TICK_GET_TICKS;
-    send_recv(NR_BOTH, TICK, &msg);
-    return msg.m3.l1;
+    msg.type = KERN_GET_PID;
+    send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
+    return msg.m1.i1;
+}
+
+PUBLIC int get_ppid(void)
+{
+    message_t msg;
+    msg.type = KERN_GET_PPID;
+    send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
+    return msg.m1.i1;
+}
+
+PUBLIC int create_process(const char *name, void *proc)
+{
+    message_t msg;
+    msg.type  = KERN_CREATE_PROC;
+    msg.m3.p1 = (void *)name;
+    msg.m3.p2 = proc;
+    send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
+    return msg.m1.i1;
 }
 
 PUBLIC void *allocate_page(void)
@@ -49,6 +67,14 @@ PUBLIC void read_task_addr(pid_t pid, void *addr, size_t size, void *buffer)
     msg.m3.p2 = buffer;
     send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     return;
+}
+
+PUBLIC uint64_t get_ticks(void)
+{
+    message_t msg;
+    msg.type = TICK_GET_TICKS;
+    send_recv(NR_BOTH, TICK, &msg);
+    return msg.m3.l1;
 }
 
 PUBLIC void fill(
