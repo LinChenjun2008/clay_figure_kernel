@@ -208,10 +208,9 @@ PUBLIC void ap_init_all(void)
     load_gdt();
     load_tss(cpu_id);
 
-    // ap_main_task存储在idle_task中
-    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)get_task_man(cpu_id)->idle_task);
+    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)get_task_man(cpu_id)->main_task);
     running_task()->status = TASK_RUNNING;
-    // 创建真正的idle_task
+
     create_idle_task();
 
     ap_intr_init();

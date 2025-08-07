@@ -35,6 +35,7 @@
 
 #define DEFAULT_PRIORITY NICE_TO_PRIO(0)
 #define SERVICE_PRIORITY NICE_TO_PRIO(-10)
+#define IDLE_PRIORITY    NICE_TO_PRIO(20)
 
 #define TASK_STRUCT_KSTACK_BASE 8
 #define TASK_STRUCT_KSTACK_SIZE 16
@@ -134,6 +135,7 @@ typedef struct task_man_s
     uint64_t       min_vrun_time; // 最小虚拟运行时间
     uint64_t       running_tasks; // task_list中的任务数量
     uint64_t       total_weight;  // task_list中的任务总权重
+    task_struct_t *main_task;
     task_struct_t *idle_task;
 } task_man_t;
 

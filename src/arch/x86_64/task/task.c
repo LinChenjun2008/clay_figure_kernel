@@ -252,6 +252,8 @@ PRIVATE void make_main_task(void)
 {
     task_struct_t *main_task = task_alloc();
     main_task->cpu_id        = apic_id();
+
+    task_man_t *task_man = get_task_man(main_task->cpu_id);
     wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)main_task);
 
     init_task_struct(
@@ -261,7 +263,8 @@ PRIVATE void make_main_task(void)
         (uintptr_t)PHYS_TO_VIRT(KERNEL_STACK_BASE),
         KERNEL_STACK_SIZE
     );
-    main_task->status = TASK_RUNNING; // main_task已经在运行
+    main_task->status   = TASK_RUNNING; // main_task已经在运行
+    task_man->main_task = main_task;
     return;
 }
 
@@ -270,8 +273,7 @@ PUBLIC void create_idle_task(void)
     task_struct_t *task     = running_task();
     task_man_t    *task_man = get_task_man(task->cpu_id);
 
-    task_struct_t *idle;
-    idle = task_start("idle", DEFAULT_PRIORITY, 4096, idle_task, 0);
+    task_struct_t *idle = task_start("idle", IDLE_PRIORITY, 4096, idle_task, 0);
     task_man->idle_task = idle;
 
     return;
@@ -304,6 +306,7 @@ PUBLIC void task_init(void)
         task_man->min_vrun_time = 0;
         task_man->running_tasks = 0;
         task_man->total_weight  = 0;
+        task_man->main_task     = NULL;
         task_man->idle_task     = NULL;
     }
     init_spinlock(&global_task_man->tasks_lock);

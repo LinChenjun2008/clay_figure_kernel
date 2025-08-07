@@ -8,10 +8,8 @@
 .global send_recv
 .type send_recv,@function
 send_recv:
-    pushq %r10
-    movq %rcx, %r10 // save rcx in r10
+    xchgq %rcx, %r10 // save rcx in r10
     syscall
-    popq %r10
     retq
 
 .global syscall_entry
@@ -19,9 +17,9 @@ send_recv:
 syscall_entry:
     // user stack
     pushq %rbp
-    pushq %rcx      // origin rip
-    pushq %r11      // origin rflags
-    movq %r10, %rcx // restore rcx
+    pushq %rcx       // origin rip
+    pushq %r11       // origin rflags
+    xchgq %rcx, %r10 // restore rcx
 
     // switch to kernel stack
     swapgs

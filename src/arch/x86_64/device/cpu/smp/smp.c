@@ -87,9 +87,7 @@ PUBLIC status_t smp_init(void)
         );
         ap_main_task->cpu_id = i;
         task_man_t *task_man = get_task_man(i);
-
-        // 临时设为idle_task,以便ap获取自身的task_struct
-        task_man->idle_task = ap_main_task;
+        task_man->main_task  = ap_main_task;
     }
 
     // register IPI
