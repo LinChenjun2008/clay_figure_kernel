@@ -16,6 +16,7 @@ PUBLIC syscall_status_t kern_exit(message_t *msg);
 PUBLIC syscall_status_t kern_get_pid(message_t *msg);
 PUBLIC syscall_status_t kern_get_ppid(message_t *msg);
 PUBLIC syscall_status_t kern_create_proc(message_t *msg);
+PUBLIC syscall_status_t kern_waitpid(message_t *msg);
 
 PUBLIC syscall_status_t kern_exit(message_t *msg)
 {
@@ -59,10 +60,10 @@ PUBLIC syscall_status_t kern_get_ppid(message_t *msg)
 
 PUBLIC syscall_status_t kern_create_proc(message_t *msg)
 {
+    msg3_t        *m3   = &msg->m3;
     task_struct_t *task = running_task();
 
-    msg3_t *m3 = &msg->m3;
-    char    name[32];
+    char name[32];
     /// TODO: 验证地址
     memcpy(name, m3->p1, 32);
     name[31] = '\0';
@@ -71,5 +72,71 @@ PUBLIC syscall_status_t kern_create_proc(message_t *msg)
 
     msg1_t *m1 = &msg->m1;
     m1->i1     = new_task->pid;
+    return SYSCALL_SUCCESS;
+}
+
+PRIVATE int find_child(list_node_t *node, uint64_t arg)
+{
+    task_struct_t *child;
+    child = CONTAINER_OF(task_struct_t, general_tag, node);
+    if (child->pid == (pid_t)arg)
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+PUBLIC syscall_status_t kern_waitpid(message_t *msg)
+{
+    // in:
+    // m1.i1 = pid
+
+    // out
+    // m1.i1 = return value
+    // m1.i2 = exited child pid
+
+    msg1_t        *m1   = &msg->m1;
+    task_struct_t *task = running_task();
+
+    m1->i2 = 0;
+    if (atomic_read(&task->childs) == 0)
+    {
+        return SYSCALL_ERROR;
+    }
+
+    int has_exited_child;
+    do
+    {
+        spinlock_lock(&task->child_list_lock);
+        has_exited_child = !list_empty(&task->exited_child_list);
+        spinlock_unlock(&task->child_list_lock);
+    } while (!has_exited_child);
+
+    pid_t          pid = m1->i1;
+    task_struct_t *child;
+    list_node_t   *child_node;
+    int            ret_val;
+    if (pid == PID_NO_TASK)
+    {
+        spinlock_lock(&task->child_list_lock);
+        child_node = list_pop(&task->exited_child_list);
+        spinlock_unlock(&task->child_list_lock);
+    }
+    else
+    {
+        spinlock_lock(&task->child_list_lock);
+        child_node =
+            list_traversal(&task->exited_child_list, find_child, task->pid);
+        spinlock_unlock(&task->child_list_lock);
+        if (child_node == NULL)
+        {
+            return SYSCALL_SUCCESS;
+        }
+    }
+    child   = CONTAINER_OF(task_struct_t, general_tag, child_node);
+    pid     = child->pid;
+    ret_val = task_release_resource(child->pid);
+    m1->i1  = ret_val;
+    m1->i2  = pid;
     return SYSCALL_SUCCESS;
 }

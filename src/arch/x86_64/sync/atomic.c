@@ -7,10 +7,12 @@
 
 #include <sync/atomic.h> // atomic_t
 
-PUBLIC void atomic_set(atomic_t *atom, uint64_t value)
+extern uint64_t ASMLINKAGE
+asm_atomic_xchg(volatile uint64_t *atom, uint64_t value);
+
+PUBLIC uint64_t atomic_set(atomic_t *atom, uint64_t value)
 {
-    atom->value = value;
-    return;
+    return asm_atomic_xchg(&atom->value, value);
 }
 
 PUBLIC uint64_t atomic_read(atomic_t *atom)

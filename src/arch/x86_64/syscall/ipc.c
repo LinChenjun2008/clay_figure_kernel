@@ -96,6 +96,12 @@ PRIVATE int received_from_any_task(pid_t pid)
     return ret;
 }
 
+PRIVATE int received_from_intr(pid_t pid)
+{
+    task_struct_t *receiver = pid_to_task(pid);
+    return receiver->has_intr_msg;
+}
+
 /**
  * @brief 检测是否收到了任意消息
  * @param pid pid
@@ -103,8 +109,7 @@ PRIVATE int received_from_any_task(pid_t pid)
  */
 PRIVATE int received_any_message(pid_t pid)
 {
-    task_struct_t *receiver = pid_to_task(pid);
-    return receiver->has_intr_msg || received_from_any_task(pid);
+    return received_from_intr(pid) || received_from_any_task(pid);
 }
 
 /**
@@ -147,7 +152,7 @@ PUBLIC syscall_status_t msg_recv(pid_t src, message_t *msg)
 
     if (src == RECV_FROM_ANY || src == RECV_FROM_INT)
     {
-        if (receiver->has_intr_msg)
+        if (received_from_intr(receiver->pid))
         {
             receiver->recv_from    = PID_NO_TASK;
             receiver->has_intr_msg = 0;
@@ -186,17 +191,19 @@ PUBLIC int task_ipc_check(pid_t pid)
             return FALSE;
         }
         pid_t recv_from = task->recv_from;
-        if (recv_from != RECV_FROM_ANY)
+
+        if (recv_from == RECV_FROM_INT && !received_from_intr(task->pid))
         {
-            if (recv_from == RECV_FROM_INT && !task->has_intr_msg)
-            {
-                return FALSE;
-            }
+            return FALSE;
+        }
+        if (recv_from >= MIN_PID && recv_from <= MAX_PID)
+        {
             if (!received_from(task->pid, recv_from))
             {
                 return FALSE;
             }
         }
+
         atomic_set(&task->recv_flag, 0);
         return TRUE;
     }

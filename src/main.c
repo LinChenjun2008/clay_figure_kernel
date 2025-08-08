@@ -73,11 +73,9 @@ PUBLIC void kernel_main(void)
     message_t msg;
     while (1)
     {
-        sys_send_recv(NR_RECV, RECV_FROM_ANY, &msg);
-        if (msg.type == KERN_EXIT)
-        {
-            task_release_resource(msg.src);
-        }
+        msg.type  = KERN_WAITPID;
+        msg.m1.i1 = PID_NO_TASK;
+        sys_send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     };
 }
 
@@ -87,13 +85,12 @@ PUBLIC void ap_kernel_main(void)
     char name[31];
     sprintf(name, "k task %d", running_task()->cpu_id);
     proc_execute(name, DEFAULT_PRIORITY, 4096, ktask);
+
     message_t msg;
     while (1)
     {
-        sys_send_recv(NR_RECV, RECV_FROM_ANY, &msg);
-        if (msg.type == KERN_EXIT)
-        {
-            task_release_resource(msg.src);
-        }
+        msg.type  = KERN_WAITPID;
+        msg.m1.i1 = PID_NO_TASK;
+        sys_send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     };
 }

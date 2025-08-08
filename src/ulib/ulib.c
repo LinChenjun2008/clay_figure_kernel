@@ -44,7 +44,12 @@ PUBLIC void *allocate_page(void)
 {
     message_t msg;
     msg.type = KERN_ALLOCATE_PAGE;
-    send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
+    syscall_status_t status;
+    status = send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
+    if (status != SYSCALL_SUCCESS)
+    {
+        return NULL;
+    }
     return msg.m2.p1;
 }
 

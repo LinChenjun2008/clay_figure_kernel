@@ -11,7 +11,7 @@ typedef struct atomic_s
     volatile uint64_t value;
 } atomic_t;
 
-PUBLIC void     atomic_set(atomic_t *atom, uint64_t value);
+PUBLIC uint64_t atomic_set(atomic_t *atom, uint64_t value);
 PUBLIC uint64_t atomic_read(atomic_t *atom);
 PUBLIC void     atomic_add(atomic_t *atom, uint64_t value);
 PUBLIC void     atomic_sub(atomic_t *atom, uint64_t value);

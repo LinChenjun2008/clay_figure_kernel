@@ -122,6 +122,7 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
     uintptr_t      fault_address = get_cr2();
     uintptr_t      cr3           = get_cr3();
 
+    uintptr_t fault_page = fault_address & ~(PG_SIZE - 1);
     // 内核任务 - 错误
     if (cr3 == KERNEL_PAGE_DIR_TABLE_POS)
     {
@@ -129,7 +130,7 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
     }
 
     // 未分配地址 - 错误
-    if (!vmm_find(&task->vmm_using, fault_address))
+    if (!vmm_find(&task->vmm_using, fault_page))
     {
         default_irq_handler(stack);
     }
@@ -139,7 +140,7 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
     {
         default_irq_handler(stack);
     }
-    page_map(task->page_dir, (void *)paddr, (void *)fault_address);
+    page_map(task->page_dir, (void *)paddr, (void *)fault_page);
     page_table_activate(task);
     return;
 }

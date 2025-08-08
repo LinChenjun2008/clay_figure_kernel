@@ -111,6 +111,37 @@ PUBLIC void task_free(task_struct_t *task)
     return;
 }
 
+PRIVATE void main_task_adopt_child(pid_t ppid)
+{
+    task_struct_t *child_task;
+    task_man_t    *task_man;
+
+    task_struct_t *parent_task = pid_to_task(ppid);
+
+    // 防止在此期间还有子任务退出
+    spinlock_lock(&parent_task->child_list_lock);
+    pid_t i;
+    for (i = MIN_PID; i <= MAX_PID; i++)
+    {
+        child_task = pid_to_task(i);
+        if (child_task != NULL && child_task->ppid == ppid)
+        {
+            task_man         = get_task_man(child_task->cpu_id);
+            child_task->ppid = task_man->main_task->pid;
+        }
+    }
+    // 已退出的子任务也转给main_task
+    while (!list_empty(&parent_task->exited_child_list))
+    {
+        list_node_t *node = list_pop(&parent_task->exited_child_list);
+        spinlock_lock(&task_man->main_task->child_list_lock);
+        list_append(&task_man->main_task->exited_child_list, node);
+        spinlock_unlock(&task_man->main_task->child_list_lock);
+    }
+    spinlock_unlock(&parent_task->child_list_lock);
+    return;
+}
+
 PUBLIC status_t init_task_struct(
     task_struct_t *task,
     const char    *name,
@@ -135,12 +166,12 @@ PUBLIC status_t init_task_struct(
 
     task->status        = TASK_READY;
     task->preempt_count = 0;
-    task->priority      = priority;
-    task->run_time      = 0;
-    task->vrun_time     = 0; // 将由task_update设置
+    task->cpu_id        = running_task()->cpu_id;
+    task->page_dir      = NULL;
 
-    task->cpu_id   = running_task()->cpu_id;
-    task->page_dir = NULL;
+    task->priority  = priority;
+    task->run_time  = 0;
+    task->vrun_time = 0; // 将由task_update设置
 
     task->send_to   = PID_NO_TASK;
     task->recv_from = PID_NO_TASK;
@@ -150,6 +181,11 @@ PUBLIC status_t init_task_struct(
     task->has_intr_msg = 0;
     init_spinlock(&task->send_lock);
     init_list(&task->sender_list);
+
+    atomic_set(&task->childs, 0);
+    init_spinlock(&task->child_list_lock);
+    init_list(&task->exited_child_list);
+    task->return_value = 0;
 
     fxsave_region_t *fxsave_region;
     status_t         status;
@@ -204,6 +240,9 @@ PUBLIC task_struct_t *task_start(
     init_task_struct(task, name, priority, kstack_base, kstack_size);
     create_task_struct(task, func, arg);
 
+    task_struct_t *parent_task = pid_to_task(task->ppid);
+    atomic_inc(&parent_task->childs);
+
     task_man_t *task_man = get_task_man(task->cpu_id);
     spinlock_lock(&task_man->task_list_lock);
     task_list_insert(task_man, task);
@@ -214,29 +253,30 @@ PUBLIC task_struct_t *task_start(
 PUBLIC void task_exit(int ret_val)
 {
     task_struct_t *task = running_task();
+    task->return_value  = ret_val;
 
     /// TODO: 处理未完成的IPC
 
+    main_task_adopt_child(task->pid);
     // 通知父进程任务退出
-    message_t msg;
-    msg.type  = KERN_EXIT;
-    msg.m1.i1 = ret_val;
-    sys_send_recv(NR_SEND, task->ppid, &msg);
-
     task_block(TASK_DIED);
     return;
 }
 
-PUBLIC void task_release_resource(pid_t pid)
+PUBLIC int task_release_resource(pid_t pid)
 {
-    task_struct_t *task = pid_to_task(pid);
-
-    while (task->status != TASK_DIED) continue;
-
+    task_struct_t *task        = pid_to_task(pid);
+    task_struct_t *parent_task = pid_to_task(task->ppid);
+    ASSERT(parent_task->pid == running_task()->pid);
     kfree(task->fxsave_region);
     kfree((void *)task->kstack_base);
+    // 获取返回值
+    int return_value = task->return_value;
+
+    atomic_dec(&parent_task->childs);
+
     task_free(task);
-    return;
+    return return_value;
 }
 
 PRIVATE void idle_task()

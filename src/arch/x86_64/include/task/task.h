@@ -21,6 +21,9 @@
 // 最大支持的任务数
 #define TASKS 4096
 
+// PID的最小值
+#define MIN_PID 0
+
 // PID的最大值
 #define MAX_PID (TASKS - 1)
 
@@ -85,14 +88,14 @@ typedef struct task_struct_s
     char                   name[32];      // 任务名
     volatile task_status_t status;        // 任务状态
     uint64_t               preempt_count; // 抢占计数
-    uint64_t               priority;      // 任务优先级
-    uint64_t               run_time;      // 任务运行时间(总计)
-    uint64_t               vrun_time;     // 虚拟运行时间
+    uint64_t               cpu_id;        // 任务所在cpu的id
+    uint64_t              *page_dir;      // 任务页表地址(物理地址)
+    list_node_t            general_tag;   // 任务在任务列表中的节点
 
-    list_node_t general_tag; // 任务在任务列表中的节点
+    uint64_t priority;  // 任务优先级
+    uint64_t run_time;  // 任务运行时间(总计)
+    uint64_t vrun_time; // 虚拟运行时间
 
-    uint64_t     cpu_id;    // 任务所在cpu的id
-    uint64_t    *page_dir;  // 任务页表地址(物理地址)
     vmm_struct_t vmm_free;  // 任务可以使用的虚拟地址表
     vmm_struct_t vmm_using; // 任务正在使用的虚拟地址表
 
@@ -103,10 +106,15 @@ typedef struct task_struct_s
     atomic_t send_flag; // 任务发送消息的状态标志
     atomic_t recv_flag; // 任务接收消息的状态标志
 
-    uint8_t     has_intr_msg; // 任务如果有来自中断的消息,由此变量记录
-    spinlock_t  send_lock;    // 要操作任务的sender_list时需要获取此锁
+    uint32_t    has_intr_msg; // 任务如果有来自中断的消息,由此变量记录
+    spinlock_t  send_lock;    // 操作任务的sender_list时需要获取此锁
     list_t      sender_list;  // 向任务发送消息的所有任务列表
     list_node_t send_tag; // 向其他任务发送消息时,用于加入目标任务的sender_list
+
+    atomic_t   childs; // 子任务数量总计
+    spinlock_t child_list_lock;
+    list_t     exited_child_list; // 子任务退出时将自身general_tag加入此列表
+    int        return_value;      // 任务结束时的返回值
 
     fxsave_region_t *fxsave_region; // 用于fxsave/fxrstor指令
 } task_struct_t;
@@ -246,7 +254,7 @@ PUBLIC void task_exit(int ret_val);
  * @param pid
  * @return
  */
-PUBLIC void task_release_resource(pid_t pid);
+PUBLIC int task_release_resource(pid_t pid);
 
 /**
  * @brief 创建idle任务

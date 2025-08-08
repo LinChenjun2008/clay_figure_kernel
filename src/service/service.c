@@ -24,7 +24,7 @@ PRIVATE struct
     { 1, KBD_SRV, "Keyboard Services", 4096, keyboard_main },
 };
 
-PRIVATE pid_t service_pid_table[SERVICES];
+PRIVATE pid_t service_pid_table[SERVICES] = { PID_NO_TASK };
 
 PUBLIC bool is_service_id(uint32_t sid)
 {

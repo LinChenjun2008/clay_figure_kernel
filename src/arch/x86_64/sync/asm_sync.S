@@ -20,6 +20,13 @@ asm_spinlock_lock:
     .done:
     ret
 
+.global asm_atomic_xchg
+.type asm_atomic_xchg,@function
+asm_atomic_xchg:
+    lock xchgq %rsi,(%rdi)
+    movq %rsi,%rax
+    ret
+
 .global asm_atomic_add
 .type asm_atomic_add,@function
 asm_atomic_add:

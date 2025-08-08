@@ -70,6 +70,17 @@ PUBLIC void task_update(void)
     return;
 }
 
+PRIVATE void inform_exit(pid_t exited_task)
+{
+    task_struct_t *task        = pid_to_task(exited_task);
+    task_struct_t *parent_task = pid_to_task(task->ppid);
+
+    spinlock_lock(&parent_task->child_list_lock);
+    list_append(&parent_task->exited_child_list, &task->general_tag);
+    spinlock_unlock(&parent_task->child_list_lock);
+    return;
+}
+
 /**
  * @brief 检查send_recv_list中是否有可以运行的任务
  * @param task_man
@@ -91,7 +102,7 @@ PRIVATE void check_send_recv_list(task_man_t *task_man)
         if (task_ipc_check(task->pid))
         {
             list_remove(node);
-            task_unblock_sub(task->pid);
+            task_unblock(task->pid);
         }
     } while (node_next != list_tail(&task_man->send_recv_list));
     return;
@@ -139,21 +150,27 @@ PUBLIC void schedule(void)
     }
 
     intr_status_t intr_status = intr_disable();
-    spinlock_lock(&task_man->task_list_lock);
 
     if (cur_task->status == TASK_RUNNING)
     {
+        spinlock_lock(&task_man->task_list_lock);
         task_list_insert(task_man, cur_task);
+        spinlock_unlock(&task_man->task_list_lock);
     }
 
     if (cur_task->status == TASK_SENDING || cur_task->status == TASK_RECEIVING)
     {
         list_append(&task_man->send_recv_list, &cur_task->general_tag);
     }
+    if (cur_task->status == TASK_DIED)
+    {
+        inform_exit(cur_task->pid);
+    }
     check_send_recv_list(task_man);
 
     task_struct_t *next = NULL;
 
+    spinlock_lock(&task_man->task_list_lock);
     next = get_next_task(task_man);
     spinlock_unlock(&task_man->task_list_lock);
 
