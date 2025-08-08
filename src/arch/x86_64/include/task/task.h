@@ -55,6 +55,7 @@ typedef enum task_status_e
     TASK_BLOCKED,   // 任务阻塞
     TASK_SENDING,   // 任务正在发送消息
     TASK_RECEIVING, // 任务正在接收消息
+    TASK_WAITING,   // 等待子任务结束
     TASK_DIED       // 任务结束
 } task_status_t;
 
@@ -136,9 +137,9 @@ typedef struct task_man_s
     list_t     task_list; // 任务队列
     spinlock_t task_list_lock;
 
-    // 正在进行IPC的任务队列
-    // 只能操作各个cpu自己的send_recv_list,因此不用上锁
-    list_t send_recv_list;
+    // 因各种原因需要到特定情况才能继续运行的任务
+    // 只能操作各个cpu自己的waiting_task_list,因此不用上锁
+    list_t waiting_list;
 
     uint64_t       min_vrun_time; // 最小虚拟运行时间
     uint64_t       running_tasks; // task_list中的任务数量
@@ -248,6 +249,13 @@ PUBLIC task_struct_t *task_start(
  * @return
  */
 PUBLIC void task_exit(int ret_val);
+
+/**
+ * @brief 判断任务是否有已结束的子任务
+ * @param pid
+ * @return
+ */
+PUBLIC int task_has_exited_child(pid_t pid);
 
 /**
  * @brief 回收任务所有的资源

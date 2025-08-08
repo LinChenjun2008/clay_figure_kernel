@@ -104,13 +104,11 @@ PUBLIC syscall_status_t kern_waitpid(message_t *msg)
         return SYSCALL_ERROR;
     }
 
-    int has_exited_child;
-    do
+    // 用while防止意外唤醒(但是这种情况不应该发生)
+    while (!task_has_exited_child(task->pid))
     {
-        spinlock_lock(&task->child_list_lock);
-        has_exited_child = !list_empty(&task->exited_child_list);
-        spinlock_unlock(&task->child_list_lock);
-    } while (!has_exited_child);
+        task_block(TASK_WAITING);
+    }
 
     pid_t          pid = m1->i1;
     task_struct_t *child;

@@ -114,7 +114,7 @@ PUBLIC void task_free(task_struct_t *task)
 PRIVATE void main_task_adopt_child(pid_t ppid)
 {
     task_struct_t *child_task;
-    task_man_t    *task_man;
+    task_man_t    *child_task_man;
 
     task_struct_t *parent_task = pid_to_task(ppid);
 
@@ -126,17 +126,19 @@ PRIVATE void main_task_adopt_child(pid_t ppid)
         child_task = pid_to_task(i);
         if (child_task != NULL && child_task->ppid == ppid)
         {
-            task_man         = get_task_man(child_task->cpu_id);
-            child_task->ppid = task_man->main_task->pid;
+            child_task_man   = get_task_man(child_task->cpu_id);
+            child_task->ppid = child_task_man->main_task->pid;
         }
     }
     // 已退出的子任务也转给main_task
     while (!list_empty(&parent_task->exited_child_list))
     {
         list_node_t *node = list_pop(&parent_task->exited_child_list);
-        spinlock_lock(&task_man->main_task->child_list_lock);
-        list_append(&task_man->main_task->exited_child_list, node);
-        spinlock_unlock(&task_man->main_task->child_list_lock);
+        child_task        = CONTAINER_OF(task_struct_t, general_tag, node);
+        child_task_man    = get_task_man(child_task->cpu_id);
+        spinlock_lock(&child_task_man->main_task->child_list_lock);
+        list_append(&child_task_man->main_task->exited_child_list, node);
+        spinlock_unlock(&child_task_man->main_task->child_list_lock);
     }
     spinlock_unlock(&parent_task->child_list_lock);
     return;
@@ -263,6 +265,15 @@ PUBLIC void task_exit(int ret_val)
     return;
 }
 
+PUBLIC int task_has_exited_child(pid_t pid)
+{
+    task_struct_t *task = pid_to_task(pid);
+    spinlock_lock(&task->child_list_lock);
+    int ret = !list_empty(&task->exited_child_list);
+    spinlock_unlock(&task->child_list_lock);
+    return ret;
+}
+
 PUBLIC int task_release_resource(pid_t pid)
 {
     task_struct_t *task        = pid_to_task(pid);
@@ -270,6 +281,7 @@ PUBLIC int task_release_resource(pid_t pid)
     ASSERT(parent_task->pid == running_task()->pid);
     kfree(task->fxsave_region);
     kfree((void *)task->kstack_base);
+
     // 获取返回值
     int return_value = task->return_value;
 
@@ -341,7 +353,7 @@ PUBLIC void task_init(void)
         init_list(&task_man->task_list);
         init_spinlock(&task_man->task_list_lock);
 
-        init_list(&task_man->send_recv_list);
+        init_list(&task_man->waiting_list);
 
         task_man->min_vrun_time = 0;
         task_man->running_tasks = 0;

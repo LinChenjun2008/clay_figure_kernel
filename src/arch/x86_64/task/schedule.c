@@ -82,29 +82,38 @@ PRIVATE void inform_exit(pid_t exited_task)
 }
 
 /**
- * @brief 检查send_recv_list中是否有可以运行的任务
+ * @brief 检查waiting_list中是否有可以运行的任务
  * @param task_man
  * @return
  */
-PRIVATE void check_send_recv_list(task_man_t *task_man)
+PRIVATE void check_waiting_list(task_man_t *task_man)
 {
-    if (list_empty(&task_man->send_recv_list))
+    if (list_empty(&task_man->waiting_list))
     {
         return;
     }
-    list_node_t *node      = list_head(&task_man->send_recv_list);
+    list_node_t *node      = list_head(&task_man->waiting_list);
     list_node_t *node_next = list_next(node);
     do
     {
         node                = node_next;
         node_next           = list_next(node);
         task_struct_t *task = CONTAINER_OF(task_struct_t, general_tag, node);
-        if (task_ipc_check(task->pid))
+        task_status_t  stat = task->status;
+
+        int ipc_check        = task_ipc_check(task->pid);
+        int has_exited_child = task_has_exited_child(task->pid);
+        if ((stat == TASK_SENDING || stat == TASK_RECEIVING) && !ipc_check)
         {
-            list_remove(node);
-            task_unblock(task->pid);
+            continue;
         }
-    } while (node_next != list_tail(&task_man->send_recv_list));
+        if (task->status == TASK_WAITING && !has_exited_child)
+        {
+            continue;
+        }
+        list_remove(node);
+        task_unblock(task->pid);
+    } while (node_next != list_tail(&task_man->waiting_list));
     return;
 }
 
@@ -151,22 +160,28 @@ PUBLIC void schedule(void)
 
     intr_status_t intr_status = intr_disable();
 
-    if (cur_task->status == TASK_RUNNING)
+    switch (cur_task->status)
     {
-        spinlock_lock(&task_man->task_list_lock);
-        task_list_insert(task_man, cur_task);
-        spinlock_unlock(&task_man->task_list_lock);
-    }
+        case TASK_RUNNING:
+            spinlock_lock(&task_man->task_list_lock);
+            task_list_insert(task_man, cur_task);
+            spinlock_unlock(&task_man->task_list_lock);
+            break;
 
-    if (cur_task->status == TASK_SENDING || cur_task->status == TASK_RECEIVING)
-    {
-        list_append(&task_man->send_recv_list, &cur_task->general_tag);
+        case TASK_SENDING:
+        case TASK_RECEIVING:
+        case TASK_WAITING:
+            list_append(&task_man->waiting_list, &cur_task->general_tag);
+            break;
+
+        case TASK_DIED:
+            inform_exit(cur_task->pid);
+            break;
+
+        default:
+            break;
     }
-    if (cur_task->status == TASK_DIED)
-    {
-        inform_exit(cur_task->pid);
-    }
-    check_send_recv_list(task_man);
+    check_waiting_list(task_man);
 
     task_struct_t *next = NULL;
 
