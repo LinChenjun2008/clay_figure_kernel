@@ -13,7 +13,6 @@
 #define NR_RECV (0x80000000 | FUNC_RECV)
 #define NR_BOTH (0x80000000 | FUNC_SEND | FUNC_RECV)
 
-
 #define SEND_TO_KERNEL -1
 #define RECV_FROM_INT  -2
 #define RECV_FROM_ANY  -3
@@ -25,44 +24,11 @@
 #define SYSCALL_DEST_NOT_EXIST 4
 #define SYSCALL_SRC_NOT_EXIST  5
 
-typedef struct msg1_s
-{
-    uint32_t i1;
-    uint32_t i2;
-    uint32_t i3;
-    uint32_t i4;
-} msg1_t;
-
-typedef struct msg2_s
-{
-    void *p1;
-    void *p2;
-    void *p3;
-    void *p4;
-} msg2_t;
-
-typedef struct msg3_s
-{
-    uint32_t i1;
-    uint32_t i2;
-    uint32_t i3;
-    uint32_t i4;
-    uint64_t l1;
-    uint64_t l2;
-    void    *p1;
-    void    *p2;
-} msg3_t;
-
 typedef struct message_s
 {
     volatile pid_t    src;
     volatile uint32_t type;
-    union
-    {
-        msg1_t m1;
-        msg2_t m2;
-        msg3_t m3;
-    };
+    uint64_t          m[8];
 } message_t;
 
 typedef uint32_t syscall_status_t;

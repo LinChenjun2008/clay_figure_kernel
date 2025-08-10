@@ -220,6 +220,7 @@ PUBLIC void keyboard_main(void)
     message_t msg;
     while (1)
     {
+        memset(&msg, 0, sizeof(msg));
         sys_send_recv(NR_RECV, RECV_FROM_ANY, &msg);
         switch (msg.type)
         {

@@ -187,7 +187,7 @@ PUBLIC status_t init_task_struct(
     atomic_set(&task->childs, 0);
     init_spinlock(&task->child_list_lock);
     init_list(&task->exited_child_list);
-    task->return_value = 0;
+    task->return_status = 0;
 
     fxsave_region_t *fxsave_region;
     status_t         status;
@@ -252,10 +252,10 @@ PUBLIC task_struct_t *task_start(
     return task;
 }
 
-PUBLIC void task_exit(int ret_val)
+PUBLIC void task_exit(int status)
 {
     task_struct_t *task = running_task();
-    task->return_value  = ret_val;
+    task->return_status = status;
 
     /// TODO: 处理未完成的IPC
 
@@ -283,12 +283,12 @@ PUBLIC int task_release_resource(pid_t pid)
     kfree((void *)task->kstack_base);
 
     // 获取返回值
-    int return_value = task->return_value;
+    int return_status = task->return_status;
 
     atomic_dec(&parent_task->childs);
 
     task_free(task);
-    return return_value;
+    return return_status;
 }
 
 PRIVATE void idle_task()

@@ -115,7 +115,7 @@ typedef struct task_struct_s
     atomic_t   childs; // 子任务数量总计
     spinlock_t child_list_lock;
     list_t     exited_child_list; // 子任务退出时将自身general_tag加入此列表
-    int        return_value;      // 任务结束时的返回值
+    int        return_status;     // 任务结束时的返回值
 
     fxsave_region_t *fxsave_region; // 用于fxsave/fxrstor指令
 } task_struct_t;
@@ -245,10 +245,10 @@ PUBLIC task_struct_t *task_start(
 
 /**
  * @brief 结束任务
- * @param ret_val 任务返回值
+ * @param status 任务退出状态
  * @return
  */
-PUBLIC void task_exit(int ret_val);
+PUBLIC void task_exit(int status);
 
 /**
  * @brief 判断任务是否有已结束的子任务
@@ -367,10 +367,10 @@ PUBLIC task_struct_t *proc_execute(
 
 /**
  * @brief 结束用户进程,回收proc_execute阶段分配的资源
- * @param ret_val 返回值
+ * @param status 返回状态
  * @return
  */
-PUBLIC void proc_exit(int ret_val);
+PUBLIC void proc_exit(int status);
 
 #endif /* __ASM_INCLUDE__ */
 

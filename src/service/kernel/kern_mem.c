@@ -6,7 +6,8 @@
 #include <kernel/global.h>
 
 #include <kernel/syscall.h>
-#include <mem/page.h>   // allocate page
+#include <mem/page.h> // allocate page
+#include <service.h>
 #include <std/string.h> // memcpy
 #include <task/task.h>  // pid_to_task
 
@@ -17,10 +18,8 @@ PUBLIC syscall_status_t kern_read_task_mem(message_t *msg);
 
 PUBLIC syscall_status_t kern_allocate_page(message_t *msg)
 {
-    // out:
-    // m2.p1 = address
+    uintptr_t *out_addr = (uintptr_t *)&msg->m[OUT_KERN_ALLOCATE_PAGE_ADDR];
 
-    msg2_t        *m2       = &msg->m2;
     task_struct_t *cur_task = running_task();
 
     status_t  status;
@@ -38,21 +37,19 @@ PUBLIC syscall_status_t kern_allocate_page(message_t *msg)
         vmm_add_range(&cur_task->vmm_free, vaddr, PG_SIZE);
         return SYSCALL_ERROR;
     }
-    m2->p1 = (void *)vaddr;
+    *out_addr = vaddr;
     return SYSCALL_SUCCESS;
 }
 
 PUBLIC syscall_status_t kern_free_page(message_t *msg)
 {
-    // in:
-    // m2.p1 = address
+    uintptr_t in_addr = (uintptr_t)msg->m[IN_KERN_FREE_PAGE_ADDR];
 
-    msg2_t        *m2       = &msg->m2;
     task_struct_t *cur_task = running_task();
 
     uintptr_t vaddr;
     void     *paddr;
-    vaddr = (uintptr_t)m2->p1;
+    vaddr = in_addr;
     paddr = to_physical_address(cur_task->page_dir, (void *)vaddr);
 
     vmm_remove_range(&cur_task->vmm_using, vaddr, PG_SIZE);
@@ -73,20 +70,20 @@ PUBLIC syscall_status_t kern_read_task_mem(message_t *msg)
     // m3.l1 = read size
     // m3.i1 = target task pid
 
-    msg3_t *m3    = &msg->m3;
-    void   *p_src = m3->p1;
-    void   *p_dst = m3->p2;
-    size_t  size  = m3->l1;
+    pid_t  in_pid    = (pid_t)msg->m[IN_KERN_READ_TASK_MEM_PID];
+    void  *in_addr   = (void *)msg->m[IN_KERN_READ_TASK_MEM_ADDR];
+    size_t in_size   = (size_t)msg->m[IN_KERN_READ_TASK_MEM_SIZE];
+    void  *in_buffer = (void *)msg->m[IN_KERN_READ_TASK_MEM_BUFFER];
 
-    task_struct_t *task = pid_to_task(m3->i1);
+    task_struct_t *task = pid_to_task(in_pid);
 
-    p_src = to_physical_address(task->page_dir, p_src);
-    if (p_src == NULL)
+    in_addr = to_physical_address(task->page_dir, in_addr);
+    if (in_addr == NULL)
     {
         return SYSCALL_ERROR;
     }
-    p_src = PHYS_TO_VIRT(p_src);
+    in_addr = PHYS_TO_VIRT(in_addr);
 
-    memcpy(p_dst, p_src, size);
+    memcpy(in_buffer, in_addr, in_size);
     return SYSCALL_SUCCESS;
 }

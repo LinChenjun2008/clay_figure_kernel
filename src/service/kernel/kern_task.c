@@ -8,6 +8,7 @@
 #include <log.h>
 
 #include <kernel/syscall.h>
+#include <service.h>
 #include <std/string.h> // memcpy
 #include <task/task.h>  // running_task
 
@@ -20,12 +21,9 @@ PUBLIC syscall_status_t kern_waitpid(message_t *msg);
 
 PUBLIC syscall_status_t kern_exit(message_t *msg)
 {
-    // in:
-    // m1.i1 = return value
+    int in_status = (int)msg->m[IN_KERN_EXIT_STATUS];
 
-    msg1_t *m1 = &msg->m1;
-
-    proc_exit(m1->i1);
+    proc_exit(in_status);
     while (1);
 
     // Never return
@@ -34,44 +32,43 @@ PUBLIC syscall_status_t kern_exit(message_t *msg)
 
 PUBLIC syscall_status_t kern_get_pid(message_t *msg)
 {
-    // out:
-    // m1.i1 = current pid
+    pid_t *out_pid = (pid_t *)&msg->m[OUT_KERN_GET_PID_PID];
 
-    msg1_t        *m1   = &msg->m1;
     task_struct_t *task = running_task();
 
-    m1->i1 = task->pid; // or msg->src
+    *out_pid = task->pid; // or msg->src
 
     return SYSCALL_SUCCESS;
 }
 
 PUBLIC syscall_status_t kern_get_ppid(message_t *msg)
 {
-    // out
-    // m1.i1 = ppid
+    pid_t *out_ppid = (pid_t *)&msg->m[OUT_KERN_GET_PPID_PPID];
 
-    msg1_t        *m1   = &msg->m1;
     task_struct_t *task = running_task();
 
-    m1->i1 = task->ppid;
+    *out_ppid = task->ppid;
 
     return SYSCALL_SUCCESS;
 }
 
 PUBLIC syscall_status_t kern_create_proc(message_t *msg)
 {
-    msg3_t        *m3   = &msg->m3;
+    char *in_name = (char *)msg->m[IN_KERN_CREATE_PROC_NAME];
+    void *in_proc = (void *)msg->m[IN_KERN_CREATE_PROC_PROC];
+
+    pid_t *out_pid = (pid_t *)&msg->m[OUT_KERN_CREATE_PROC_PID];
+
     task_struct_t *task = running_task();
 
     char name[32];
     /// TODO: 验证地址
-    memcpy(name, m3->p1, 32);
+    memcpy(name, in_name, 32);
     name[31] = '\0';
     task_struct_t *new_task;
-    new_task = proc_execute(name, task->priority, task->kstack_size, m3->p2);
+    new_task = proc_execute(name, task->priority, task->kstack_size, in_proc);
 
-    msg1_t *m1 = &msg->m1;
-    m1->i1     = new_task->pid;
+    *out_pid = new_task->pid;
     return SYSCALL_SUCCESS;
 }
 
@@ -88,33 +85,37 @@ PRIVATE int find_child(list_node_t *node, uint64_t arg)
 
 PUBLIC syscall_status_t kern_waitpid(message_t *msg)
 {
-    // in:
-    // m1.i1 = pid
+    pid_t in_pid = (pid_t)msg->m[IN_KERN_WAITPID_PID];
+    int   in_opt = (int)msg->m[IN_KERN_WAITPID_OPT];
 
-    // out
-    // m1.i1 = return value
-    // m1.i2 = exited child pid
+    int   *out_status = (int *)&msg->m[OUT_KERN_WAITPID_STATUS];
+    pid_t *out_pid    = (pid_t *)&msg->m[OUT_KERN_WAITPID_PID];
 
-    msg1_t        *m1   = &msg->m1;
     task_struct_t *task = running_task();
 
-    m1->i2 = 0;
     if (atomic_read(&task->childs) == 0)
     {
         return SYSCALL_ERROR;
     }
 
+    if (!task_has_exited_child(task->pid) && (in_opt & WNOHANG))
+    {
+        PR_LOG(LOG_DEBUG, "in opt: %d.\n", in_opt);
+        while (1);
+
+        return K_ERROR;
+    }
     // 用while防止意外唤醒(但是这种情况不应该发生)
     while (!task_has_exited_child(task->pid))
     {
         task_block(TASK_WAITING);
     }
 
-    pid_t          pid = m1->i1;
     task_struct_t *child;
     list_node_t   *child_node;
-    int            ret_val;
-    if (pid == PID_NO_TASK)
+
+    // any task
+    if (in_pid == -1)
     {
         spinlock_lock(&task->child_list_lock);
         child_node = list_pop(&task->exited_child_list);
@@ -131,10 +132,11 @@ PUBLIC syscall_status_t kern_waitpid(message_t *msg)
             return SYSCALL_SUCCESS;
         }
     }
-    child   = CONTAINER_OF(task_struct_t, general_tag, child_node);
-    pid     = child->pid;
-    ret_val = task_release_resource(child->pid);
-    m1->i1  = ret_val;
-    m1->i2  = pid;
+
+    child = CONTAINER_OF(task_struct_t, general_tag, child_node);
+
+    *out_pid    = child->pid;
+    *out_status = task_release_resource(child->pid);
+
     return SYSCALL_SUCCESS;
 }

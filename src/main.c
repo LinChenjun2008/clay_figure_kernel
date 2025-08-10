@@ -22,7 +22,7 @@
 PRIVATE void ktask(void)
 {
     uint32_t color = 0x00c5c5c5;
-    uint32_t xsize = 100;
+    uint32_t xsize = 9 * 10;
     uint32_t ysize = 16;
 
     textbox_t tb;
@@ -51,7 +51,7 @@ PRIVATE void ktask(void)
         gi.frame_buffer_base = (uintptr_t)buf;
 
         char s[10];
-        sprintf(s, "\n%d", i);
+        sprintf(s, "\n% 9d", i);
         basic_print(&gi, &tb, color, s);
         fill(
             buf,
@@ -73,9 +73,9 @@ PUBLIC void kernel_main(void)
     message_t msg;
     while (1)
     {
-        msg.type  = KERN_WAITPID;
-        msg.m1.i1 = PID_NO_TASK;
-        sys_send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
+        memset(&msg, 0, sizeof(msg));
+        msg.type                   = KERN_WAITPID;
+        msg.m[IN_KERN_WAITPID_PID] = -1;
     };
 }
 
@@ -89,8 +89,9 @@ PUBLIC void ap_kernel_main(void)
     message_t msg;
     while (1)
     {
-        msg.type  = KERN_WAITPID;
-        msg.m1.i1 = PID_NO_TASK;
+        memset(&msg, 0, sizeof(msg));
+        msg.type                   = KERN_WAITPID;
+        msg.m[IN_KERN_WAITPID_PID] = -1;
         sys_send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     };
 }

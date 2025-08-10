@@ -17,10 +17,10 @@
 
 PRIVATE void proc_start(int (*func)(void *), uint64_t arg)
 {
-    int       ret_value = func((void *)arg);
+    int       status = func((void *)arg);
     message_t msg;
-    msg.type  = KERN_EXIT;
-    msg.m1.i1 = ret_value;
+    msg.type                   = KERN_EXIT;
+    msg.m[IN_KERN_EXIT_STATUS] = status;
     send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     while (1) continue;
 }
@@ -198,7 +198,7 @@ fail:
     return NULL;
 }
 
-PUBLIC void proc_exit(int ret_val)
+PUBLIC void proc_exit(int status)
 {
     task_struct_t *task   = running_task();
     void          *pg_dir = task->page_dir;
@@ -211,6 +211,6 @@ PUBLIC void proc_exit(int ret_val)
     free_page_table(pg_dir);
     free_user_vaddr_table(task);
 
-    task_exit(ret_val);
+    task_exit(status);
     return;
 }

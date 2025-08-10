@@ -43,6 +43,43 @@ PUBLIC void keyboard_main(void);
 
 #define KERN_SYSCALLS 8
 
+// exit
+#define IN_KERN_EXIT_STATUS 0
+
+// get pid
+#define OUT_KERN_GET_PID_PID 0
+
+// get ppid
+#define OUT_KERN_GET_PPID_PPID 0
+
+// create process
+#define IN_KERN_CREATE_PROC_NAME 0
+#define IN_KERN_CREATE_PROC_PROC 1
+
+#define OUT_KERN_CREATE_PROC_PID 0
+
+// waitpid
+#define IN_KERN_WAITPID_PID 0
+#define IN_KERN_WAITPID_OPT 1
+
+// IN_KERN_WAITPID_OPT
+#define WNOHANG 1
+
+#define OUT_KERN_WAITPID_STATUS 0
+#define OUT_KERN_WAITPID_PID    1
+
+// allocate page
+#define OUT_KERN_ALLOCATE_PAGE_ADDR 0
+
+// free page
+#define IN_KERN_FREE_PAGE_ADDR 0
+
+// read task mem
+#define IN_KERN_READ_TASK_MEM_PID    0
+#define IN_KERN_READ_TASK_MEM_ADDR   1
+#define IN_KERN_READ_TASK_MEM_SIZE   2
+#define IN_KERN_READ_TASK_MEM_BUFFER 3
+
 PUBLIC syscall_status_t kernel_services(message_t *msg);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -50,6 +87,8 @@ PUBLIC syscall_status_t kernel_services(message_t *msg);
 ////////////////////////////////////////////////////////////////////////////////
 
 #define TICK_GET_TICKS 1
+
+#define OUT_TICK_GET_TICKS_TICKS 0
 
 PUBLIC void tick_main(void);
 
@@ -63,8 +102,14 @@ PUBLIC void mm_main(void);
 // VIEW                                                                       //
 ////////////////////////////////////////////////////////////////////////////////
 
-#define VIEW_PUT_PIXEL 1
-#define VIEW_FILL      2
+#define VIEW_FILL 1
+
+#define IN_VIEW_FILL_BUFFER      0
+#define IN_VIER_FILL_BUFFER_SIZE 1
+#define IN_VIEW_FILL_XSIZE       2
+#define IN_VIEW_FILL_YSIZE       3
+#define IN_VIEW_FILL_X           4
+#define IN_VIEW_FILL_Y           5
 
 PUBLIC void view_main(void);
 

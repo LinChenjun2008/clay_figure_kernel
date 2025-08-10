@@ -1,10 +1,11 @@
 #ifndef __ULIB_H__
 #define __ULIB_H__
 
-PUBLIC void exit(int status);
-PUBLIC int  get_pid(void);
-PUBLIC int  get_ppid(void);
-PUBLIC int  create_process(const char *name, void *proc);
+PUBLIC void  exit(int status);
+PUBLIC int   get_pid(void);
+PUBLIC int   get_ppid(void);
+PUBLIC int   create_process(const char *name, void *proc);
+PUBLIC pid_t waitpid(pid_t pid, int *status, int options);
 
 PUBLIC void *allocate_page(void);
 PUBLIC void  free_page(void *addr);
