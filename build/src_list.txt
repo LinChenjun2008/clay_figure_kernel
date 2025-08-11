@@ -15,22 +15,24 @@ KERNEL_LINKER_SCRIPT    = ./kernel.lds
 include $(SRC_PATH)/arch/$(TARGET_ARCH)/arch_src_list.txt
 
 KERNEL_SRC += \
-    $(KERNEL_SRC_PATH)/main.c \
-    $(KERNEL_SRC_PATH)/symbols.c \
-    $(KERNEL_SRC_PATH)/config.c \
+    $(KERNEL_SRC_PATH)/kernel/main.c \
+    $(KERNEL_SRC_PATH)/kernel/symbols.c \
+    $(KERNEL_SRC_PATH)/kernel/config.c \
+    $(KERNEL_SRC_PATH)/kernel/service/kernel.c \
+    $(KERNEL_SRC_PATH)/kernel/service/kern_task.c \
+    $(KERNEL_SRC_PATH)/kernel/service/kern_mem.c \
+    \
     $(KERNEL_SRC_PATH)/softirq/softirq.c \
     $(KERNEL_SRC_PATH)/service/service.c \
-    $(KERNEL_SRC_PATH)/service/kernel/kernel.c \
-    $(KERNEL_SRC_PATH)/service/kernel/kern_task.c \
-    $(KERNEL_SRC_PATH)/service/kernel/kern_mem.c \
     $(KERNEL_SRC_PATH)/service/tick/tick.c \
     $(KERNEL_SRC_PATH)/service/view/view.c \
     \
     $(KERNEL_SRC_PATH)/mem/allocator.c \
     $(KERNEL_SRC_PATH)/mem/service/mm.c \
+    $(KERNEL_SRC_PATH)/mem/vmm.c \
+    \
     $(KERNEL_SRC_PATH)/ramfs/ramfs.c \
     $(KERNEL_SRC_PATH)/sync/semaphore.c \
-    $(KERNEL_SRC_PATH)/mem/vmm.c \
     $(KERNEL_SRC_PATH)/lib/bitmap.c \
     $(KERNEL_SRC_PATH)/lib/list.c \
     $(KERNEL_SRC_PATH)/lib/fifo.c \

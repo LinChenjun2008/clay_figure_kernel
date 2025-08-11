@@ -28,10 +28,11 @@ git clone https://github.com/linchenjun2008/clay_figure_kernel.git
 
 编辑`target.txt`，将其中的`ESP_PATH`设为一个正确的路径，用于保存编译结果。
 
-进入`build`目录，编译其中的`kallsyms.c`
+进入`build`目录，编译其中的`kallsyms.c`和`imgcopy.c`
 ```bash
 cd build/
 gcc ./kallsyms.c -o kallsyms
+gcc ./imgcopy.c -o imgcopy
 ```
 
 3. 开始编译

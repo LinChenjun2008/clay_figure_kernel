@@ -3,6 +3,7 @@ KERNEL_SRC += \
     \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/init.c \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/asmfunc.S \
+    $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/asm_send_recv.S \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/intr/intr.c \
     $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/intr/asm_intr.S \
     \

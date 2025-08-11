@@ -5,13 +5,6 @@
 
 #include <task/task.h>
 
-.global send_recv
-.type send_recv,@function
-send_recv:
-    xchgq %rcx, %r10 // save rcx in r10
-    syscall
-    retq
-
 .global syscall_entry
 .type syscall_entry,@function
 syscall_entry:
