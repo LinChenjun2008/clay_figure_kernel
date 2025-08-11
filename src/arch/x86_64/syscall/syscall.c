@@ -30,7 +30,14 @@ sys_send_recv(uint32_t function, pid_t src_dst, message_t *msg)
 
     if (func_send)
     {
-        ret = msg_send(src_dst, msg);
+        if (src_dst == SEND_TO_KERNEL)
+        {
+            ret = kernel_services(msg);
+        }
+        else
+        {
+            ret = msg_send(src_dst, msg);
+        }
     }
 
     if (func_recv && ret == SYSCALL_SUCCESS)

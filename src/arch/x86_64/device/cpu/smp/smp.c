@@ -66,9 +66,9 @@ PUBLIC status_t smp_init(void)
     for (i = 1; i < NR_CPUS; i++)
     {
         char name[16];
-        sprintf(name, "idle(%d)", i);
-        task_struct_t *idle_task = task_alloc();
-        if (idle_task == NULL)
+        sprintf(name, "Main task (%d)", i);
+        task_struct_t *ap_main_task = task_alloc();
+        if (ap_main_task == NULL)
         {
             PR_LOG(LOG_FATAL, "Alloc task for AP error.\n");
             free_physical_page(
@@ -83,14 +83,11 @@ PUBLIC status_t smp_init(void)
         kstack_base = (uintptr_t)PHYS_TO_VIRT(kstack_base);
 
         init_task_struct(
-            idle_task, name, DEFAULT_PRIORITY, kstack_base, KERNEL_STACK_SIZE
+            ap_main_task, name, DEFAULT_PRIORITY, kstack_base, KERNEL_STACK_SIZE
         );
-        idle_task->cpu_id    = i;
+        ap_main_task->cpu_id = i;
         task_man_t *task_man = get_task_man(i);
-        task_man->idle_task  = idle_task;
-        spinlock_lock(&task_man->task_list_lock);
-        task_list_insert(task_man, idle_task);
-        spinlock_unlock(&task_man->task_list_lock);
+        task_man->main_task  = ap_main_task;
     }
 
     // register IPI

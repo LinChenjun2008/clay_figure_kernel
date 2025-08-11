@@ -20,6 +20,9 @@ KERNEL_SRC += \
     $(KERNEL_SRC_PATH)/config.c \
     $(KERNEL_SRC_PATH)/softirq/softirq.c \
     $(KERNEL_SRC_PATH)/service/service.c \
+    $(KERNEL_SRC_PATH)/service/kernel/kernel.c \
+    $(KERNEL_SRC_PATH)/service/kernel/kern_task.c \
+    $(KERNEL_SRC_PATH)/service/kernel/kern_mem.c \
     $(KERNEL_SRC_PATH)/service/tick/tick.c \
     $(KERNEL_SRC_PATH)/service/view/view.c \
     \
@@ -27,7 +30,7 @@ KERNEL_SRC += \
     $(KERNEL_SRC_PATH)/mem/service/mm.c \
     $(KERNEL_SRC_PATH)/ramfs/ramfs.c \
     $(KERNEL_SRC_PATH)/sync/semaphore.c \
-    $(KERNEL_SRC_PATH)/lib/alloc_table.c \
+    $(KERNEL_SRC_PATH)/mem/vmm.c \
     $(KERNEL_SRC_PATH)/lib/bitmap.c \
     $(KERNEL_SRC_PATH)/lib/list.c \
     $(KERNEL_SRC_PATH)/lib/fifo.c \

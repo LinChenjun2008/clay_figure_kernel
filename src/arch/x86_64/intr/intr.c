@@ -114,11 +114,13 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
     b >>= 24;
     pr_msg("CPUID: %d\n", b);
 
-    PANIC(running_task() == NULL, "Can not Get Running Task.");
+    if (running_task() != NULL)
+    {
+        task_struct_t *running = running_task();
+        pr_msg("running task: %s\n", running->name);
+        pr_msg("task context: %p\n", running->context);
+    }
 
-    task_struct_t *running = running_task();
-    pr_msg("running task: %s\n", running->name);
-    pr_msg("task context: %p\n", running->context);
 
     // Backtrace
     for (i = 0; i < 19; i++)
@@ -156,7 +158,7 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
     pr_msg("\n");
 }
 
-PRIVATE void default_irq_handler(intr_stack_t *stack)
+PUBLIC void default_irq_handler(intr_stack_t *stack)
 {
     int int_vector = stack->int_vector;
     if (int_vector == 0x27)
@@ -176,10 +178,7 @@ PRIVATE void default_irq_handler(intr_stack_t *stack)
     task_struct_t *running = running_task();
     if (running->page_dir != NULL)
     {
-        message_t msg;
-        msg.type  = MM_EXIT;
-        msg.m1.i1 = K_ERROR;
-        sys_send_recv(NR_BOTH, MM, &msg);
+        proc_exit(-1);
     }
     while (1) continue;
 }
@@ -235,6 +234,12 @@ PUBLIC void ap_intr_init(void)
 PUBLIC void register_handle(uint8_t int_vector, void (*handle)(intr_stack_t *))
 {
     irq_handler[int_vector] = handle;
+    return;
+}
+
+PUBLIC void unregister_handle(uint8_t int_vector)
+{
+    irq_handler[int_vector] = NULL;
     return;
 }
 

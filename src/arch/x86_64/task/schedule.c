@@ -70,32 +70,50 @@ PUBLIC void task_update(void)
     return;
 }
 
+PRIVATE void inform_exit(pid_t exited_task)
+{
+    task_struct_t *task        = pid_to_task(exited_task);
+    task_struct_t *parent_task = pid_to_task(task->ppid);
+
+    spinlock_lock(&parent_task->child_list_lock);
+    list_append(&parent_task->exited_child_list, &task->general_tag);
+    spinlock_unlock(&parent_task->child_list_lock);
+    return;
+}
+
 /**
- * @brief 检查send_recv_list中是否有可以运行的任务
+ * @brief 检查waiting_list中是否有可以运行的任务
  * @param task_man
  * @return
  */
-PRIVATE void check_send_recv_list(task_man_t *task_man)
+PRIVATE void check_waiting_list(task_man_t *task_man)
 {
-    if (list_empty(&task_man->send_recv_list))
+    if (list_empty(&task_man->waiting_list))
     {
         return;
     }
-    list_node_t *node      = list_head(&task_man->send_recv_list);
+    list_node_t *node      = list_head(&task_man->waiting_list);
     list_node_t *node_next = list_next(node);
     do
     {
         node                = node_next;
         node_next           = list_next(node);
         task_struct_t *task = CONTAINER_OF(task_struct_t, general_tag, node);
-        if (task_ipc_check(task->pid))
+        task_status_t  stat = task->status;
+
+        int ipc_check        = task_ipc_check(task->pid);
+        int has_exited_child = task_has_exited_child(task->pid);
+        if ((stat == TASK_SENDING || stat == TASK_RECEIVING) && !ipc_check)
         {
-            list_remove(node);
-            spinlock_lock(&task_man->task_list_lock);
-            task_list_insert(task_man, task);
-            spinlock_unlock(&task_man->task_list_lock);
+            continue;
         }
-    } while (node_next != list_tail(&task_man->send_recv_list));
+        if (task->status == TASK_WAITING && !has_exited_child)
+        {
+            continue;
+        }
+        list_remove(node);
+        task_unblock(task->pid);
+    } while (node_next != list_tail(&task_man->waiting_list));
     return;
 }
 
@@ -108,6 +126,7 @@ PRIVATE task_struct_t *get_next_task(task_man_t *task_man)
 {
     list_t      *list = &task_man->task_list;
     list_node_t *node = NULL;
+
     if (!list_empty(list))
     {
         node = list_pop(list);
@@ -141,18 +160,28 @@ PUBLIC void schedule(void)
 
     intr_status_t intr_status = intr_disable();
 
-    if (cur_task->status == TASK_RUNNING)
+    switch (cur_task->status)
     {
-        spinlock_lock(&task_man->task_list_lock);
-        task_list_insert(task_man, cur_task);
-        spinlock_unlock(&task_man->task_list_lock);
-    }
+        case TASK_RUNNING:
+            spinlock_lock(&task_man->task_list_lock);
+            task_list_insert(task_man, cur_task);
+            spinlock_unlock(&task_man->task_list_lock);
+            break;
 
-    if (cur_task->status == TASK_SENDING || cur_task->status == TASK_RECEIVING)
-    {
-        list_append(&task_man->send_recv_list, &cur_task->general_tag);
+        case TASK_SENDING:
+        case TASK_RECEIVING:
+        case TASK_WAITING:
+            list_append(&task_man->waiting_list, &cur_task->general_tag);
+            break;
+
+        case TASK_DIED:
+            inform_exit(cur_task->pid);
+            break;
+
+        default:
+            break;
     }
-    check_send_recv_list(task_man);
+    check_waiting_list(task_man);
 
     task_struct_t *next = NULL;
 
@@ -161,7 +190,7 @@ PUBLIC void schedule(void)
     spinlock_unlock(&task_man->task_list_lock);
 
     next->status = TASK_RUNNING;
-    prog_activate(next);
+    proc_activate(next);
     asm_fxsave(cur_task->fxsave_region);
     asm_fxrstor(next->fxsave_region);
     next->cpu_id = cpu_id;

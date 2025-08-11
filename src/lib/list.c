@@ -7,7 +7,7 @@
 
 #include <lib/list.h>
 
-PUBLIC void list_init(list_t *list)
+PUBLIC void init_list(list_t *list)
 {
     list->head.prev = NULL;
     list->head.next = &list->tail;
@@ -71,18 +71,19 @@ PUBLIC bool list_find(list_t *list, list_node_t *objnode)
     return ret;
 }
 
-PUBLIC list_node_t *list_traversal(list_t *list, func_t function, uint64_t arg)
+PUBLIC list_node_t *
+list_traversal(list_t *list, int (*func)(list_node_t *, uint64_t), uint64_t arg)
 {
-    list_node_t *node = list->head.next;
+    list_node_t *node = list_next(list_head(list));
     list_node_t *ret  = NULL;
-    while (node != &list->tail)
+    while (node != list_tail(list))
     {
-        if (function(node, arg))
+        if (func(node, arg))
         {
             ret = node;
             break;
         }
-        node = node->next;
+        node = list_next(node);
     }
     return ret;
 }

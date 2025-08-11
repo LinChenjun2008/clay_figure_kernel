@@ -14,11 +14,10 @@
 #include <device/sse.h>
 #include <device/timer.h>
 #include <intr.h>
-#include <io.h> // get_cr3,set_cr3
 #include <kernel/init.h>
 #include <kernel/syscall.h>
 #include <mem/mem.h>  // mem_init,total_pages,total_free_pages
-#include <mem/page.h> // KERNEL_PAGE_TABLE_POS
+#include <mem/page.h> // KERNEL_PAGE_TABLE_POS,set_page_table
 #include <ramfs.h>
 #include <service.h>
 #include <softirq.h>
@@ -98,7 +97,7 @@ PUBLIC void init_all(void)
     if (ERROR(ramfs_open(BOOT_INFO->initramfs, "config", &fp)))
     {
         pr_log(LOG_FATAL, "Can not read cinfig.\n");
-        while (1) io_stihlt();
+        while (1) continue;
     }
     parse_config(&fp);
 
@@ -144,7 +143,6 @@ PUBLIC void init_all(void)
 
     PR_LOG(LOG_INFO, "System Call initializing ...\n");
     syscall_init();
-
 
     intr_enable();
 
@@ -198,7 +196,7 @@ PUBLIC void init_all(void)
     smp_start();
 
     *((uint64_t *)KERNEL_PAGE_DIR_TABLE_POS) = 0;
-    set_cr3(get_cr3());
+    page_table_activate(running_task());
     return;
 }
 
@@ -210,7 +208,10 @@ PUBLIC void ap_init_all(void)
     load_gdt();
     load_tss(cpu_id);
 
-    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)get_task_man(cpu_id)->idle_task);
+    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)get_task_man(cpu_id)->main_task);
+    running_task()->status = TASK_RUNNING;
+
+    create_idle_task();
 
     ap_intr_init();
     local_apic_init();
@@ -218,6 +219,8 @@ PUBLIC void ap_init_all(void)
 
     sse_enable();
     syscall_init();
+
     intr_enable();
+
     return;
 }

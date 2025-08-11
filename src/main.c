@@ -19,12 +19,10 @@
 #include <task/task.h>
 #include <ulib.h>
 
-extern textbox_t g_tb;
-
 PRIVATE void ktask(void)
 {
     uint32_t color = 0x00c5c5c5;
-    uint32_t xsize = 100;
+    uint32_t xsize = 9 * 10;
     uint32_t ysize = 16;
 
     textbox_t tb;
@@ -38,18 +36,22 @@ PRIVATE void ktask(void)
     tb.char_ysize = 16;
 
     graph_info_t gi;
+    gi.horizontal_resolution = xsize;
+    gi.vertical_resolution   = ysize;
+    gi.pixel_per_scanline    = xsize;
 
     int i = 0;
     while (1)
     {
-        uint32_t *buf =
-            allocate_page(xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1);
-        gi.frame_buffer_base     = (uintptr_t)buf;
-        gi.horizontal_resolution = xsize;
-        gi.vertical_resolution   = ysize;
-        gi.pixel_per_scanline    = xsize;
+        uint32_t *buf = allocate_page();
+        if (buf == NULL)
+        {
+            exit(-1);
+        }
+        gi.frame_buffer_base = (uintptr_t)buf;
+
         char s[10];
-        sprintf(s, "\n%d", i);
+        sprintf(s, "\n% 9d", i);
         basic_print(&gi, &tb, color, s);
         fill(
             buf,
@@ -60,16 +62,20 @@ PRIVATE void ktask(void)
             0
         );
         i++;
-        free_page(buf, xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1);
+        free_page(buf);
     };
 }
 
 PUBLIC void kernel_main(void)
 {
     init_all();
+
+    message_t msg;
     while (1)
     {
-        task_block(TASK_BLOCKED);
+        memset(&msg, 0, sizeof(msg));
+        msg.type                   = KERN_WAITPID;
+        msg.m[IN_KERN_WAITPID_PID] = -1;
     };
 }
 
@@ -77,10 +83,15 @@ PUBLIC void ap_kernel_main(void)
 {
     ap_init_all();
     char name[31];
-    sprintf(name, "k task %d", apic_id());
-    prog_execute(name, DEFAULT_PRIORITY, 4096, ktask);
+    sprintf(name, "k task %d", running_task()->cpu_id);
+    proc_execute(name, DEFAULT_PRIORITY, 4096, ktask);
+
+    message_t msg;
     while (1)
     {
-        task_block(TASK_BLOCKED);
+        memset(&msg, 0, sizeof(msg));
+        msg.type                   = KERN_WAITPID;
+        msg.m[IN_KERN_WAITPID_PID] = -1;
+        sys_send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     };
 }

@@ -12,14 +12,17 @@
 #    include <device/spinlock.h>
 #    include <device/sse.h>
 #    include <kernel/syscall.h>
-#    include <lib/alloc_table.h>
 #    include <lib/list.h>
+#    include <mem/vmm.h>
 #    include <sync/atomic.h>
 
 #endif /* __ASM_INCLUDE__ */
 
 // 最大支持的任务数
 #define TASKS 4096
+
+// PID的最小值
+#define MIN_PID 0
 
 // PID的最大值
 #define MAX_PID (TASKS - 1)
@@ -35,6 +38,7 @@
 
 #define DEFAULT_PRIORITY NICE_TO_PRIO(0)
 #define SERVICE_PRIORITY NICE_TO_PRIO(-10)
+#define IDLE_PRIORITY    NICE_TO_PRIO(20)
 
 #define TASK_STRUCT_KSTACK_BASE 8
 #define TASK_STRUCT_KSTACK_SIZE 16
@@ -51,6 +55,7 @@ typedef enum task_status_e
     TASK_BLOCKED,   // 任务阻塞
     TASK_SENDING,   // 任务正在发送消息
     TASK_RECEIVING, // 任务正在接收消息
+    TASK_WAITING,   // 等待子任务结束
     TASK_DIED       // 任务结束
 } task_status_t;
 
@@ -70,9 +75,10 @@ typedef struct task_context_s
 
 typedef struct task_struct_s
 {
-    task_context_t *context;     // 任务上下文
-    uintptr_t       kstack_base; // 内核栈基地值
-    size_t          kstack_size; // 内核栈大小(字节)
+    task_context_t *context; // 任务上下文
+
+    uintptr_t kstack_base; // 内核栈基地值
+    size_t    kstack_size; // 内核栈大小(字节)
 
     uintptr_t ustack_base; // 用户栈基址(如果有)
     size_t    ustack_size; // 用户栈大小(如果有)
@@ -83,15 +89,16 @@ typedef struct task_struct_s
     char                   name[32];      // 任务名
     volatile task_status_t status;        // 任务状态
     uint64_t               preempt_count; // 抢占计数
-    uint64_t               priority;      // 任务优先级
-    uint64_t               run_time;      // 任务运行时间(总计)
-    uint64_t               vrun_time;     // 虚拟运行时间
+    uint64_t               cpu_id;        // 任务所在cpu的id
+    uint64_t              *page_dir;      // 任务页表地址(物理地址)
+    list_node_t            general_tag;   // 任务在任务列表中的节点
 
-    list_node_t general_tag; // 任务在任务列表中的节点
+    uint64_t priority;  // 任务优先级
+    uint64_t run_time;  // 任务运行时间(总计)
+    uint64_t vrun_time; // 虚拟运行时间
 
-    uint64_t         cpu_id;      // 任务所在cpu的id
-    uint64_t        *page_dir;    // 任务页表地址(物理地址)
-    allocate_table_t vaddr_table; // 任务虚拟地址表
+    vmm_struct_t vmm_free;  // 任务可以使用的虚拟地址表
+    vmm_struct_t vmm_using; // 任务正在使用的虚拟地址表
 
     message_t msg;       // 任务消息结构体
     pid_t     send_to;   // 任务发送消息的目的地
@@ -100,10 +107,15 @@ typedef struct task_struct_s
     atomic_t send_flag; // 任务发送消息的状态标志
     atomic_t recv_flag; // 任务接收消息的状态标志
 
-    uint8_t     has_intr_msg; // 任务如果有来自中断的消息,由此变量记录
-    spinlock_t  send_lock;    // 要操作任务的sender_list时需要获取此锁
+    uint32_t    has_intr_msg; // 任务如果有来自中断的消息,由此变量记录
+    spinlock_t  send_lock;    // 操作任务的sender_list时需要获取此锁
     list_t      sender_list;  // 向任务发送消息的所有任务列表
     list_node_t send_tag; // 向其他任务发送消息时,用于加入目标任务的sender_list
+
+    atomic_t   childs; // 子任务数量总计
+    spinlock_t child_list_lock;
+    list_t     exited_child_list; // 子任务退出时将自身general_tag加入此列表
+    int        return_status;     // 任务结束时的返回值
 
     fxsave_region_t *fxsave_region; // 用于fxsave/fxrstor指令
 } task_struct_t;
@@ -125,13 +137,14 @@ typedef struct task_man_s
     list_t     task_list; // 任务队列
     spinlock_t task_list_lock;
 
-    // 正在进行IPC的任务队列
-    // 只能操作各个cpu自己的send_recv_list,因此不用上锁
-    list_t send_recv_list;
+    // 因各种原因需要到特定情况才能继续运行的任务
+    // 只能操作各个cpu自己的waiting_task_list,因此不用上锁
+    list_t waiting_list;
 
     uint64_t       min_vrun_time; // 最小虚拟运行时间
     uint64_t       running_tasks; // task_list中的任务数量
     uint64_t       total_weight;  // task_list中的任务总权重
+    task_struct_t *main_task;
     task_struct_t *idle_task;
 } task_man_t;
 
@@ -230,6 +243,34 @@ PUBLIC task_struct_t *task_start(
     uint64_t    arg
 );
 
+/**
+ * @brief 结束任务
+ * @param status 任务退出状态
+ * @return
+ */
+PUBLIC void task_exit(int status);
+
+/**
+ * @brief 判断任务是否有已结束的子任务
+ * @param pid
+ * @return
+ */
+PUBLIC int task_has_exited_child(pid_t pid);
+
+/**
+ * @brief 回收任务所有的资源
+ * @param pid
+ * @return
+ */
+PUBLIC int task_release_resource(pid_t pid);
+
+/**
+ * @brief 创建idle任务
+ * @param
+ * @return
+ */
+PUBLIC void create_idle_task(void);
+
 PUBLIC void task_init(void);
 
 /// schedule.c
@@ -292,14 +333,21 @@ PUBLIC void task_msleep(uint32_t milliseconds);
 PUBLIC void init_tss(uint8_t cpu_id);
 PUBLIC void update_tss_rsp0(task_struct_t *task);
 
-/// prog.c
+/// proc.c
+
+/**
+ * @brief 激活任务的页表
+ * @param task
+ * @return
+ */
+PUBLIC void page_table_activate(task_struct_t *task);
 
 /**
  * @brief 激活任务的页表,更新tss的rsp0,设置gs_base
  * @param task
  * @return
  */
-PUBLIC void prog_activate(task_struct_t *task);
+PUBLIC void proc_activate(task_struct_t *task);
 
 /**
  * @brief 启动一个任务,运行在用户态下
@@ -310,12 +358,19 @@ PUBLIC void prog_activate(task_struct_t *task);
  * @param arg 给任务的参数
  * @return 成功将返回对应的任务结构体,失败则返回NULL
  */
-PUBLIC task_struct_t *prog_execute(
+PUBLIC task_struct_t *proc_execute(
     const char *name,
     uint64_t    priority,
     size_t      kstack_size,
-    void       *prog
+    void       *proc
 );
+
+/**
+ * @brief 结束用户进程,回收proc_execute阶段分配的资源
+ * @param status 返回状态
+ * @return
+ */
+PUBLIC void proc_exit(int status);
 
 #endif /* __ASM_INCLUDE__ */
 

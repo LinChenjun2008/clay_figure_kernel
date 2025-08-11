@@ -55,7 +55,7 @@ PUBLIC void mem_allocator_init(void)
     {
         mem_groups[i].block_size = block_size;
         mem_groups[i].total_free = 0;
-        list_init(&mem_groups[i].free_block_list);
+        init_list(&mem_groups[i].free_block_list);
         init_spinlock(&mem_groups[i].lock);
         block_size <<= 1;
     }

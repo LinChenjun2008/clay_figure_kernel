@@ -7,6 +7,7 @@
 
 #include <kernel/syscall.h> // send_recv
 #include <service.h>        // message type
+#include <std/string.h>     // memset
 
 PUBLIC void tick_main(void)
 {
@@ -14,6 +15,7 @@ PUBLIC void tick_main(void)
     message_t msg;
     while (1)
     {
+        memset(&msg, 0, sizeof(msg));
         send_recv(NR_RECV, RECV_FROM_ANY, &msg);
         switch (msg.type)
         {
@@ -21,7 +23,7 @@ PUBLIC void tick_main(void)
                 ticks++;
                 break;
             case TICK_GET_TICKS:
-                msg.m3.l1 = ticks;
+                msg.m[OUT_TICK_GET_TICKS_TICKS] = ticks;
                 send_recv(NR_SEND, msg.src, &msg);
                 break;
             default:

@@ -16,7 +16,7 @@
 #define K_NOSUPPORT       3
 #define K_HW_NOSUPPORT    4
 #define K_DEADLOCK        5
-#define K_INVAILD_PARAM   6
+#define K_INVALID_PARAM   6
 #define K_INVAILD_ADDR    7
 #define K_OUT_OF_RESOURCE 8
 #define K_NOT_FOUND       9

@@ -8,10 +8,15 @@
 #include <log.h>
 
 #include <device/spinlock.h> // spinlock
+#include <io.h>              // get_cr2,get_cr3
 #include <lib/bitmap.h>      // bitmap
 #include <mem/allocator.h>   // kmalloc
 #include <mem/page.h>        // previous
 #include <std/string.h>      // memset
+
+// do_page_fault
+#include <intr.h>      // register_handler
+#include <task/task.h> // task_struct
 
 typedef enum
 {
@@ -110,6 +115,35 @@ PRIVATE const char *memory_type_str[] = {
     "Invaild",         "Free memory",      "Reserved", "ACPI memory",
     "ACPI memory NVS", "Unuseable memory", "Invaild",
 };
+
+PRIVATE void do_page_fault(intr_stack_t *stack)
+{
+    task_struct_t *task          = running_task();
+    uintptr_t      fault_address = get_cr2();
+    uintptr_t      cr3           = get_cr3();
+
+    uintptr_t fault_page = fault_address & ~(PG_SIZE - 1);
+    // 内核任务 - 错误
+    if (cr3 == KERNEL_PAGE_DIR_TABLE_POS)
+    {
+        default_irq_handler(stack);
+    }
+
+    // 未分配地址 - 错误
+    if (!vmm_find(&task->vmm_using, fault_page))
+    {
+        default_irq_handler(stack);
+    }
+    uintptr_t paddr;
+    status_t  status = alloc_physical_page(1, &paddr);
+    if (ERROR(status))
+    {
+        default_irq_handler(stack);
+    }
+    page_map(task->page_dir, (void *)paddr, (void *)fault_page);
+    page_table_activate(task);
+    return;
+}
 
 PUBLIC void mem_page_init(void)
 {
@@ -239,6 +273,9 @@ PUBLIC void mem_page_init(void)
         bitmap_set(&mem.page_bitmap, i, 0);
         mem.total_free_pages--;
     }
+
+    register_handle(0x0e, do_page_fault);
+
     return;
 }
 
@@ -341,7 +378,6 @@ PUBLIC void *to_physical_address(void *pml4t, void *vaddr)
     v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
     if (!(*v_pml4e & PG_P))
     {
-        PR_LOG(LOG_WARN, "vaddr pml4e not exist: %p\n", vaddr);
         return NULL;
     }
     pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
@@ -349,7 +385,6 @@ PUBLIC void *to_physical_address(void *pml4t, void *vaddr)
     v_pdpte = PHYS_TO_VIRT(pdpte);
     if (!(*v_pdpte & PG_P))
     {
-        PR_LOG(LOG_WARN, "vaddr pdpte not exist: %p\n", vaddr);
         return NULL;
     }
     pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
@@ -357,7 +392,6 @@ PUBLIC void *to_physical_address(void *pml4t, void *vaddr)
     v_pde = PHYS_TO_VIRT(pde);
     if (!(*v_pde & PG_P))
     {
-        PR_LOG(LOG_WARN, "vaddr pde not exist: %p\n", vaddr);
         return NULL;
     }
     return (void *)((*v_pde & ~0xfff) +
@@ -381,7 +415,7 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
         UNUSED(status);
         pdpt = VIRT_TO_PHYS(v_pdpt);
         memset(v_pdpt, 0, PT_SIZE);
-        *v_pml4e = (uint64_t)pdpt | PG_US_U | PG_RW_W | PG_P;
+        *v_pml4e = (uintptr_t)pdpt | PG_US_U | PG_RW_W | PG_P;
     }
     pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
     pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
@@ -393,12 +427,12 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
         UNUSED(status);
         pdt = VIRT_TO_PHYS(v_pdt);
         memset(v_pdt, 0, PT_SIZE);
-        *v_pdpte = (uint64_t)pdt | PG_US_U | PG_RW_W | PG_P;
+        *v_pdpte = (uintptr_t)pdt | PG_US_U | PG_RW_W | PG_P;
     }
     pdt    = (uint64_t *)(*v_pdpte & (~0xfff));
     pde    = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
     v_pde  = PHYS_TO_VIRT(pde);
-    *v_pde = (uint64_t)paddr | PG_DEFAULT_FLAGS;
+    *v_pde = (uintptr_t)paddr | PG_DEFAULT_FLAGS;
     return;
 }
 
@@ -445,5 +479,61 @@ PUBLIC void set_page_flags(uint64_t *pml4t, void *vaddr, uint64_t flags)
     v_pde = PHYS_TO_VIRT(pde);
     ASSERT(*v_pde & PG_P);
     *v_pde = (*v_pde & ~0xfff) | flags;
+    return;
+}
+
+PUBLIC void set_page_table(void *page_table_pos)
+{
+    set_cr3((uint64_t)page_table_pos);
+    return;
+}
+
+PRIVATE void free_pdt(uintptr_t pdt)
+{
+    uint64_t *v_pdt = PHYS_TO_VIRT(pdt);
+    void     *paddr = NULL;
+
+    int i;
+    for (i = 0; i < 512; i++)
+    {
+        if (v_pdt[i] & PG_P)
+        {
+            paddr = (void *)(v_pdt[i] & (~0xfff));
+            free_physical_page(paddr, 1);
+        }
+    }
+    kfree(v_pdt);
+    return;
+}
+
+PRIVATE void free_pdpt(uintptr_t pdpt)
+{
+    uint64_t *v_pdpt = PHYS_TO_VIRT(pdpt);
+
+    int i;
+    for (i = 0; i < 512; i++)
+    {
+        if (v_pdpt[i] & PG_P)
+        {
+            free_pdt(v_pdpt[i] & (~0xfff));
+        }
+    }
+    kfree(v_pdpt);
+    return;
+}
+
+PUBLIC void free_page_table(uint64_t *pml4t)
+{
+    uint64_t *v_pml4t = PHYS_TO_VIRT(pml4t);
+
+    int i;
+    for (i = 0; i < 256; i++) // 仅限用户空间
+    {
+        if (v_pml4t[i] & PG_P)
+        {
+            free_pdpt(v_pml4t[i] & (~0xfff));
+        }
+    }
+    kfree(v_pml4t);
     return;
 }

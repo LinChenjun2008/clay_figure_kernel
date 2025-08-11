@@ -111,6 +111,19 @@ PUBLIC void page_unmap(uint64_t *pml4t, void *vaddr);
  * @param flags 页属性
  */
 PUBLIC void set_page_flags(uint64_t *pml4t, void *vaddr, uint64_t flags);
+
+/**
+ * @brief 设置页表
+ * @return
+ */
+PUBLIC void set_page_table(void *page_table_pos);
+
+/**
+ * @brief 回收页表占用的空间
+ * @param pml4t
+ * @return
+ */
+PUBLIC void free_page_table(uint64_t *pml4t);
 #endif
 
 #endif

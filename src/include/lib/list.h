@@ -15,11 +15,11 @@
 
 typedef struct list_node_s list_node_t;
 
-typedef struct list_node_s
+struct list_node_s
 {
     list_node_t *prev;
     list_node_t *next;
-} list_node_t;
+};
 
 typedef struct list_s
 {
@@ -27,18 +27,20 @@ typedef struct list_s
     list_node_t tail;
 } list_t;
 
-typedef bool(func_t)(list_node_t *, uint64_t);
-
-PUBLIC void         list_init(list_t *list);
+PUBLIC void         init_list(list_t *list);
 PUBLIC void         list_in(list_node_t *node, list_node_t *in_before);
 PUBLIC void         list_push(list_t *list, list_node_t *node);
 PUBLIC void         list_append(list_t *list, list_node_t *node);
 PUBLIC void         list_remove(list_node_t *node);
 PUBLIC list_node_t *list_pop(list_t *list);
 PUBLIC bool         list_find(list_t *list, list_node_t *objnode);
-PUBLIC list_node_t *list_traversal(list_t *list, func_t function, uint64_t arg);
-PUBLIC int          list_len(list_t *list);
-PUBLIC bool         list_empty(list_t *list);
+PUBLIC list_node_t *list_traversal(
+    list_t *list,
+    int (*func)(list_node_t *, uint64_t),
+    uint64_t arg
+);
+PUBLIC int  list_len(list_t *list);
+PUBLIC bool list_empty(list_t *list);
 
 PUBLIC list_node_t *list_head(list_t *list);
 PUBLIC list_node_t *list_tail(list_t *list);

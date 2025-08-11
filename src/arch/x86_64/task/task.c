@@ -25,9 +25,8 @@ PRIVATE void kernel_task(uintptr_t func, uint64_t arg)
     intr_enable();
     sse_init();
     ((void (*)(uint64_t))func)(arg);
-    message_t msg;
-    msg.type = MM_EXIT;
-    sys_send_recv(NR_BOTH, MM, &msg);
+
+    task_exit(0);
     while (1) continue;
     return;
 }
@@ -112,6 +111,39 @@ PUBLIC void task_free(task_struct_t *task)
     return;
 }
 
+PRIVATE void main_task_adopt_child(pid_t ppid)
+{
+    task_struct_t *child_task;
+    task_man_t    *child_task_man;
+
+    task_struct_t *parent_task = pid_to_task(ppid);
+
+    // 防止在此期间还有子任务退出
+    spinlock_lock(&parent_task->child_list_lock);
+    pid_t i;
+    for (i = MIN_PID; i <= MAX_PID; i++)
+    {
+        child_task = pid_to_task(i);
+        if (child_task != NULL && child_task->ppid == ppid)
+        {
+            child_task_man   = get_task_man(child_task->cpu_id);
+            child_task->ppid = child_task_man->main_task->pid;
+        }
+    }
+    // 已退出的子任务也转给main_task
+    while (!list_empty(&parent_task->exited_child_list))
+    {
+        list_node_t *node = list_pop(&parent_task->exited_child_list);
+        child_task        = CONTAINER_OF(task_struct_t, general_tag, node);
+        child_task_man    = get_task_man(child_task->cpu_id);
+        spinlock_lock(&child_task_man->main_task->child_list_lock);
+        list_append(&child_task_man->main_task->exited_child_list, node);
+        spinlock_unlock(&child_task_man->main_task->child_list_lock);
+    }
+    spinlock_unlock(&parent_task->child_list_lock);
+    return;
+}
+
 PUBLIC status_t init_task_struct(
     task_struct_t *task,
     const char    *name,
@@ -136,12 +168,12 @@ PUBLIC status_t init_task_struct(
 
     task->status        = TASK_READY;
     task->preempt_count = 0;
-    task->priority      = priority;
-    task->run_time      = 0;
-    task->vrun_time     = 0; // 将由task_update设置
+    task->cpu_id        = running_task()->cpu_id;
+    task->page_dir      = NULL;
 
-    task->cpu_id   = running_task()->cpu_id;
-    task->page_dir = NULL;
+    task->priority  = priority;
+    task->run_time  = 0;
+    task->vrun_time = 0; // 将由task_update设置
 
     task->send_to   = PID_NO_TASK;
     task->recv_from = PID_NO_TASK;
@@ -150,7 +182,12 @@ PUBLIC status_t init_task_struct(
 
     task->has_intr_msg = 0;
     init_spinlock(&task->send_lock);
-    list_init(&task->sender_list);
+    init_list(&task->sender_list);
+
+    atomic_set(&task->childs, 0);
+    init_spinlock(&task->child_list_lock);
+    init_list(&task->exited_child_list);
+    task->return_status = 0;
 
     fxsave_region_t *fxsave_region;
     status_t         status;
@@ -194,16 +231,19 @@ PUBLIC task_struct_t *task_start(
     {
         return NULL;
     }
-    void    *kstack_base;
-    status_t status = kmalloc(kstack_size, 0, 0, &kstack_base);
+    uintptr_t kstack_base;
+    status_t  status = kmalloc(kstack_size, 0, 0, &kstack_base);
     if (ERROR(status))
     {
         task_free(task);
         return NULL;
     }
 
-    init_task_struct(task, name, priority, (uintptr_t)kstack_base, kstack_size);
+    init_task_struct(task, name, priority, kstack_base, kstack_size);
     create_task_struct(task, func, arg);
+
+    task_struct_t *parent_task = pid_to_task(task->ppid);
+    atomic_inc(&parent_task->childs);
 
     task_man_t *task_man = get_task_man(task->cpu_id);
     spinlock_lock(&task_man->task_list_lock);
@@ -212,10 +252,62 @@ PUBLIC task_struct_t *task_start(
     return task;
 }
 
+PUBLIC void task_exit(int status)
+{
+    task_struct_t *task = running_task();
+    task->return_status = status;
+
+    /// TODO: 处理未完成的IPC
+
+    main_task_adopt_child(task->pid);
+    // 通知父进程任务退出
+    task_block(TASK_DIED);
+    return;
+}
+
+PUBLIC int task_has_exited_child(pid_t pid)
+{
+    task_struct_t *task = pid_to_task(pid);
+    spinlock_lock(&task->child_list_lock);
+    int ret = !list_empty(&task->exited_child_list);
+    spinlock_unlock(&task->child_list_lock);
+    return ret;
+}
+
+PUBLIC int task_release_resource(pid_t pid)
+{
+    task_struct_t *task        = pid_to_task(pid);
+    task_struct_t *parent_task = pid_to_task(task->ppid);
+    ASSERT(parent_task->pid == running_task()->pid);
+    kfree(task->fxsave_region);
+    kfree((void *)task->kstack_base);
+
+    // 获取返回值
+    int return_status = task->return_status;
+
+    atomic_dec(&parent_task->childs);
+
+    task_free(task);
+    return return_status;
+}
+
+PRIVATE void idle_task()
+{
+    while (1)
+    {
+        task_block(TASK_BLOCKED);
+    }
+    return;
+}
+
 PRIVATE void make_main_task(void)
 {
     task_struct_t *main_task = task_alloc();
+    main_task->cpu_id        = apic_id();
+
+    task_man_t *task_man = get_task_man(main_task->cpu_id);
     wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)main_task);
+
     init_task_struct(
         main_task,
         "Main task",
@@ -223,12 +315,18 @@ PRIVATE void make_main_task(void)
         (uintptr_t)PHYS_TO_VIRT(KERNEL_STACK_BASE),
         KERNEL_STACK_SIZE
     );
-    main_task->cpu_id    = apic_id();
-    task_man_t *task_man = get_task_man(main_task->cpu_id);
-    task_man->idle_task  = main_task;
-    spinlock_lock(&task_man->task_list_lock);
-    task_list_insert(task_man, main_task);
-    spinlock_unlock(&task_man->task_list_lock);
+    main_task->status   = TASK_RUNNING; // main_task已经在运行
+    task_man->main_task = main_task;
+    return;
+}
+
+PUBLIC void create_idle_task(void)
+{
+    task_struct_t *task     = running_task();
+    task_man_t    *task_man = get_task_man(task->cpu_id);
+
+    task_struct_t *idle = task_start("idle", IDLE_PRIORITY, 4096, idle_task, 0);
+    task_man->idle_task = idle;
 
     return;
 }
@@ -252,18 +350,20 @@ PUBLIC void task_init(void)
     {
         task_man_t *task_man = &global_task_man->cpus[i];
 
-        list_init(&task_man->task_list);
+        init_list(&task_man->task_list);
         init_spinlock(&task_man->task_list_lock);
 
-        list_init(&task_man->send_recv_list);
+        init_list(&task_man->waiting_list);
 
         task_man->min_vrun_time = 0;
         task_man->running_tasks = 0;
         task_man->total_weight  = 0;
+        task_man->main_task     = NULL;
         task_man->idle_task     = NULL;
     }
     init_spinlock(&global_task_man->tasks_lock);
 
     make_main_task();
+    create_idle_task();
     return;
 }
