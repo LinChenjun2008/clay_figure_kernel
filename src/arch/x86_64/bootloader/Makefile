@@ -1,4 +1,4 @@
-PROJECT_DIR = ../../../../
+PROJECT_DIR = ../../../..
 SCRIPTS_DIR = $(PROJECT_DIR)/scripts
 SRC_DIR = $(PROJECT_DIR)/src
 
@@ -9,4 +9,4 @@ include src_list.mk
 
 $(TARGET_BOOTLOADER): $(SRC)
 	@$(ECHO) making $@
-	@"$(MINGW64_GCC)" $(CFLAGS) -o $@ $^
+	@"$(CC)" $(CFLAGS) -o $@ $^

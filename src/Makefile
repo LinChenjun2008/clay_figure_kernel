@@ -1,4 +1,4 @@
-PROJECT_DIR = ../
+PROJECT_DIR = ..
 SCRIPTS_DIR = $(PROJECT_DIR)/scripts
 SRC_DIR = $(PROJECT_DIR)/src
 

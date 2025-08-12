@@ -57,9 +57,9 @@ $(TARGET_KERNEL): $(TMP_KERNEL_TARGET)
 
 $(TMP_KERNEL_TARGET): $(ASM_SRC:S=o) $(C_SRC:c=o) $(KERNEL_LINKER_SCRIPT)
 	@$(ECHO) linking [1/2]
-	@"$(X86_64-ELF-LD)" $(LDFLAGS) -o $@ $(ASM_SRC:S=o) $(C_SRC:c=o)
+	@"$(LD)" $(LDFLAGS) -o $@ $(ASM_SRC:S=o) $(C_SRC:c=o)
 	@"$(NM)" -W -n $@ | "$(KALLSYMS)" > $@_sym.c
-	@"$(X86_64-ELF-GCC)" $(KERNEL_FLAGS) -c -o $@_sym.o $@_sym.c
+	@"$(CC)" $(KERNEL_FLAGS) -c -o $@_sym.o $@_sym.c
 	@$(ECHO) linking [2/2]
-	@"$(X86_64-ELF-LD)" $(LDFLAGS) -o $@ $(ASM_SRC:S=o) $(C_SRC:c=o) $@_sym.o
+	@"$(LD)" $(LDFLAGS) -o $@ $(ASM_SRC:S=o) $(C_SRC:c=o) $@_sym.o
 	@"$(RM)" $@_sym.c $@_sym.o

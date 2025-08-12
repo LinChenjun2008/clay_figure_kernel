@@ -1,31 +1,37 @@
 ifeq ($(shell uname -s),Linux)
-    MINGW64_GCC      = x86_64-w64-mingw32-gcc
-    X86_64-ELF-GCC   = gcc
-    X86_64-ELF-AS    = as
-    X86_64-ELF-LD    = ld
-    OBJCOPY          = objcopy
-    QEMU             = qemu-system-x86_64
-    ECHO             = echo
-    MKDIR            = mkdir
-    RM               = rm
-    NM               = nm
-    OVMF             = OVMF.fd
+    ifeq ($(TOOLS_DEF),bootloader)
+        CC  = x86_64-w64-mingw32-gcc
+    else
+        CC  = gcc
+    endif
+    AS      = as
+    LD      = ld
+    OBJCOPY = objcopy
+    QEMU    = qemu-system-x86_64
+    ECHO    = echo
+    MKDIR   = mkdir
+    RM      = rm
+    NM      = nm
+    OVMF    = OVMF.fd
 else
-    TOOL_DIR        = $(SRC_DIR)/../tools/
-    MINGW64_GCC      = $(TOOL_DIR)/MinGW64/bin/gcc.exe
-    X86_64-ELF-GCC   = $(TOOL_DIR)/X86_64-elf-tools/bin/x86_64-elf-gcc.exe
-    X86_64-ELF-AS    = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/as.exe
-    X86_64-ELF-LD    = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/ld.exe
-    OBJCOPY          = $(TOOL_DIR)/objcopy
-    QEMU             = $(TOOL_DIR)/qemu/qemu-system-x86_64.exe
-    ECHO             = echo
-    MKDIR            = mkdir
-    RM               = $(TOOL_DIR)/rm
-    NM               = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/nm.exe
-    OVMF             = $(ESP_DIR)/../bios.bin
+    TOOL_DIR = $(PROJECT_DIR)/../tools
+    ifeq ($(TOOLS_DEF),bootloader)
+        CC  = $(TOOL_DIR)/MinGW64/bin/gcc.exe
+    else
+        CC  = $(TOOL_DIR)/X86_64-elf-tools/bin/x86_64-elf-gcc.exe
+    endif
+    AS      = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/as.exe
+    LD      = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/ld.exe
+    OBJCOPY = $(TOOL_DIR)/objcopy
+    QEMU    = $(TOOL_DIR)/qemu/qemu-system-x86_64.exe
+    ECHO    = echo
+    MKDIR   = mkdir
+    RM      = $(TOOL_DIR)/rm
+    NM      = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/nm.exe
+    OVMF    = $(ESP_DIR)/../bios.bin
 endif
 
-KERNEL_LINKER_SCRIPT    = $(SRC_DIR)/kernel.lds
+KERNEL_LINKER_SCRIPT    = $(SCRIPTS_DIR)/kernel.lds
 
 KALLSYMS = $(SRC_DIR)/../build/kallsyms
 IMGCOPY  = $(SRC_DIR)/../build/imgcopy
