@@ -1,42 +1,28 @@
-SRC_PATH                = ./
-BOOTLOADER_SRC_PATH     = $(SRC_PATH)/arch/$(TARGET_ARCH)/bootloader
-KERNEL_SRC_PATH         = $(SRC_PATH)
+SRC += $(SRC_DIR)/kernel/main.c
+SRC += $(SRC_DIR)/kernel/symbols.c
+SRC += $(SRC_DIR)/kernel/config.c
+SRC += $(SRC_DIR)/kernel/service/kernel.c
+SRC += $(SRC_DIR)/kernel/service/kern_task.c
+SRC += $(SRC_DIR)/kernel/service/kern_mem.c
 
-BOOTLOADER_INCLUDE_PATH = $(BOOTLOADER_SRC_PATH)/include
+SRC += $(SRC_DIR)/softirq/softirq.c
+SRC += $(SRC_DIR)/service/service.c
+SRC += $(SRC_DIR)/service/tick/tick.c
+SRC += $(SRC_DIR)/service/view/view.c
 
-KERNEL_LINKER_SCRIPT    = ./kernel.lds
+SRC += $(SRC_DIR)/mem/allocator.c
+SRC += $(SRC_DIR)/mem/service/mm.c
+SRC += $(SRC_DIR)/mem/vmm.c
 
-include $(SRC_PATH)/arch/$(TARGET_ARCH)/arch_src_list.txt
+SRC += $(SRC_DIR)/ramfs/ramfs.c
+SRC += $(SRC_DIR)/sync/semaphore.c
+SRC += $(SRC_DIR)/lib/bitmap.c
+SRC += $(SRC_DIR)/lib/list.c
+SRC += $(SRC_DIR)/lib/fifo.c
+SRC += $(SRC_DIR)/lib/stdio.c
+SRC += $(SRC_DIR)/lib/string.c
+SRC += $(SRC_DIR)/lib/math.c
+SRC += $(SRC_DIR)/graphic/print.c
+SRC += $(SRC_DIR)/graphic/character.c
 
-KERNEL_SRC += \
-    $(KERNEL_SRC_PATH)/kernel/main.c \
-    $(KERNEL_SRC_PATH)/kernel/symbols.c \
-    $(KERNEL_SRC_PATH)/kernel/config.c \
-    $(KERNEL_SRC_PATH)/kernel/service/kernel.c \
-    $(KERNEL_SRC_PATH)/kernel/service/kern_task.c \
-    $(KERNEL_SRC_PATH)/kernel/service/kern_mem.c \
-    \
-    $(KERNEL_SRC_PATH)/softirq/softirq.c \
-    $(KERNEL_SRC_PATH)/service/service.c \
-    $(KERNEL_SRC_PATH)/service/tick/tick.c \
-    $(KERNEL_SRC_PATH)/service/view/view.c \
-    \
-    $(KERNEL_SRC_PATH)/mem/allocator.c \
-    $(KERNEL_SRC_PATH)/mem/service/mm.c \
-    $(KERNEL_SRC_PATH)/mem/vmm.c \
-    \
-    $(KERNEL_SRC_PATH)/ramfs/ramfs.c \
-    $(KERNEL_SRC_PATH)/sync/semaphore.c \
-    $(KERNEL_SRC_PATH)/lib/bitmap.c \
-    $(KERNEL_SRC_PATH)/lib/list.c \
-    $(KERNEL_SRC_PATH)/lib/fifo.c \
-    $(KERNEL_SRC_PATH)/lib/stdio.c \
-    $(KERNEL_SRC_PATH)/lib/string.c \
-    $(KERNEL_SRC_PATH)/lib/math.c \
-    $(KERNEL_SRC_PATH)/graphic/print.c \
-    $(KERNEL_SRC_PATH)/graphic/character.c \
-    \
-    $(KERNEL_SRC_PATH)/ulib/ulib.c \
-
-KERNEL_ARCH_INCLUDE_PATH = $(KERNEL_SRC_PATH)/arch/$(TARGET_ARCH)/include
-KERNEL_INCLUDE_PATH      = $(KERNEL_SRC_PATH)/include
+SRC += $(SRC_DIR)/ulib/ulib.c
