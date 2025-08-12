@@ -1,4 +1,4 @@
-RUNNING_DIR       = $(SRC_DIR)/../../run
+RUNNING_DIR       = $(PROJECT_DIR)/../run
 ESP_DIR           = $(RUNNING_DIR)/esp
 TARGET_BOOTLOADER = $(ESP_DIR)/EFI/Boot/BootX64.efi
 TARGET_KERNEL     = $(ESP_DIR)/Kernel/clfgkrnl.sys
