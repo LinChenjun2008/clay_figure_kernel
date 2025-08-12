@@ -1,11 +1,11 @@
 ifeq ($(shell uname -s),Linux)
-    include linux_tools_def.txt
+    include $(SRC_PATH)/linux_tools_def.mk
 else
-    include win_tools_def.txt
+    include $(SRC_PATH)/win_tools_def.mk
 endif
 
-KALLSYMS = ./tools/kallsyms
-IMGCOPY  = ./tools/imgcopy
+KALLSYMS = ../build/kallsyms
+IMGCOPY  = ../build/imgcopy
 
 IMGCOPY_FLAGS = \
     -copy $(KERNEL_SRC_PATH)/config.txt config \

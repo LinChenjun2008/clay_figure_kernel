@@ -1,6 +1,8 @@
-include target.txt
-include tools_def.txt
-include src_list.txt
+SRC_PATH = ./
+
+include target.mk
+include tools_def.mk
+include src_list.mk
 
 KERNEL_ASM_SRC    := $(filter %.S,$(KERNEL_SRC))
 KERNEL_C_SRC      := $(filter %.c,$(KERNEL_SRC))
@@ -39,8 +41,7 @@ init:
 	-$(MKDIR) "$(ESP_PATH)/Kernel"
 
 $(TARGET_BOOTLOADER): $(BOOTLOADER_SRC)
-	@$(ECHO) making $@
-	@"$(MINGW64_GCC)" $(BOOTLOADER_FLAGS) -o $@ $^
+	@$(MAKE) -C ./arch/ bootloader
 
 %.o: %.c
 	@$(ECHO) compiling $*.c

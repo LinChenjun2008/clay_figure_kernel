@@ -1,0 +1,1 @@
+SRC += main.c video.c memory.c file.c

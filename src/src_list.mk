@@ -1,12 +1,6 @@
-SRC_PATH                = ../src
+SRC_PATH                = ./
 BOOTLOADER_SRC_PATH     = $(SRC_PATH)/arch/$(TARGET_ARCH)/bootloader
 KERNEL_SRC_PATH         = $(SRC_PATH)
-
-BOOTLOADER_SRC          = \
-$(BOOTLOADER_SRC_PATH)/main.c \
-$(BOOTLOADER_SRC_PATH)/video.c \
-$(BOOTLOADER_SRC_PATH)/memory.c \
-$(BOOTLOADER_SRC_PATH)/file.c \
 
 BOOTLOADER_INCLUDE_PATH = $(BOOTLOADER_SRC_PATH)/include
 

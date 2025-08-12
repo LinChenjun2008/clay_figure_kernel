@@ -1,5 +1,4 @@
 *.o
 *.dep
-build/.tmp_kernel
-build/tools
+build/
 .vscode
