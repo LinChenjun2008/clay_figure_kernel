@@ -21,16 +21,16 @@ extern PUBLIC uint8_t ascii_character[][16];
 
 PUBLIC textbox_t g_tb;
 
-PRIVATE char *print_time(char *buf)
-{
-    sprintf(
-        buf,
-        "[%5u.%06u]",
-        get_nano_time() / 1000000000,
-        (get_nano_time() / 1000) % 1000000
-    );
-    return buf;
-}
+// PRIVATE char *print_time(char *buf)
+// {
+//     sprintf(
+//         buf,
+//         "[%5u.%06u]",
+//         get_nano_time() / 1000000000,
+//         (get_nano_time() / 1000) % 1000000
+//     );
+//     return buf;
+// }
 
 #define IS_TRANSMIT_EMPTY(port) (io_in8(port + 5) & 0x20)
 
@@ -58,30 +58,11 @@ static void serial_pr_log_sub(uint16_t port, char *buf)
 
 static inline void serial_pr_log(int level, const char *log, va_list ap)
 {
-    char   log_serial[2];
-    size_t log_serial_len = 2;
-    read_config("LOG_SERIAL", log_serial, &log_serial_len);
-    if (log_serial_len == 0)
+    if (level > DEBUG_LEVEL)
     {
         return;
     }
-    char   log_lv[2];
-    size_t log_lv_len = 2;
-    read_config("LOG_LEVEL", log_lv, &log_lv_len);
-    if (log_lv_len == 1)
-    {
-        if (level > (int)(log_lv[0] - '0'))
-        {
-            return;
-        }
-    }
-    else
-    {
-        if (level > DEBUG_LEVEL)
-        {
-            return;
-        }
-    }
+
     char        msg[256];
     char       *buf;
     uint16_t    port        = 0x3f8;
@@ -92,7 +73,7 @@ static inline void serial_pr_log(int level, const char *log, va_list ap)
     };
     if (level >= LOG_FATAL && level <= LOG_DEBUG)
     {
-        serial_pr_log_sub(port, print_time(msg));
+        // serial_pr_log_sub(port, print_time(msg));
         buf = (char *)level_str[level];
         serial_pr_log_sub(port, buf);
     }
@@ -108,23 +89,11 @@ static inline void serial_pr_log(int level, const char *log, va_list ap)
 
 PUBLIC void pr_log(int level, const char *log, ...)
 {
-    char   log_lv[2];
-    size_t log_lv_len = 2;
-    read_config("LOG_LEVEL", log_lv, &log_lv_len);
-    if (log_lv_len == 1)
+    if (level > DEBUG_LEVEL)
     {
-        if (level > (int)(log_lv[0] - '0'))
-        {
-            return;
-        }
+        return;
     }
-    else
-    {
-        if (level > DEBUG_LEVEL)
-        {
-            return;
-        }
-    }
+
     char        msg[256];
     char       *buf;
     va_list     ap;
@@ -138,8 +107,8 @@ PUBLIC void pr_log(int level, const char *log, ...)
     };
     if (level >= LOG_FATAL && level <= LOG_DEBUG)
     {
-        print_time(msg);
-        basic_print(&BOOT_INFO->graph_info, &g_tb, level_color[0], msg);
+        // print_time(msg);
+        // basic_print(&BOOT_INFO->graph_info, &g_tb, level_color[0], msg);
         basic_print(
             &BOOT_INFO->graph_info, &g_tb, level_color[level], level_str[level]
         );

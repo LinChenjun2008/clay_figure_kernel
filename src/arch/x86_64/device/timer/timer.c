@@ -156,9 +156,5 @@ PUBLIC uint64_t get_current_ticks(void)
 
 PUBLIC uint64_t get_nano_time(void)
 {
-    if (hpet.period_fs != 0)
-    {
-        return (*hpet.main_cnt) * hpet.period_fs / 1000000;
-    }
-    return current_ticks * IRQ0_FREQUENCY * 1000;
+    return (*hpet.main_cnt) * hpet.period_fs / 1000000;
 }
