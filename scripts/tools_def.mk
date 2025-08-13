@@ -43,6 +43,7 @@ ifeq ($(TOOLS_DEF),bootloader)
     CFLAGS += -Wall -Wextra -Werror
     CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader
     CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader/include
+    CFLAGS += -I$(SRC_DIR)/include
     CFLAGS += -I$(SRC_DIR)
     CFLAGS += -e UefiMain -nostdinc -nostdlib
     CFLAGS += -m64 -mcmodel=small

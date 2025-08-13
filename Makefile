@@ -36,8 +36,8 @@ debug: all
 clean:
 	@$(MAKE) -C $(SRC_DIR)/arch clean
 	@$(MAKE) -C $(SRC_DIR) clean
-	@$(RM) $(TMP_KERNEL_TARGET)
-	@$(RM) $(TARGET_KERNEL)
+	-@$(RM) $(TMP_KERNEL_TARGET)
+	-@$(RM) $(TARGET_KERNEL)
 
 .PHONY: init
 init:
