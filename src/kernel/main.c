@@ -76,6 +76,7 @@ PUBLIC void kernel_main(void)
         memset(&msg, 0, sizeof(msg));
         msg.type                   = KERN_WAITPID;
         msg.m[IN_KERN_WAITPID_PID] = -1;
+        sys_send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     };
 }
 

@@ -7,5 +7,3 @@ TARGET_INITFAMFS  = $(ESP_DIR)/Kernel/initramfs.img
 TARGET_ARCH       = x86_64
 SMP_CORES         = 4
 MEMORY            = 256M
-
-TMP_KERNEL_TARGET = .tmp_kernel.o

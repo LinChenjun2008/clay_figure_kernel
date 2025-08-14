@@ -20,8 +20,8 @@ kernel: $(ASM_SRC:S=o) $(C_SRC:c=o)
 
 .PHONY: clean
 clean:
-	@$(RM) $(ASM_SRC:S=o) $(C_SRC:c=o)
-	@$(RM) $(ASM_SRC:S=dep) $(C_SRC:c=dep)
+	-@$(RM) $(ASM_SRC:S=o) $(C_SRC:c=o)
+	-@$(RM) $(ASM_SRC:S=dep) $(C_SRC:c=dep)
 
 -include $(ASM_SRC:S=dep)
 -include $(C_SRC:c=dep)

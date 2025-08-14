@@ -77,6 +77,8 @@ PUBLIC void panic_spin(
     const char *message
 );
 
+#define PR_MSG(MESSAGE, args...) pr_msg("%s: " MESSAGE, __func__, ##args)
+
 #define PR_LOG(LEVEL, MESSAGE, args...) \
     pr_log(LEVEL, "%s: " MESSAGE, __func__, ##args)
 

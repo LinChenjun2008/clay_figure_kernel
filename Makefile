@@ -36,8 +36,7 @@ debug: all
 clean:
 	@$(MAKE) -C $(SRC_DIR)/arch clean
 	@$(MAKE) -C $(SRC_DIR) clean
-	@$(RM) $(TMP_KERNEL_TARGET)
-	@$(RM) $(TARGET_KERNEL)
+	-@$(RM) $(TARGET_KERNEL)
 
 .PHONY: init
 init:
@@ -51,11 +50,7 @@ $(TARGET_INITFAMFS): $(SRC_DIR)/config.txt
 	@$(ECHO) make initramfs
 	@"$(IMGCOPY)" $(IMGCOPY_FLAGS) > $(ESP_DIR)/Kernel/initramfs.img
 
-$(TARGET_KERNEL): $(TMP_KERNEL_TARGET)
-	@$(ECHO) making $@
-	@"$(OBJCOPY)" $(OBJFLAGS) $^ $@
-
-$(TMP_KERNEL_TARGET): $(ASM_SRC:S=o) $(C_SRC:c=o) $(KERNEL_LINKER_SCRIPT)
+$(TARGET_KERNEL): $(ASM_SRC:S=o) $(C_SRC:c=o) $(KERNEL_LINKER_SCRIPT)
 	@$(ECHO) linking [1/2]
 	@"$(LD)" $(LDFLAGS) -o $@ $(ASM_SRC:S=o) $(C_SRC:c=o)
 	@"$(NM)" -W -n $@ | "$(KALLSYMS)" > $@_sym.c

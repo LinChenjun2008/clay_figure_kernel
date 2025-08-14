@@ -46,13 +46,7 @@ typedef struct
     uint64_t  period_fs;
 } hpet_t;
 
-PRIVATE hpet_t hpet = { (uint8_t *)HPET_DEFAULT_ADDRESS,
-                        (uint64_t *)(HPET_DEFAULT_ADDRESS + HPET_GCAP_ID),
-                        (uint64_t *)(HPET_DEFAULT_ADDRESS + HPET_GEN_CONF),
-                        (uint64_t *)(HPET_DEFAULT_ADDRESS + HPET_MAIN_CNT),
-                        (uint64_t *)(HPET_DEFAULT_ADDRESS + HPET_TIME0_CONF),
-                        (uint64_t *)(HPET_DEFAULT_ADDRESS + HPET_TIME0_COMP),
-                        0 };
+PRIVATE hpet_t hpet = { 0 };
 
 PRIVATE void timer_handler(intr_stack_t *stack)
 {

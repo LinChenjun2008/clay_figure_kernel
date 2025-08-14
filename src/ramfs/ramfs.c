@@ -25,8 +25,7 @@ PUBLIC status_t ramfs_check(void *ramfs_addr)
     uint64_t i;
     for (i = 0; i < ramfs_info->files; i++)
     {
-        PR_LOG(
-            LOG_INFO,
+        PR_MSG(
             "File %d: name=%s, size=%d.\n",
             i + 1,
             fdata->file_name,

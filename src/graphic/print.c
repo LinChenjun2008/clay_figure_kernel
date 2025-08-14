@@ -58,30 +58,11 @@ static void serial_pr_log_sub(uint16_t port, char *buf)
 
 static inline void serial_pr_log(int level, const char *log, va_list ap)
 {
-    char   log_serial[2];
-    size_t log_serial_len = 2;
-    read_config("LOG_SERIAL", log_serial, &log_serial_len);
-    if (log_serial_len == 0)
+    if (level > DEBUG_LEVEL)
     {
         return;
     }
-    char   log_lv[2];
-    size_t log_lv_len = 2;
-    read_config("LOG_LEVEL", log_lv, &log_lv_len);
-    if (log_lv_len == 1)
-    {
-        if (level > (int)(log_lv[0] - '0'))
-        {
-            return;
-        }
-    }
-    else
-    {
-        if (level > DEBUG_LEVEL)
-        {
-            return;
-        }
-    }
+
     char        msg[256];
     char       *buf;
     uint16_t    port        = 0x3f8;
@@ -108,23 +89,11 @@ static inline void serial_pr_log(int level, const char *log, va_list ap)
 
 PUBLIC void pr_log(int level, const char *log, ...)
 {
-    char   log_lv[2];
-    size_t log_lv_len = 2;
-    read_config("LOG_LEVEL", log_lv, &log_lv_len);
-    if (log_lv_len == 1)
+    if (level > DEBUG_LEVEL)
     {
-        if (level > (int)(log_lv[0] - '0'))
-        {
-            return;
-        }
+        return;
     }
-    else
-    {
-        if (level > DEBUG_LEVEL)
-        {
-            return;
-        }
-    }
+
     char        msg[256];
     char       *buf;
     va_list     ap;

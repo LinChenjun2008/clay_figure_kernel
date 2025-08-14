@@ -26,3 +26,5 @@ SRC += $(SRC_DIR)/graphic/print.c
 SRC += $(SRC_DIR)/graphic/character.c
 
 SRC += $(SRC_DIR)/ulib/ulib.c
+
+SRC += $(SRC_DIR)/elf/elf.c
