@@ -12,6 +12,7 @@
 #undef __BOOTLOADER__
 
 #include <config.h>
+#include <elf.h>
 
 #define SIGNATURE_32(A, B, C, D) (D << 24 | C << 16 | B << 8 | A)
 
@@ -36,11 +37,17 @@ EFI_STATUS DisplayLogo();
 EFI_STATUS ReadFile(
     CHAR16               *FileName,
     EFI_PHYSICAL_ADDRESS *FileBufferBase,
-    EFI_ALLOCATE_TYPE     BufferType,
     UINT64               *FileSize
 );
 EFI_STATUS GetMemoryMap(memory_map_t *memmap);
 VOID       CreatePage(EFI_PHYSICAL_ADDRESS PML4T);
+
+EFI_STATUS
+LoadSegment(
+    EFI_PHYSICAL_ADDRESS  ElfFile,
+    EFI_PHYSICAL_ADDRESS  RelocateBase,
+    EFI_PHYSICAL_ADDRESS *Entry
+);
 
 int CompareGuid(EFI_GUID *guid1, EFI_GUID *guid2)
 {
@@ -171,16 +178,10 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
 
     // load file
 
-    UINT64 FileSize             = 0;
-    UINT64 (*kernel_main)(void) = (void *)0x100000;
-
+    UINT64               FileSize   = 0;
+    EFI_PHYSICAL_ADDRESS KernelBase = 0;
     // Kernel
-    Status = ReadFile(
-        KERNEL_NAME,
-        (EFI_PHYSICAL_ADDRESS *)&kernel_main,
-        AllocateAddress,
-        &FileSize
-    );
+    Status = ReadFile(KERNEL_NAME, &KernelBase, &FileSize);
     if (EFI_ERROR(Status))
     {
         gST->ConOut->OutputString(
@@ -193,7 +194,6 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
     Status = ReadFile(
         INITRAMFS_NAME,
         (EFI_PHYSICAL_ADDRESS *)&boot_info->initramfs,
-        AllocateAnyPages,
         &boot_info->initramfs_size
     );
     if (EFI_ERROR(Status))
@@ -203,9 +203,11 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
         );
         while (1) continue;
     }
-    gBS->ExitBootServices(gImageHandle, boot_info->memory_map.map_key);
 
-    kernel_main();
+    void (*kernel_entry)(void);
+    LoadSegment(KernelBase, 0x100000, (EFI_PHYSICAL_ADDRESS *)&kernel_entry);
+    gBS->ExitBootServices(gImageHandle, boot_info->memory_map.map_key);
+    kernel_entry();
     while (1) continue;
     return Status;
 }

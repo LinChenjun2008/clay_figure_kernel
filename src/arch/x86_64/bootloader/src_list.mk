@@ -1,1 +1,1 @@
-SRC += main.c video.c memory.c file.c
+SRC += main.c video.c memory.c file.c elf.c

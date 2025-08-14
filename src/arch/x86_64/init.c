@@ -72,7 +72,6 @@ PRIVATE void init_desc(void)
     load_tss(0);
 }
 
-
 PUBLIC void init_all(void)
 {
     intr_disable();
@@ -90,23 +89,33 @@ PUBLIC void init_all(void)
     g_tb.char_xsize = 9;
     g_tb.char_ysize = 16;
 
+    PR_MSG("Check initramfs...\n");
+
     status_t status = ramfs_check(BOOT_INFO->initramfs);
     PANIC(ERROR(status), "initramfs check failed.\n");
 
     ramfs_file_t fp;
     if (ERROR(ramfs_open(BOOT_INFO->initramfs, "config", &fp)))
     {
-        pr_log(LOG_FATAL, "Can not read cinfig.\n");
+        PR_MSG("ERROR: Can not read cinfig.\n");
         while (1) continue;
     }
     parse_config(&fp);
 
-    PR_LOG(LOG_INFO, "Segment initializing ...\n");
+    detect_cores();
+
+    PR_MSG("Segment initializing ...\n");
     init_desc();
 
-    PR_LOG(LOG_INFO, "Interrrupt initializing ...\n");
+    PR_MSG("Interrrupt initializing ...\n");
     intr_init();
     softirq_init();
+
+    PR_MSG("PIC initializing ...\n");
+    pic_init();
+
+    PR_MSG("Timer initializing ...\n");
+    pit_init();
 
     PR_LOG(LOG_INFO, "SSE initializing ...\n");
     if (ERROR(check_sse()))
@@ -131,12 +140,6 @@ PUBLIC void init_all(void)
         PR_LOG(LOG_FATAL, "Failed to initialize SMP.\n");
         while (1) continue;
     }
-
-    PR_LOG(LOG_INFO, "PIC initializing ...\n");
-    pic_init();
-
-    PR_LOG(LOG_INFO, "Timer initializing ...\n");
-    pit_init();
 
     PR_LOG(LOG_INFO, "PCI initializing ...\n");
     pci_scan_all_bus();
@@ -168,13 +171,15 @@ PUBLIC void init_all(void)
         "| |___  | |___  | |     | |_| | ",
         "\\_____| |_____| |_|     \\_____/ ",
     };
-    char     s[64];
+    char   s[64];
+    size_t s_len = 63;
+    read_config("VERSION", s, &s_len);
     uint32_t horz = BOOT_INFO->graph_info.horizontal_resolution;
     uint32_t vert = BOOT_INFO->graph_info.vertical_resolution;
 
     pr_msg("%s System Informations \n", logo[0]);
     pr_msg("%s -----------------\n", logo[1]);
-    pr_msg("%s Kernel: %s (%s) %s\n", logo[2], K_NAME, K_NAME_S, K_VERSION);
+    pr_msg("%s Kernel: %s (%s) %s\n", logo[2], K_NAME, K_NAME_S, s);
     pr_msg("%s Resolution: %dx%d\n", logo[3], horz, vert);
     pr_msg("%s CPU: %s\n", logo[4], cpu_name(s));
     pr_msg("%s Memory: %d MiB\n", logo[5], total_pages * 2);
@@ -183,8 +188,7 @@ PUBLIC void init_all(void)
     pr_msg("\n");
     pr_msg("Copyright (C) 2024-2025 " K_NAME " Developers.\n\n");
 
-    pr_log(
-        0,
+    pr_msg(
         "This is free software; see the source for copying conditions.  There "
         "is NO\n"
         "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR "

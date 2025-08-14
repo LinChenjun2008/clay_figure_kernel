@@ -213,8 +213,7 @@ PUBLIC void mem_page_init(void)
             mem_end += curr_size;
             i = j;
         }
-        PR_LOG(
-            0,
+        PR_MSG(
             "From %p to %p: size: %8d KiB Type: %s.\n",
             mem_start,
             mem_end,

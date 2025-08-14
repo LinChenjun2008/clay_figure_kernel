@@ -8,7 +8,6 @@
 EFI_STATUS ReadFile(
     CHAR16               *FileName,
     EFI_PHYSICAL_ADDRESS *FileBufferBase,
-    EFI_ALLOCATE_TYPE     BufferType,
     UINT64               *FileSize
 )
 {
@@ -83,17 +82,16 @@ EFI_STATUS ReadFile(
     EFI_PHYSICAL_ADDRESS *FileBufferAddress = FileBufferBase;
 
     Status = gBS->AllocatePages(
-        BufferType, EfiLoaderData, FilePageSize, FileBufferAddress
+        AllocateAnyPages, EfiLoaderData, FilePageSize, FileBufferAddress
     );
     gBS->SetMem((VOID *)*FileBufferAddress, FilePageSize * 0x1000, 0);
-    if (BufferType == AllocateAnyPages)
+
+    if (EFI_ERROR(Status))
     {
-        if (EFI_ERROR(Status))
-        {
-            gBS->FreePool(FileInfo);
-            return Status;
-        }
+        gBS->FreePool(FileInfo);
+        return Status;
     }
+
     UINTN ReadSize = FileInfo->FileSize;
     Status =
         FileHandle->Read(FileHandle, &ReadSize, (VOID *)*FileBufferAddress);

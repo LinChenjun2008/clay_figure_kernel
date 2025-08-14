@@ -21,16 +21,16 @@ extern PUBLIC uint8_t ascii_character[][16];
 
 PUBLIC textbox_t g_tb;
 
-// PRIVATE char *print_time(char *buf)
-// {
-//     sprintf(
-//         buf,
-//         "[%5u.%06u]",
-//         get_nano_time() / 1000000000,
-//         (get_nano_time() / 1000) % 1000000
-//     );
-//     return buf;
-// }
+PRIVATE char *print_time(char *buf)
+{
+    sprintf(
+        buf,
+        "[%5u.%06u]",
+        get_nano_time() / 1000000000,
+        (get_nano_time() / 1000) % 1000000
+    );
+    return buf;
+}
 
 #define IS_TRANSMIT_EMPTY(port) (io_in8(port + 5) & 0x20)
 
@@ -73,7 +73,7 @@ static inline void serial_pr_log(int level, const char *log, va_list ap)
     };
     if (level >= LOG_FATAL && level <= LOG_DEBUG)
     {
-        // serial_pr_log_sub(port, print_time(msg));
+        serial_pr_log_sub(port, print_time(msg));
         buf = (char *)level_str[level];
         serial_pr_log_sub(port, buf);
     }
@@ -107,8 +107,8 @@ PUBLIC void pr_log(int level, const char *log, ...)
     };
     if (level >= LOG_FATAL && level <= LOG_DEBUG)
     {
-        // print_time(msg);
-        // basic_print(&BOOT_INFO->graph_info, &g_tb, level_color[0], msg);
+        print_time(msg);
+        basic_print(&BOOT_INFO->graph_info, &g_tb, level_color[0], msg);
         basic_print(
             &BOOT_INFO->graph_info, &g_tb, level_color[level], level_str[level]
         );

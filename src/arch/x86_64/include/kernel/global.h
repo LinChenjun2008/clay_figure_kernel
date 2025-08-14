@@ -32,14 +32,19 @@
 #define BOOT_INFO ((boot_info_t *)0xffff800000410000)
 
 extern uint8_t _kernel_start[];
+
 extern uint8_t _text[];
 extern uint8_t _etext[];
-extern uint8_t _data[];
-extern uint8_t _edata[];
+
 extern uint8_t _rodata[];
 extern uint8_t _erodata[];
+
+extern uint8_t _data[];
+extern uint8_t _edata[];
+
 extern uint8_t _bss[];
 extern uint8_t _ebss[];
+
 extern uint8_t _kernel_end[];
 
 PUBLIC void kernel_main(void);
