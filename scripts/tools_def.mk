@@ -67,7 +67,7 @@ else
     CFLAGS += -finput-charset=UTF-8 -fexec-charset=UTF-8
     CFLAGS += -fno-builtin -fno-strict-aliasing -ffreestanding
     CFLAGS += -fstrength-reduce -falign-loops -falign-jumps
-    CFLAGS += -fPIE -fwrapv
+    CFLAGS += -fwrapv
     CFLAGS += -fno-use-linker-plugin
     CFLAGS += -mno-red-zone -m64 -mcmodel=large -march=x86-64
     CFLAGS += -mstackrealign
@@ -75,7 +75,7 @@ else
 
     AFLAGS = $(CFLAGS) -D__ASM_INCLUDE__
 
-    LDFLAGS = -T $(KERNEL_LINKER_SCRIPT) -pie
+    LDFLAGS = -T $(KERNEL_LINKER_SCRIPT) -no-pie
 
     OBJFLAGS  = -I elf64-x86-64
     OBJFLAGS += --strip-debug -S -R ".eh_frame" -R ".comment" -O binary
