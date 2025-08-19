@@ -28,6 +28,21 @@ LoadSegment(
         gST->ConOut->OutputString(gST->ConOut, L"ELF Magic check error.\n\r");
         return EFI_ERR;
     }
+    if (Ehdr->e_ident[EI_CLASS] != ELFCLASS64)
+    {
+        gST->ConOut->OutputString(gST->ConOut, L"ELF not a 64-bit object.\n\r");
+        return EFI_ERR;
+    }
+    if (Ehdr->e_ident[EI_VERSION] != EV_CURRENT)
+    {
+        gST->ConOut->OutputString(gST->ConOut, L"ELF version check error.\n\r");
+        return EFI_ERR;
+    }
+    if (Ehdr->e_ident[EI_OSABI] != ELFOSABI_SYSV)
+    {
+        gST->ConOut->OutputString(gST->ConOut, L"ELF not System V abi.\n\r");
+        return EFI_ERR;
+    }
     if (Ehdr->e_version != EV_CURRENT)
     {
         gST->ConOut->OutputString(gST->ConOut, L"ELF version check error.\n\r");
