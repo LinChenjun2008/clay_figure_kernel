@@ -8,6 +8,10 @@
 
 #ifdef __BOOTLOADER__
 
+#    ifndef KERNEL_TEXT_BASE
+#        define KERNEL_TEXT_BASE 0xffffffff80000000
+#    endif
+
 typedef unsigned char          uint8_t;
 typedef unsigned short         uint16_t;
 typedef unsigned int           uint32_t;

@@ -70,6 +70,7 @@ PRIVATE void init_desc(void)
     init_tss(0);
     load_gdt();
     load_tss(0);
+    return;
 }
 
 PUBLIC void init_all(void)

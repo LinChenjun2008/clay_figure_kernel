@@ -41,10 +41,20 @@ IMGCOPY_FLAGS = \
 
 ifeq ($(TOOLS_DEF),bootloader)
     CFLAGS += -Wall -Wextra -Werror
+    CFLAGS += -Wredundant-decls -Wnested-externs
+    CFLAGS += -Winline
+    CFLAGS += -Wshadow
+    CFLAGS += -Wpointer-arith
+    CFLAGS += -Wmissing-prototypes
+    CFLAGS += -Wmissing-declarations
+    CFLAGS += -Wuninitialized
+    CFLAGS += -Wno-long-long
+    CFLAGS += -Wno-implicit-fallthrough
     CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader
     CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader/include
     CFLAGS += -I$(SRC_DIR)/include
     CFLAGS += -I$(SRC_DIR)
+    CFLAGS += -D__BOOTLOADER__
     CFLAGS += -e UefiMain -nostdinc -nostdlib
     CFLAGS += -m64 -mcmodel=small
     CFLAGS += -fno-stack-protector -fpic -fpie -fno-builtin -Wl,--subsystem,10
@@ -67,7 +77,7 @@ else
     CFLAGS += -finput-charset=UTF-8 -fexec-charset=UTF-8
     CFLAGS += -fno-builtin -fno-strict-aliasing -ffreestanding
     CFLAGS += -fstrength-reduce -falign-loops -falign-jumps
-    CFLAGS += -fwrapv
+    CFLAGS += -fPIE -fpie -fwrapv
     CFLAGS += -fno-use-linker-plugin
     CFLAGS += -mno-red-zone -m64 -mcmodel=large -march=x86-64
     CFLAGS += -mstackrealign
@@ -75,7 +85,7 @@ else
 
     AFLAGS = $(CFLAGS) -D__ASM_INCLUDE__
 
-    LDFLAGS = -T $(KERNEL_LINKER_SCRIPT) -no-pie
+    LDFLAGS = -T $(KERNEL_LINKER_SCRIPT) -pie
 
     OBJFLAGS  = -I elf64-x86-64
     OBJFLAGS += --strip-debug -S -R ".eh_frame" -R ".comment" -O binary

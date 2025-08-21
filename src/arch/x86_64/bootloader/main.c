@@ -3,16 +3,13 @@
  * Copyright (C) 2024 LinChenjun
  */
 
-#include <Efi.h>
-#include <Guid/Acpi.h>
-#include <Uefi/UefiAcpiDataTable.h>
+#include <bootloader.h>
 
-#define __BOOTLOADER__
-#include <common.h>
-#undef __BOOTLOADER__
-
-#include <config.h>
-#include <elf.h>
+static UINT32 VideoModes[12][2] = {
+    { 2560, 1600 }, { 1920, 1200 }, { 1920, 1080 }, { 1680, 1050 },
+    { 1600, 1200 }, { 1440, 900 },  { 1280, 1024 }, { 1280, 800 },
+    { 1280, 720 },  { 1024, 768 },  { 800, 600 },   { 0, 0 },
+};
 
 #define SIGNATURE_32(A, B, C, D) (D << 24 | C << 16 | B << 8 | A)
 
@@ -31,23 +28,6 @@ EFI_GUID gEfiSimpleFileSystemProtocolGuid =
     EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
 EFI_GUID gEfiFileInfoGuid  = EFI_FILE_INFO_ID;
 EFI_GUID gEfiAcpiTableGuid = EFI_ACPI_TABLE_GUID;
-
-EFI_STATUS SetVideoMode(int x, int y);
-EFI_STATUS DisplayLogo();
-EFI_STATUS ReadFile(
-    CHAR16               *FileName,
-    EFI_PHYSICAL_ADDRESS *FileBufferBase,
-    UINT64               *FileSize
-);
-EFI_STATUS GetMemoryMap(memory_map_t *memmap);
-VOID       CreatePage(EFI_PHYSICAL_ADDRESS PML4T);
-
-EFI_STATUS
-LoadSegment(
-    EFI_PHYSICAL_ADDRESS  ElfFile,
-    EFI_PHYSICAL_ADDRESS  RelocateBase,
-    EFI_PHYSICAL_ADDRESS *Entry
-);
 
 int CompareGuid(EFI_GUID *guid1, EFI_GUID *guid2)
 {

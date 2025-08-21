@@ -3,7 +3,7 @@
  * Copyright (C) 2024 LinChenjun
  */
 
-#include <Efi.h>
+#include <bootloader.h>
 
 #define ABS(x) (x > 0 ? x : -x)
 
@@ -54,7 +54,7 @@ static void DisplayBlock(UINT32 x, UINT32 y, UINT32 x1, UINT32 y1, UINT32 color)
     }
 }
 
-EFI_STATUS DisplayLogo()
+EFI_STATUS DisplayLogo(void)
 {
     INT32 bx = (Gop->Mode->Info->HorizontalResolution - 400) / 2;
     INT32 by = (Gop->Mode->Info->VerticalResolution - 200) / 2;
