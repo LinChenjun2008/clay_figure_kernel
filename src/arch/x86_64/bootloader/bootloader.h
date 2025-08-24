@@ -48,7 +48,8 @@ VOID       CreatePage(EFI_PHYSICAL_ADDRESS PML4T);
 // elf.c
 EFI_STATUS LoadSegment(
     EFI_PHYSICAL_ADDRESS  ElfFile,
-    EFI_PHYSICAL_ADDRESS  PhysicalBase,
+    EFI_PHYSICAL_ADDRESS *PhysicalBase,
+    EFI_VIRTUAL_ADDRESS  *RelocateBase,
     EFI_PHYSICAL_ADDRESS *Entry
 );
 

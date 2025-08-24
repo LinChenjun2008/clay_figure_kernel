@@ -18,6 +18,7 @@ PUBLIC int is_available_symbol_address(void *addr)
 
 PUBLIC status_t get_symbol_index_by_addr(void *addr, int *index)
 {
+    addr = (uint8_t *)addr - BOOT_INFO->relocate_base;
     int i;
     for (i = 0; i < kallsyms_count; i++)
     {

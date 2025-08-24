@@ -62,14 +62,14 @@ ElfLoadExec(EFI_PHYSICAL_ADDRESS ElfFile, EFI_PHYSICAL_ADDRESS *Entry)
             gBS->CopyMem((VOID *)Destination, (VOID *)Source, FileSize);
         }
     }
-    *Entry = Ehdr->e_entry - KERNEL_TEXT_BASE;
+    *Entry = Ehdr->e_entry;
     return EFI_SUCCESS;
 }
 
 static EFI_STATUS ElfLoadDyn(
     EFI_PHYSICAL_ADDRESS  ElfFile,
-    EFI_PHYSICAL_ADDRESS  PhysicalBase,
-    EFI_VIRTUAL_ADDRESS   RelocateBase,
+    EFI_PHYSICAL_ADDRESS *PhysicalBase,
+    EFI_VIRTUAL_ADDRESS  *RelocateBase,
     EFI_PHYSICAL_ADDRESS *Entry
 )
 {
@@ -97,7 +97,6 @@ static EFI_STATUS ElfLoadDyn(
 
         if (Phdr[i].p_type == PT_DYNAMIC)
         {
-            Printf(L"Find Dynamic: %d.\n\r", i);
             DynamicIndex = i;
         }
     }
@@ -115,17 +114,16 @@ static EFI_STATUS ElfLoadDyn(
     UINTN      Pages = (AddrHi - AddrLo) / 0x1000 + 1;
     EFI_STATUS Status;
 
-    Status = gBS->AllocatePages(
-        AllocateAddress, EfiLoaderCode, Pages, &PhysicalBase
-    );
+    Status =
+        gBS->AllocatePages(AllocateAddress, EfiLoaderCode, Pages, PhysicalBase);
     if (EFI_ERROR(Status))
     {
-        Printf(L"Can not allocate address: %p.\n\r", PhysicalBase);
+        Printf(L"Can not allocate address: %p.\n\r", *PhysicalBase);
         return Status;
     }
 
-    EFI_PHYSICAL_ADDRESS Offset         = PhysicalBase - AddrLo;
-    EFI_VIRTUAL_ADDRESS  RelocateOffset = RelocateBase - AddrLo;
+    EFI_PHYSICAL_ADDRESS Offset         = *PhysicalBase - AddrLo;
+    EFI_VIRTUAL_ADDRESS  RelocateOffset = *RelocateBase - AddrLo;
 
     for (i = 0; i < Ehdr->e_phnum; i++)
     {
@@ -210,7 +208,8 @@ static EFI_STATUS ElfLoadDyn(
 
 EFI_STATUS LoadSegment(
     EFI_PHYSICAL_ADDRESS  ElfFile,
-    EFI_PHYSICAL_ADDRESS  PhysicalBase,
+    EFI_PHYSICAL_ADDRESS *PhysicalBase,
+    EFI_VIRTUAL_ADDRESS  *RelocateBase,
     EFI_PHYSICAL_ADDRESS *Entry
 )
 {
@@ -249,7 +248,9 @@ EFI_STATUS LoadSegment(
     // Executable
     if (Ehdr->e_type == ET_EXEC)
     {
-        Status = ElfLoadExec(ElfFile, Entry);
+        *PhysicalBase = 0;
+        *RelocateBase = 0;
+        Status        = ElfLoadExec(ElfFile, Entry);
         if (EFI_ERROR(Status))
         {
             Printf(L"Load ET_EXEC failed.\n\r");
@@ -258,7 +259,6 @@ EFI_STATUS LoadSegment(
     }
     if (Ehdr->e_type == ET_DYN)
     {
-        EFI_VIRTUAL_ADDRESS RelocateBase = KERNEL_TEXT_BASE + PhysicalBase;
         Status = ElfLoadDyn(ElfFile, PhysicalBase, RelocateBase, Entry);
         if (EFI_ERROR(Status))
         {

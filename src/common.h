@@ -54,10 +54,11 @@ typedef struct
 
 typedef struct
 {
-    uint64_t     magic;      // 5a 42 cb 16 13 d4 a6 2f
-    memory_map_t memory_map; // 内存描述符
-    graph_info_t graph_info; // 图形信息
-    void        *initramfs;  // initramfs地址
+    uint64_t     magic;         // 5a 42 cb 16 13 d4 a6 2f
+    memory_map_t memory_map;    // 内存描述符
+    graph_info_t graph_info;    // 图形信息
+    uintptr_t    relocate_base; // 重定位后的基地址
+    void        *initramfs;     // initramfs地址
     size_t       initramfs_size;
     void        *madt_addr;
 } boot_info_t;

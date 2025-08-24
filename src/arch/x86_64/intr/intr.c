@@ -138,11 +138,12 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
         {
             break;
         }
+        size_t offset = (uintptr_t)rip - BOOT_INFO->relocate_base;
         pr_msg(
             "    At address: %p [ %s + %#x ]\n",
             rip,
             index_to_symbol(sym_idx),
-            (uintptr_t)rip - (uintptr_t)index_to_addr(sym_idx)
+            offset - (uintptr_t)index_to_addr(sym_idx)
         );
         if (!IS_AVAILABLE_ADDRESS(rbp + 1))
         {

@@ -6,7 +6,6 @@ ifeq ($(shell uname -s),Linux)
     endif
     AS      = as
     LD      = ld
-    OBJCOPY = objcopy
     QEMU    = qemu-system-x86_64
     ECHO    = echo
     MKDIR   = mkdir
@@ -22,7 +21,6 @@ else
     endif
     AS      = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/as.exe
     LD      = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/ld.exe
-    OBJCOPY = $(TOOL_DIR)/objcopy
     QEMU    = $(TOOL_DIR)/qemu/qemu-system-x86_64.exe
     ECHO    = echo
     MKDIR   = mkdir
@@ -79,6 +77,7 @@ else
     CFLAGS += -fstrength-reduce -falign-loops -falign-jumps
     CFLAGS += -fPIE -fpie -fwrapv
     CFLAGS += -fno-use-linker-plugin
+    CFLAGS += -fno-omit-frame-pointer
     CFLAGS += -mno-red-zone -m64 -mcmodel=large -march=x86-64
     CFLAGS += -mstackrealign
     CFLAGS += -Wa,--noexecstack

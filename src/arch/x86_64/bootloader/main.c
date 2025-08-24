@@ -185,7 +185,16 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
     }
 
     void (*kernel_entry)(void);
-    LoadSegment(KernelBase, 0x100000, (EFI_PHYSICAL_ADDRESS *)&kernel_entry);
+    EFI_PHYSICAL_ADDRESS PhysicalBase = 0x100000;
+    EFI_PHYSICAL_ADDRESS RelocateBase = PhysicalBase + KERNEL_TEXT_BASE;
+
+    LoadSegment(
+        KernelBase,
+        &PhysicalBase,
+        &RelocateBase,
+        (EFI_PHYSICAL_ADDRESS *)&kernel_entry
+    );
+    boot_info->relocate_base = RelocateBase;
     gBS->ExitBootServices(gImageHandle, boot_info->memory_map.map_key);
     kernel_entry();
     while (1) continue;
