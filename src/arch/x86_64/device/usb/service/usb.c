@@ -431,7 +431,7 @@ PRIVATE void xhci_event(usb_hub_set_t *hub_set)
     for (i = 0; i < hub_set->count; i++)
     {
         usb_hub_t *hub = &hub_set->hubs[i];
-        ;
+
         uint16_t port;
         for (port = 0; port < hub->portcount; port++)
         {
@@ -460,7 +460,7 @@ PRIVATE void xhci_event(usb_hub_set_t *hub_set)
         for (i = 0; i < hub_set->count; i++)
         {
             usb_hub_t *hub = &hub_set->hubs[i];
-            ;
+
             xhci_t *xhci = CONTAINER_OF(xhci_t, usb, hub->ctrl);
             xhci_process_events(xhci);
         }
@@ -485,7 +485,7 @@ PUBLIC void usb_main(void)
         for (i = 0; i < xhci_hubs.count; i++)
         {
             usb_hub_t *hub = &xhci_hubs.hubs[i];
-            ;
+
             xhci_t *xhci = CONTAINER_OF(xhci_t, usb, hub->ctrl);
             if (fifo_empty(&xhci->port_evts))
             {

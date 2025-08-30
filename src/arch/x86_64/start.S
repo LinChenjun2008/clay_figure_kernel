@@ -24,6 +24,5 @@ kernel_entry:
     movq %rax, %cr3
     movq $(KERNEL_VMA_BASE + KERNEL_STACK_BASE + KERNEL_STACK_SIZE), %rsp
     leaq kernel_main(%rip), %rax
-    movq $KERNEL_TEXT_BASE, %rdi
-    orq %rdi, %rax
+    addq $KERNEL_TEXT_BASE, %rax
     jmpq *%rax

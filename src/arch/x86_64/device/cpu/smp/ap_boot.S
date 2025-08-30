@@ -100,7 +100,7 @@ AP_CODE64_BASE:
     movq $AP_START_FLAG, %rax
     lock incq (%rax)
 
-    movq $(KERNEL_TEXT_BASE + 0x100000), %rax
+    movq AP_MAIN,%rax
     jmpq *%rax
 
 

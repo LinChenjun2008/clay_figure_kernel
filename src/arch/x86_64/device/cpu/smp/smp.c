@@ -110,6 +110,7 @@ PUBLIC status_t smp_init(void)
 
 PUBLIC status_t smp_start(void)
 {
+    *(void **)AP_MAIN = ap_kernel_main;
     uint64_t icr;
     icr = make_icr(
         0x10,

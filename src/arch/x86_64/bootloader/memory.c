@@ -3,11 +3,7 @@
  * Copyright (C) 2024 LinChenjun
  */
 
-#include <Efi.h>
-
-#define __BOOTLOADER__
-#include <common.h>
-#undef __BOOTLOADER__
+#include <bootloader.h>
 
 #define PG_P       0x1
 #define PG_RW_R    0x0

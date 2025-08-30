@@ -6,7 +6,6 @@ ifeq ($(shell uname -s),Linux)
     endif
     AS      = as
     LD      = ld
-    OBJCOPY = objcopy
     QEMU    = qemu-system-x86_64
     ECHO    = echo
     MKDIR   = mkdir
@@ -22,7 +21,6 @@ else
     endif
     AS      = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/as.exe
     LD      = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/ld.exe
-    OBJCOPY = $(TOOL_DIR)/objcopy
     QEMU    = $(TOOL_DIR)/qemu/qemu-system-x86_64.exe
     ECHO    = echo
     MKDIR   = mkdir
@@ -41,10 +39,20 @@ IMGCOPY_FLAGS = \
 
 ifeq ($(TOOLS_DEF),bootloader)
     CFLAGS += -Wall -Wextra -Werror
+    CFLAGS += -Wredundant-decls -Wnested-externs
+    CFLAGS += -Winline
+    CFLAGS += -Wshadow
+    CFLAGS += -Wpointer-arith
+    CFLAGS += -Wmissing-prototypes
+    CFLAGS += -Wmissing-declarations
+    CFLAGS += -Wuninitialized
+    CFLAGS += -Wno-long-long
+    CFLAGS += -Wno-implicit-fallthrough
     CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader
     CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader/include
     CFLAGS += -I$(SRC_DIR)/include
     CFLAGS += -I$(SRC_DIR)
+    CFLAGS += -D__BOOTLOADER__
     CFLAGS += -e UefiMain -nostdinc -nostdlib
     CFLAGS += -m64 -mcmodel=small
     CFLAGS += -fno-stack-protector -fpic -fpie -fno-builtin -Wl,--subsystem,10
@@ -67,8 +75,9 @@ else
     CFLAGS += -finput-charset=UTF-8 -fexec-charset=UTF-8
     CFLAGS += -fno-builtin -fno-strict-aliasing -ffreestanding
     CFLAGS += -fstrength-reduce -falign-loops -falign-jumps
-    CFLAGS += -fPIE -fwrapv
+    CFLAGS += -fPIE -fpie -fwrapv
     CFLAGS += -fno-use-linker-plugin
+    CFLAGS += -fno-omit-frame-pointer
     CFLAGS += -mno-red-zone -m64 -mcmodel=large -march=x86-64
     CFLAGS += -mstackrealign
     CFLAGS += -Wa,--noexecstack

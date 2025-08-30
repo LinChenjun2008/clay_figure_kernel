@@ -3,7 +3,7 @@
  * Copyright (C) 2024 LinChenjun
  */
 
-#include <Efi.h>
+#include <bootloader.h>
 
 EFI_STATUS ReadFile(
     CHAR16               *FileName,

@@ -9,11 +9,12 @@
 
 #include <config.h> // log level
 #include <device/cpu.h>
-#include <device/pic.h>   // ICRs
-#include <device/timer.h> // IRQ0_FREQUENCY,get_current_ticks
-#include <intr.h>         // intr_disable
-#include <io.h>           // io_hlt
-#include <ramfs.h>        // ramfs_open
+#include <device/pic.h>    // ICRs
+#include <device/timer.h>  // IRQ0_FREQUENCY,get_current_ticks
+#include <intr.h>          // intr_disable
+#include <io.h>            // io_hlt
+#include <mem/allocator.h> // kmalloc,kfree
+#include <ramfs.h>         // ramfs_open
 #include <std/stdarg.h>
 #include <std/stdio.h>
 

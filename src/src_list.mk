@@ -15,12 +15,12 @@ SRC += $(SRC_DIR)/mem/service/mm.c
 SRC += $(SRC_DIR)/mem/vmm.c
 
 SRC += $(SRC_DIR)/ramfs/ramfs.c
-SRC += $(SRC_DIR)/sync/semaphore.c
 SRC += $(SRC_DIR)/lib/bitmap.c
 SRC += $(SRC_DIR)/lib/list.c
 SRC += $(SRC_DIR)/lib/fifo.c
 SRC += $(SRC_DIR)/lib/stdio.c
 SRC += $(SRC_DIR)/lib/string.c
+SRC += $(SRC_DIR)/lib/stdlib.c
 SRC += $(SRC_DIR)/lib/math.c
 SRC += $(SRC_DIR)/graphic/print.c
 SRC += $(SRC_DIR)/graphic/character.c

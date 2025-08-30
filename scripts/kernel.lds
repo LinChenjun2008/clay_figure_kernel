@@ -4,14 +4,13 @@ ENTRY(kernel_entry)
 
 SECTIONS
 {
-    . = 0x0000000000100000;
-    kernel_entry = .;
-    . += 0xffffffff80000000;
     _kernel_start = .;
+
     _text = .;
     .text :
     {
-        *(.text)
+        kernel_entry = .;
+        *(.text .text.*)
     } :text
     _etext = .;
 
@@ -20,35 +19,47 @@ SECTIONS
     _rodata = .;
     .rodata :
     {
-        *(.rodata)
+        *(.rodata .rodata.*)
     } :rodata
     _erodata = .;
+
+    . = ALIGN(8);
+
+    .dynamic :
+    {
+        *(.dynamic)
+    } :rodata :dynamic
+
+    . = ALIGN(8);
 
     _data = .;
     .data :
     {
-        *(.data)
+        *(.data .data.*)
     } :data
     _edata = .;
+
+    . = ALIGN(8);
 
     _bss = .;
     .bss :
     {
-        *(.bss)
+        *(.bss .bss.*)
     }
     _ebss = .;
 
     _kernel_end = .;
     /DISCARD/ :
     {
-        *(.eh_frame)
+        *(.eh_frame*)
+        *(.note .note.*)
     }
 }
 
 PHDRS
 {
-    text   PT_LOAD FLAGS(5); /* RX (0x5) */
-    rodata PT_LOAD FLAGS(4); /* R  (0x4) */
-    data   PT_LOAD FLAGS(6); /* RW (0x6) */
-
+    text    PT_LOAD    FLAGS(5); /* RX (0x5) */
+    rodata  PT_LOAD    FLAGS(4); /* R  (0x4) */
+    data    PT_LOAD    FLAGS(6); /* RW (0x6) */
+    dynamic PT_DYNAMIC FLAGS(4); /* R  (0x4) */
 }
