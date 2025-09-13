@@ -79,6 +79,44 @@ PUBLIC int strncmp(const char *str1, const char *str2, size_t n)
 PUBLIC size_t strlen(const char *str)
 {
     const char *end = str;
-    while (*end++ != 0);
+    while (*end++ != '\0');
     return end - str - 1;
+}
+
+PUBLIC char *strchr(const char *str, char ch)
+{
+    char *ret = NULL;
+    while (*str != '\0')
+    {
+        if (*str == ch)
+        {
+            ret = (char *)str;
+            break;
+        }
+        str++;
+    }
+    return ret;
+}
+
+PUBLIC char *strrchr(const char *str, char ch)
+{
+    char *ret = NULL;
+    while (*str != '\0')
+    {
+        if (*str == ch)
+        {
+            ret = (char *)str;
+        }
+        str++;
+    }
+    return ret;
+}
+
+PUBLIC char *strcat(char *dst, char *src)
+{
+    char *ret = dst;
+    while (*dst++ != '\0') continue;
+    dst--;
+    while ((*dst++ = *src++) != '\0') continue;
+    return ret;
 }

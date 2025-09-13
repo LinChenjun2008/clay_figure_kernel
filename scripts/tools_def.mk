@@ -74,7 +74,8 @@ else
     CFLAGS += -Wcast-align -Wwrite-strings
     CFLAGS += -finput-charset=UTF-8 -fexec-charset=UTF-8
     CFLAGS += -fno-builtin -fno-strict-aliasing -ffreestanding
-    CFLAGS += -fstrength-reduce -falign-loops -falign-jumps
+    CFLAGS += -fstrength-reduce
+    CFLAGS += -falign-functions -falign-jumps -falign-labels -falign-loops
     CFLAGS += -fPIE -fpie -fwrapv
     CFLAGS += -fno-use-linker-plugin
     CFLAGS += -fno-omit-frame-pointer

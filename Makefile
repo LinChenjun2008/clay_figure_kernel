@@ -22,7 +22,7 @@ all:
 
 .PHONY: update-initramfs
 update-initramfs:
-	@$(MAKE) $(TARGET_INITFAMFS)
+	@$(MAKE) $(TARGET_INITRAMFS)
 
 .PHONY: run
 run: all
@@ -46,7 +46,7 @@ init:
 	-$(MKDIR) "$(ESP_DIR)/EFI/Boot"
 	-$(MKDIR) "$(ESP_DIR)/Kernel"
 
-$(TARGET_INITFAMFS): $(SRC_DIR)/config.txt
+$(TARGET_INITRAMFS): $(SRC_DIR)/config.txt
 	@$(ECHO) make initramfs
 	@"$(IMGCOPY)" $(IMGCOPY_FLAGS) > $(ESP_DIR)/Kernel/initramfs.img
 

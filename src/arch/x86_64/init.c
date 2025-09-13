@@ -209,6 +209,10 @@ PUBLIC void ap_init_all(void)
 {
     uint32_t cpu_id = apic_id();
     intr_disable();
+
+    sse_enable();
+    sse_init();
+
     init_tss(cpu_id);
     load_gdt();
     load_tss(cpu_id);
@@ -216,15 +220,13 @@ PUBLIC void ap_init_all(void)
     wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)get_task_man(cpu_id)->main_task);
     running_task()->status = TASK_RUNNING;
 
-    create_idle_task();
-
     ap_intr_init();
     local_apic_init();
     apic_timer_init();
 
-    sse_enable();
     syscall_init();
 
+    create_idle_task();
     intr_enable();
 
     return;
