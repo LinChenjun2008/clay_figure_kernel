@@ -211,6 +211,11 @@ PUBLIC void kfree(void *addr)
     b = (mem_block_t *)addr;
     c = block2cache(b);
 
+    if (b->magic == block_index(c, b) + c->number_of_blocks)
+    {
+        PR_LOG(LOG_WARN, "Double free: %p.\n", b);
+        return;
+    }
     b->magic = block_index(c, b) + c->number_of_blocks;
 
     mem_group_t *g = c->group;
