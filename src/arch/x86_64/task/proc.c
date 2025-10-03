@@ -114,32 +114,49 @@ PRIVATE uint64_t *create_page_dir(void)
 PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
 {
     size_t   block_size   = sizeof(*task->vmm_free.blocks);
-    uint64_t total_blocks = 1024;
+    uint64_t total_blocks = 256;
     void    *blocks;
+
+    // 分配失败将调用free_user_addr_table处理
     status_t status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
     if (ERROR(status))
     {
         return status;
     }
-    vmm_struct_init(&task->vmm_free, blocks, total_blocks);
+    mm_struct_init(&task->vmm_free, blocks, total_blocks);
 
     uintptr_t vm_start = USER_VADDR_START;
     size_t    vm_size  = (USER_STACK_VADDR_BASE - USER_VADDR_START);
-    vmm_add_range(&task->vmm_free, vm_start, vm_size);
+    mm_add_range(&task->vmm_free, vm_start, vm_size);
 
     status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
     if (ERROR(status))
     {
         return status;
     }
-    vmm_struct_init(&task->vmm_using, blocks, total_blocks);
+    mm_struct_init(&task->vmm_using, blocks, total_blocks);
+
+    status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
+    if (ERROR(status))
+    {
+        return status;
+    }
+    mm_struct_init(&task->pmm_using, blocks, total_blocks);
     return K_SUCCESS;
 }
 
-PRIVATE status_t free_user_vaddr_table(task_struct_t *task)
+PRIVATE int free_user_physical_page(mm_block_t *block, uint64_t arg)
 {
+    free_physical_page((void *)block->start, block->size / PG_SIZE);
+    return arg;
+}
+
+PRIVATE status_t free_user_addr_table(task_struct_t *task)
+{
+    mm_traversal(&task->pmm_using, free_user_physical_page, 0);
     kfree(task->vmm_free.blocks);
     kfree(task->vmm_using.blocks);
+    kfree(task->pmm_using.blocks);
     return K_SUCCESS;
 }
 
@@ -191,7 +208,7 @@ PUBLIC task_struct_t *proc_execute(
     return task;
 
 fail:
-    free_user_vaddr_table(task);
+    free_user_addr_table(task);
     kfree(PHYS_TO_VIRT(task->page_dir));
     kfree(kstack_base);
     task_free(task);
@@ -209,7 +226,8 @@ PUBLIC void proc_exit(int status)
     page_table_activate(task);
 
     free_page_table(pg_dir);
-    free_user_vaddr_table(task);
+    // 回收分配的页
+    free_user_addr_table(task);
 
     task_exit(status);
     return;

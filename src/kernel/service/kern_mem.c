@@ -25,16 +25,16 @@ PUBLIC syscall_status_t kern_allocate_page(message_t *msg)
     status_t  status;
     uintptr_t vaddr = 0;
 
-    status = vmm_alloc(&cur_task->vmm_free, PG_SIZE, &vaddr);
+    status = mm_alloc(&cur_task->vmm_free, PG_SIZE, &vaddr);
     if (ERROR(status))
     {
         return SYSCALL_ERROR;
     }
 
-    status = vmm_add_range(&cur_task->vmm_using, vaddr, PG_SIZE);
+    status = mm_add_range(&cur_task->vmm_using, vaddr, PG_SIZE);
     if (ERROR(status))
     {
-        vmm_add_range(&cur_task->vmm_free, vaddr, PG_SIZE);
+        mm_add_range(&cur_task->vmm_free, vaddr, PG_SIZE);
         return SYSCALL_ERROR;
     }
     *out_addr = vaddr;
@@ -52,9 +52,10 @@ PUBLIC syscall_status_t kern_free_page(message_t *msg)
     vaddr = in_addr;
     paddr = to_physical_address(cur_task->page_dir, (void *)vaddr);
 
-    vmm_remove_range(&cur_task->vmm_using, vaddr, PG_SIZE);
-    vmm_add_range(&cur_task->vmm_free, vaddr, PG_SIZE);
+    mm_remove_range(&cur_task->vmm_using, vaddr, PG_SIZE);
+    mm_add_range(&cur_task->vmm_free, vaddr, PG_SIZE);
 
+    mm_remove_range(&cur_task->pmm_using, (uintptr_t)paddr, PG_SIZE);
     free_physical_page(paddr, 1);
     page_unmap(cur_task->page_dir, (void *)vaddr);
 
@@ -64,12 +65,6 @@ PUBLIC syscall_status_t kern_free_page(message_t *msg)
 
 PUBLIC syscall_status_t kern_read_task_mem(message_t *msg)
 {
-    // in:
-    // m3.p1 = src
-    // m3.p2 = dst
-    // m3.l1 = read size
-    // m3.i1 = target task pid
-
     pid_t  in_pid    = (pid_t)msg->m[IN_KERN_READ_TASK_MEM_PID];
     void  *in_addr   = (void *)msg->m[IN_KERN_READ_TASK_MEM_ADDR];
     size_t in_size   = (size_t)msg->m[IN_KERN_READ_TASK_MEM_SIZE];
