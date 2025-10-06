@@ -88,6 +88,11 @@ PUBLIC syscall_status_t kern_waitpid(message_t *msg)
     pid_t in_pid = (pid_t)msg->m[IN_KERN_WAITPID_PID];
     int   in_opt = (int)msg->m[IN_KERN_WAITPID_OPT];
 
+    if (in_pid == 0 || in_pid < -1)
+    {
+        return SYSCALL_ERROR;
+    }
+
     int   *out_status = (int *)&msg->m[OUT_KERN_WAITPID_STATUS];
     pid_t *out_pid    = (pid_t *)&msg->m[OUT_KERN_WAITPID_PID];
 
@@ -100,11 +105,11 @@ PUBLIC syscall_status_t kern_waitpid(message_t *msg)
 
     if (!task_has_exited_child(task->pid) && (in_opt & WNOHANG))
     {
-        PR_LOG(LOG_DEBUG, "in opt: %d.\n", in_opt);
-        while (1);
-
-        return K_ERROR;
+        *out_pid    = 0;
+        *out_status = 0;
+        return SYSCALL_SUCCESS;
     }
+
     // 用while防止意外唤醒(但是这种情况不应该发生)
     while (!task_has_exited_child(task->pid))
     {
@@ -125,12 +130,13 @@ PUBLIC syscall_status_t kern_waitpid(message_t *msg)
     {
         spinlock_lock(&task->child_list_lock);
         child_node =
-            list_traversal(&task->exited_child_list, find_child, task->pid);
+            list_traversal(&task->exited_child_list, find_child, in_pid);
         spinlock_unlock(&task->child_list_lock);
         if (child_node == NULL)
         {
-            return SYSCALL_SUCCESS;
+            return SYSCALL_ERROR;
         }
+        list_remove(child_node);
     }
 
     child = CONTAINER_OF(task_struct_t, general_tag, child_node);

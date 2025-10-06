@@ -25,16 +25,16 @@ PUBLIC syscall_status_t kern_allocate_page(message_t *msg)
     status_t  status;
     uintptr_t vaddr = 0;
 
-    status = mm_alloc(&cur_task->vmm_free, PG_SIZE, &vaddr);
+    status = mm_alloc(&cur_task->mm_alloc, PG_SIZE, &vaddr);
     if (ERROR(status))
     {
         return SYSCALL_ERROR;
     }
 
-    status = mm_add_range(&cur_task->vmm_using, vaddr, PG_SIZE);
+    status = mm_add_range(&cur_task->mm_using, vaddr, PG_SIZE);
     if (ERROR(status))
     {
-        mm_add_range(&cur_task->vmm_free, vaddr, PG_SIZE);
+        mm_add_range(&cur_task->mm_alloc, vaddr, PG_SIZE);
         return SYSCALL_ERROR;
     }
     *out_addr = vaddr;
@@ -52,10 +52,14 @@ PUBLIC syscall_status_t kern_free_page(message_t *msg)
     vaddr = in_addr;
     paddr = to_physical_address(cur_task->page_dir, (void *)vaddr);
 
-    mm_remove_range(&cur_task->vmm_using, vaddr, PG_SIZE);
-    mm_add_range(&cur_task->vmm_free, vaddr, PG_SIZE);
+    if (paddr == NULL)
+    {
+        return SYSCALL_ERROR;
+    }
+    mm_remove_range(&cur_task->mm_using, vaddr, PG_SIZE);
+    mm_add_range(&cur_task->mm_alloc, vaddr, PG_SIZE);
 
-    mm_remove_range(&cur_task->pmm_using, (uintptr_t)paddr, PG_SIZE);
+    mm_remove_range(&cur_task->mm_pages, (uintptr_t)paddr, PG_SIZE);
     free_physical_page(paddr, 1);
     page_unmap(cur_task->page_dir, (void *)vaddr);
 

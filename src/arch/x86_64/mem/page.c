@@ -127,27 +127,31 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
     // 内核任务 - 错误
     if (cr3 == KERNEL_PAGE_DIR_TABLE_POS)
     {
+        pr_log(LOG_ERROR, "Kernel task page fault.\n");
         default_irq_handler(stack);
     }
 
     // 未分配地址 - 错误
-    if (!mm_find(&task->vmm_using, fault_page))
+    if (!mm_find(&task->mm_using, fault_address))
     {
+        pr_log(LOG_ERROR, "Page not allocated.\n");
         default_irq_handler(stack);
     }
 
     //  页已存在而引发的异常
     if (error_code & PG_P)
     {
+        pr_log(LOG_ERROR, "Page existed.\n");
         default_irq_handler(stack);
     }
     uintptr_t paddr;
     status_t  status = alloc_physical_page(1, &paddr);
     if (ERROR(status))
     {
+        PANIC(ERROR(status), "Out of memory.\n");
         default_irq_handler(stack);
     }
-    mm_add_range(&task->pmm_using, paddr, PG_SIZE);
+    mm_add_range(&task->mm_pages, paddr, PG_SIZE);
     page_map(task->page_dir, (void *)paddr, (void *)fault_page);
     page_table_activate(task);
     return;
