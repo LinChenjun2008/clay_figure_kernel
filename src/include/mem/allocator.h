@@ -15,7 +15,6 @@ PUBLIC void mem_allocator_init(void);
 /**
  * @brief 在内存池中分配size大小的内存块
  * @param size 内存块大小
- * @note size <= MAX_ALLOCATE_MEMORY_SIZE
  * @param alignment 对齐大小,为0则不对齐
  * @param boundary 边界限制,为0则不限制
  * @param addr 如果成功,addr指针处存储了分配到的虚拟地址

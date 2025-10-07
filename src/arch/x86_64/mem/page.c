@@ -254,7 +254,7 @@ PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
     ASSERT(addr != NULL);
     ASSERT(number_of_pages != 0);
     status_t status;
-    status = mm_alloc(&mem.pages, number_of_pages, addr);
+    status = mm_alloc(&mem.pages, number_of_pages * PG_SIZE, addr);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Out of Memory: %d.\n", status);
@@ -267,7 +267,7 @@ PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
 PUBLIC void free_physical_page(void *addr, uint64_t number_of_pages)
 {
     ASSERT(number_of_pages != 0);
-    ASSERT(addr != NULL && ((((uintptr_t)addr) & 0x1fffff) == 0));
+    ASSERT(addr != NULL && ((((uintptr_t)addr) & (PG_SIZE - 1)) == 0));
     spinlock_lock(&mem.lock);
     mm_add_range(&mem.pages, (uintptr_t)addr, number_of_pages * PG_SIZE);
     mem.free_pages += number_of_pages;

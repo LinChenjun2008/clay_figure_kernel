@@ -144,7 +144,25 @@ kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
 
     if (size > MAX_ALLOCATE_MEMORY_SIZE)
     {
-        return K_ERROR;
+        PR_LOG(LOG_WARN, "Allocate large memory: %d.\n", size);
+        PR_LOG(LOG_WARN, "May be you should use alloc_physical_page().\n");
+
+        size_t   alloc_size      = size + alignment;
+        uint64_t number_of_pages = alloc_size / PG_SIZE + 1;
+        void    *page_addr;
+        status = alloc_physical_page(number_of_pages, &page_addr);
+        if (ERROR(status))
+        {
+            *(void **)addr = NULL;
+            return status;
+        }
+        c                   = PHYS_TO_VIRT(page_addr);
+        c->group            = 0;
+        c->cnt              = 0;
+        c->number_of_blocks = number_of_pages;
+
+        *(uintptr_t *)addr = (uintptr_t)c + alignment;
+        return K_SUCCESS;
     }
 
     for (i = 0; i < NUMBER_OF_MEMORY_BLOCK_TYPES; i++)
@@ -207,18 +225,23 @@ PUBLIC void kfree(void *addr)
     }
     mem_cache_t *c = NULL;
     mem_block_t *b = NULL;
+    mem_group_t *g = NULL;
 
     b = (mem_block_t *)addr;
     c = block2cache(b);
+    g = c->group;
 
+    if (g == NULL)
+    {
+        free_physical_page(VIRT_TO_PHYS(c), c->number_of_blocks);
+        return;
+    }
     if (b->magic == block_index(c, b) + c->number_of_blocks)
     {
         PR_LOG(LOG_WARN, "Double free: %p.\n", b);
         return;
     }
     b->magic = block_index(c, b) + c->number_of_blocks;
-
-    mem_group_t *g = c->group;
 
     ASSERT(((uintptr_t)addr & (g->block_size - 1)) == 0);
 
