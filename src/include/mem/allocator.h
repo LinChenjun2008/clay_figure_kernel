@@ -6,9 +6,9 @@
 #ifndef __ALLOCATOR_H__
 #define __ALLOCATOR_H__
 
-#define MIN_ALLOCATE_MEMORY_SIZE     64     //  64 Byte
-#define MAX_ALLOCATE_MEMORY_SIZE     262144 // 256 KiB
-#define NUMBER_OF_MEMORY_BLOCK_TYPES 13
+#define MIN_ALLOCATE_MEMORY_SIZE     64   //  64 Byte
+#define MAX_ALLOCATE_MEMORY_SIZE     1024 //   1 KiB
+#define NUMBER_OF_MEMORY_BLOCK_TYPES 5
 
 PUBLIC void mem_allocator_init(void);
 

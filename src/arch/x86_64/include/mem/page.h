@@ -11,7 +11,7 @@
 #define PG_4K_SIZE 0x1000
 #define PG_2M_SIZE 0x200000
 
-#define PG_SIZE PG_2M_SIZE
+#define PG_SIZE PG_4K_SIZE
 
 // Present
 #define PG_P (1 << 0)

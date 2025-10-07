@@ -58,28 +58,18 @@ typedef struct
 
 PRIVATE struct
 {
-    bitmap_t   page_bitmap;
-    spinlock_t lock;
-    size_t     mem_size;
-    size_t     total_pages;      // 总页数
-    size_t     total_free_pages; // 总空闲页数
-    size_t     free_pages;       // 当前空闲页数
+    mm_struct_t pages;
+    spinlock_t  lock;
+    size_t      mem_size;
+    size_t      total_pages;      // 总页数
+    size_t      total_free_pages; // 总空闲页数
+    size_t      free_pages;       // 当前空闲页数
 } mem;
 
 /**
  * @brief 用于页分配的位图,bit为1表示对应的页空闲
  */
-PRIVATE uint8_t page_bitmap_map[PAGE_BITMAP_BYTES_LEN];
-
-PRIVATE size_t page_size_round_up(uintptr_t page_addr)
-{
-    return DIV_ROUND_UP(page_addr, PG_SIZE);
-}
-
-PRIVATE size_t page_size_round_down(uintptr_t page_addr)
-{
-    return page_addr / PG_SIZE;
-}
+mm_block_t page_mm_blocks[PAGE_BITMAP_BYTES_LEN];
 
 PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
 {
@@ -159,13 +149,12 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
 
 PUBLIC void mem_page_init(void)
 {
-    mem.page_bitmap.map            = page_bitmap_map;
-    mem.page_bitmap.btmp_bytes_len = PAGE_BITMAP_BYTES_LEN;
-    mem.mem_size                   = 0;
-    mem.total_pages                = 0;
-    mem.free_pages                 = 0;
-    init_bitmap(&mem.page_bitmap);
+    mm_struct_init(&mem.pages, page_mm_blocks, PAGE_BITMAP_BYTES_LEN);
+    mem.mem_size    = 0;
+    mem.total_pages = 0;
+    mem.free_pages  = 0;
     init_spinlock(&mem.lock);
+
     EFI_MEMORY_DESCRIPTOR *efi_memory_desc =
         (EFI_MEMORY_DESCRIPTOR *)BOOT_INFO->memory_map.buffer;
 
@@ -173,90 +162,48 @@ PUBLIC void mem_page_init(void)
     size_t desc_size             = BOOT_INFO->memory_map.descriptor_size;
     int    number_of_memory_desc = map_size / desc_size;
 
-
-    // mem_xxx - 同类内存块的起始地址,大小,结束地址和类型
-    uintptr_t     mem_start = 0;
-    uintptr_t     mem_end   = 0;
-    size_t        mem_size  = 0;
-    memory_type_t mem_type  = MAX_MEMORY_TYPE;
-
     // curr_xxx - 当前内存块(efi_memory_desc[i])的起始地址,大小,结束地址和类型
     uintptr_t     curr_start = 0;
     uintptr_t     curr_end   = 0;
     size_t        curr_size  = 0;
+    uint64_t      curr_pages = 0;
     memory_type_t curr_type  = memory_type(efi_memory_desc[0].Type);
 
-    size_t bit_start = 0;
-    size_t bit_end   = 0;
-    size_t bit_size  = 0;
-
-    int i, j;
+    int i;
     for (i = 0; i < number_of_memory_desc; i++)
     {
         curr_start = efi_memory_desc[i].PhysicalStart;
-        curr_size  = (efi_memory_desc[i].NumberOfPages << 12);
+        curr_pages = efi_memory_desc[i].NumberOfPages;
+        curr_size  = (curr_pages << 12);
         curr_end   = curr_start + curr_size;
-
-        mem_start = curr_start;
-        mem_size  = curr_size;
-        mem_end   = curr_end;
 
         curr_type = memory_type(efi_memory_desc[i].Type);
 
-        // 类型相同的相邻内存空间合并处理,防止内存浪费
-        // 当curr_type和next_type不同时,对类型为this_type的内存空间进行合并
-        for (j = i + 1; j < number_of_memory_desc; j++)
-        {
-            curr_start = efi_memory_desc[j].PhysicalStart;
-            curr_size  = (efi_memory_desc[j].NumberOfPages << 12);
-            curr_end   = curr_start + curr_size;
-
-            // 不连续 - 无法合并
-            if (mem_end < curr_start)
-            {
-                break;
-            }
-            mem_type = memory_type(efi_memory_desc[j].Type);
-            if (mem_type != curr_type)
-            {
-                break;
-            }
-            mem_size += curr_size;
-            mem_end += curr_size;
-            i = j;
-        }
+        mem.total_pages += curr_pages;
+        mem.mem_size += curr_size;
         PR_MSG(
             "From %p to %p: size: %8d KiB Type: %s.\n",
-            mem_start,
-            mem_end,
-            mem_size >> 10,
+            curr_start,
+            curr_end,
+            curr_size >> 10,
             memory_type_str[curr_type]
         );
         if (curr_type == FREE_MEMORY)
         {
-            mem.mem_size += mem_size;
-            bit_start = page_size_round_up(mem_start);
-            bit_end   = page_size_round_down(mem_end);
-            bit_size  = bit_end - bit_start;
-            if (bit_end > bit_start)
+            if (curr_end < 0x2000000)
             {
-                mem.total_free_pages += bit_size;
-                mem.free_pages = mem.total_free_pages;
+                continue;
             }
-            uint64_t bit_index;
-            for (bit_index = bit_start; bit_index < bit_end; bit_index++)
+            if (curr_start < 0x2000000)
             {
-                bitmap_set(&mem.page_bitmap, bit_index, 1);
+                curr_start = 0x2000000;
+                curr_size  = curr_end - curr_start;
+                curr_pages = curr_size >> 12;
             }
+            mm_add_range_sub(&mem.pages, curr_start, curr_size);
+            mem.total_free_pages += curr_pages;
+            mem.free_pages += curr_pages;
         }
-        mem.total_pages += bit_size;
-        mem_start = 0;
-        mem_end   = 0;
-        mem_size  = 0;
-
-        bit_start = 0;
-        bit_end   = 0;
-        bit_size  = 0;
     }
     PR_LOG(
         LOG_INFO,
@@ -266,28 +213,13 @@ PUBLIC void mem_page_init(void)
     );
     PR_LOG(
         LOG_INFO,
-        "Mem Size: %d KiB(%d MiB), Free size: %d KiB(%d MiB) "
-        "(waste: %d KiB).\n",
+        "Mem Size: %d KiB(%d MiB), Free size: %d KiB(%d MiB)\n",
         mem.mem_size / 1024,
         mem.mem_size / (1024 * 1024),
-        mem.total_free_pages * 2048,
-        mem.total_free_pages * 2,
-        (mem.mem_size - mem.total_free_pages * PG_SIZE) / 1024
+        mem.total_free_pages * 4,
+        mem.total_free_pages * 4 / 1024
     );
-    if (mem.total_pages / 8 <= PAGE_BITMAP_BYTES_LEN)
-    {
-        mem.page_bitmap.btmp_bytes_len = mem.total_pages / 8;
-    }
-    while (1);
-    // 剔除被占用的内存(0 - 6M)
-    for (i = 0; i < 3; i++)
-    {
-        bitmap_set(&mem.page_bitmap, i, 0);
-        mem.total_free_pages--;
-    }
-
     register_handle(0x0e, do_page_fault);
-
     return;
 }
 
@@ -321,25 +253,13 @@ PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
 {
     ASSERT(addr != NULL);
     ASSERT(number_of_pages != 0);
-    uint32_t index;
     status_t status;
-    status = bitmap_alloc(&mem.page_bitmap, 1, number_of_pages, &index);
+    status = mm_alloc(&mem.pages, number_of_pages, addr);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Out of Memory: %d.\n", status);
         return K_NOMEM;
     }
-    uintptr_t paddr = 0;
-
-    uint64_t i;
-    for (i = index; i < index + number_of_pages; i++)
-    {
-        bitmap_set(&mem.page_bitmap, i, 0);
-    }
-    mem.free_pages -= number_of_pages;
-    paddr              = (0UL + (uintptr_t)index * PG_SIZE);
-    *(uintptr_t *)addr = paddr;
-
     // memset(PHYS_TO_VIRT(paddr), 0, number_of_pages * PG_SIZE);
     return K_SUCCESS;
 }
@@ -349,13 +269,7 @@ PUBLIC void free_physical_page(void *addr, uint64_t number_of_pages)
     ASSERT(number_of_pages != 0);
     ASSERT(addr != NULL && ((((uintptr_t)addr) & 0x1fffff) == 0));
     spinlock_lock(&mem.lock);
-    uintptr_t i;
-    for (i = (uintptr_t)addr / PG_SIZE;
-         i < (uintptr_t)addr / PG_SIZE + number_of_pages;
-         i++)
-    {
-        bitmap_set(&mem.page_bitmap, i, 1);
-    }
+    mm_add_range(&mem.pages, (uintptr_t)addr, number_of_pages * PG_SIZE);
     mem.free_pages += number_of_pages;
     spinlock_unlock(&mem.lock);
     return;

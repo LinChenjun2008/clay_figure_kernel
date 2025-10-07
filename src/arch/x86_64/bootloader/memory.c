@@ -49,7 +49,8 @@ VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
     * 0x0400000 - 0x040ffff  ( 64KB) - 内核栈
     * 0x0410000 - 0x050ffff  (  1MB) - bootinfo
     * 0x0510000 - 0x150ffff  (  8MB) - 内核页表(部分)
-    * 0x1510000 - ...               -空闲内存
+    * 0x1510000 - 0x1ffffff          - 空闲内存
+    * 0x2000000 - ...                - 可用空间(32MiB以上)
     映射:
         0x0000000000000000 - 0x00000000ffffffff
     ==> 0x0000000000000000 - 0x00000000ffffffff
