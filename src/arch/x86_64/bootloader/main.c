@@ -134,12 +134,6 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
         return EFI_ERR;
     }
 
-    // Create Page table
-    UINTN PG_TABLE_POS = 0x510000;
-    gBS->AllocatePages(AllocateAddress, EfiLoaderData, 9, &PG_TABLE_POS);
-
-    CreatePage(PG_TABLE_POS);
-
     // load file
 
     UINT64               FileSize   = 0;
@@ -192,6 +186,10 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
         return EFI_ERR;
     }
     gBS->ExitBootServices(gImageHandle, boot_info->memory_map.map_key);
+
+    // Create Page table
+    UINTN PG_TABLE_POS = 0x510000;
+    CreatePage(PG_TABLE_POS);
 
     kernel_entry();
     return Status;

@@ -278,6 +278,7 @@ PUBLIC void mem_page_init(void)
     {
         mem.page_bitmap.btmp_bytes_len = mem.total_pages / 8;
     }
+    while (1);
     // 剔除被占用的内存(0 - 6M)
     for (i = 0; i < 3; i++)
     {

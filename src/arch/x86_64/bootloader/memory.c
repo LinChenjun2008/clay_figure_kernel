@@ -12,6 +12,9 @@
 #define PG_US_U    0x4
 #define PG_SIZE_2M 0x80
 
+#define PT_SIZE 0x1000
+#define PG_SIZE 0x1000
+
 EFI_STATUS GetMemoryMap(memory_map_t *memmap)
 {
     EFI_STATUS Status = EFI_SUCCESS;
@@ -31,16 +34,22 @@ EFI_STATUS GetMemoryMap(memory_map_t *memmap)
     return Status;
 }
 
+STATIC EFI_PHYSICAL_ADDRESS GetPageTable(EFI_PHYSICAL_ADDRESS *PG_TABLE)
+{
+    EFI_PHYSICAL_ADDRESS Addr = *PG_TABLE;
+    *PG_TABLE += PT_SIZE;
+    return Addr;
+}
+
 VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
 {
     /*
     * 系统内存分配:
-    * 0x100000 - 0x3fffff (  3MB) - 内核
-    * 0x400000 - 0x40ffff ( 64KB) - 内核栈
-    * 0x410000 - 0x50ffff (  1MB) - bootinfo
-    * 0x510000 - 0x518fff ( 36KB) - 内核页表(部分)
-    * 0x519000 - 0x5fffff (924KB) - 空闲
-    * 0x600000 - ...              -空闲内存
+    * 0x0100000 - 0x03fffff  (  3MB) - 内核
+    * 0x0400000 - 0x040ffff  ( 64KB) - 内核栈
+    * 0x0410000 - 0x050ffff  (  1MB) - bootinfo
+    * 0x0510000 - 0x150ffff  (  8MB) - 内核页表(部分)
+    * 0x1510000 - ...               -空闲内存
     映射:
         0x0000000000000000 - 0x00000000ffffffff
     ==> 0x0000000000000000 - 0x00000000ffffffff
@@ -64,14 +73,19 @@ VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
        1111 1111 1 | 111 1111 11 | 00 0000 000 | 0 0000 0000 0000 0000 0000
        f    f    f       f    c       0    0       0    0    0    0    0
     */
-    EFI_PHYSICAL_ADDRESS PML4T;
-    EFI_PHYSICAL_ADDRESS PDPT;
-    EFI_PHYSICAL_ADDRESS PDT;
+    UINTN *PML4T, *PDPT, *PDT, *PT;
 
-    gBS->SetMem((void *)PG_TABLE, 9 * 0x1000, 0);
+    UINTN PML4E, PDPTE, PDE, PTE;
 
-    PML4T = PG_TABLE; // 0x1000-> PML4T
-    PG_TABLE += 0x1000;
+    // Clear page table
+    UINTN i;
+    for (i = 0; i < 0x1000 * 0x1000 / sizeof(UINTN); i++)
+    {
+        *((UINTN *)PG_TABLE + i) = 0;
+    }
+
+    PML4T = (UINTN *)GetPageTable(&PG_TABLE);
+
     /*
     * 进行以下映射:
         0x0000000000000000 - 0x00000000ffffffff
@@ -80,53 +94,76 @@ VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
         0x0000000000000000 - 0x00000000ffffffff
     ==> 0xffff800000000000 - 0xffff8000ffffffff
     */
-    EFI_PHYSICAL_ADDRESS addr = 0;
-    PDPT                      = PG_TABLE;
-    PG_TABLE += 0x1000;
-    ((UINTN *)PML4T)[000] = PDPT | PG_US_U | PG_RW_W | PG_P; // 0x00000...
-    ((UINTN *)PML4T)[256] = PDPT | PG_US_U | PG_RW_W | PG_P; // 0xffff8...
-    UINTN pdpt_index, pdt_index;
+    EFI_PHYSICAL_ADDRESS Addr = 0;
+
+    PDPT = (UINTN *)GetPageTable(&PG_TABLE);
+
+    PML4E      = (UINTN)PDPT | PG_US_U | PG_RW_W | PG_P;
+    PML4T[000] = PML4E; // 0x00000...
+    PML4T[256] = PML4E; // 0xffff8...
+
+    UINTN pdpt_index, pdt_index, pt_index;
     for (pdpt_index = 0; pdpt_index < 4; pdpt_index++)
     {
-        PDT = PG_TABLE;
-        PG_TABLE += 0x1000;
-        ((UINTN *)PDPT)[pdpt_index] = PDT | PG_US_U | PG_RW_W | PG_P;
+        PDT              = (UINTN *)GetPageTable(&PG_TABLE);
+        PDPTE            = (UINTN)PDT | PG_US_U | PG_RW_W | PG_P;
+        PDPT[pdpt_index] = PDPTE;
         for (pdt_index = 0; pdt_index < 512; pdt_index++)
         {
-            UINTN PDT_entry = addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
-            ((UINTN *)PDT)[pdt_index] = PDT_entry;
-            addr += 0x200000;
+            PT             = (UINTN *)GetPageTable(&PG_TABLE);
+            PDE            = (UINTN)PT | PG_US_U | PG_RW_W | PG_P;
+            PDT[pdt_index] = PDE;
+            for (pt_index = 0; pt_index < 512; pt_index++)
+            {
+                PTE          = Addr | PG_US_U | PG_RW_W | PG_P;
+                PT[pt_index] = PTE;
+                Addr += PG_SIZE;
+            }
         }
     }
+
 
     /*
     * 0 - 0x400000 ==> 0xffffffff80000000 - 0xffffffff80400000
     */
-    addr = 0;
-    PDPT = PG_TABLE;
-    PG_TABLE += 0x1000;
-    ((UINTN *)PML4T)[511] = PDPT | PG_US_U | PG_RW_W | PG_P; // kernel
-    PDT                   = PG_TABLE;
-    PG_TABLE += 0x1000;
-    ((UINTN *)PDPT)[510] = PDT | PG_US_U | PG_RW_W | PG_P;
+    Addr       = 0;
+    PDPT       = (UINTN *)GetPageTable(&PG_TABLE);
+    PML4E      = (UINTN)PDPT | PG_US_U | PG_RW_W | PG_P;
+    PML4T[511] = PML4E; // kernel
+
+    PDT       = (UINTN *)GetPageTable(&PG_TABLE);
+    PDPTE     = (UINTN)PDT | PG_US_U | PG_RW_W | PG_P;
+    PDPT[510] = PDPTE;
     for (pdt_index = 0; pdt_index < 2; pdt_index++)
     {
-        ((UINTN *)PDT)[pdt_index] =
-            addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
-        addr += 0x200000;
+        PT             = (UINTN *)GetPageTable(&PG_TABLE);
+        PDE            = (UINTN)PT | PG_US_U | PG_RW_W | PG_P;
+        PDT[pdt_index] = PDE;
+        for (pt_index = 0; pt_index < 512; pt_index++)
+        {
+            PTE          = Addr | PG_US_U | PG_RW_W | PG_P;
+            PT[pt_index] = PTE;
+            Addr += PG_SIZE;
+        }
     }
+
     // Frame buffer
-    addr = Gop->Mode->FrameBufferBase;
-    PDT  = PG_TABLE;
-    PG_TABLE += 0x1000;
-    ((UINTN *)PDPT)[511] = PDT | PG_US_U | PG_RW_W | PG_P;
-    for (pdt_index = 0;
-         pdt_index < (Gop->Mode->FrameBufferSize + 0x1fffff) / 0x200000;
-         pdt_index++)
+    Addr                = Gop->Mode->FrameBufferBase;
+    PDT                 = (UINTN *)GetPageTable(&PG_TABLE);
+    PDPTE               = (UINTN)PDT | PG_US_U | PG_RW_W | PG_P;
+    PDPT[511]           = PDPTE;
+    UINTN max_pdt_index = (Gop->Mode->FrameBufferSize + 0x1fffff) / 0x200000;
+    for (pdt_index = 0; pdt_index < max_pdt_index; pdt_index++)
     {
-        ((UINTN *)PDT)[pdt_index] =
-            addr | PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M;
-        addr += 0x200000;
+        PT             = (UINTN *)GetPageTable(&PG_TABLE);
+        PDE            = (UINTN)PT | PG_US_U | PG_RW_W | PG_P;
+        PDT[pdt_index] = PDE;
+        for (pt_index = 0; pt_index < 512; pt_index++)
+        {
+            PTE          = Addr | PG_US_U | PG_RW_W | PG_P;
+            PT[pt_index] = PTE;
+            Addr += PG_SIZE;
+        }
     }
     return;
 }

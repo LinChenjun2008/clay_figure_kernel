@@ -7,7 +7,11 @@
 #define __PAGE_H__
 
 #define PT_SIZE 0x1000
-#define PG_SIZE 0x200000
+
+#define PG_4K_SIZE 0x1000
+#define PG_2M_SIZE 0x200000
+
+#define PG_SIZE PG_2M_SIZE
 
 // Present
 #define PG_P (1 << 0)
