@@ -331,15 +331,17 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
     uint64_t *v_pml4t, *v_pml4e;
     uint64_t *v_pdpt, *pdpt, *v_pdpte, *pdpte;
     uint64_t *v_pdt, *pdt, *v_pde, *pde;
+    uint64_t *v_pt, *pt, *v_pte, *pte;
+
     v_pml4t = PHYS_TO_VIRT(pml4t);
     v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
     status_t status;
     if (!(*v_pml4e & PG_P))
     {
-        status = kmalloc(PT_SIZE, 0, PT_SIZE, &v_pdpt);
+        status = alloc_physical_page(1, &pdpt);
         ASSERT(!ERROR(status));
         UNUSED(status);
-        pdpt = VIRT_TO_PHYS(v_pdpt);
+        v_pdpt = PHYS_TO_VIRT(pdpt);
         memset(v_pdpt, 0, PT_SIZE);
         *v_pml4e = (uintptr_t)pdpt | PG_US_U | PG_RW_W | PG_P;
     }
@@ -348,17 +350,29 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
     v_pdpte = PHYS_TO_VIRT(pdpte);
     if (!(*v_pdpte & PG_P))
     {
-        status = kmalloc(PT_SIZE, 0, PT_SIZE, &v_pdt);
+        status = alloc_physical_page(1, &pdt);
         ASSERT(!ERROR(status));
         UNUSED(status);
-        pdt = VIRT_TO_PHYS(v_pdt);
+        v_pdt = PHYS_TO_VIRT(pdt);
         memset(v_pdt, 0, PT_SIZE);
         *v_pdpte = (uintptr_t)pdt | PG_US_U | PG_RW_W | PG_P;
     }
-    pdt    = (uint64_t *)(*v_pdpte & (~0xfff));
-    pde    = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
-    v_pde  = PHYS_TO_VIRT(pde);
-    *v_pde = (uintptr_t)paddr | PG_DEFAULT_FLAGS;
+    pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
+    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
+    v_pde = PHYS_TO_VIRT(pde);
+    if (!(*v_pde & PG_P))
+    {
+        status = alloc_physical_page(1, &pt);
+        ASSERT(!ERROR(status));
+        UNUSED(status);
+        v_pt = PHYS_TO_VIRT(pt);
+        memset(v_pt, 0, PT_SIZE);
+        *v_pde = (uintptr_t)pt | PG_US_U | PG_RW_W | PG_P;
+    }
+    pt     = (uint64_t *)(*v_pde & (~0xfff));
+    pte    = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
+    v_pte  = PHYS_TO_VIRT(pte);
+    *v_pte = (uintptr_t)paddr | PG_DEFAULT_FLAGS;
     return;
 }
 
@@ -368,6 +382,8 @@ PUBLIC void page_unmap(uint64_t *pml4t, void *vaddr)
     uint64_t *v_pml4t, *v_pml4e;
     uint64_t *pdpt, *v_pdpte, *pdpte;
     uint64_t *pdt, *v_pde, *pde;
+    uint64_t *pt, *v_pte, *pte;
+
     v_pml4t = PHYS_TO_VIRT(pml4t);
     v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
     ASSERT(*v_pml4e & PG_P);
@@ -381,7 +397,12 @@ PUBLIC void page_unmap(uint64_t *pml4t, void *vaddr)
     pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
     v_pde = PHYS_TO_VIRT(pde);
     ASSERT(*v_pde & PG_P);
-    *v_pde &= ~PG_P;
+
+    pt    = (uint64_t *)(*v_pde & (~0xfff));
+    pte   = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
+    v_pte = PHYS_TO_VIRT(pte);
+    ASSERT(*v_pte & PG_P);
+    *v_pte &= ~PG_P;
     return;
 }
 
@@ -391,6 +412,8 @@ PUBLIC void set_page_flags(uint64_t *pml4t, void *vaddr, uint64_t flags)
     uint64_t *v_pml4t, *v_pml4e;
     uint64_t *pdpt, *v_pdpte, *pdpte;
     uint64_t *pdt, *v_pde, *pde;
+    uint64_t *pt, *v_pte, *pte;
+
     v_pml4t = PHYS_TO_VIRT(pml4t);
     v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
     ASSERT(*v_pml4e & PG_P);
@@ -404,7 +427,12 @@ PUBLIC void set_page_flags(uint64_t *pml4t, void *vaddr, uint64_t flags)
     pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
     v_pde = PHYS_TO_VIRT(pde);
     ASSERT(*v_pde & PG_P);
-    *v_pde = (*v_pde & ~0xfff) | flags;
+
+    pt    = (uint64_t *)(*v_pde & (~0xfff));
+    pte   = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
+    v_pte = PHYS_TO_VIRT(pte);
+    ASSERT(*v_pte & PG_P);
+    *v_pte = (*v_pte & ~0xfff) | flags;
     return;
 }
 
@@ -414,10 +442,25 @@ PUBLIC void set_page_table(void *page_table_pos)
     return;
 }
 
+PRIVATE void free_pt(uintptr_t pt)
+{
+    free_physical_page((void *)pt, 1);
+    return;
+}
+
 PRIVATE void free_pdt(uintptr_t pdt)
 {
     uint64_t *v_pdt = PHYS_TO_VIRT(pdt);
-    kfree(v_pdt);
+
+    int i;
+    for (i = 0; i < 512; i++)
+    {
+        if (v_pdt[i] & PG_P)
+        {
+            free_pt(v_pdt[i] & (~0xfff));
+        }
+    }
+    free_physical_page((void *)pdt, 1);
     return;
 }
 
@@ -433,7 +476,7 @@ PRIVATE void free_pdpt(uintptr_t pdpt)
             free_pdt(v_pdpt[i] & (~0xfff));
         }
     }
-    kfree(v_pdpt);
+    free_physical_page((void *)pdpt, 1);
     return;
 }
 
@@ -449,6 +492,6 @@ PUBLIC void free_page_table(uint64_t *pml4t)
             free_pdpt(v_pml4t[i] & (~0xfff));
         }
     }
-    kfree(v_pml4t);
+    free_physical_page((void *)pml4t, 1);
     return;
 }

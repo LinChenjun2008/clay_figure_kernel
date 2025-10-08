@@ -144,11 +144,8 @@ kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
 
     if (size > MAX_ALLOCATE_MEMORY_SIZE)
     {
-        PR_LOG(LOG_WARN, "Allocate large memory: %d.\n", size);
-        PR_LOG(LOG_WARN, "May be you should use alloc_physical_page().\n");
-
         size_t   alloc_size      = size + alignment;
-        uint64_t number_of_pages = alloc_size / PG_SIZE + 1;
+        uint64_t number_of_pages = (alloc_size + PG_SIZE - 1) / PG_SIZE;
         void    *page_addr;
         status = alloc_physical_page(number_of_pages, &page_addr);
         if (ERROR(status))

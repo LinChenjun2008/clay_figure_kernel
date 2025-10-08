@@ -27,7 +27,7 @@
 // Page Chace Disable
 #define PG_PCD           (1 << 4)
 #define PG_SIZE_2M       (1 << 7)
-#define PG_DEFAULT_FLAGS (PG_US_U | PG_RW_W | PG_P | PG_SIZE_2M)
+#define PG_DEFAULT_FLAGS (PG_US_U | PG_RW_W | PG_P)
 
 #define ADDR_PML4T_INDEX_SHIFT 39
 #define ADDR_PML4T_INDEX_MASK  0x1ff
@@ -35,8 +35,10 @@
 #define ADDR_PDPT_INDEX_MASK   0x1ff
 #define ADDR_PDT_INDEX_SHIFT   21
 #define ADDR_PDT_INDEX_MASK    0x1ff
+#define ADDR_PT_INDEX_SHIFT    12
+#define ADDR_PT_INDEX_MASK     0x1ff
 #define ADDR_OFFSET_SHIFT      0
-#define ADDR_OFFSET_MASK       0x1fffff
+#define ADDR_OFFSET_MASK       0x0fff
 
 
 #define KERNEL_VMA_BASE  0xffff800000000000
