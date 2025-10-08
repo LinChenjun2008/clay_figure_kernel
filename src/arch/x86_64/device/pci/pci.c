@@ -153,6 +153,62 @@ PUBLIC uint64_t pci_dev_read_bar(pci_device_t *dev, uint8_t bar_index)
            (bar & mask);
 }
 
+PUBLIC uint64_t pci_dev_read_bar_size(pci_device_t *dev, uint8_t bar_index)
+{
+    uint8_t bar_offset = 0x10 + bar_index * 4;
+
+    // 1. 读取原始BAR值
+    uint32_t original = pci_dev_config_read(dev, bar_offset);
+
+    // 2. 检查BAR是否有效
+    if (original == 0 || original == 0xFFFFFFFF)
+    {
+        return 0; // 无效的BAR
+    }
+
+    // 3. 检查BAR类型（bit0）
+    int is_io_space = (original & 0x1);
+    if (is_io_space)
+    {
+        return 0;
+    }
+
+    // 4. 检查内存空间类型（bit1-2）
+    int mem_type = (original >> 1) & 0x3;
+    int is_64bit = (mem_type == 0x2 || mem_type == 0x3); // 64位地址空间
+
+    // 5. 向BAR写全1来探测大小
+    pci_dev_config_write(dev, bar_offset, 0xFFFFFFFF);
+    uint32_t size_mask = pci_dev_config_read(dev, bar_offset);
+
+    // 6. 恢复原始值
+    pci_dev_config_write(dev, bar_offset, original);
+
+    // 7. 计算32位MMIO空间大小
+    uint32_t size_low;
+    if (mem_type == 0x0)
+    { // 32位地址空间
+        size_low = ~(size_mask & ~0xF) + 1;
+        return (uint64_t)size_low;
+    }
+
+    // 8. 处理64位MMIO空间
+    if (is_64bit && bar_index < 5)
+    {
+        // 读取下一个BAR（高32位）
+        uint32_t original_high = pci_dev_config_read(dev, bar_offset + 4);
+        pci_dev_config_write(dev, bar_offset + 4, 0xFFFFFFFF);
+        uint32_t size_mask_high = pci_dev_config_read(dev, bar_offset + 4);
+        pci_dev_config_write(dev, bar_offset + 4, original_high);
+
+        // 组合64位大小
+        uint64_t size = ((uint64_t)size_mask_high << 32) | (size_mask & ~0xF);
+        size          = ~size + 1;
+        return size;
+    }
+    return 0;
+}
+
 PUBLIC uint8_t pci_dev_read_cap_point(pci_device_t *dev)
 {
     return pci_dev_config_read(dev, 0x34) & 0xff;

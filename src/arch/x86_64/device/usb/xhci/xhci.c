@@ -550,10 +550,13 @@ PUBLIC status_t xhci_setup(usb_hub_set_t *hub_set)
     {
         pci                 = pci_dev_match(0x0c, 0x03, 0x30, i);
         uintptr_t mmio_base = pci_dev_read_bar(pci, 0);
+        uint64_t  bar_size  = pci_dev_read_bar_size(pci, 0);
+        int       bar_pages = (bar_size + PG_SIZE - 1) / PG_SIZE;
         page_map(
             (uint64_t *)KERNEL_PAGE_DIR_TABLE_POS,
             (void *)mmio_base,
-            (void *)PHYS_TO_VIRT(mmio_base)
+            (void *)PHYS_TO_VIRT(mmio_base),
+            bar_pages
         );
         if ((pci_dev_config_read(pci, 0) & 0xffff) == 0x8086)
         {
