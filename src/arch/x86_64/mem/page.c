@@ -260,7 +260,7 @@ PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
         PR_LOG(LOG_ERROR, "Out of Memory: %d.\n", status);
         return K_NOMEM;
     }
-    // memset(PHYS_TO_VIRT(paddr), 0, number_of_pages * PG_SIZE);
+    // memset(PHYS_TO_VIRT(*(uintptr_t *)addr), 0, number_of_pages * PG_SIZE);
     return K_SUCCESS;
 }
 

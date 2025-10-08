@@ -52,9 +52,9 @@ PUBLIC status_t smp_init(void)
     // allocate stack for apu
     status_t status;
     uint8_t *apu_stack_base;
-    status = alloc_physical_page(
-        ((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1, &apu_stack_base
-    );
+    uint64_t apu_stack_pages;
+    apu_stack_pages = ((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE;
+    status          = alloc_physical_page(apu_stack_pages, &apu_stack_base);
     if (ERROR(status))
     {
         PR_LOG(LOG_FATAL, "can not alloc memory for apu. \n");
@@ -71,10 +71,7 @@ PUBLIC status_t smp_init(void)
         if (ap_main_task == NULL)
         {
             PR_LOG(LOG_FATAL, "Alloc task for AP error.\n");
-            free_physical_page(
-                apu_stack_base,
-                ((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1
-            );
+            free_physical_page(apu_stack_base, apu_stack_pages);
             return K_NOMEM;
         }
         uintptr_t kstack_base = (uintptr_t)apu_stack_base;

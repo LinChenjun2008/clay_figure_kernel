@@ -15,7 +15,7 @@ mm_struct_init(mm_struct_t *mm, mm_block_t *blocks, uint64_t total_blocks)
     mm->blocks       = blocks;
     mm->total_blocks = total_blocks;
     mm->using_blocks = 0;
-    memset(blocks, 0, sizeof(mm_block_t) * total_blocks);
+    memset(blocks, 0, sizeof(*mm->blocks) * total_blocks);
     init_spinlock(&mm->lock);
     return;
 }
