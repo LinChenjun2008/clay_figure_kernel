@@ -140,22 +140,6 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
 
     CreatePage(PG_TABLE_POS);
 
-    // Get memory map
-    boot_info->memory_map.map_size           = 4096 * 4;
-    boot_info->memory_map.buffer             = NULL;
-    boot_info->memory_map.map_key            = 0;
-    boot_info->memory_map.descriptor_size    = 0;
-    boot_info->memory_map.descriptor_version = 0;
-    Status = GetMemoryMap(&boot_info->memory_map);
-    if (EFI_ERROR(Status))
-    {
-        gST->ConOut->SetAttribute(gST->ConOut, 0x0C | 0x00);
-        gST->ConOut->OutputString(gST->ConOut, L"[ ERROR ] ");
-        gST->ConOut->SetAttribute(gST->ConOut, 0x0F | 0x00);
-        gST->ConOut->OutputString(gST->ConOut, L"Can not get memory map\n");
-        return EFI_ERR;
-    }
-
     // load file
 
     UINT64               FileSize   = 0;
@@ -195,8 +179,20 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
         (EFI_PHYSICAL_ADDRESS *)&kernel_entry
     );
     boot_info->relocate_base = RelocateBase;
+
+    // Get memory map,exit boot services
+    boot_info->memory_map.map_size           = 4096 * 4;
+    boot_info->memory_map.buffer             = NULL;
+    boot_info->memory_map.map_key            = 0;
+    boot_info->memory_map.descriptor_size    = 0;
+    boot_info->memory_map.descriptor_version = 0;
+    Status = GetMemoryMap(&boot_info->memory_map);
+    if (EFI_ERROR(Status))
+    {
+        return EFI_ERR;
+    }
     gBS->ExitBootServices(gImageHandle, boot_info->memory_map.map_key);
+
     kernel_entry();
-    while (1) continue;
     return Status;
 }

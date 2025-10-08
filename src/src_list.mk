@@ -12,7 +12,7 @@ SRC += $(SRC_DIR)/service/view/view.c
 
 SRC += $(SRC_DIR)/mem/allocator.c
 SRC += $(SRC_DIR)/mem/service/mm.c
-SRC += $(SRC_DIR)/mem/vmm.c
+SRC += $(SRC_DIR)/mem/mm_struct.c
 
 SRC += $(SRC_DIR)/ramfs/ramfs.c
 SRC += $(SRC_DIR)/lib/bitmap.c

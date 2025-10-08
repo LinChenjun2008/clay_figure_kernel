@@ -121,25 +121,37 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
     task_struct_t *task          = running_task();
     uintptr_t      fault_address = get_cr2();
     uintptr_t      cr3           = get_cr3();
+    uint64_t       error_code    = stack->error_code;
 
     uintptr_t fault_page = fault_address & ~(PG_SIZE - 1);
     // 内核任务 - 错误
     if (cr3 == KERNEL_PAGE_DIR_TABLE_POS)
     {
+        pr_log(LOG_ERROR, "Kernel task page fault.\n");
         default_irq_handler(stack);
     }
 
     // 未分配地址 - 错误
-    if (!vmm_find(&task->vmm_using, fault_page))
+    if (!mm_find(&task->mm_using, fault_address))
     {
+        pr_log(LOG_ERROR, "Page not allocated.\n");
+        default_irq_handler(stack);
+    }
+
+    //  页已存在而引发的异常
+    if (error_code & PG_P)
+    {
+        pr_log(LOG_ERROR, "Page existed.\n");
         default_irq_handler(stack);
     }
     uintptr_t paddr;
     status_t  status = alloc_physical_page(1, &paddr);
     if (ERROR(status))
     {
+        PANIC(ERROR(status), "Out of memory.\n");
         default_irq_handler(stack);
     }
+    mm_add_range(&task->mm_pages, paddr, PG_SIZE);
     page_map(task->page_dir, (void *)paddr, (void *)fault_page);
     page_table_activate(task);
     return;
@@ -490,17 +502,6 @@ PUBLIC void set_page_table(void *page_table_pos)
 PRIVATE void free_pdt(uintptr_t pdt)
 {
     uint64_t *v_pdt = PHYS_TO_VIRT(pdt);
-    void     *paddr = NULL;
-
-    int i;
-    for (i = 0; i < 512; i++)
-    {
-        if (v_pdt[i] & PG_P)
-        {
-            paddr = (void *)(v_pdt[i] & (~0xfff));
-            free_physical_page(paddr, 1);
-        }
-    }
     kfree(v_pdt);
     return;
 }

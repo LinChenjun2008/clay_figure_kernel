@@ -243,6 +243,7 @@ PUBLIC task_struct_t *task_start(
     create_task_struct(task, func, arg);
 
     task_struct_t *parent_task = pid_to_task(task->ppid);
+    ASSERT(parent_task == running_task());
     atomic_inc(&parent_task->childs);
 
     task_man_t *task_man = get_task_man(task->cpu_id);
@@ -278,7 +279,7 @@ PUBLIC int task_release_resource(pid_t pid)
 {
     task_struct_t *task        = pid_to_task(pid);
     task_struct_t *parent_task = pid_to_task(task->ppid);
-    ASSERT(parent_task->pid == running_task()->pid);
+    ASSERT(parent_task == running_task());
     kfree(task->fxsave_region);
     kfree((void *)task->kstack_base);
 

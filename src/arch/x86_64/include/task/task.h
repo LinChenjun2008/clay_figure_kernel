@@ -13,7 +13,7 @@
 #    include <device/sse.h>
 #    include <kernel/syscall.h>
 #    include <lib/list.h>
-#    include <mem/vmm.h>
+#    include <mem/mm_struct.h>
 #    include <sync/atomic.h>
 
 #endif /* __ASM_INCLUDE__ */
@@ -97,8 +97,9 @@ typedef struct task_struct_s
     uint64_t run_time;  // 任务运行时间(总计)
     uint64_t vrun_time; // 虚拟运行时间
 
-    vmm_struct_t vmm_free;  // 任务可以使用的虚拟地址表
-    vmm_struct_t vmm_using; // 任务正在使用的虚拟地址表
+    mm_struct_t mm_alloc; // 任务可分配的虚拟地址表
+    mm_struct_t mm_using; // 任务使用中的虚拟地址表
+    mm_struct_t mm_pages; // 任务正在使用的物理页表
 
     message_t msg;       // 任务消息结构体
     pid_t     send_to;   // 任务发送消息的目的地

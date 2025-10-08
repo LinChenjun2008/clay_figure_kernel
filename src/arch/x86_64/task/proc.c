@@ -113,33 +113,57 @@ PRIVATE uint64_t *create_page_dir(void)
 
 PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
 {
-    size_t   block_size   = sizeof(*task->vmm_free.blocks);
-    uint64_t total_blocks = 1024;
+    size_t   block_size   = sizeof(*task->mm_alloc.blocks);
+    uint64_t total_blocks = 256;
     void    *blocks;
+
+    // 分配失败将调用free_user_addr_table处理
     status_t status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
     if (ERROR(status))
     {
         return status;
     }
-    vmm_struct_init(&task->vmm_free, blocks, total_blocks);
+    mm_struct_init(&task->mm_alloc, blocks, total_blocks);
 
     uintptr_t vm_start = USER_VADDR_START;
     size_t    vm_size  = (USER_STACK_VADDR_BASE - USER_VADDR_START);
-    vmm_add_range(&task->vmm_free, vm_start, vm_size);
+    mm_add_range(&task->mm_alloc, vm_start, vm_size);
 
     status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
     if (ERROR(status))
     {
         return status;
     }
-    vmm_struct_init(&task->vmm_using, blocks, total_blocks);
+    mm_struct_init(&task->mm_using, blocks, total_blocks);
+
+    status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
+    if (ERROR(status))
+    {
+        return status;
+    }
+    mm_struct_init(&task->mm_pages, blocks, total_blocks);
     return K_SUCCESS;
 }
 
-PRIVATE status_t free_user_vaddr_table(task_struct_t *task)
+PRIVATE int free_user_physical_page(mm_block_t *block, uint64_t arg)
 {
-    kfree(task->vmm_free.blocks);
-    kfree(task->vmm_using.blocks);
+    free_physical_page((void *)block->start, block->size / PG_SIZE);
+    return arg;
+}
+
+PRIVATE status_t free_user_addr_table(task_struct_t *task)
+{
+    if (task == NULL)
+    {
+        return K_ERROR;
+    }
+    if (task->mm_pages.blocks != NULL)
+    {
+        mm_traversal(&task->mm_pages, free_user_physical_page, 0);
+    }
+    kfree(task->mm_alloc.blocks);
+    kfree(task->mm_using.blocks);
+    kfree(task->mm_pages.blocks);
     return K_SUCCESS;
 }
 
@@ -156,7 +180,7 @@ PUBLIC task_struct_t *proc_execute(
     task_struct_t *task = task_alloc();
     if (task == NULL)
     {
-        goto fail;
+        return NULL;
     }
 
     void *kstack_base = NULL;
@@ -184,14 +208,19 @@ PUBLIC task_struct_t *proc_execute(
         PR_LOG(LOG_ERROR, "Can not init vaddr table.\n");
         goto fail;
     }
+    task_struct_t *parent_task = running_task();
+    atomic_inc(&parent_task->childs);
+    task->ppid = parent_task->pid;
+
     task_man_t *task_man = get_task_man(task->cpu_id);
     spinlock_lock(&task_man->task_list_lock);
     task_list_insert(task_man, task);
     spinlock_unlock(&task_man->task_list_lock);
+
     return task;
 
 fail:
-    free_user_vaddr_table(task);
+    free_user_addr_table(task);
     kfree(PHYS_TO_VIRT(task->page_dir));
     kfree(kstack_base);
     task_free(task);
@@ -209,7 +238,8 @@ PUBLIC void proc_exit(int status)
     page_table_activate(task);
 
     free_page_table(pg_dir);
-    free_user_vaddr_table(task);
+    // 回收分配的页
+    free_user_addr_table(task);
 
     task_exit(status);
     return;
