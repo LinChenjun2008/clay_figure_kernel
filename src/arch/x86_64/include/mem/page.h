@@ -51,7 +51,7 @@
 #define PHYS_TO_VIRT(ADDR) ((void *)((uintptr_t)(ADDR) + KERNEL_VMA_BASE))
 #define VIRT_TO_PHYS(ADDR) ((void *)((uintptr_t)(ADDR) - KERNEL_VMA_BASE))
 
-#define PAGE_BITMAP_BYTES_LEN 2048
+#define PAGE_BLOCKS 2048
 
 #ifndef __ASM_INCLUDE__
 
@@ -86,6 +86,7 @@ PUBLIC void free_physical_page(void *addr, uint64_t number_of_pages);
 PUBLIC uint64_t *pml4t_entry(void *pml4t, void *vaddr);
 PUBLIC uint64_t *pdpt_entry(void *pml4t, void *vaddr);
 PUBLIC uint64_t *pdt_entry(void *pml4t, void *vaddr);
+PUBLIC uint64_t *pt_entry(void *pml4t, void *vaddr);
 
 /**
  * @brief 将页表pml4t中的虚拟地址vaddr转换为对应的物理地址
@@ -99,16 +100,17 @@ PUBLIC void *to_physical_address(void *pml4t, void *vaddr);
  * @param pml4t 页表地址
  * @param paddr 物理地址
  * @param vaddr 虚拟地址
- * @param flags 页属性
+ * @param count 映射的页数
  */
-PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr);
+PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t count);
 
 /**
  * @brief 解除虚拟地址vaddr在页表中的映射
  * @param pml4t 页表地址
  * @param vaddr 虚拟地址
+ * @param count 解除映射的页数
  */
-PUBLIC void page_unmap(uint64_t *pml4t, void *vaddr);
+PUBLIC void page_unmap(uint64_t *pml4t, void *vaddr, uint64_t count);
 
 /**
  * @brief 修改页属性

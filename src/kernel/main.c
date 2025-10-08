@@ -19,52 +19,46 @@
 #include <task/task.h>
 #include <ulib.h>
 
-// PRIVATE void ktask(void)
-// {
-//     uint32_t color = 0x00c5c5c5;
-//     uint32_t xsize = 9 * 10;
-//     uint32_t ysize = 16;
+PRIVATE void ktask(void)
+{
+    uint32_t color = 0x00c5c5c5;
+    uint32_t xsize = 9 * 10;
+    uint32_t ysize = 16;
 
-//     textbox_t tb;
-//     tb.cur_pos.x  = 0;
-//     tb.cur_pos.y  = 0;
-//     tb.box_pos.x  = 0;
-//     tb.box_pos.y  = 0;
-//     tb.xsize      = xsize;
-//     tb.ysize      = ysize;
-//     tb.char_xsize = 9;
-//     tb.char_ysize = 16;
+    textbox_t tb;
+    tb.cur_pos.x  = 0;
+    tb.cur_pos.y  = 0;
+    tb.box_pos.x  = 0;
+    tb.box_pos.y  = 0;
+    tb.xsize      = xsize;
+    tb.ysize      = ysize;
+    tb.char_xsize = 9;
+    tb.char_ysize = 16;
 
-//     graph_info_t gi;
-//     gi.horizontal_resolution = xsize;
-//     gi.vertical_resolution   = ysize;
-//     gi.pixel_per_scanline    = xsize;
+    graph_info_t gi;
+    gi.horizontal_resolution = xsize;
+    gi.vertical_resolution   = ysize;
+    gi.pixel_per_scanline    = xsize;
 
-//     int i = 0;
-//     while (1)
-//     {
-//         uint32_t *buf = allocate_page();
-//         if (buf == NULL)
-//         {
-//             exit(-1);
-//         }
-//         gi.frame_buffer_base = (uintptr_t)buf;
+    int i = 0;
+    while (1)
+    {
+        uint64_t  pages = xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1;
+        uint32_t *buf   = allocate_page(pages);
+        if (buf == NULL)
+        {
+            exit(-1);
+        }
+        gi.frame_buffer_base = (uintptr_t)buf;
 
-//         char s[10];
-//         sprintf(s, "\n% 9d", i);
-//         basic_print(&gi, &tb, color, s);
-//         fill(
-//             buf,
-//             xsize * ysize * sizeof(uint32_t),
-//             xsize,
-//             ysize,
-//             (apic_id() - 1) * xsize,
-//             0
-//         );
-//         i++;
-//         free_page(buf);
-//     };
-// }
+        char s[10];
+        sprintf(s, "\n% 9d", i);
+        basic_print(&gi, &tb, color, s);
+        fill(buf, pages, xsize, ysize, (apic_id() - 1) * xsize, 0);
+        i++;
+        free_page(buf, pages);
+    };
+}
 
 PUBLIC void kernel_main(void)
 {
@@ -83,9 +77,9 @@ PUBLIC void kernel_main(void)
 PUBLIC void ap_kernel_main(void)
 {
     ap_init_all();
-    // char name[31];
-    // sprintf(name, "k task %d", running_task()->cpu_id);
-    // proc_execute(name, DEFAULT_PRIORITY, 4096, ktask);
+    char name[31];
+    sprintf(name, "k task %d", running_task()->cpu_id);
+    proc_execute(name, DEFAULT_PRIORITY, 4096, ktask);
 
     message_t msg;
     while (1)

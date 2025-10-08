@@ -69,7 +69,7 @@ PRIVATE struct
 /**
  * @brief 用于页分配的位图,bit为1表示对应的页空闲
  */
-mm_block_t page_mm_blocks[PAGE_BITMAP_BYTES_LEN];
+mm_block_t page_mm_blocks[PAGE_BLOCKS];
 
 PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
 {
@@ -142,14 +142,14 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
         default_irq_handler(stack);
     }
     mm_add_range(&task->mm_pages, paddr, PG_SIZE);
-    page_map(task->page_dir, (void *)paddr, (void *)fault_page);
+    page_map(task->page_dir, (void *)paddr, (void *)fault_page, 1);
     page_table_activate(task);
     return;
 }
 
 PUBLIC void mem_page_init(void)
 {
-    mm_struct_init(&mem.pages, page_mm_blocks, PAGE_BITMAP_BYTES_LEN);
+    mm_struct_init(&mem.pages, page_mm_blocks, PAGE_BLOCKS);
     mem.mem_size    = 0;
     mem.total_pages = 0;
     mem.free_pages  = 0;
@@ -295,11 +295,19 @@ PUBLIC uint64_t *pdt_entry(void *pml4t, void *vaddr)
            GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
 }
 
+PUBLIC uint64_t *pt_entry(void *pml4t, void *vaddr)
+{
+    return (uint64_t *)(*(uint64_t *)PHYS_TO_VIRT(pdt_entry(pml4t, vaddr)) &
+                        ~0xfff) +
+           GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
+}
+
 PUBLIC void *to_physical_address(void *pml4t, void *vaddr)
 {
     uint64_t *v_pml4t, *v_pml4e;
     uint64_t *pdpt, *v_pdpte, *pdpte;
     uint64_t *pdt, *v_pde, *pde;
+    uint64_t *pt, *v_pte, *pte;
     v_pml4t = PHYS_TO_VIRT(pml4t);
     v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
     if (!(*v_pml4e & PG_P))
@@ -320,11 +328,18 @@ PUBLIC void *to_physical_address(void *pml4t, void *vaddr)
     {
         return NULL;
     }
-    return (void *)((*v_pde & ~0xfff) +
+    pt    = (uint64_t *)(*v_pde & (~0xfff));
+    pte   = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
+    v_pte = PHYS_TO_VIRT(pte);
+    if (!(*v_pte & PG_P))
+    {
+        return NULL;
+    }
+    return (void *)((*v_pte & ~0xfff) +
                     GET_FIELD((uintptr_t)vaddr, ADDR_OFFSET));
 }
 
-PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
+PRIVATE void page_map_sub(uint64_t *pml4t, void *paddr, void *vaddr)
 {
     paddr = (void *)((uintptr_t)paddr & ~(PG_SIZE - 1));
     vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
@@ -376,7 +391,21 @@ PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr)
     return;
 }
 
-PUBLIC void page_unmap(uint64_t *pml4t, void *vaddr)
+PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t count)
+{
+    uint64_t i;
+    for (i = 0; i < count; i++)
+    {
+        page_map_sub(
+            pml4t,
+            (void *)((uintptr_t)paddr + i * PG_SIZE),
+            (void *)((uintptr_t)vaddr + i * PG_SIZE)
+        );
+    }
+    return;
+}
+
+PRIVATE void page_unmap_sub(uint64_t *pml4t, void *vaddr)
 {
     vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
     uint64_t *v_pml4t, *v_pml4e;
@@ -403,6 +432,16 @@ PUBLIC void page_unmap(uint64_t *pml4t, void *vaddr)
     v_pte = PHYS_TO_VIRT(pte);
     ASSERT(*v_pte & PG_P);
     *v_pte &= ~PG_P;
+    return;
+}
+
+PUBLIC void page_unmap(uint64_t *pml4t, void *vaddr, uint64_t count)
+{
+    uint64_t i;
+    for (i = 0; i < count; i++)
+    {
+        page_unmap_sub(pml4t, (void *)((uintptr_t)vaddr + i * PG_SIZE));
+    }
     return;
 }
 

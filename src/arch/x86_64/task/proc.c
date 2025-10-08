@@ -56,7 +56,7 @@ PRIVATE void start_process(void *process)
     }
     cur->ustack_base = ustack;
     cur->ustack_size = PG_SIZE;
-    page_map(cur->page_dir, (void *)ustack, (void *)USER_STACK_VADDR_BASE);
+    page_map(cur->page_dir, (void *)ustack, (void *)USER_STACK_VADDR_BASE, 1);
     page_table_activate(cur);
 
     uint64_t kstack = (uint64_t)cur->context;

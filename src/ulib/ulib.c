@@ -57,11 +57,12 @@ PUBLIC pid_t waitpid(pid_t pid, int *status, int options)
     return (pid_t)msg.m[OUT_KERN_WAITPID_PID];
 }
 
-PUBLIC void *allocate_page(void)
+PUBLIC void *allocate_page(uint64_t count)
 {
     message_t msg;
     memset(&msg, 0, sizeof(msg));
-    msg.type = KERN_ALLOCATE_PAGE;
+    msg.type                           = KERN_ALLOCATE_PAGE;
+    msg.m[IN_KERN_ALLOCATE_PAGE_COUNT] = count;
     syscall_status_t status;
     status = send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     if (status != SYSCALL_SUCCESS)
@@ -71,25 +72,26 @@ PUBLIC void *allocate_page(void)
     return (void *)msg.m[OUT_KERN_ALLOCATE_PAGE_ADDR];
 }
 
-PUBLIC void free_page(void *addr)
+PUBLIC void free_page(void *addr, uint64_t count)
 {
     message_t msg;
     memset(&msg, 0, sizeof(msg));
-    msg.type                      = KERN_FREE_PAGE;
-    msg.m[IN_KERN_FREE_PAGE_ADDR] = (uint64_t)addr;
+    msg.type                       = KERN_FREE_PAGE;
+    msg.m[IN_KERN_FREE_PAGE_ADDR]  = (uint64_t)addr;
+    msg.m[IN_KERN_FREE_PAGE_COUNT] = count;
     send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     return;
 }
 
-PUBLIC void read_task_addr(pid_t pid, void *addr, size_t size, void *buffer)
+PUBLIC void read_task_addr(pid_t pid, void *addr, size_t pages, void *buffer)
 {
     message_t msg;
     memset(&msg, 0, sizeof(msg));
-    msg.type                            = KERN_READ_TASK_MEM;
-    msg.m[IN_KERN_READ_TASK_MEM_PID]    = pid;
-    msg.m[IN_KERN_READ_TASK_MEM_ADDR]   = (uint64_t)addr;
-    msg.m[IN_KERN_READ_TASK_MEM_SIZE]   = size;
-    msg.m[IN_KERN_READ_TASK_MEM_BUFFER] = (uint64_t)buffer;
+    msg.type                             = KERN_READ_TASK_MEM;
+    msg.m[IN_KERN_READ_TASK_PAGE_PID]    = pid;
+    msg.m[IN_KERN_READ_TASK_PAGE_ADDR]   = (uint64_t)addr;
+    msg.m[IN_KERN_READ_TASK_PAGE_COUNT]  = pages;
+    msg.m[IN_KERN_READ_TASK_PAGE_BUFFER] = (uint64_t)buffer;
     send_recv(NR_SEND, SEND_TO_KERNEL, &msg);
     return;
 }
@@ -105,7 +107,7 @@ PUBLIC uint64_t get_ticks(void)
 
 PUBLIC void fill(
     void    *buffer,
-    size_t   buffer_size,
+    size_t   buffer_pages,
     uint32_t xsize,
     uint32_t ysize,
     uint32_t x,
@@ -114,11 +116,11 @@ PUBLIC void fill(
 {
     message_t msg;
     memset(&msg, 0, sizeof(msg));
-    msg.type                        = VIEW_FILL;
-    msg.m[IN_VIEW_FILL_BUFFER]      = (uint64_t)buffer;
-    msg.m[IN_VIER_FILL_BUFFER_SIZE] = buffer_size;
-    msg.m[IN_VIEW_FILL_XSIZE]       = xsize;
-    msg.m[IN_VIEW_FILL_YSIZE]       = ysize;
+    msg.type                         = VIEW_FILL;
+    msg.m[IN_VIEW_FILL_BUFFER]       = (uint64_t)buffer;
+    msg.m[IN_VIER_FILL_BUFFER_PAGES] = buffer_pages;
+    msg.m[IN_VIEW_FILL_XSIZE]        = xsize;
+    msg.m[IN_VIEW_FILL_YSIZE]        = ysize;
 
     msg.m[IN_VIEW_FILL_X] = x;
     msg.m[IN_VIEW_FILL_Y] = y;

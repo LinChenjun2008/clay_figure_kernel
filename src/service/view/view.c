@@ -24,22 +24,22 @@ PRIVATE struct
 PRIVATE void view_fill(message_t *msg)
 {
 
-    void    *in_buffer      = (void *)msg->m[IN_VIEW_FILL_BUFFER];
-    size_t   in_buffer_size = (size_t)msg->m[IN_VIER_FILL_BUFFER_SIZE];
-    uint32_t in_xsize       = (uint32_t)msg->m[IN_VIEW_FILL_XSIZE];
-    uint32_t in_ysize       = (uint32_t)msg->m[IN_VIEW_FILL_YSIZE];
-    uint32_t in_x           = (uint32_t)msg->m[IN_VIEW_FILL_X];
-    uint32_t in_y           = (uint32_t)msg->m[IN_VIEW_FILL_Y];
+    void    *in_buffer       = (void *)msg->m[IN_VIEW_FILL_BUFFER];
+    size_t   in_buffer_pages = (size_t)msg->m[IN_VIER_FILL_BUFFER_PAGES];
+    uint32_t in_xsize        = (uint32_t)msg->m[IN_VIEW_FILL_XSIZE];
+    uint32_t in_ysize        = (uint32_t)msg->m[IN_VIEW_FILL_YSIZE];
+    uint32_t in_x            = (uint32_t)msg->m[IN_VIEW_FILL_X];
+    uint32_t in_y            = (uint32_t)msg->m[IN_VIEW_FILL_Y];
 
     // alloc buffer
-    uint32_t *buf = allocate_page();
+    uint32_t *buf = allocate_page(in_buffer_pages);
     if (buf == NULL)
     {
         return;
     }
 
     // read buffer
-    read_task_addr(msg->src, in_buffer, in_buffer_size, buf);
+    read_task_addr(msg->src, in_buffer, in_buffer_pages, buf);
 
     // print buf to screen.
     uint32_t x, y;
@@ -51,7 +51,7 @@ PRIVATE void view_fill(message_t *msg)
             *(gi.vram + (in_y + y) * gi.pixel_per_scanline + in_x + x) = pixel;
         }
     }
-    free_page(buf);
+    free_page(buf, in_buffer_pages);
     return;
 }
 
