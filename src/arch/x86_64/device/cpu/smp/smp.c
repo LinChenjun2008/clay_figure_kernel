@@ -141,4 +141,5 @@ PUBLIC void send_ipi(uint64_t icr)
 {
     local_apic_write(0x310, icr >> 32);
     local_apic_write(0x300, icr & 0xffffffff);
+    return;
 }

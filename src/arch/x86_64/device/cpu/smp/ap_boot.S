@@ -90,7 +90,7 @@ AP_CODE64_BASE:
     movq $0, %rbx
     cpuid
     shrq $24, %rbx
-    shlq $16, %rbx
+    shlq $12, %rbx
     movq $AP_STACK_BASE_PTR, %rax
     addq (%rax), %rbx
     movq $KERNEL_VMA_BASE, %rax
