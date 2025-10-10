@@ -56,7 +56,7 @@ PRIVATE void start_process(void *process)
     }
     cur->ustack_base = ustack;
     cur->ustack_size = PG_SIZE;
-    page_map(cur->page_dir, (void *)ustack, (void *)USER_STACK_VADDR_BASE);
+    page_map(cur->page_dir, (void *)ustack, (void *)USER_STACK_VADDR_BASE, 1);
     page_table_activate(cur);
 
     uint64_t kstack = (uint64_t)cur->context;
@@ -96,29 +96,32 @@ PUBLIC void proc_activate(task_struct_t *task)
 
 PRIVATE uint64_t *create_page_dir(void)
 {
-    uint64_t *pgdir_v;
-    status_t  status = kmalloc(PT_SIZE, 0, PT_SIZE, &pgdir_v);
+    uint64_t *pgdir, *pgdir_v;
+    status_t  status = alloc_physical_page(1, &pgdir);
     if (ERROR(status))
     {
         return NULL;
     }
+    pgdir_v = PHYS_TO_VIRT(pgdir);
     memset(pgdir_v, 0, PT_SIZE);
     memcpy(
         pgdir_v + 0x100,
         (uint64_t *)PHYS_TO_VIRT(KERNEL_PAGE_DIR_TABLE_POS) + 0x100,
         PT_SIZE / 2
     );
-    return (uint64_t *)VIRT_TO_PHYS(pgdir_v);
+    return pgdir;
 }
 
 PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
 {
+    status_t status;
+
     size_t   block_size   = sizeof(*task->mm_alloc.blocks);
     uint64_t total_blocks = 256;
     void    *blocks;
 
     // 分配失败将调用free_user_addr_table处理
-    status_t status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
+    status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
     if (ERROR(status))
     {
         return status;
@@ -221,7 +224,7 @@ PUBLIC task_struct_t *proc_execute(
 
 fail:
     free_user_addr_table(task);
-    kfree(PHYS_TO_VIRT(task->page_dir));
+    free_physical_page(task->page_dir, 1);
     kfree(kstack_base);
     task_free(task);
     return NULL;

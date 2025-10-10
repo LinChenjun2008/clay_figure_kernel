@@ -35,8 +35,22 @@ typedef struct mem_block_s
     list_node_t node;
 } mem_block_t;
 
+typedef struct
+{
+    list_t     list;
+    spinlock_t lock;
+} mem_large_block_cache_t;
+
+typedef struct
+{
+    list_node_t node;
+    void       *page;
+    uint64_t    number_of_pages;
+} mem_large_block_t;
+
 STATIC_ASSERT(sizeof(mem_cache_t) <= MIN_ALLOCATE_MEMORY_SIZE, "");
 STATIC_ASSERT(sizeof(mem_block_t) <= MIN_ALLOCATE_MEMORY_SIZE, "");
+STATIC_ASSERT(sizeof(mem_large_block_t) <= MAX_ALLOCATE_MEMORY_SIZE, "");
 
 STATIC_ASSERT(
     MIN_ALLOCATE_MEMORY_SIZE << (NUMBER_OF_MEMORY_BLOCK_TYPES - 1) ==
@@ -45,7 +59,8 @@ STATIC_ASSERT(
 );
 STATIC_ASSERT(MAX_ALLOCATE_MEMORY_SIZE < PG_SIZE, "");
 
-PRIVATE mem_group_t mem_groups[NUMBER_OF_MEMORY_BLOCK_TYPES];
+PRIVATE mem_group_t             mem_groups[NUMBER_OF_MEMORY_BLOCK_TYPES];
+PRIVATE mem_large_block_cache_t mem_lb_cache;
 
 PUBLIC void mem_allocator_init(void)
 {
@@ -59,6 +74,8 @@ PUBLIC void mem_allocator_init(void)
         init_spinlock(&mem_groups[i].lock);
         block_size <<= 1;
     }
+    init_list(&mem_lb_cache.list);
+    init_spinlock(&mem_lb_cache.lock);
     return;
 }
 
@@ -142,9 +159,32 @@ kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
     mem_block_t *b = NULL;
     mem_group_t *g = NULL;
 
+    // 超过最大分配内存大小，按页为单位分配
     if (size > MAX_ALLOCATE_MEMORY_SIZE)
     {
-        return K_ERROR;
+        mem_large_block_t *lb;
+        status = kmalloc(sizeof(mem_large_block_t), 0, 0, &lb);
+        if (ERROR(status))
+        {
+            return status;
+        }
+        size_t    number_of_pages = (size + PG_SIZE - 1) / PG_SIZE;
+        uintptr_t page_addr;
+        status = alloc_physical_page(number_of_pages, &page_addr);
+        if (ERROR(status))
+        {
+            kfree(lb);
+            return status;
+        }
+        lb->page            = PHYS_TO_VIRT(page_addr);
+        lb->number_of_pages = number_of_pages;
+
+        spinlock_lock(&mem_lb_cache.lock);
+        list_append(&mem_lb_cache.list, &lb->node);
+        spinlock_unlock(&mem_lb_cache.lock);
+
+        *(uintptr_t *)addr = (uintptr_t)lb->page;
+        return K_SUCCESS;
     }
 
     for (i = 0; i < NUMBER_OF_MEMORY_BLOCK_TYPES; i++)
@@ -198,6 +238,19 @@ done:
     return status;
 }
 
+PRIVATE int is_large_block(list_node_t *node, uint64_t addr)
+{
+    mem_large_block_t *lb = CONTAINER_OF(mem_large_block_t, node, node);
+
+    uintptr_t page_start = (uintptr_t)lb->page;
+    uintptr_t page_end   = page_start + (lb->number_of_pages * PG_SIZE);
+    if (page_start <= addr && addr < page_end)
+    {
+        return 1;
+    }
+    return 0;
+}
+
 PUBLIC void kfree(void *addr)
 {
     if (addr == NULL)
@@ -207,18 +260,39 @@ PUBLIC void kfree(void *addr)
     }
     mem_cache_t *c = NULL;
     mem_block_t *b = NULL;
+    mem_group_t *g = NULL;
 
     b = (mem_block_t *)addr;
     c = block2cache(b);
+    g = c->group;
 
+    // 先处理大块内存
+    list_node_t *node;
+    spinlock_lock(&mem_lb_cache.lock);
+    node = list_traversal(&mem_lb_cache.list, is_large_block, (uint64_t)addr);
+    if (node != NULL)
+    {
+        list_remove(node);
+    }
+    spinlock_unlock(&mem_lb_cache.lock);
+
+    if (node != NULL)
+    {
+        mem_large_block_t *lb;
+        lb = CONTAINER_OF(mem_large_block_t, node, node);
+        ASSERT(node == &lb->node);
+        free_physical_page(VIRT_TO_PHYS(lb->page), lb->number_of_pages);
+        kfree(lb);
+        return;
+    }
+
+    // 小块内存
     if (b->magic == block_index(c, b) + c->number_of_blocks)
     {
         PR_LOG(LOG_WARN, "Double free: %p.\n", b);
         return;
     }
     b->magic = block_index(c, b) + c->number_of_blocks;
-
-    mem_group_t *g = c->group;
 
     ASSERT(((uintptr_t)addr & (g->block_size - 1)) == 0);
 

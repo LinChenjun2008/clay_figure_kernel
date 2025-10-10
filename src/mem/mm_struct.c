@@ -15,7 +15,7 @@ mm_struct_init(mm_struct_t *mm, mm_block_t *blocks, uint64_t total_blocks)
     mm->blocks       = blocks;
     mm->total_blocks = total_blocks;
     mm->using_blocks = 0;
-    memset(blocks, 0, sizeof(mm_block_t) * total_blocks);
+    memset(blocks, 0, sizeof(*mm->blocks) * total_blocks);
     init_spinlock(&mm->lock);
     return;
 }
@@ -40,7 +40,7 @@ PRIVATE void move_backward(mm_struct_t *mm, uint64_t index)
     return;
 }
 
-PRIVATE status_t
+PUBLIC status_t
 mm_remove_range_sub(mm_struct_t *mm, uintptr_t start, size_t size)
 {
     uintptr_t end = start + size;
@@ -131,11 +131,10 @@ PUBLIC status_t mm_remove_range(mm_struct_t *mm, uintptr_t start, size_t size)
     return ret;
 }
 
-PUBLIC status_t mm_add_range(mm_struct_t *mm, uintptr_t start, size_t size)
+PUBLIC status_t mm_add_range_sub(mm_struct_t *mm, uintptr_t start, size_t size)
 {
     uint64_t i;
     status_t ret = K_ERROR;
-    spinlock_lock(&mm->lock);
     for (i = 0; i < mm->using_blocks; i++)
     {
         // [i - 1].start < start < [i].start
@@ -192,6 +191,14 @@ PUBLIC status_t mm_add_range(mm_struct_t *mm, uintptr_t start, size_t size)
         goto done;
     }
 done:
+    return ret;
+}
+
+PUBLIC status_t mm_add_range(mm_struct_t *mm, uintptr_t start, size_t size)
+{
+    status_t ret = K_ERROR;
+    spinlock_lock(&mm->lock);
+    ret = mm_add_range_sub(mm, start, size);
     spinlock_unlock(&mm->lock);
     return ret;
 }

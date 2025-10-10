@@ -7,15 +7,16 @@ PUBLIC int   get_ppid(void);
 PUBLIC int   create_process(const char *name, void *proc);
 PUBLIC pid_t waitpid(pid_t pid, int *status, int options);
 
-PUBLIC void *allocate_page(void);
-PUBLIC void  free_page(void *addr);
-PUBLIC void  read_task_addr(pid_t pid, void *addr, size_t size, void *buffer);
+PUBLIC void *allocate_page(uint64_t count);
+PUBLIC
+void        free_page(void *addr, uint64_t count);
+PUBLIC void read_task_addr(pid_t pid, void *addr, size_t pages, void *buffer);
 
 PUBLIC uint64_t get_ticks(void);
 
 PUBLIC void fill(
     void    *buffer,
-    size_t   buffer_size,
+    size_t   buffer_pages,
     uint32_t xsize,
     uint32_t ysize,
     uint32_t x,

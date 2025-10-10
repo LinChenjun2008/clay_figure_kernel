@@ -80,7 +80,7 @@ typedef struct task_struct_s
     uintptr_t kstack_base; // 内核栈基地值
     size_t    kstack_size; // 内核栈大小(字节)
 
-    uintptr_t ustack_base; // 用户栈基址(如果有)
+    uintptr_t ustack_base; // 用户栈基址(物理地址)(如果有)
     size_t    ustack_size; // 用户栈大小(如果有)
 
     pid_t pid;  // 任务id

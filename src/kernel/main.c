@@ -43,7 +43,8 @@ PRIVATE void ktask(void)
     int i = 0;
     while (1)
     {
-        uint32_t *buf = allocate_page();
+        uint64_t  pages = xsize * ysize * sizeof(uint32_t) / PG_SIZE + 1;
+        uint32_t *buf   = allocate_page(pages);
         if (buf == NULL)
         {
             exit(-1);
@@ -53,16 +54,9 @@ PRIVATE void ktask(void)
         char s[10];
         sprintf(s, "\n% 9d", i);
         basic_print(&gi, &tb, color, s);
-        fill(
-            buf,
-            xsize * ysize * sizeof(uint32_t),
-            xsize,
-            ysize,
-            (apic_id() - 1) * xsize,
-            0
-        );
+        fill(buf, pages, xsize, ysize, (apic_id() - 1) * xsize, 0);
         i++;
-        free_page(buf);
+        free_page(buf, pages);
     };
 }
 

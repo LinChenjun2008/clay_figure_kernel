@@ -231,15 +231,17 @@ PUBLIC task_struct_t *task_start(
     {
         return NULL;
     }
-    uintptr_t kstack_base;
-    status_t  status = kmalloc(kstack_size, 0, 0, &kstack_base);
+    void *kstack_base = NULL;
+
+    status_t status = kmalloc(kstack_size, 0, 0, &kstack_base);
+    ASSERT(!ERROR(status));
     if (ERROR(status))
     {
         task_free(task);
         return NULL;
     }
 
-    init_task_struct(task, name, priority, kstack_base, kstack_size);
+    init_task_struct(task, name, priority, (uintptr_t)kstack_base, kstack_size);
     create_task_struct(task, func, arg);
 
     task_struct_t *parent_task = pid_to_task(task->ppid);
@@ -281,6 +283,7 @@ PUBLIC int task_release_resource(pid_t pid)
     task_struct_t *parent_task = pid_to_task(task->ppid);
     ASSERT(parent_task == running_task());
     kfree(task->fxsave_region);
+
     kfree((void *)task->kstack_base);
 
     // 获取返回值

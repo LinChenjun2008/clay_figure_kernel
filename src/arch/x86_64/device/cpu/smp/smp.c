@@ -6,14 +6,15 @@
 
 #include <log.h>
 
-#include <device/cpu.h> // rdmsr,wrmsr,
-#include <device/pic.h> // local_apic_write,eoi,apic
-#include <intr.h>       // register_handle
-#include <io.h>         // io_hlt
-#include <mem/page.h>   // alloc_physical_page
-#include <std/stdio.h>  // sprintf
-#include <std/string.h> // memcpy
-#include <task/task.h>  // init_task_struct,spinlock,list
+#include <device/cpu.h>    // rdmsr,wrmsr,
+#include <device/pic.h>    // local_apic_write,eoi,apic
+#include <intr.h>          // register_handle
+#include <io.h>            // io_hlt
+#include <mem/allocator.h> // kmalloc,kfree
+#include <mem/page.h>      // PHYS_TO_VIRT
+#include <std/stdio.h>     // sprintf
+#include <std/string.h>    // memcpy
+#include <task/task.h>     // init_task_struct,spinlock,list
 
 extern apic_t apic;
 
@@ -52,14 +53,16 @@ PUBLIC status_t smp_init(void)
     // allocate stack for apu
     status_t status;
     uint8_t *apu_stack_base;
-    status = alloc_physical_page(
-        ((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1, &apu_stack_base
-    );
+    uint64_t apu_stack_size;
+    apu_stack_size = ((NR_CPUS - 1) * KERNEL_STACK_SIZE);
+    status         = kmalloc(apu_stack_size, 0, 0, &apu_stack_base);
     if (ERROR(status))
     {
         PR_LOG(LOG_FATAL, "can not alloc memory for apu. \n");
         return K_NOMEM;
     }
+    apu_stack_base = VIRT_TO_PHYS(apu_stack_base);
+
     *(uintptr_t *)AP_STACK_BASE_PTR = (uintptr_t)apu_stack_base;
 
     int i;
@@ -71,10 +74,12 @@ PUBLIC status_t smp_init(void)
         if (ap_main_task == NULL)
         {
             PR_LOG(LOG_FATAL, "Alloc task for AP error.\n");
-            free_physical_page(
-                apu_stack_base,
-                ((NR_CPUS - 1) * KERNEL_STACK_SIZE) / PG_SIZE + 1
-            );
+            i -= 1;
+            for (; i >= 1; i--)
+            {
+                task_free(get_task_man(i)->main_task);
+            }
+            kfree(PHYS_TO_VIRT(apu_stack_base));
             return K_NOMEM;
         }
         uintptr_t kstack_base = (uintptr_t)apu_stack_base;

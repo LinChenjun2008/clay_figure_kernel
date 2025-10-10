@@ -43,7 +43,9 @@ PUBLIC uint8_t  pci_dev_read_sub_class_code(pci_device_t *dev);
 PUBLIC uint8_t  pci_dev_read_secondary_bus_number(pci_device_t *dev);
 
 PUBLIC uint64_t pci_dev_read_bar(pci_device_t *dev, uint8_t bar_index);
-PUBLIC uint8_t  pci_dev_read_cap_point(pci_device_t *dev);
+PUBLIC uint64_t pci_dev_read_bar_size(pci_device_t *dev, uint8_t bar_index);
+
+PUBLIC uint8_t pci_dev_read_cap_point(pci_device_t *dev);
 
 PUBLIC void pci_scan_all_bus(void);
 

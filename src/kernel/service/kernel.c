@@ -22,11 +22,11 @@ PUBLIC syscall_status_t kern_waitpid(message_t *msg);
 // kern_mem.c
 PUBLIC syscall_status_t kern_allocate_page(message_t *msg);
 PUBLIC syscall_status_t kern_free_page(message_t *msg);
-PUBLIC syscall_status_t kern_read_task_mem(message_t *msg);
+PUBLIC syscall_status_t kern_read_task_page(message_t *msg);
 
 PRIVATE kern_syscall_t kern_syscalls[KERN_SYSCALLS] = {
     kern_exit,    kern_get_pid,       kern_get_ppid,  kern_create_proc,
-    kern_waitpid, kern_allocate_page, kern_free_page, kern_read_task_mem,
+    kern_waitpid, kern_allocate_page, kern_free_page, kern_read_task_page,
 };
 
 PUBLIC syscall_status_t kernel_services(message_t *msg)

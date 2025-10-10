@@ -69,16 +69,19 @@ PUBLIC void keyboard_main(void);
 #define OUT_KERN_WAITPID_PID    1
 
 // allocate page
+#define IN_KERN_ALLOCATE_PAGE_COUNT 0
+
 #define OUT_KERN_ALLOCATE_PAGE_ADDR 0
 
 // free page
-#define IN_KERN_FREE_PAGE_ADDR 0
+#define IN_KERN_FREE_PAGE_ADDR  0
+#define IN_KERN_FREE_PAGE_COUNT 1
 
 // read task mem
-#define IN_KERN_READ_TASK_MEM_PID    0
-#define IN_KERN_READ_TASK_MEM_ADDR   1
-#define IN_KERN_READ_TASK_MEM_SIZE   2
-#define IN_KERN_READ_TASK_MEM_BUFFER 3
+#define IN_KERN_READ_TASK_PAGE_PID    0
+#define IN_KERN_READ_TASK_PAGE_ADDR   1
+#define IN_KERN_READ_TASK_PAGE_COUNT  2
+#define IN_KERN_READ_TASK_PAGE_BUFFER 3
 
 PUBLIC syscall_status_t kernel_services(message_t *msg);
 
@@ -104,12 +107,12 @@ PUBLIC void mm_main(void);
 
 #define VIEW_FILL 1
 
-#define IN_VIEW_FILL_BUFFER      0
-#define IN_VIER_FILL_BUFFER_SIZE 1
-#define IN_VIEW_FILL_XSIZE       2
-#define IN_VIEW_FILL_YSIZE       3
-#define IN_VIEW_FILL_X           4
-#define IN_VIEW_FILL_Y           5
+#define IN_VIEW_FILL_BUFFER       0
+#define IN_VIER_FILL_BUFFER_PAGES 1
+#define IN_VIEW_FILL_XSIZE        2
+#define IN_VIEW_FILL_YSIZE        3
+#define IN_VIEW_FILL_X            4
+#define IN_VIEW_FILL_Y            5
 
 PUBLIC void view_main(void);
 

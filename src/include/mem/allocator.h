@@ -6,16 +6,15 @@
 #ifndef __ALLOCATOR_H__
 #define __ALLOCATOR_H__
 
-#define MIN_ALLOCATE_MEMORY_SIZE     64     //  64 Byte
-#define MAX_ALLOCATE_MEMORY_SIZE     262144 // 256 KiB
-#define NUMBER_OF_MEMORY_BLOCK_TYPES 13
+#define MIN_ALLOCATE_MEMORY_SIZE     64   //  64 Byte
+#define MAX_ALLOCATE_MEMORY_SIZE     1024 //   1 KiB
+#define NUMBER_OF_MEMORY_BLOCK_TYPES 5
 
 PUBLIC void mem_allocator_init(void);
 
 /**
  * @brief 在内存池中分配size大小的内存块
  * @param size 内存块大小
- * @note size <= MAX_ALLOCATE_MEMORY_SIZE
  * @param alignment 对齐大小,为0则不对齐
  * @param boundary 边界限制,为0则不限制
  * @param addr 如果成功,addr指针处存储了分配到的虚拟地址
