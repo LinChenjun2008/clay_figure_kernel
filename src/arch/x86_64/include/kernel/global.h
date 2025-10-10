@@ -29,7 +29,7 @@
 //
 #include <common.h>
 
-#define BOOT_INFO ((boot_info_t *)0xffff800000410000)
+#define BOOT_INFO ((boot_info_t *)0xffff800000401000)
 
 extern uint8_t _kernel_start[];
 

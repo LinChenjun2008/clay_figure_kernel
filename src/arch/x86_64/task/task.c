@@ -231,18 +231,15 @@ PUBLIC task_struct_t *task_start(
     {
         return NULL;
     }
+    void *kstack_base = NULL;
 
-    void    *kstack_base      = NULL;
-    uint64_t kstack_page_size = (kstack_size + PG_SIZE - 1) / PG_SIZE;
-    status_t status = alloc_physical_page(kstack_page_size, &kstack_base);
-
+    status_t status = kmalloc(kstack_size, 0, 0, &kstack_base);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
         task_free(task);
         return NULL;
     }
-    kstack_base = PHYS_TO_VIRT(kstack_base);
 
     init_task_struct(task, name, priority, (uintptr_t)kstack_base, kstack_size);
     create_task_struct(task, func, arg);
@@ -287,8 +284,7 @@ PUBLIC int task_release_resource(pid_t pid)
     ASSERT(parent_task == running_task());
     kfree(task->fxsave_region);
 
-    uint64_t kstack_page_size = (task->kstack_size + PG_SIZE - 1) / PG_SIZE;
-    free_physical_page(VIRT_TO_PHYS(task->kstack_base), kstack_page_size);
+    kfree((void *)task->kstack_base);
 
     // 获取返回值
     int return_status = task->return_status;

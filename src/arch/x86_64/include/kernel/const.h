@@ -7,7 +7,7 @@
 #define __CONST_H__
 
 #define KERNEL_STACK_BASE 0x400000
-#define KERNEL_STACK_SIZE 0x10000
+#define KERNEL_STACK_SIZE 0x1000
 
 #define TSS_D_0 0
 #define AR_TSS32                                                      \

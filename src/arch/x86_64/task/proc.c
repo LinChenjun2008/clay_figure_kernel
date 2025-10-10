@@ -119,35 +119,31 @@ PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
     size_t   block_size   = sizeof(*task->mm_alloc.blocks);
     uint64_t total_blocks = 256;
     void    *blocks;
-    uint64_t blocks_pages = (block_size * total_blocks + PG_SIZE - 1) / PG_SIZE;
 
     // 分配失败将调用free_user_addr_table处理
-    status = alloc_physical_page(blocks_pages, &blocks);
+    status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
     if (ERROR(status))
     {
         return status;
     }
-    blocks = PHYS_TO_VIRT(blocks);
     mm_struct_init(&task->mm_alloc, blocks, total_blocks);
 
     uintptr_t vm_start = USER_VADDR_START;
     size_t    vm_size  = (USER_STACK_VADDR_BASE - USER_VADDR_START);
     mm_add_range(&task->mm_alloc, vm_start, vm_size);
 
-    status = alloc_physical_page(blocks_pages, &blocks);
+    status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
     if (ERROR(status))
     {
         return status;
     }
-    blocks = PHYS_TO_VIRT(blocks);
     mm_struct_init(&task->mm_using, blocks, total_blocks);
 
-    status = alloc_physical_page(blocks_pages, &blocks);
+    status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
     if (ERROR(status))
     {
         return status;
     }
-    blocks = PHYS_TO_VIRT(blocks);
     mm_struct_init(&task->mm_pages, blocks, total_blocks);
     return K_SUCCESS;
 }
@@ -168,24 +164,9 @@ PRIVATE status_t free_user_addr_table(task_struct_t *task)
     {
         mm_traversal(&task->mm_pages, free_user_physical_page, 0);
     }
-    size_t   block_size;
-    uint64_t blocks_pages;
-    uint64_t total_blocks;
-
-    block_size   = sizeof(*task->mm_alloc.blocks);
-    total_blocks = task->mm_alloc.total_blocks;
-    blocks_pages = (block_size * total_blocks + PG_SIZE - 1) / PG_SIZE;
-    free_physical_page(VIRT_TO_PHYS(task->mm_alloc.blocks), blocks_pages);
-
-    block_size   = sizeof(*task->mm_using.blocks);
-    total_blocks = task->mm_using.total_blocks;
-    blocks_pages = (block_size * total_blocks + PG_SIZE - 1) / PG_SIZE;
-    free_physical_page(VIRT_TO_PHYS(task->mm_using.blocks), blocks_pages);
-
-    block_size   = sizeof(*task->mm_pages.blocks);
-    total_blocks = task->mm_pages.total_blocks;
-    blocks_pages = (block_size * total_blocks + PG_SIZE - 1) / PG_SIZE;
-    free_physical_page(VIRT_TO_PHYS(task->mm_pages.blocks), blocks_pages);
+    kfree(task->mm_alloc.blocks);
+    kfree(task->mm_using.blocks);
+    kfree(task->mm_pages.blocks);
     return K_SUCCESS;
 }
 
@@ -205,16 +186,14 @@ PUBLIC task_struct_t *proc_execute(
         return NULL;
     }
 
-    void    *kstack_base      = NULL;
-    uint64_t kstack_page_size = (kstack_size + PG_SIZE - 1) / PG_SIZE;
-    status = alloc_physical_page(kstack_page_size, &kstack_base);
+    void *kstack_base = NULL;
 
+    status = kmalloc(kstack_size, 0, 0, &kstack_base);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
         goto fail;
     }
-    kstack_base = PHYS_TO_VIRT(kstack_base);
 
     init_task_struct(task, name, priority, (uintptr_t)kstack_base, kstack_size);
     create_task_struct(task, start_process, (uint64_t)proc);
@@ -246,7 +225,7 @@ PUBLIC task_struct_t *proc_execute(
 fail:
     free_user_addr_table(task);
     free_physical_page(task->page_dir, 1);
-    free_physical_page(VIRT_TO_PHYS(kstack_base), kstack_page_size);
+    kfree(kstack_base);
     task_free(task);
     return NULL;
 }
