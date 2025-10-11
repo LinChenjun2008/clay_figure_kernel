@@ -54,7 +54,7 @@ PRIVATE void ktask(void)
         char s[10];
         sprintf(s, "\n% 9d", i);
         basic_print(&gi, &tb, color, s);
-        fill(buf, pages, xsize, ysize, (apic_id() - 1) * xsize, 0);
+        fill(buf, pages, xsize, ysize, (apic_id()) * xsize, 0);
         i++;
         free_page(buf, pages);
     };
@@ -63,6 +63,7 @@ PRIVATE void ktask(void)
 PUBLIC void kernel_main(void)
 {
     init_all();
+    proc_execute("init", DEFAULT_PRIORITY, 4096, ktask);
 
     message_t msg;
     while (1)

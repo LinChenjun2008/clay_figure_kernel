@@ -59,7 +59,7 @@ AP_CODE32_BASE:
     movl %eax, %cr4
 
     // page table
-    movl $KERNEL_PAGE_DIR_TABLE_POS, %eax
+    movl AP_PAGE_TABLE, %eax
     movl %eax, %cr3
 
     // enable long mode
@@ -91,16 +91,14 @@ AP_CODE64_BASE:
     cpuid
     shrq $24, %rbx
     shlq $12, %rbx
-    movq $AP_STACK_BASE_PTR, %rax
-    addq (%rax), %rbx
-    movq $KERNEL_VMA_BASE, %rax
-    addq %rax, %rbx
+    addq AP_STACK_BASE_PTR, %rbx
     movq %rbx, %rsp
 
-    movq $AP_START_FLAG, %rax
-    lock incq (%rax)
-
+ap_start_up_loop:
     movq AP_MAIN,%rax
+    cmpq $0,%rax
+    jz ap_start_up_loop
+
     jmpq *%rax
 
 
