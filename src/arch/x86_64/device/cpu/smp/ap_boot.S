@@ -4,6 +4,7 @@
  */
 
 #include <kernel/const.h>
+#include <device/cpu.h>
 #include <mem/page.h>
 
 .balign 0x1000
@@ -59,7 +60,7 @@ AP_CODE32_BASE:
     movl %eax, %cr4
 
     // page table
-    movl AP_PAGE_TABLE, %eax
+    movl $KERNEL_PAGE_DIR_TABLE_POS, %eax
     movl %eax, %cr3
 
     // enable long mode
@@ -86,12 +87,25 @@ AP_CODE64_BASE:
     movq %rax, %gs
     movq %rax, %ss
 
+    leaq ap_flags_loop(%rip), %rax
+    addq $KERNEL_TEXT_BASE, %rax
+    jmpq *%rax
+
+ap_flags_loop:
+    movq AP_FLAGS, %rax
+    cmpq $0, %rax
+    jz ap_flags_loop
+
+    movq $AP_FLAGS,%rax
+    lock incq (%rax)
+
     movq $1, %rax
     movq $0, %rbx
     cpuid
     shrq $24, %rbx
     shlq $12, %rbx
-    addq AP_STACK_BASE_PTR, %rbx
+    movq $AP_STACK_BASE_PTR,%rax
+    addq (%rax), %rbx
     movq %rbx, %rsp
 
 ap_start_up_loop:

@@ -48,15 +48,6 @@ PUBLIC status_t smp_init(void)
 {
     status_t status;
 
-    // allocate page table for apu
-    status = kmalloc(PT_SIZE, PT_SIZE, PT_SIZE, (void **)AP_PAGE_TABLE);
-    if (ERROR(status))
-    {
-        PR_LOG(LOG_FATAL, "can not alloc page table for apu. \n");
-        return K_NOMEM;
-    }
-    memcpy(*(void **)AP_PAGE_TABLE, (void *)KERNEL_PAGE_DIR_TABLE_POS, PT_SIZE);
-
     // allocate stack for apu
     uint8_t *apu_stack_base;
     uint64_t apu_stack_size;
@@ -116,7 +107,8 @@ PUBLIC status_t smp_start(void)
     size_t ap_boot_size = (uintptr_t)AP_BOOT_END - (uintptr_t)AP_BOOT_BASE;
     memcpy((void *)PHYS_TO_VIRT(0x10000), AP_BOOT_BASE, ap_boot_size);
 
-    *(void **)AP_MAIN = NULL;
+    *(uint64_t *)AP_FLAGS = 0;
+    *(void **)AP_MAIN     = NULL;
 
     uint64_t icr;
     icr = make_icr(
@@ -131,6 +123,9 @@ PUBLIC status_t smp_start(void)
     );
     send_ipi(icr);
     send_ipi(icr);
+
+    *(uint64_t *)AP_FLAGS = 1;
+    while (*(uint64_t *)AP_FLAGS != apic.number_of_cores);
 
     *(void **)AP_MAIN = ap_kernel_main;
 
