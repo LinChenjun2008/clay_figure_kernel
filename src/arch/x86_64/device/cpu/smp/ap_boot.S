@@ -4,6 +4,7 @@
  */
 
 #include <kernel/const.h>
+#include <device/cpu.h>
 #include <mem/page.h>
 
 .balign 0x1000
@@ -86,21 +87,32 @@ AP_CODE64_BASE:
     movq %rax, %gs
     movq %rax, %ss
 
+    leaq ap_flags_loop(%rip), %rax
+    addq $KERNEL_TEXT_BASE, %rax
+    jmpq *%rax
+
+ap_flags_loop:
+    movq AP_FLAGS, %rax
+    cmpq $0, %rax
+    jz ap_flags_loop
+
+    movq $AP_FLAGS,%rax
+    lock incq (%rax)
+
     movq $1, %rax
     movq $0, %rbx
     cpuid
     shrq $24, %rbx
-    shlq $16, %rbx
-    movq $AP_STACK_BASE_PTR, %rax
+    shlq $12, %rbx
+    movq $AP_STACK_BASE_PTR,%rax
     addq (%rax), %rbx
-    movq $KERNEL_VMA_BASE, %rax
-    addq %rax, %rbx
     movq %rbx, %rsp
 
-    movq $AP_START_FLAG, %rax
-    lock incq (%rax)
-
+ap_start_up_loop:
     movq AP_MAIN,%rax
+    cmpq $0,%rax
+    jz ap_start_up_loop
+
     jmpq *%rax
 
 

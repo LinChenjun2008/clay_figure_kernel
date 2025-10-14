@@ -46,23 +46,18 @@ PRIVATE void ipi_panic_handler(intr_stack_t *stack)
 
 PUBLIC status_t smp_init(void)
 {
-    // copy ap_boot
-    size_t ap_boot_size = (uintptr_t)AP_BOOT_END - (uintptr_t)AP_BOOT_BASE;
-    memcpy((void *)PHYS_TO_VIRT(0x10000), AP_BOOT_BASE, ap_boot_size);
+    status_t status;
 
     // allocate stack for apu
-    status_t status;
     uint8_t *apu_stack_base;
     uint64_t apu_stack_size;
-    apu_stack_size = ((NR_CPUS - 1) * KERNEL_STACK_SIZE);
+    apu_stack_size = (NR_CPUS * KERNEL_STACK_SIZE);
     status         = kmalloc(apu_stack_size, 0, 0, &apu_stack_base);
     if (ERROR(status))
     {
-        PR_LOG(LOG_FATAL, "can not alloc memory for apu. \n");
+        PANIC(1, "Failed to alloc memory for apu. \n");
         return K_NOMEM;
     }
-    apu_stack_base = VIRT_TO_PHYS(apu_stack_base);
-
     *(uintptr_t *)AP_STACK_BASE_PTR = (uintptr_t)apu_stack_base;
 
     int i;
@@ -73,22 +68,15 @@ PUBLIC status_t smp_init(void)
         task_struct_t *ap_main_task = task_alloc();
         if (ap_main_task == NULL)
         {
-            PR_LOG(LOG_FATAL, "Alloc task for AP error.\n");
-            i -= 1;
-            for (; i >= 1; i--)
-            {
-                task_free(get_task_man(i)->main_task);
-            }
-            kfree(PHYS_TO_VIRT(apu_stack_base));
+            PANIC(1, "Failed to alloc task for AP.\n");
             return K_NOMEM;
         }
-        uintptr_t kstack_base = (uintptr_t)apu_stack_base;
-        kstack_base += (i - 1) * KERNEL_STACK_SIZE;
-
-        kstack_base = (uintptr_t)PHYS_TO_VIRT(kstack_base);
-
         init_task_struct(
-            ap_main_task, name, DEFAULT_PRIORITY, kstack_base, KERNEL_STACK_SIZE
+            ap_main_task,
+            name,
+            DEFAULT_PRIORITY,
+            (uintptr_t)apu_stack_base + (i - 1) * KERNEL_STACK_SIZE,
+            KERNEL_STACK_SIZE
         );
         ap_main_task->cpu_id = i;
         task_man_t *task_man = get_task_man(i);
@@ -115,7 +103,13 @@ PUBLIC status_t smp_init(void)
 
 PUBLIC status_t smp_start(void)
 {
-    *(void **)AP_MAIN = ap_kernel_main;
+    // copy ap_boot
+    size_t ap_boot_size = (uintptr_t)AP_BOOT_END - (uintptr_t)AP_BOOT_BASE;
+    memcpy((void *)PHYS_TO_VIRT(0x10000), AP_BOOT_BASE, ap_boot_size);
+
+    *(uint64_t *)AP_FLAGS = 0;
+    *(void **)AP_MAIN     = NULL;
+
     uint64_t icr;
     icr = make_icr(
         0x10,
@@ -130,9 +124,10 @@ PUBLIC status_t smp_start(void)
     send_ipi(icr);
     send_ipi(icr);
 
-    // waiting for AP start.
-    uint64_t cores = apic.number_of_cores;
-    while (*(uint64_t *)AP_START_FLAG != cores - 1);
+    *(uint64_t *)AP_FLAGS = 1;
+    while (*(uint64_t *)AP_FLAGS != apic.number_of_cores);
+
+    *(void **)AP_MAIN = ap_kernel_main;
 
     return K_SUCCESS;
 }
@@ -141,4 +136,5 @@ PUBLIC void send_ipi(uint64_t icr)
 {
     local_apic_write(0x310, icr >> 32);
     local_apic_write(0x300, icr & 0xffffffff);
+    return;
 }

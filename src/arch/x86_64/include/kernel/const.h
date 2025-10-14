@@ -95,8 +95,4 @@
 // #define USER_VADDR_START 0x804800
 #define USER_VADDR_START      0x800000
 
-#define AP_STACK_BASE_PTR 0x1000
-#define AP_START_FLAG     0x1008
-#define AP_MAIN           0x1010
-
 #endif

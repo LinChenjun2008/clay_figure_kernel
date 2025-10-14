@@ -21,7 +21,12 @@
 #define IA32_GS_BASE        0xc0000101
 #define IA32_KERNEL_GS_BASE 0xc0000102
 
+// 支持的最大CPU数量
 #define NR_CPUS 256
+
+#define AP_FLAGS          0xffff800000001000 // AP 启动标记
+#define AP_STACK_BASE_PTR 0xffff800000001008 // AP 栈基地址指针
+#define AP_MAIN           0xffff800000001010 // AP 内核主函数地址指针
 
 #ifndef __ASM_INCLUDE__
 
