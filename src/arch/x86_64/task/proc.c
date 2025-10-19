@@ -46,9 +46,7 @@ PRIVATE void start_process(void *process)
     void          *func = process;
     task_struct_t *cur  = running_task();
 
-    uint64_t ustack_pages = cur->ustack_size / PG_SIZE;
-
-    status_t status = alloc_physical_page(ustack_pages, &cur->ustack_base);
+    status_t status = alloc_physical_page(cur->ustack_pages, &cur->ustack_base);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Alloc User Stack error.\n");
@@ -56,12 +54,15 @@ PRIVATE void start_process(void *process)
         PR_LOG(LOG_FATAL, "Shuold not be here.");
         while (1) continue;
     }
-    page_map(
-        cur->page_dir,
-        (void *)cur->ustack_base,
-        (void *)USER_STACK_VADDR_BASE,
-        ustack_pages
-    );
+    uint64_t *pgdir;
+    void     *ustack_base;
+    void     *ustack_vaddr_base;
+
+    pgdir       = cur->page_dir;
+    ustack_base = (void *)cur->ustack_base;
+    ustack_vaddr_base =
+        (void *)(USER_STACK_VADDR_TOP - cur->ustack_pages * PG_SIZE);
+    page_map(pgdir, ustack_base, ustack_vaddr_base, cur->ustack_pages);
     page_table_activate(cur);
 
     uint64_t kstack = (uint64_t)cur->context;
@@ -70,7 +71,7 @@ PRIVATE void start_process(void *process)
         proc_start,
         func,
         kstack,
-        USER_STACK_VADDR_BASE + PG_SIZE,
+        USER_STACK_VADDR_TOP,
         EFLAGS_IOPL_0 | EFLAGS_MBS | EFLAGS_IF_1
     );
     PR_LOG(LOG_FATAL, "Shuold not be here.");
@@ -133,7 +134,10 @@ PRIVATE status_t user_vaddr_table_init(task_struct_t *task)
     mm_struct_init(&task->mm_alloc, blocks, total_blocks);
 
     uintptr_t vm_start = USER_VADDR_START;
-    size_t    vm_size  = (USER_STACK_VADDR_BASE - USER_VADDR_START);
+
+    uintptr_t ustack_vaddr_base;
+    ustack_vaddr_base = (USER_STACK_VADDR_TOP - task->ustack_pages * PG_SIZE);
+    size_t vm_size    = (ustack_vaddr_base - USER_VADDR_START);
     mm_add_range(&task->mm_alloc, vm_start, vm_size);
 
     status = kmalloc(block_size * total_blocks, 0, 0, &blocks);
@@ -177,12 +181,12 @@ PRIVATE status_t free_user_addr_table(task_struct_t *task)
 PUBLIC task_struct_t *proc_execute(
     const char *name,
     uint64_t    priority,
-    size_t      kstack_size,
-    size_t      ustack_size,
+    size_t      kstack_pages,
+    size_t      ustack_pages,
     void       *proc
 )
 {
-    ASSERT(!(kstack_size & (kstack_size - 1)));
+    ASSERT(kstack_pages != 0);
     status_t status;
 
     task_struct_t *task = task_alloc();
@@ -191,8 +195,7 @@ PUBLIC task_struct_t *proc_execute(
         return NULL;
     }
 
-    uintptr_t kstack_base  = 0;
-    uint64_t  kstack_pages = kstack_size / PG_SIZE;
+    uintptr_t kstack_base = 0;
 
     status = alloc_physical_page(kstack_pages, &kstack_base);
     ASSERT(!ERROR(status));
@@ -203,7 +206,7 @@ PUBLIC task_struct_t *proc_execute(
     kstack_base = (uintptr_t)PHYS_TO_VIRT(kstack_base);
 
     init_task_struct(
-        task, name, priority, kstack_base, kstack_size, ustack_size
+        task, name, priority, kstack_base, kstack_pages, ustack_pages
     );
     create_task_struct(task, start_process, (uint64_t)proc);
     task->page_dir = create_page_dir();
@@ -244,9 +247,7 @@ PUBLIC void proc_exit(int status)
     task_struct_t *task   = running_task();
     void          *pg_dir = task->page_dir;
 
-    uint64_t ustack_pages = task->ustack_size / PG_SIZE;
-
-    free_physical_page((void *)task->ustack_base, ustack_pages);
+    free_physical_page((void *)task->ustack_base, task->ustack_pages);
     // 使用内核页表,以便回收任务自身的页表
     task->page_dir = NULL;
     page_table_activate(task);

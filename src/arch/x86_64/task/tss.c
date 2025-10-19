@@ -7,6 +7,7 @@
 
 #include <device/cpu.h>  // apic_id
 #include <kernel/init.h> // segmdesc
+#include <mem/page.h>    // PG_SIZE
 #include <std/string.h>  // memset,memcpy
 #include <task/task.h>   // task_struct
 
@@ -59,6 +60,7 @@ PUBLIC void init_tss(uint8_t cpu_id)
 
 PUBLIC void update_tss_rsp0(task_struct_t *task)
 {
-    tss[running_task()->cpu_id].rsp0 = task->kstack_base + task->kstack_size;
+    uint64_t kstack_base = task->kstack_base + task->kstack_pages * PG_SIZE;
+    tss[running_task()->cpu_id].rsp0 = kstack_base;
     return;
 }

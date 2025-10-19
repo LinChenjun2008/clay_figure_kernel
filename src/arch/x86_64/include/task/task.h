@@ -40,8 +40,8 @@
 #define SERVICE_PRIORITY NICE_TO_PRIO(-10)
 #define IDLE_PRIORITY    NICE_TO_PRIO(20)
 
-#define TASK_STRUCT_KSTACK_BASE 8
-#define TASK_STRUCT_KSTACK_SIZE 16
+#define TASK_STRUCT_KSTACK_BASE  8
+#define TASK_STRUCT_KSTACK_PAGES 16
 
 #define MAX_VRUNTIME(A, B) ((int64_t)((A) - (B)) > 0 ? (A) : (B))
 
@@ -77,11 +77,11 @@ typedef struct task_struct_s
 {
     task_context_t *context; // 任务上下文
 
-    uintptr_t kstack_base; // 内核栈基地值
-    size_t    kstack_size; // 内核栈大小(字节)
+    uintptr_t kstack_base;  // 内核栈基地值(虚拟地址)
+    size_t    kstack_pages; // 内核栈所用的页数
 
-    uintptr_t ustack_base; // 用户栈基址(物理地址)(如果有)
-    size_t    ustack_size; // 用户栈大小(如果有)
+    uintptr_t ustack_base;  // 用户栈基址(物理地址)(如果有)
+    size_t    ustack_pages; // 用户栈所用的页数(如果有)
 
     pid_t pid;  // 任务id
     pid_t ppid; // 父级任务id
@@ -126,7 +126,7 @@ STATIC_ASSERT(
     ""
 );
 STATIC_ASSERT(
-    OFFSET(task_struct_t, kstack_size) == TASK_STRUCT_KSTACK_SIZE,
+    OFFSET(task_struct_t, kstack_pages) == TASK_STRUCT_KSTACK_PAGES,
     ""
 );
 
@@ -209,16 +209,16 @@ PUBLIC void task_free(task_struct_t *task);
  * @param name 任务名称
  * @param priority 优先级
  * @param kstack_base 任务内核态下的栈基址
- * @param kstack_size 任务内核态下的栈大小(必须是页大小的整数倍)
- * @param ustack_size 任务用户态下的栈大小(必须是页大小的整数倍)
+ * @param kstack_pages 任务内核态下的栈大小(以页为单位)
+ * @param ustack_pages 任务用户态下的栈大小(以页为单位)
  */
 PUBLIC status_t init_task_struct(
     task_struct_t *task,
     const char    *name,
     uint64_t       priority,
     uintptr_t      kstack_base,
-    size_t         kstack_size,
-    size_t         ustack_size
+    size_t         kstack_pages,
+    size_t         ustack_pages
 );
 
 /**
@@ -233,7 +233,7 @@ PUBLIC void create_task_struct(task_struct_t *task, void *func, uint64_t arg);
  * @brief 启动一个任务
  * @param name 任务名称
  * @param priority 优先级
- * @param kstack_size 任务内核态下的栈大小
+ * @param kstack_pages 任务内核态下的栈大小(以页为单位)
  * @param func 在任务中运行的函数
  * @param arg 给任务的参数
  * @return 成功将返回对应的任务结构体,失败则返回NULL
@@ -241,7 +241,7 @@ PUBLIC void create_task_struct(task_struct_t *task, void *func, uint64_t arg);
 PUBLIC task_struct_t *task_start(
     const char *name,
     uint64_t    priority,
-    size_t      kstack_size,
+    size_t      kstack_pages,
     void       *func,
     uint64_t    arg
 );
@@ -356,8 +356,8 @@ PUBLIC void proc_activate(task_struct_t *task);
  * @brief 启动一个任务,运行在用户态下
  * @param name 任务名称
  * @param priority 优先级
- * @param kstack_size 任务内核态下的栈大小(必须是页大小的整数倍)
- * @param ustack_size 任务用户态下的栈大小(必须是页大小的整数倍)
+ * @param kstack_pages 任务内核态下的栈大小(以页为单位)
+ * @param ustack_pages 任务用户态下的栈大小(以页为单位)
  * @param func 在任务中运行的函数
  * @param arg 给任务的参数
  * @return 成功将返回对应的任务结构体,失败则返回NULL
@@ -365,8 +365,8 @@ PUBLIC void proc_activate(task_struct_t *task);
 PUBLIC task_struct_t *proc_execute(
     const char *name,
     uint64_t    priority,
-    size_t      kstack_size,
-    size_t      ustack_size,
+    size_t      kstack_pages,
+    size_t      ustack_pages,
     void       *proc
 );
 

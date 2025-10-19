@@ -155,27 +155,22 @@ PUBLIC status_t init_task_struct(
     const char    *name,
     uint64_t       priority,
     uintptr_t      kstack_base,
-    size_t         kstack_size,
-    size_t         ustack_size
+    size_t         kstack_pages,
+    size_t         ustack_pages
 )
 {
-    if (!kstack_size || kstack_size & (PG_SIZE - 1))
+    if (!kstack_pages)
     {
         return K_INVALID_PARAM;
     }
 
-    // ustack_size为0表示不使用用户栈(内核态任务)
-    if (ustack_size != 0 && ustack_size & (PG_SIZE - 1))
-    {
-        return K_INVALID_PARAM;
-    }
     memset(task, 0, sizeof(*task));
-    task->context     = (task_context_t *)(kstack_base + kstack_size);
-    task->kstack_base = kstack_base;
-    task->kstack_size = kstack_size;
+    task->context = (task_context_t *)(kstack_base + kstack_pages * PG_SIZE);
+    task->kstack_base  = kstack_base;
+    task->kstack_pages = kstack_pages;
 
-    task->ustack_base = 0;
-    task->ustack_size = ustack_size;
+    task->ustack_base  = 0;
+    task->ustack_pages = ustack_pages;
 
     task->pid  = task_to_pid(task);
     task->ppid = running_task()->pid;
@@ -234,12 +229,12 @@ PUBLIC void create_task_struct(task_struct_t *task, void *func, uint64_t arg)
 PUBLIC task_struct_t *task_start(
     const char *name,
     uint64_t    priority,
-    size_t      kstack_size,
+    size_t      kstack_pages,
     void       *func,
     uint64_t    arg
 )
 {
-    if (!kstack_size || kstack_size & (PG_SIZE - 1))
+    if (!kstack_pages)
     {
         return NULL;
     }
@@ -250,8 +245,7 @@ PUBLIC task_struct_t *task_start(
     }
     uintptr_t kstack_base = 0;
 
-    uint64_t kstack_pages = kstack_size / PG_SIZE;
-    status_t status       = alloc_physical_page(kstack_pages, &kstack_base);
+    status_t status = alloc_physical_page(kstack_pages, &kstack_base);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
@@ -259,7 +253,7 @@ PUBLIC task_struct_t *task_start(
         return NULL;
     }
     kstack_base = (uintptr_t)PHYS_TO_VIRT(kstack_base);
-    init_task_struct(task, name, priority, kstack_base, kstack_size, 0);
+    init_task_struct(task, name, priority, kstack_base, kstack_pages, 0);
     create_task_struct(task, func, arg);
 
     task_struct_t *parent_task = pid_to_task(task->ppid);
@@ -302,8 +296,7 @@ PUBLIC int task_release_resource(pid_t pid)
     ASSERT(parent_task == running_task());
     kfree(task->fxsave_region);
 
-    uint64_t kstack_pages = task->kstack_size / PG_SIZE;
-    free_physical_page(VIRT_TO_PHYS(task->kstack_base), kstack_pages);
+    free_physical_page(VIRT_TO_PHYS(task->kstack_base), task->kstack_pages);
 
     // 获取返回值
     int return_status = task->return_status;
