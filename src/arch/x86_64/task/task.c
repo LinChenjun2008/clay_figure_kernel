@@ -43,23 +43,22 @@ PUBLIC task_man_t *get_task_man(uint32_t cpu_id)
 
 PUBLIC task_struct_t *pid_to_task(pid_t pid)
 {
-    if (pid > MAX_PID || !task_exist(pid))
+    if (pid > MAX_PID)
     {
         return NULL;
     }
-    return &global_task_man->tasks[pid];
+    return global_task_man->task_table[pid];
 }
 
 PRIVATE pid_t task_to_pid(task_struct_t *task)
 {
     pid_t ret;
-
-    ret = ((uintptr_t)task - (uintptr_t)&global_task_man->tasks);
-    ret = ret / sizeof(*task);
-
-    if (ret > MAX_PID)
+    for (ret = 0; ret < MAX_TASKS; ret++)
     {
-        return PID_NO_TASK;
+        if (get_global_task_man()->task_table[ret] == task)
+        {
+            break;
+        }
     }
 
     return ret;
@@ -69,7 +68,7 @@ PUBLIC bool task_exist(pid_t pid)
 {
     if (pid >= 0 && pid <= MAX_PID)
     {
-        return get_global_task_man()->tasks[pid].pid != PID_NO_TASK;
+        return get_global_task_man()->task_table[pid] != NULL;
     }
     return 0;
 }
@@ -82,20 +81,24 @@ PUBLIC task_struct_t *running_task(void)
 
 PUBLIC task_struct_t *task_alloc(void)
 {
+    status_t       status;
     task_struct_t *task = NULL;
-    spinlock_lock(&global_task_man->tasks_lock);
+    spinlock_lock(&global_task_man->task_table_lock);
     pid_t i;
-    for (i = 0; i < TASKS; i++)
+    for (i = 0; i < MAX_TASKS; i++)
     {
-        if (global_task_man->tasks[i].pid == PID_NO_TASK)
+        if (global_task_man->task_table[i] == NULL)
         {
-            task = &global_task_man->tasks[i];
-            memset(task, 0, sizeof(*task));
-            task->pid = i;
+            status = kmalloc(sizeof(*task), 0, 0, &task);
+            if (ERROR(status))
+            {
+                PR_LOG(LOG_WARN, "Failed to alloc task.\n");
+            }
+            global_task_man->task_table[i] = task;
             break;
         }
     }
-    spinlock_unlock(&global_task_man->tasks_lock);
+    spinlock_unlock(&global_task_man->task_table_lock);
     return task;
 }
 
@@ -105,9 +108,12 @@ PUBLIC void task_free(task_struct_t *task)
     {
         return;
     }
-    spinlock_lock(&global_task_man->tasks_lock);
-    task->pid = PID_NO_TASK;
-    spinlock_unlock(&global_task_man->tasks_lock);
+    spinlock_lock(&global_task_man->task_table_lock);
+
+    get_global_task_man()->task_table[task->pid] = NULL;
+    kfree(task);
+
+    spinlock_unlock(&global_task_man->task_table_lock);
     return;
 }
 
@@ -149,16 +155,22 @@ PUBLIC status_t init_task_struct(
     const char    *name,
     uint64_t       priority,
     uintptr_t      kstack_base,
-    size_t         kstack_size
+    size_t         kstack_pages,
+    size_t         ustack_pages
 )
 {
-    memset(task, 0, sizeof(*task));
-    task->context     = (task_context_t *)(kstack_base + kstack_size);
-    task->kstack_base = kstack_base;
-    task->kstack_size = kstack_size;
+    if (!kstack_pages)
+    {
+        return K_INVALID_PARAM;
+    }
 
-    task->ustack_base = 0;
-    task->ustack_size = 0;
+    memset(task, 0, sizeof(*task));
+    task->context = (task_context_t *)(kstack_base + kstack_pages * PG_SIZE);
+    task->kstack_base  = kstack_base;
+    task->kstack_pages = kstack_pages;
+
+    task->ustack_base  = 0;
+    task->ustack_pages = ustack_pages;
 
     task->pid  = task_to_pid(task);
     task->ppid = running_task()->pid;
@@ -217,12 +229,12 @@ PUBLIC void create_task_struct(task_struct_t *task, void *func, uint64_t arg)
 PUBLIC task_struct_t *task_start(
     const char *name,
     uint64_t    priority,
-    size_t      kstack_size,
+    size_t      kstack_pages,
     void       *func,
     uint64_t    arg
 )
 {
-    if (kstack_size & (kstack_size - 1))
+    if (!kstack_pages)
     {
         return NULL;
     }
@@ -231,17 +243,17 @@ PUBLIC task_struct_t *task_start(
     {
         return NULL;
     }
-    void *kstack_base = NULL;
+    uintptr_t kstack_base = 0;
 
-    status_t status = kmalloc(kstack_size, 0, 0, &kstack_base);
+    status_t status = alloc_physical_page(kstack_pages, &kstack_base);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
         task_free(task);
         return NULL;
     }
-
-    init_task_struct(task, name, priority, (uintptr_t)kstack_base, kstack_size);
+    kstack_base = (uintptr_t)PHYS_TO_VIRT(kstack_base);
+    init_task_struct(task, name, priority, kstack_base, kstack_pages, 0);
     create_task_struct(task, func, arg);
 
     task_struct_t *parent_task = pid_to_task(task->ppid);
@@ -284,7 +296,7 @@ PUBLIC int task_release_resource(pid_t pid)
     ASSERT(parent_task == running_task());
     kfree(task->fxsave_region);
 
-    kfree((void *)task->kstack_base);
+    free_physical_page(VIRT_TO_PHYS(task->kstack_base), task->kstack_pages);
 
     // 获取返回值
     int return_status = task->return_status;
@@ -317,7 +329,8 @@ PRIVATE void make_main_task(void)
         "Main task",
         DEFAULT_PRIORITY,
         (uintptr_t)PHYS_TO_VIRT(KERNEL_STACK_BASE),
-        KERNEL_STACK_SIZE
+        KERNEL_STACK_SIZE,
+        0
     );
     main_task->status   = TASK_RUNNING; // main_task已经在运行
     task_man->main_task = main_task;
@@ -338,7 +351,7 @@ PUBLIC void create_idle_task(void)
 PUBLIC void task_init(void)
 {
     uintptr_t addr;
-    uint64_t  pages  = sizeof(*global_task_man) / PG_SIZE + 1;
+    uint64_t  pages  = (sizeof(*global_task_man) + PG_SIZE - 1) / PG_SIZE;
     status_t  status = alloc_physical_page_sub(pages, &addr);
 
     PANIC(ERROR(status), "Can not allocate memory for task manager.");
@@ -346,9 +359,9 @@ PUBLIC void task_init(void)
     global_task_man = PHYS_TO_VIRT(addr);
     memset(global_task_man, 0, sizeof(*global_task_man));
     int i;
-    for (i = 0; i < TASKS; i++)
+    for (i = 0; i < MAX_TASKS; i++)
     {
-        global_task_man->tasks[i].pid = PID_NO_TASK;
+        global_task_man->task_table[i] = NULL;
     }
     for (i = 0; i < NR_CPUS; i++)
     {
@@ -365,7 +378,7 @@ PUBLIC void task_init(void)
         task_man->main_task     = NULL;
         task_man->idle_task     = NULL;
     }
-    init_spinlock(&global_task_man->tasks_lock);
+    init_spinlock(&global_task_man->task_table_lock);
 
     make_main_task();
     create_idle_task();

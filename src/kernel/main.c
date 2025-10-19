@@ -63,7 +63,7 @@ PRIVATE void ktask(void)
 PUBLIC void kernel_main(void)
 {
     init_all();
-    proc_execute("init", DEFAULT_PRIORITY, 4096, ktask);
+    proc_execute("init", DEFAULT_PRIORITY, 1, 1, ktask);
 
     message_t msg;
     while (1)
@@ -80,7 +80,7 @@ PUBLIC void ap_kernel_main(void)
     ap_init_all();
     char name[31];
     sprintf(name, "k task %d", running_task()->cpu_id);
-    proc_execute(name, DEFAULT_PRIORITY, 4096, ktask);
+    proc_execute(name, DEFAULT_PRIORITY, 1, 1, ktask);
 
     message_t msg;
     while (1)

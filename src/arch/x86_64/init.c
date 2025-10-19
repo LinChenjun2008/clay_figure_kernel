@@ -157,20 +157,19 @@ PUBLIC void init_all(void)
     PR_LOG(LOG_INFO, "Kernel initializing done.\n");
     clear_textbox(&BOOT_INFO->graph_info, &g_tb);
 
-    //  _____   _       _____   _____
-    // /  ___| | |     |  ___| /  ___|
-    // | |     | |     | |__   | | __
-    // | |     | |     |  __|  | ||_ |
-    // | |___  | |___  | |     | |_| |
-    // \_____| |_____| |_|     \_____/
+    //       ____ _     _____ ____
+    //      / ___| |   |  ___/ ___|
+    //     | |   | |   | |_ | |  _
+    //     | |___| |___|  _|| |_| |
+    //      \____|_____|_|   \____|
+
     const char *logo[] = {
         "                                ",
-        " _____   _       _____   _____  ",
-        "/  ___| | |     |  ___| /  ___| ",
-        "| |     | |     | |__   | | __  ",
-        "| |     | |     |  __|  | ||_ | ",
-        "| |___  | |___  | |     | |_| | ",
-        "\\_____| |_____| |_|     \\_____/ ",
+        "      ____ _     _____ ____     ",
+        "     / ___| |   |  ___/ ___|    ",
+        "    | |   | |   | |_ | |  _     ",
+        "    | |___| |___|  _|| |_| |    ",
+        "     \\____|_____|_|   \\____|    ",
     };
     char   s[64];
     size_t s_len = 63;
@@ -183,8 +182,7 @@ PUBLIC void init_all(void)
     pr_msg("%s Kernel: %s (%s) %s\n", logo[2], K_NAME, K_NAME_S, s);
     pr_msg("%s Resolution: %dx%d\n", logo[3], horz, vert);
     pr_msg("%s CPU: %s\n", logo[4], cpu_name(s));
-    pr_msg("%s Memory: %d MiB\n", logo[5], total_pages * 2);
-    pr_msg("%s\n", logo[6]);
+    pr_msg("%s Memory: %d MiB\n", logo[5], total_pages / 256);
 
     pr_msg("\n");
     pr_msg("Copyright (C) 2024-2025 " K_NAME " Developers.\n\n");

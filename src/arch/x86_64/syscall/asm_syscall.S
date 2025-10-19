@@ -16,8 +16,9 @@ syscall_entry:
 
     // switch to kernel stack
     swapgs
-    movq %gs:TASK_STRUCT_KSTACK_BASE,%rax
-    addq %gs:TASK_STRUCT_KSTACK_SIZE,%rax
+    movq %gs:TASK_STRUCT_KSTACK_PAGES,%rax
+    shlq $12,%rax
+    addq %gs:TASK_STRUCT_KSTACK_BASE,%rax
     swapgs
 
     movq %rsp, %rbp

@@ -14,14 +14,15 @@ PRIVATE struct
     uint32_t    kernel_task;
     pid_t       service_id;
     const char *name;
-    size_t      kstack_size;
+    size_t      kstack_pages;
+    size_t      ustack_pages;
     void       *func;
 } services[SERVICES] = {
-    { 0, TICK, "TICK", 4096, tick_main },
-    { 1, MM, "MM", 4096, mm_main },
-    { 0, VIEW, "VIEW", 4096, view_main },
-    { 1, USB_SRV, "USB Service", 4096, usb_main },
-    { 1, KBD_SRV, "Keyboard Services", 4096, keyboard_main },
+    { 0, TICK, "TICK", 1, 1, tick_main },
+    { 1, MM, "MM", 1, 1, mm_main },
+    { 0, VIEW, "VIEW", 1, 1, view_main },
+    { 1, USB_SRV, "USB Service", 1, 1, usb_main },
+    { 1, KBD_SRV, "Keyboard Services", 1, 1, keyboard_main },
 };
 
 PRIVATE pid_t service_pid_table[SERVICES] = { PID_NO_TASK };
@@ -42,20 +43,22 @@ PUBLIC pid_t service_id_to_pid(uint32_t sid)
 
 PUBLIC void service_init(void)
 {
-    int i;
+    int      i;
+    uint64_t prio = SERVICE_PRIORITY;
     for (i = 0; i < SERVICES; i++)
     {
         task_struct_t *task;
-        const char    *name        = services[i].name;
-        size_t         kstack_size = services[i].kstack_size;
-        void          *func        = services[i].func;
+        const char    *name         = services[i].name;
+        size_t         kstack_pages = services[i].kstack_pages;
+        size_t         ustack_pages = services[i].ustack_pages;
+        void          *func         = services[i].func;
         if (services[i].kernel_task)
         {
-            task = task_start(name, SERVICE_PRIORITY, kstack_size, func, 0);
+            task = task_start(name, prio, kstack_pages, func, 0);
         }
         else
         {
-            task = proc_execute(name, SERVICE_PRIORITY, kstack_size, func);
+            task = proc_execute(name, prio, kstack_pages, ustack_pages, func);
         }
 
         int index = services[i].service_id - SERVICE_ID_BASE;
