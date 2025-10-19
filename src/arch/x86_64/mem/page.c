@@ -64,11 +64,8 @@ PRIVATE struct
     size_t      total_pages;      // 总页数
     size_t      total_free_pages; // 总空闲页数
     size_t      free_pages;       // 当前空闲页数
-} mem;
+} mem_man;
 
-/**
- * @brief 用于页分配的位图,bit为1表示对应的页空闲
- */
 mm_block_t page_mm_blocks[PAGE_BLOCKS];
 
 PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
@@ -149,11 +146,11 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
 
 PUBLIC void mem_page_init(void)
 {
-    mm_struct_init(&mem.pages, page_mm_blocks, PAGE_BLOCKS);
-    mem.mem_size    = 0;
-    mem.total_pages = 0;
-    mem.free_pages  = 0;
-    init_spinlock(&mem.lock);
+    mm_struct_init(&mem_man.pages, page_mm_blocks, PAGE_BLOCKS);
+    mem_man.mem_size    = 0;
+    mem_man.total_pages = 0;
+    mem_man.free_pages  = 0;
+    init_spinlock(&mem_man.lock);
 
     EFI_MEMORY_DESCRIPTOR *efi_memory_desc =
         (EFI_MEMORY_DESCRIPTOR *)BOOT_INFO->memory_map.buffer;
@@ -179,8 +176,8 @@ PUBLIC void mem_page_init(void)
 
         curr_type = memory_type(efi_memory_desc[i].Type);
 
-        mem.total_pages += curr_pages;
-        mem.mem_size += curr_size;
+        mem_man.total_pages += curr_pages;
+        mem_man.mem_size += curr_size;
         PR_MSG(
             "From %p to %p: size: %8d KiB Type: %s.\n",
             curr_start,
@@ -200,24 +197,24 @@ PUBLIC void mem_page_init(void)
                 curr_size  = curr_end - curr_start;
                 curr_pages = curr_size >> 12;
             }
-            mm_add_range_sub(&mem.pages, curr_start, curr_size);
-            mem.total_free_pages += curr_pages;
-            mem.free_pages += curr_pages;
+            mm_add_range_sub(&mem_man.pages, curr_start, curr_size);
+            mem_man.total_free_pages += curr_pages;
+            mem_man.free_pages += curr_pages;
         }
     }
     PR_LOG(
         LOG_INFO,
         "Total Page(s): %d (Free: %d).\n",
-        mem.total_pages,
-        mem.total_free_pages
+        mem_man.total_pages,
+        mem_man.total_free_pages
     );
     PR_LOG(
         LOG_INFO,
         "Mem Size: %d KiB(%d MiB), Free size: %d KiB(%d MiB)\n",
-        mem.mem_size / 1024,
-        mem.mem_size / (1024 * 1024),
-        mem.total_free_pages * 4,
-        mem.total_free_pages * 4 / 1024
+        mem_man.mem_size / 1024,
+        mem_man.mem_size / (1024 * 1024),
+        mem_man.total_free_pages * 4,
+        mem_man.total_free_pages * 4 / 1024
     );
     register_handle(0x0e, do_page_fault);
     return;
@@ -225,27 +222,27 @@ PUBLIC void mem_page_init(void)
 
 PUBLIC size_t get_total_free_pages(void)
 {
-    return mem.total_free_pages;
+    return mem_man.total_free_pages;
 }
 
 PUBLIC status_t alloc_physical_page(uint64_t number_of_pages, void *addr)
 {
     ASSERT(addr != NULL);
     ASSERT(number_of_pages != 0);
-    if (mem.free_pages < number_of_pages)
+    if (mem_man.free_pages < number_of_pages)
     {
         *(void **)addr = NULL;
         PR_LOG(
             LOG_WARN,
             "No free pages (%d < %d).\n",
-            mem.free_pages,
+            mem_man.free_pages,
             number_of_pages
         );
         return K_NOMEM;
     }
-    spinlock_lock(&mem.lock);
+    spinlock_lock(&mem_man.lock);
     status_t status = alloc_physical_page_sub(number_of_pages, addr);
-    spinlock_unlock(&mem.lock);
+    spinlock_unlock(&mem_man.lock);
     return status;
 }
 
@@ -254,7 +251,7 @@ PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
     ASSERT(addr != NULL);
     ASSERT(number_of_pages != 0);
     status_t status;
-    status = mm_alloc(&mem.pages, number_of_pages * PG_SIZE, addr);
+    status = mm_alloc(&mem_man.pages, number_of_pages * PG_SIZE, addr);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Out of Memory: %d.\n", status);
@@ -268,10 +265,10 @@ PUBLIC void free_physical_page(void *addr, uint64_t number_of_pages)
 {
     ASSERT(number_of_pages != 0);
     ASSERT(addr != NULL && ((((uintptr_t)addr) & (PG_SIZE - 1)) == 0));
-    spinlock_lock(&mem.lock);
-    mm_add_range(&mem.pages, (uintptr_t)addr, number_of_pages * PG_SIZE);
-    mem.free_pages += number_of_pages;
-    spinlock_unlock(&mem.lock);
+    spinlock_lock(&mem_man.lock);
+    mm_add_range(&mem_man.pages, (uintptr_t)addr, number_of_pages * PG_SIZE);
+    mem_man.free_pages += number_of_pages;
+    spinlock_unlock(&mem_man.lock);
     return;
 }
 

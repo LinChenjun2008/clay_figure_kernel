@@ -40,13 +40,15 @@ extern void ASMLINKAGE asm_switch_to_user(
     uint64_t ustack,
     uint64_t rflags
 );
+
 PRIVATE void start_process(void *process)
 {
     void          *func = process;
     task_struct_t *cur  = running_task();
 
-    uintptr_t ustack;
-    status_t  status = alloc_physical_page(1, &ustack);
+    uint64_t ustack_pages = cur->ustack_size / PG_SIZE;
+
+    status_t status = alloc_physical_page(ustack_pages, &cur->ustack_base);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Alloc User Stack error.\n");
@@ -54,9 +56,12 @@ PRIVATE void start_process(void *process)
         PR_LOG(LOG_FATAL, "Shuold not be here.");
         while (1) continue;
     }
-    cur->ustack_base = ustack;
-    cur->ustack_size = PG_SIZE;
-    page_map(cur->page_dir, (void *)ustack, (void *)USER_STACK_VADDR_BASE, 1);
+    page_map(
+        cur->page_dir,
+        (void *)cur->ustack_base,
+        (void *)USER_STACK_VADDR_BASE,
+        ustack_pages
+    );
     page_table_activate(cur);
 
     uint64_t kstack = (uint64_t)cur->context;
@@ -102,13 +107,12 @@ PRIVATE uint64_t *create_page_dir(void)
     {
         return NULL;
     }
-    pgdir_v = PHYS_TO_VIRT(pgdir);
+    pgdir_v             = PHYS_TO_VIRT(pgdir);
+    uint64_t *kpage_dir = (uint64_t *)PHYS_TO_VIRT(KERNEL_PAGE_DIR_TABLE_POS);
+
     memset(pgdir_v, 0, PT_SIZE);
-    memcpy(
-        pgdir_v + 0x100,
-        (uint64_t *)PHYS_TO_VIRT(KERNEL_PAGE_DIR_TABLE_POS) + 0x100,
-        PT_SIZE / 2
-    );
+    memcpy(pgdir_v + 0x100, kpage_dir + 0x100, PT_SIZE / 2);
+
     return pgdir;
 }
 
@@ -174,6 +178,7 @@ PUBLIC task_struct_t *proc_execute(
     const char *name,
     uint64_t    priority,
     size_t      kstack_size,
+    size_t      ustack_size,
     void       *proc
 )
 {
@@ -186,16 +191,20 @@ PUBLIC task_struct_t *proc_execute(
         return NULL;
     }
 
-    void *kstack_base = NULL;
+    uintptr_t kstack_base  = 0;
+    uint64_t  kstack_pages = kstack_size / PG_SIZE;
 
-    status = kmalloc(kstack_size, 0, 0, &kstack_base);
+    status = alloc_physical_page(kstack_pages, &kstack_base);
     ASSERT(!ERROR(status));
     if (ERROR(status))
     {
         goto fail;
     }
+    kstack_base = (uintptr_t)PHYS_TO_VIRT(kstack_base);
 
-    init_task_struct(task, name, priority, (uintptr_t)kstack_base, kstack_size);
+    init_task_struct(
+        task, name, priority, kstack_base, kstack_size, ustack_size
+    );
     create_task_struct(task, start_process, (uint64_t)proc);
     task->page_dir = create_page_dir();
     ASSERT(task->page_dir != NULL);
@@ -225,7 +234,7 @@ PUBLIC task_struct_t *proc_execute(
 fail:
     free_user_addr_table(task);
     free_physical_page(task->page_dir, 1);
-    kfree(kstack_base);
+    free_physical_page(VIRT_TO_PHYS(kstack_base), kstack_pages);
     task_free(task);
     return NULL;
 }
@@ -235,7 +244,9 @@ PUBLIC void proc_exit(int status)
     task_struct_t *task   = running_task();
     void          *pg_dir = task->page_dir;
 
-    free_physical_page((void *)task->ustack_base, 1);
+    uint64_t ustack_pages = task->ustack_size / PG_SIZE;
+
+    free_physical_page((void *)task->ustack_base, ustack_pages);
     // 使用内核页表,以便回收任务自身的页表
     task->page_dir = NULL;
     page_table_activate(task);

@@ -66,7 +66,12 @@ PUBLIC syscall_status_t kern_create_proc(message_t *msg)
     memcpy(name, in_name, 32);
     name[31] = '\0';
     task_struct_t *new_task;
-    new_task = proc_execute(name, task->priority, task->kstack_size, in_proc);
+
+    uint64_t prio        = task->priority;
+    size_t   kstack_size = task->kstack_size;
+    size_t   ustack_size = task->ustack_size;
+
+    new_task = proc_execute(name, prio, kstack_size, ustack_size, in_proc);
 
     *out_pid = new_task->pid;
     return SYSCALL_SUCCESS;

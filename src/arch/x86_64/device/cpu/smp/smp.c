@@ -76,7 +76,8 @@ PUBLIC status_t smp_init(void)
             name,
             DEFAULT_PRIORITY,
             (uintptr_t)apu_stack_base + (i - 1) * KERNEL_STACK_SIZE,
-            KERNEL_STACK_SIZE
+            KERNEL_STACK_SIZE,
+            0
         );
         ap_main_task->cpu_id = i;
         task_man_t *task_man = get_task_man(i);
@@ -125,10 +126,9 @@ PUBLIC status_t smp_start(void)
     send_ipi(icr);
 
     *(uint64_t *)AP_FLAGS = 1;
-    while (*(uint64_t *)AP_FLAGS != apic.number_of_cores);
+    while (*(uint64_t *)AP_FLAGS != apic.number_of_cores) io_mfence();
 
     *(void **)AP_MAIN = ap_kernel_main;
-
     return K_SUCCESS;
 }
 

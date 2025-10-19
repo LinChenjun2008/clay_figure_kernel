@@ -19,16 +19,16 @@
 #endif /* __ASM_INCLUDE__ */
 
 // 最大支持的任务数
-#define TASKS 4096
+#define MAX_TASKS 32768
 
 // PID的最小值
 #define MIN_PID 0
 
 // PID的最大值
-#define MAX_PID (TASKS - 1)
+#define MAX_PID (MAX_TASKS - 1)
 
 // 表示"任务不存在"时使用的pid
-#define PID_NO_TASK TASKS
+#define PID_NO_TASK MAX_TASKS
 
 #define MAX_NICE 20
 #define MIN_NICE -19
@@ -154,9 +154,9 @@ typedef struct task_man_s
  */
 typedef struct global_task_man_s
 {
-    task_struct_t tasks[TASKS];
-    spinlock_t    tasks_lock;
-    task_man_t    cpus[NR_CPUS];
+    task_struct_t *task_table[MAX_TASKS];
+    spinlock_t     task_table_lock;
+    task_man_t     cpus[NR_CPUS];
 } global_task_man_t;
 
 /**
@@ -209,14 +209,16 @@ PUBLIC void task_free(task_struct_t *task);
  * @param name 任务名称
  * @param priority 优先级
  * @param kstack_base 任务内核态下的栈基址
- * @param kstack_size 任务内核态下的栈大小
+ * @param kstack_size 任务内核态下的栈大小(必须是页大小的整数倍)
+ * @param ustack_size 任务用户态下的栈大小(必须是页大小的整数倍)
  */
 PUBLIC status_t init_task_struct(
     task_struct_t *task,
     const char    *name,
     uint64_t       priority,
     uintptr_t      kstack_base,
-    size_t         kstack_size
+    size_t         kstack_size,
+    size_t         ustack_size
 );
 
 /**
@@ -354,7 +356,8 @@ PUBLIC void proc_activate(task_struct_t *task);
  * @brief 启动一个任务,运行在用户态下
  * @param name 任务名称
  * @param priority 优先级
- * @param kstack_size 任务内核态下的栈大小
+ * @param kstack_size 任务内核态下的栈大小(必须是页大小的整数倍)
+ * @param ustack_size 任务用户态下的栈大小(必须是页大小的整数倍)
  * @param func 在任务中运行的函数
  * @param arg 给任务的参数
  * @return 成功将返回对应的任务结构体,失败则返回NULL
@@ -363,6 +366,7 @@ PUBLIC task_struct_t *proc_execute(
     const char *name,
     uint64_t    priority,
     size_t      kstack_size,
+    size_t      ustack_size,
     void       *proc
 );
 

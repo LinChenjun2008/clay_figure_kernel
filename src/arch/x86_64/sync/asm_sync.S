@@ -8,16 +8,16 @@
 .global asm_spinlock_lock
 .type asm_spinlock_lock,@function
 asm_spinlock_lock:
-    movq $0,%rax
-    lock xchgq (%rdi),%rax
-    cmpq $1,%rax
+    movq $1,%rax
+    movq $0,%rsi
+    lock cmpxchgq %rsi,(%rdi)
     je .done
-    .wait:
+.wait:
     pause
     cmpq $1,(%rdi)
-    jne .wait
+    jnz .wait
     jmp asm_spinlock_lock
-    .done:
+.done:
     ret
 
 .global asm_atomic_xchg
