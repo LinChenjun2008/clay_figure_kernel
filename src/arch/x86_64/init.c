@@ -155,7 +155,8 @@ PUBLIC void init_all(void)
     PR_LOG(LOG_INFO, "Setting up APIC timer ...\n");
     apic_timer_init();
     PR_LOG(LOG_INFO, "Kernel initializing done.\n");
-    clear_textbox(&BOOT_INFO->graph_info, &g_tb);
+
+    // clear_textbox(&BOOT_INFO->graph_info, &g_tb);
 
     //       ____ _     _____ ____
     //      / ___| |   |  ___/ ___|

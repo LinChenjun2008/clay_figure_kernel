@@ -203,12 +203,12 @@ PUBLIC status_t mm_add_range(mm_struct_t *mm, uintptr_t start, size_t size)
     return ret;
 }
 
-PUBLIC status_t mm_alloc(mm_struct_t *mm, size_t size, void *vaddr)
+PUBLIC status_t mm_alloc_sub(mm_struct_t *mm, size_t size, void *vaddr)
 {
     uint64_t  i;
     uintptr_t start;
     status_t  ret = K_OUT_OF_RESOURCE;
-    spinlock_lock(&mm->lock);
+
     for (i = 0; i < mm->using_blocks; i++)
     {
         if (mm->blocks[i].size >= size)
@@ -221,6 +221,14 @@ PUBLIC status_t mm_alloc(mm_struct_t *mm, size_t size, void *vaddr)
             break;
         }
     }
+    return ret;
+}
+
+PUBLIC status_t mm_alloc(mm_struct_t *mm, size_t size, void *vaddr)
+{
+    status_t ret = K_OUT_OF_RESOURCE;
+    spinlock_lock(&mm->lock);
+    ret = mm_alloc_sub(mm, size, vaddr);
     spinlock_unlock(&mm->lock);
     return ret;
 }

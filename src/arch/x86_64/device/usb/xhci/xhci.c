@@ -492,19 +492,18 @@ PRIVATE status_t configure_xhci(xhci_t *xhci, usb_hub_t *hub)
         for (i = 0; i < spb; i++)
         {
             void *pad = NULL;
-            status =
-                kmalloc(XHCI_PAGE_SIZE, XHCI_PAGE_SIZE, XHCI_PAGE_SIZE, &pad);
+            status    = alloc_physical_page(1, &pad);
             if (ERROR(status))
             {
                 PR_LOG(LOG_ERROR, "Failed to alloc sctatch pad buf.\n");
                 while (--i >= 0)
                 {
-                    kfree(PHYS_TO_VIRT(((uint64_t **)spba)[i]));
+                    free_physical_page(((uint64_t **)spba)[i], 1);
                 }
                 kfree(spba);
                 goto fail;
             }
-            ((uint64_t **)spba)[i] = VIRT_TO_PHYS(pad);
+            ((uint64_t **)spba)[i] = pad;
         }
         xhci->devs[0].ptr = (uint64_t)VIRT_TO_PHYS(spba);
     }
@@ -551,7 +550,7 @@ PUBLIC status_t xhci_setup(usb_hub_set_t *hub_set)
         pci                 = pci_dev_match(0x0c, 0x03, 0x30, i);
         uintptr_t mmio_base = pci_dev_read_bar(pci, 0);
         uint64_t  bar_size  = pci_dev_read_bar_size(pci, 0);
-        int       bar_pages = (bar_size + PG_SIZE - 1) / PG_SIZE;
+        int       bar_pages = DIV_ROUND_UP(bar_size, PG_SIZE);
         page_map(
             (uint64_t *)KERNEL_PAGE_DIR_TABLE_POS,
             (void *)mmio_base,
