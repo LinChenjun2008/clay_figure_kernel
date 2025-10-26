@@ -9,12 +9,13 @@
 
 #include <config.h> // log level
 #include <device/cpu.h>
-#include <device/pic.h>    // ICRs
-#include <device/timer.h>  // IRQ0_FREQUENCY,get_current_ticks
-#include <intr.h>          // intr_disable
-#include <io.h>            // io_hlt
-#include <mem/allocator.h> // kmalloc,kfree
-#include <ramfs.h>         // ramfs_open
+#include <device/pic.h>      // ICRs
+#include <device/spinlock.h> // spinlock
+#include <device/timer.h>    // IRQ0_FREQUENCY,get_current_ticks
+#include <intr.h>            // intr_disable
+#include <io.h>              // io_hlt
+#include <mem/allocator.h>   // kmalloc,kfree
+#include <ramfs.h>           // ramfs_open
 #include <std/stdarg.h>
 #include <std/stdio.h>
 
@@ -260,6 +261,8 @@ basic_print(graph_info_t *gi, textbox_t *tb, uint32_t col, const char *str)
     return;
 }
 
+PRIVATE spinlock_t panic_lock = { 1 };
+
 extern void ASMLINKAGE asm_debug_intr();
 
 PUBLIC void panic_spin(
@@ -280,6 +283,7 @@ PUBLIC void panic_spin(
         ICR_ALL_EXCLUDE_SELF,
         0
     );
+    spinlock_lock(&panic_lock);
     send_ipi(icr);
     intr_disable();
     pr_msg("\n");

@@ -66,7 +66,7 @@ PRIVATE struct
     size_t      free_pages;       // 当前空闲页数
 } mem_man;
 
-mm_block_t page_mm_blocks[PAGE_BLOCKS];
+PRIVATE mm_block_t page_mm_blocks[PAGE_BLOCKS];
 
 PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
 {
@@ -98,10 +98,10 @@ PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
     return MAX_MEMORY_TYPE;
 }
 
-PRIVATE const char *memory_type_str[] = {
-    "Invaild",         "Free memory",      "Reserved", "ACPI memory",
-    "ACPI memory NVS", "Unuseable memory", "Invaild",
-};
+// PRIVATE const char *memory_type_str[] = {
+//     "Invaild",         "Free memory",      "Reserved", "ACPI memory",
+//     "ACPI memory NVS", "Unuseable memory", "Invaild",
+// };
 
 PRIVATE void do_page_fault(intr_stack_t *stack)
 {
@@ -178,13 +178,13 @@ PUBLIC void mem_page_init(void)
 
         mem_man.total_pages += curr_pages;
         mem_man.mem_size += curr_size;
-        PR_MSG(
-            "From %p to %p: size: %8d KiB Type: %s.\n",
-            curr_start,
-            curr_end,
-            curr_size >> 10,
-            memory_type_str[curr_type]
-        );
+        // PR_MSG(
+        //     "From %p to %p: size: %8d KiB Type: %s.\n",
+        //     curr_start,
+        //     curr_end,
+        //     curr_size >> 10,
+        //     memory_type_str[curr_type]
+        // );
         if (curr_type == FREE_MEMORY)
         {
             if (curr_end < 0x2000000)
@@ -202,20 +202,20 @@ PUBLIC void mem_page_init(void)
             mem_man.free_pages += curr_pages;
         }
     }
-    PR_LOG(
-        LOG_INFO,
-        "Total Page(s): %d (Free: %d).\n",
-        mem_man.total_pages,
-        mem_man.total_free_pages
-    );
-    PR_LOG(
-        LOG_INFO,
-        "Mem Size: %d KiB(%d MiB), Free size: %d KiB(%d MiB)\n",
-        mem_man.mem_size / 1024,
-        mem_man.mem_size / (1024 * 1024),
-        mem_man.total_free_pages * 4,
-        mem_man.total_free_pages * 4 / 1024
-    );
+    // PR_LOG(
+    //     LOG_INFO,
+    //     "Total Page(s): %d (Free: %d).\n",
+    //     mem_man.total_pages,
+    //     mem_man.total_free_pages
+    // );
+    // PR_LOG(
+    //     LOG_INFO,
+    //     "Mem Size: %d KiB(%d MiB), Free size: %d KiB(%d MiB)\n",
+    //     mem_man.mem_size / 1024,
+    //     mem_man.mem_size / (1024 * 1024),
+    //     mem_man.total_free_pages * 4,
+    //     mem_man.total_free_pages * 4 / 1024
+    // );
     register_handle(0x0e, do_page_fault);
     return;
 }
@@ -231,17 +231,17 @@ PUBLIC status_t alloc_physical_page(uint64_t number_of_pages, void *addr)
     ASSERT(number_of_pages != 0);
     if (mem_man.free_pages < number_of_pages)
     {
-        *(void **)addr = NULL;
-        PR_LOG(
-            LOG_WARN,
-            "No free pages (%d < %d).\n",
-            mem_man.free_pages,
-            number_of_pages
-        );
         return K_NOMEM;
     }
     spinlock_lock(&mem_man.lock);
-    status_t status = alloc_physical_page_sub(number_of_pages, addr);
+    status_t status;
+    status = mm_alloc(&mem_man.pages, number_of_pages * PG_SIZE, addr);
+    if (ERROR(status))
+    {
+        PR_LOG(LOG_ERROR, "Out of Memory: %d.\n", status);
+        return K_NOMEM;
+    }
+    mem_man.free_pages -= number_of_pages;
     spinlock_unlock(&mem_man.lock);
     return status;
 }
@@ -251,13 +251,13 @@ PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
     ASSERT(addr != NULL);
     ASSERT(number_of_pages != 0);
     status_t status;
-    status = mm_alloc(&mem_man.pages, number_of_pages * PG_SIZE, addr);
+    status = mm_alloc_sub(&mem_man.pages, number_of_pages * PG_SIZE, addr);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Out of Memory: %d.\n", status);
         return K_NOMEM;
     }
-    // memset(PHYS_TO_VIRT(*(uintptr_t *)addr), 0, number_of_pages * PG_SIZE);
+    mem_man.free_pages -= number_of_pages;
     return K_SUCCESS;
 }
 

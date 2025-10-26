@@ -351,7 +351,7 @@ PUBLIC void create_idle_task(void)
 PUBLIC void task_init(void)
 {
     uintptr_t addr;
-    uint64_t  pages  = (sizeof(*global_task_man) + PG_SIZE - 1) / PG_SIZE;
+    uint64_t  pages  = DIV_ROUND_UP(sizeof(*global_task_man), PG_SIZE);
     status_t  status = alloc_physical_page_sub(pages, &addr);
 
     PANIC(ERROR(status), "Can not allocate memory for task manager.");
