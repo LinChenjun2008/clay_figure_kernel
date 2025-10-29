@@ -8,6 +8,7 @@
 
 #include <Efi.h>
 #include <Guid/Acpi.h>
+#include <Procotol/LoadedImage.h>
 #include <Uefi/UefiAcpiDataTable.h>
 #include <common.h>
 #include <elf.h>

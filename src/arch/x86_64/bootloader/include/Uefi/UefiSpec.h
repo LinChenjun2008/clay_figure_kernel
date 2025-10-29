@@ -56,6 +56,14 @@ typedef EFI_STATUS(EFIAPI *EFI_WAIT_FOR_EVENT)(
     UINTN *Index
 );
 
+typedef EFI_STATUS(EFIAPI *EFI_HANDLE_PROTOCOL)(
+    EFI_HANDLE Handle,
+    EFI_GUID  *Protocol,
+    VOID     **Interface
+);
+
+typedef EFI_STATUS(EFIAPI *EFI_IMAGE_UNLOAD)(IN EFI_HANDLE ImageHandle);
+
 typedef EFI_STATUS(EFIAPI *EFI_EXIT_BOOT_SERVICES)(
     EFI_HANDLE ImageHandle,
     UINTN      MapKey
@@ -170,10 +178,13 @@ typedef struct
     UINTN              _buf4_2[3];
 
     // Protocol Handler Services
-    UINTN _buf5[9];
+    UINTN               _buf5_1[3];
+    EFI_HANDLE_PROTOCOL HandleProtocol;
+    UINTN               _buf5_2[5];
 
     // Image Services
-    UINTN                  _buf6[4];
+    UINTN                  _buf6_1[3];
+    EFI_IMAGE_UNLOAD       UnloadImage;
     EFI_EXIT_BOOT_SERVICES ExitBootServices;
     // Miscellaneous Services
     UINTN                  _buf7[2];
