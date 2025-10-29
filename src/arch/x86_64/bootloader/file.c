@@ -12,54 +12,43 @@ EFI_STATUS ReadFile(
 )
 {
     EFI_FILE_PROTOCOL *FileHandle;
-    EFI_STATUS         Status      = EFI_SUCCESS;
-    UINTN              HandleCount = 0;
-    EFI_HANDLE        *HandleBuffer;
+    EFI_STATUS         Status = EFI_SUCCESS;
 
-    Status = gBS->LocateHandleBuffer(
-        ByProtocol,
-        &gEfiSimpleFileSystemProtocolGuid,
-        NULL,
-        &HandleCount,
-        &HandleBuffer
+    EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *FileSystem;
+    EFI_FILE_PROTOCOL               *Root;
+
+    EFI_LOADED_IMAGE_PROTOCOL *LoadedImage;
+    Status = gBS->HandleProtocol(
+        gImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **)&LoadedImage
     );
-
     if (EFI_ERROR(Status))
     {
         return Status;
     }
-    EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *FileSystem;
-    EFI_FILE_PROTOCOL               *Root;
-    UINTN                            i;
-    i = 0;
-    do
-    {
-        Status = gBS->OpenProtocol(
-            HandleBuffer[i++],
-            &gEfiSimpleFileSystemProtocolGuid,
-            (VOID **)&FileSystem,
-            gImageHandle,
-            NULL,
-            EFI_OPEN_PROTOCOL_GET_PROTOCOL
-        );
 
-        if (EFI_ERROR(Status))
-        {
-            return Status;
-        }
-        Status = FileSystem->OpenVolume(FileSystem, &Root);
-        if (EFI_ERROR(Status))
-        {
-            return Status;
-        }
-        Status = Root->Open(
-            Root,
-            &FileHandle,
-            FileName,
-            EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE,
-            EFI_OPEN_PROTOCOL_GET_PROTOCOL
-        );
-    } while (EFI_ERROR(Status) && i < HandleCount);
+    Status = gBS->HandleProtocol(
+        LoadedImage->DeviceHandle,
+        &gEfiSimpleFileSystemProtocolGuid,
+        (VOID **)&FileSystem
+    );
+    if (EFI_ERROR(Status))
+    {
+        return Status;
+    }
+
+    Status = FileSystem->OpenVolume(FileSystem, &Root);
+    if (EFI_ERROR(Status))
+    {
+        return Status;
+    }
+
+    Status = Root->Open(
+        Root,
+        &FileHandle,
+        FileName,
+        EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE,
+        EFI_OPEN_PROTOCOL_GET_PROTOCOL
+    );
     if (EFI_ERROR(Status))
     {
         return Status;
