@@ -563,9 +563,11 @@ PUBLIC status_t xhci_setup(usb_hub_set_t *hub_set)
         }
         xhci_t *xhci = NULL;
         xhci_controller_setup(PHYS_TO_VIRT(mmio_base), &xhci);
-        xhci->usb.pci = pci;
-
-        configure_xhci(xhci, &hub_set->hubs[i]);
+        if (xhci != NULL)
+        {
+            xhci->usb.pci = pci;
+            configure_xhci(xhci, &hub_set->hubs[i]);
+        }
     }
     return K_SUCCESS;
 }

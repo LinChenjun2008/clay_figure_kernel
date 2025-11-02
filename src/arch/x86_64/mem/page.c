@@ -131,7 +131,7 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
         pr_log(LOG_ERROR, "Page existed.\n");
         default_irq_handler(stack);
     }
-    uintptr_t paddr;
+    uintptr_t paddr  = 0;
     status_t  status = alloc_physical_page(1, &paddr);
     if (ERROR(status))
     {
@@ -164,7 +164,7 @@ PUBLIC void mem_page_init(void)
     uintptr_t     curr_end   = 0;
     size_t        curr_size  = 0;
     uint64_t      curr_pages = 0;
-    memory_type_t curr_type  = memory_type(efi_memory_desc[0].Type);
+    memory_type_t curr_type  = MAX_MEMORY_TYPE;
 
     int i;
     for (i = 0; i < number_of_memory_desc; i++)
@@ -341,9 +341,9 @@ PRIVATE void page_map_sub(uint64_t *pml4t, void *paddr, void *vaddr)
     paddr = (void *)((uintptr_t)paddr & ~(PG_SIZE - 1));
     vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
     uint64_t *v_pml4t, *v_pml4e;
-    uint64_t *v_pdpt, *pdpt, *v_pdpte, *pdpte;
-    uint64_t *v_pdt, *pdt, *v_pde, *pde;
-    uint64_t *v_pt, *pt, *v_pte, *pte;
+    uint64_t *v_pdpt, *pdpt = NULL, *v_pdpte, *pdpte;
+    uint64_t *v_pdt, *pdt   = NULL, *v_pde, *pde;
+    uint64_t *v_pt, *pt     = NULL, *v_pte, *pte;
 
     v_pml4t = PHYS_TO_VIRT(pml4t);
     v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
@@ -406,9 +406,9 @@ PRIVATE void page_unmap_sub(uint64_t *pml4t, void *vaddr)
 {
     vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
     uint64_t *v_pml4t, *v_pml4e;
-    uint64_t *pdpt, *v_pdpte, *pdpte;
-    uint64_t *pdt, *v_pde, *pde;
-    uint64_t *pt, *v_pte, *pte;
+    uint64_t *pdpt = NULL, *v_pdpte, *pdpte;
+    uint64_t *pdt  = NULL, *v_pde, *pde;
+    uint64_t *pt   = NULL, *v_pte, *pte;
 
     v_pml4t = PHYS_TO_VIRT(pml4t);
     v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);

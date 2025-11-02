@@ -46,8 +46,8 @@ PRIVATE char *number_to_string(
         digits = "0123456789abcdefghijklmnopqrstuvwxyz";
     }
     if (base < 2 || base > 36) return 0;
-    pad  = (flag & FORMAT_ZERO) ? '0' : ' ';
-    sign = 0;
+    pad = (flag & FORMAT_ZERO) ? '0' : ' ';
+
     if (flag & FORMAT_SIGN && (int64_t)num < 0)
     {
         sign = '-';

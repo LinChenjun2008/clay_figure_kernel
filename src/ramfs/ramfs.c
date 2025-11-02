@@ -35,7 +35,6 @@ PUBLIC status_t ramfs_check(void *ramfs_addr)
         offset = sizeof(*fdata) + fdata->file_size;
         fdata  = (ramfs_file_meta_data_t *)(data + offset);
     }
-    fdata = (ramfs_file_meta_data_t *)((uintptr_t)fdata - offset);
     if (!strncmp((char *)data, "TRAILER!!!", 10))
     {
         return K_ERROR;

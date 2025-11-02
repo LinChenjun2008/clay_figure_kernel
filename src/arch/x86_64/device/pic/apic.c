@@ -44,8 +44,9 @@ PUBLIC void detect_cores(void)
     memset(&apic.ioapic, 0, sizeof(apic.ioapic));
     MADT_t *madt            = (MADT_t *)PHYS_TO_VIRT(BOOT_INFO->madt_addr);
     apic.local_apic_address = madt->LocalApicAddress;
-    uint8_t *p              = (uint8_t *)(madt + 1);
-    uint8_t *p2             = (uint8_t *)madt + madt->Header.Length;
+
+    uint8_t *p2 = (uint8_t *)madt + madt->Header.Length;
+    uint8_t *p;
     for (p = (uint8_t *)(madt + 1); p < p2; p += p[1] /* Record Length */)
     {
         switch (p[0]) // Entry Type
