@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2013 Gerd Hoffmann <kraxel@redhat.com>
  * Copyright (C) 2009-2013 Kevin O'Connor <kevin@koconnor.net>
- * Copyright (C) 2024-2025 LinChenjun
+ * Copyright (C) 2024-2025 Lin Chenjun
  */
 
 #include <kernel/global.h>

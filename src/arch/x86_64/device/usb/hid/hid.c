@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2009  Kevin O'Connor <kevin@koconnor.net>
  * Copyright (C) 2024  Daniel Khodabakhsh <d.khodabakhsh@gmail.com>
- * Copyright (C) 2024-2025 LinChenjun
+ * Copyright (C) 2024-2025 Lin Chenjun
  */
 
 #include <kernel/global.h>

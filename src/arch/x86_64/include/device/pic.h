@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright (C) 2024-2025 LinChenjun
+ * Copyright (C) 2024-2025 Lin Chenjun
  */
 
 #ifndef __PIC_H__
