@@ -18,7 +18,12 @@
 #    define PRIVATE static
 #endif
 
+#ifdef __STDC_VERSION__
+#    if __STDC_VERSION__ < 202311L
 typedef int bool;
+#    endif
+#endif
+
 #ifndef TRUE
 #    define TRUE (1 == 1)
 #endif

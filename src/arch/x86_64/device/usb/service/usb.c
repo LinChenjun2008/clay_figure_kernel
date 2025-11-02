@@ -111,8 +111,8 @@ PUBLIC void usb_desc2pipe(
 PUBLIC int
 usb_get_period(usb_device_t *usb_dev, usb_endpoint_descriptor_t *epdesc)
 {
-    uint8_t period = epdesc->bInterval;
-    int     ret    = 0;
+    uint16_t period = epdesc->bInterval;
+    int      ret    = 0;
     if (usb_dev->speed != USB_HIGHSPEED)
     {
         if (period >> 8)

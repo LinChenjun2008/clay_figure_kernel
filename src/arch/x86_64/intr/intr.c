@@ -7,15 +7,15 @@
 
 #include <log.h>
 
-#include <device/cpu.h>      // cpuid
-#include <device/pic.h>      // IRQ_CNT
-#include <device/spinlock.h> // spinlock_t,spinlock_lock,spinlock_unlock
+#include <device/cpu.h> // cpuid
+#include <device/pic.h> // IRQ_CNT
 #include <intr.h>
 #include <io.h>             // get_flags
 #include <kernel/symbols.h> // addr_to_symbol
 #include <kernel/syscall.h> // sys_send_recv
 #include <mem/mem.h>        // IS_AVAILABLE_ADDRESS
 #include <service.h>        // MM_EXIT
+#include <sync/spinlock.h>  // spinlock_t,spinlock_lock,spinlock_unlock
 #include <task/task.h>      // task_struct_t,running_task
 
 void (*irq_handler[IRQ_CNT])(intr_stack_t *);

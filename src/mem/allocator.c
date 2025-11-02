@@ -7,12 +7,12 @@
 
 #include <log.h>
 
-#include <device/spinlock.h> // spinlock
-#include <intr.h>            // intr functions
-#include <lib/list.h>        // list functions
-#include <mem/allocator.h>   // MIN,MAX allocate size
-#include <mem/page.h>        // PHYS_TO_VIRT,VIRT_TO_PHYS
-#include <std/string.h>      // memset
+#include <intr.h>          // intr functions
+#include <lib/list.h>      // list functions
+#include <mem/allocator.h> // MIN,MAX allocate size
+#include <mem/page.h>      // PHYS_TO_VIRT,VIRT_TO_PHYS
+#include <std/string.h>    // memset
+#include <sync/spinlock.h> // spinlock
 
 typedef struct
 {

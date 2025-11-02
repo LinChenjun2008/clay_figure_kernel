@@ -37,7 +37,7 @@ PRIVATE volatile uint64_t current_ticks = 0;
 
 typedef struct
 {
-    uint8_t  *addr;
+    uintptr_t addr;
     uint64_t *gcap_id;
     uint64_t *gen_conf;
     uint64_t *main_cnt;
@@ -73,7 +73,7 @@ PRIVATE void apic_timer_handler(intr_stack_t *stack)
 PRIVATE status_t init_hpet(void)
 {
     /// TODO: Get HPET address from acpi table.
-    hpet.addr       = (uint8_t *)PHYS_TO_VIRT(HPET_DEFAULT_ADDRESS);
+    hpet.addr       = (uintptr_t)PHYS_TO_VIRT(HPET_DEFAULT_ADDRESS);
     hpet.gcap_id    = (uint64_t *)(hpet.addr + HPET_GCAP_ID);
     hpet.gen_conf   = (uint64_t *)(hpet.addr + HPET_GEN_CONF);
     hpet.main_cnt   = (uint64_t *)(hpet.addr + HPET_MAIN_CNT);

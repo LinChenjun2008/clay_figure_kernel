@@ -9,12 +9,12 @@
 #ifndef __ASM_INCLUDE__
 
 #    include <device/cpu.h> // NR_CPUS
-#    include <device/spinlock.h>
 #    include <device/sse.h>
 #    include <kernel/syscall.h>
 #    include <lib/list.h>
 #    include <mem/mm_struct.h>
 #    include <sync/atomic.h>
+#    include <sync/spinlock.h>
 
 #endif /* __ASM_INCLUDE__ */
 

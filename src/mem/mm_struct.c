@@ -5,9 +5,9 @@
 
 #include <kernel/global.h>
 
-#include <device/spinlock.h> // spinlock
-#include <mem/mm_struct.h>   // allocate_table_t,allocate_table_entry_t
-#include <std/string.h>      // memset
+#include <mem/mm_struct.h> // allocate_table_t,allocate_table_entry_t
+#include <std/string.h>    // memset
+#include <sync/spinlock.h> // spinlock
 
 PUBLIC void
 mm_struct_init(mm_struct_t *mm, mm_block_t *blocks, uint64_t total_blocks)

@@ -7,7 +7,7 @@
 
 #include <log.h>
 
-#include <device/spinlock.h>
+#include <sync/spinlock.h>
 #include <task/task.h> // running_task
 
 PUBLIC void init_spinlock(spinlock_t *spinlock)

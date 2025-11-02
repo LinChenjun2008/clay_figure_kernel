@@ -18,7 +18,7 @@ PUBLIC status_t ramfs_check(void *ramfs_addr)
     {
         return K_ERROR;
     }
-    uint8_t                *data  = (uint8_t *)ramfs_addr + sizeof(*ramfs_info);
+    uintptr_t               data  = (uintptr_t)ramfs_addr + sizeof(*ramfs_info);
     ramfs_file_meta_data_t *fdata = (ramfs_file_meta_data_t *)data;
     size_t                  offset = 0;
 
@@ -35,7 +35,7 @@ PUBLIC status_t ramfs_check(void *ramfs_addr)
         offset = sizeof(*fdata) + fdata->file_size;
         fdata  = (ramfs_file_meta_data_t *)(data + offset);
     }
-    fdata = (ramfs_file_meta_data_t *)((uint8_t *)fdata - offset);
+    fdata = (ramfs_file_meta_data_t *)((uintptr_t)fdata - offset);
     if (!strncmp((char *)data, "TRAILER!!!", 10))
     {
         return K_ERROR;
@@ -56,7 +56,7 @@ ramfs_open(void *ramfs_addr, const char *name, ramfs_file_t *file)
     {
         return K_ERROR;
     }
-    uint8_t                *data  = (uint8_t *)ramfs_addr + sizeof(*ramfs_info);
+    uintptr_t               data  = (uintptr_t)ramfs_addr + sizeof(*ramfs_info);
     ramfs_file_meta_data_t *fdata = (ramfs_file_meta_data_t *)data;
     size_t                  offset;
 
@@ -74,7 +74,7 @@ ramfs_open(void *ramfs_addr, const char *name, ramfs_file_t *file)
             return K_SUCCESS;
         }
         offset = sizeof(*fdata) + fdata->file_size;
-        fdata  = (ramfs_file_meta_data_t *)((uint8_t *)fdata + offset);
+        fdata  = (ramfs_file_meta_data_t *)((uintptr_t)fdata + offset);
     }
     return K_NOT_FOUND;
 }

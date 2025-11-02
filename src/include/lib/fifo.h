@@ -6,7 +6,7 @@
 #ifndef __FIFO_H__
 #define __FIFO_H__
 
-#include <device/spinlock.h>
+#include <sync/spinlock.h>
 
 typedef struct fifo_s
 {

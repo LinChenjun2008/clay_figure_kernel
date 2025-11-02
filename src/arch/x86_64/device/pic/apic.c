@@ -56,9 +56,9 @@ PUBLIC void detect_cores(void)
                     apic.lapic_id[apic.number_of_cores++] = p[3];
                 }
                 break;
-            case 1:
-                uint64_t ioapic_addr = (uint64_t)(*(uint32_t *)(p + 4) + 0UL);
-
+            case 1:;
+                uint64_t ioapic_addr;
+                memcpy(&ioapic_addr, p + 4, sizeof(uint64_t));
                 apic.ioapic[apic.number_of_ioapic].index_addr =
                     (uint8_t *)ioapic_addr;
 

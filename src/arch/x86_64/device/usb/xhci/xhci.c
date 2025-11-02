@@ -81,7 +81,7 @@ PRIVATE status_t xhci_controller_setup(void *mmio_base, xhci_t **xhci_addr)
     }
     memset(xhci, 0, sizeof(*xhci));
     xhci->mmio_base = mmio_base;
-    xhci->cap_regs  = xhci->mmio_base;
+    xhci->cap_regs  = (uintptr_t)xhci->mmio_base;
 
     size_t caplength = xhci_read_cap(xhci, XHCI_CAP_CAPLENGTH);
     xhci->opt_regs   = xhci->cap_regs + GET_FIELD(caplength, CAPLENGTH);
@@ -596,7 +596,7 @@ PUBLIC void xhci_process_events(xhci_t *xhci)
                 fifo_write(&xhci->cmds_evts, trb);
                 break;
 
-            case ER_PORT_STATUS_CHANGE:
+            case ER_PORT_STATUS_CHANGE:;
                 uint32_t port   = ((trb->ptr >> 24) & 0xff) - 1;
                 uint32_t portsc = xhci_read_opt(xhci, XHCI_OPT_PORTSC(port));
                 if ((portsc & XHCI_PORTSC_CSC))

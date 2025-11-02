@@ -6,7 +6,7 @@
 #ifndef __MM_STRUCT_H__
 #define __MM_STRUCT_H__
 
-#include <device/spinlock.h> // spinlock
+#include <sync/spinlock.h> // spinlock
 
 typedef struct mm_block_s
 {

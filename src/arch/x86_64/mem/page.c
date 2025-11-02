@@ -7,12 +7,12 @@
 
 #include <log.h>
 
-#include <device/spinlock.h> // spinlock
-#include <io.h>              // get_cr2,get_cr3
-#include <lib/bitmap.h>      // bitmap
-#include <mem/allocator.h>   // kmalloc
-#include <mem/page.h>        // previous
-#include <std/string.h>      // memset
+#include <io.h>            // get_cr2,get_cr3
+#include <lib/bitmap.h>    // bitmap
+#include <mem/allocator.h> // kmalloc
+#include <mem/page.h>      // previous
+#include <std/string.h>    // memset
+#include <sync/spinlock.h> // spinlock
 
 // do_page_fault
 #include <intr.h>      // register_handler

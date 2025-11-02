@@ -504,11 +504,11 @@ typedef struct xhci_s
     usb_t usb;
 
     /* xhci registers */
-    uint8_t *mmio_base;
-    uint8_t *cap_regs;
-    uint8_t *opt_regs;
-    uint8_t *run_regs;
-    uint8_t *doorbell_regs;
+    uint8_t  *mmio_base;
+    uintptr_t cap_regs;
+    uintptr_t opt_regs;
+    uintptr_t run_regs;
+    uintptr_t doorbell_regs;
 
     /* devinfo */
     uint32_t       xecp;

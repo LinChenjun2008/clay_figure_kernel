@@ -6,7 +6,7 @@
 #ifndef __USB_H__
 #define __USB_H__
 
-#include <device/spinlock.h> // spinlock_t
+#include <sync/spinlock.h> // spinlock_t
 
 typedef struct pci_device_s pci_device_t;
 
