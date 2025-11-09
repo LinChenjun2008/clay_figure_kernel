@@ -11,7 +11,7 @@
 #include <service.h>     // is_service_id,service_id_to_pid
 #include <std/string.h>  // memcpy
 #include <sync/atomic.h> // atomic_inc,atomic_dec
-#include <task/task.h>   // task_struct_t running_task,list
+#include <task/task.h>   // task_struct_t get_current_task,list
 
 PUBLIC void inform_intr(pid_t dst)
 {
@@ -37,7 +37,7 @@ PUBLIC void inform_intr(pid_t dst)
 PRIVATE void wait_receviced(void)
 {
 
-    task_struct_t *sender   = running_task();
+    task_struct_t *sender   = get_current_task();
     task_struct_t *receiver = pid_to_task(sender->send_to);
 
     spinlock_lock(&receiver->send_lock);
@@ -53,7 +53,7 @@ PRIVATE void wait_receviced(void)
 
 PUBLIC syscall_status_t msg_send(pid_t dst, message_t *msg)
 {
-    task_struct_t *sender = running_task();
+    task_struct_t *sender = get_current_task();
     sender->send_to       = PID_NO_TASK;
     if (!task_exist(dst))
     {
@@ -132,7 +132,7 @@ PRIVATE int received_from(pid_t pid, pid_t src)
 
 PUBLIC syscall_status_t msg_recv(pid_t src, message_t *msg)
 {
-    task_struct_t *receiver = running_task();
+    task_struct_t *receiver = get_current_task();
     task_struct_t *sender   = NULL;
 
     receiver->recv_from = PID_NO_TASK;

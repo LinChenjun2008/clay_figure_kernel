@@ -7,7 +7,7 @@
 
 #include <log.h>
 
-#include <device/cpu.h>     // apic_id,IA32_KERNEL_GS_BASE
+#include <device/cpu.h>     // apic_id
 #include <kernel/syscall.h> // sys_send_recv
 #include <mem/allocator.h>  // kmalloc,kfree
 #include <mem/page.h>       // alloc_physical_page,page_map,set_page_table
@@ -44,7 +44,7 @@ extern void ASMLINKAGE asm_switch_to_user(
 PRIVATE void start_process(void *process)
 {
     void          *func = process;
-    task_struct_t *cur  = running_task();
+    task_struct_t *cur  = get_current_task();
 
     status_t status = alloc_physical_page(cur->ustack_pages, &cur->ustack_base);
     if (ERROR(status))
@@ -96,7 +96,7 @@ PUBLIC void proc_activate(task_struct_t *task)
     {
         update_tss_rsp0(task);
     }
-    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)task);
+    set_current_task(task);
     return;
 }
 
@@ -223,7 +223,7 @@ PUBLIC task_struct_t *proc_execute(
         PR_LOG(LOG_ERROR, "Can not init vaddr table.\n");
         goto fail;
     }
-    task_struct_t *parent_task = running_task();
+    task_struct_t *parent_task = get_current_task();
     atomic_inc(&parent_task->childs);
     task->ppid = parent_task->pid;
 
@@ -244,7 +244,7 @@ fail:
 
 PUBLIC void proc_exit(int status)
 {
-    task_struct_t *task   = running_task();
+    task_struct_t *task   = get_current_task();
     void          *pg_dir = task->page_dir;
 
     free_physical_page((void *)task->ustack_base, task->ustack_pages);

@@ -16,7 +16,7 @@
 #include <mem/mem.h>        // IS_AVAILABLE_ADDRESS
 #include <service.h>        // MM_EXIT
 #include <sync/spinlock.h>  // spinlock_t,spinlock_lock,spinlock_unlock
-#include <task/task.h>      // task_struct_t,running_task
+#include <task/task.h>      // task_struct_t,get_current_task
 
 void (*irq_handler[IRQ_CNT])(intr_stack_t *);
 
@@ -114,9 +114,9 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
     b >>= 24;
     pr_msg("CPUID: %d\n", b);
 
-    if (running_task() != NULL)
+    if (get_current_task() != NULL)
     {
-        task_struct_t *running = running_task();
+        task_struct_t *running = get_current_task();
         pr_msg("running task: %s\n", running->name);
         pr_msg("task context: %p\n", running->context);
     }
@@ -176,7 +176,7 @@ PUBLIC void default_irq_handler(intr_stack_t *stack)
     pr_msg("\n");
     spinlock_unlock(&intr_lock);
     pr_debug_info(stack);
-    task_struct_t *running = running_task();
+    task_struct_t *running = get_current_task();
     if (running->page_dir != NULL)
     {
         proc_exit(-1);

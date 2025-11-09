@@ -10,7 +10,7 @@
 #include <kernel/syscall.h>
 #include <service.h>
 #include <std/string.h> // memcpy
-#include <task/task.h>  // running_task
+#include <task/task.h>  // get_current_task
 
 // previous prototype for each function
 PUBLIC syscall_status_t kern_exit(message_t *msg);
@@ -34,7 +34,7 @@ PUBLIC syscall_status_t kern_get_pid(message_t *msg)
 {
     pid_t *out_pid = (pid_t *)&msg->m[OUT_KERN_GET_PID_PID];
 
-    task_struct_t *task = running_task();
+    task_struct_t *task = get_current_task();
 
     *out_pid = task->pid; // or msg->src
 
@@ -45,7 +45,7 @@ PUBLIC syscall_status_t kern_get_ppid(message_t *msg)
 {
     pid_t *out_ppid = (pid_t *)&msg->m[OUT_KERN_GET_PPID_PPID];
 
-    task_struct_t *task = running_task();
+    task_struct_t *task = get_current_task();
 
     *out_ppid = task->ppid;
 
@@ -59,7 +59,7 @@ PUBLIC syscall_status_t kern_create_proc(message_t *msg)
 
     pid_t *out_pid = (pid_t *)&msg->m[OUT_KERN_CREATE_PROC_PID];
 
-    task_struct_t *task = running_task();
+    task_struct_t *task = get_current_task();
 
     char name[32];
     /// TODO: 验证地址
@@ -101,7 +101,7 @@ PUBLIC syscall_status_t kern_waitpid(message_t *msg)
     int   *out_status = (int *)&msg->m[OUT_KERN_WAITPID_STATUS];
     pid_t *out_pid    = (pid_t *)&msg->m[OUT_KERN_WAITPID_PID];
 
-    task_struct_t *task = running_task();
+    task_struct_t *task = get_current_task();
 
     if (atomic_read(&task->childs) == 0)
     {

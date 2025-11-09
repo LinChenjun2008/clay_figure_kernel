@@ -11,7 +11,7 @@
 #include <softirq.h>
 #include <std/string.h>  // memset
 #include <sync/atomic.h> // atomic_t
-#include <task/task.h>   // running_task
+#include <task/task.h>   // get_current_task
 
 PRIVATE struct
 {

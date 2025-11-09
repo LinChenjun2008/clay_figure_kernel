@@ -427,177 +427,177 @@ PUBLIC void free_ttf_info(ttf_info_t *ttf_info)
 //     return;
 // }
 
-PUBLIC void pr_ch(
-    graph_info_t *graph_info,
-    ttf_info_t   *ttf_info,
-    textbox_t    *tb,
-    uint32_t      col,
-    uint64_t      ch,
-    float         font_size
-)
-{
-    if (!ttf_info->has_ttf)
-    {
-        return;
-    }
-    /* scale = font_size / (ascent - descent) */
-    float scale   = stbtt_ScaleForPixelHeight(&ttf_info->info, font_size);
-    int   ascent  = 0;
-    int   descent = 0;
-    int   lineGap = 0;
-    stbtt_GetFontVMetrics(&ttf_info->info, &ascent, &descent, &lineGap);
-    ascent  = ceil(ascent * scale);
-    descent = ceil(descent * scale);
+// PUBLIC void pr_ch(
+//     graph_info_t *graph_info,
+//     ttf_info_t   *ttf_info,
+//     textbox_t    *tb,
+//     uint32_t      col,
+//     uint64_t      ch,
+//     float         font_size
+// )
+// {
+//     if (!ttf_info->has_ttf)
+//     {
+//         return;
+//     }
+//     /* scale = font_size / (ascent - descent) */
+//     float scale   = stbtt_ScaleForPixelHeight(&ttf_info->info, font_size);
+//     int   ascent  = 0;
+//     int   descent = 0;
+//     int   lineGap = 0;
+//     stbtt_GetFontVMetrics(&ttf_info->info, &ascent, &descent, &lineGap);
+//     ascent  = ceil(ascent * scale);
+//     descent = ceil(descent * scale);
 
-    int advanceWidth    = 0;
-    int leftSideBearing = 0;
-    stbtt_GetCodepointHMetrics(
-        &ttf_info->info, ch, &advanceWidth, &leftSideBearing
-    );
-    int c_x1, c_y1, c_x2, c_y2;
-    stbtt_GetCodepointBitmapBox(
-        &ttf_info->info, ch, scale, scale, &c_x1, &c_y1, &c_x2, &c_y2
-    );
+//     int advanceWidth    = 0;
+//     int leftSideBearing = 0;
+//     stbtt_GetCodepointHMetrics(
+//         &ttf_info->info, ch, &advanceWidth, &leftSideBearing
+//     );
+//     int c_x1, c_y1, c_x2, c_y2;
+//     stbtt_GetCodepointBitmapBox(
+//         &ttf_info->info, ch, scale, scale, &c_x1, &c_y1, &c_x2, &c_y2
+//     );
 
-    int y = ascent + c_y1;
+//     int y = ascent + c_y1;
 
-    int x          = 0;
-    int byteOffset = x + ceil(leftSideBearing * scale) + (y * font_size);
-    stbtt_MakeCodepointBitmap(
-        &ttf_info->info,
-        ttf_info->bitmap + byteOffset,
-        c_x2 - c_x1,
-        c_y2 - c_y1,
-        (int)font_size,
-        scale,
-        scale,
-        ch
-    );
-    uint32_t    *frame_buffer = (uint32_t *)graph_info->frame_buffer_base;
-    unsigned int xsize        = graph_info->pixel_per_scanline;
+//     int x          = 0;
+//     int byteOffset = x + ceil(leftSideBearing * scale) + (y * font_size);
+//     stbtt_MakeCodepointBitmap(
+//         &ttf_info->info,
+//         ttf_info->bitmap + byteOffset,
+//         c_x2 - c_x1,
+//         c_y2 - c_y1,
+//         (int)font_size,
+//         scale,
+//         scale,
+//         ch
+//     );
+//     uint32_t    *frame_buffer = (uint32_t *)graph_info->frame_buffer_base;
+//     unsigned int xsize        = graph_info->pixel_per_scanline;
 
-    int x0, y0;
-    for (x0 = 0; x0 < font_size; x0++)
-    {
-        for (y0 = 0; y0 < font_size; y0++)
-        {
-            if (ttf_info->bitmap[y0 * (int)font_size + x0])
-            {
-                uint8_t r, g, b;
-                uint8_t alpha = ttf_info->bitmap[y0 * (int)font_size + x0];
-                r             = (alpha * GET_FIELD(col, RED)) >> 8;
-                g             = (alpha * GET_FIELD(col, GREEN)) >> 8;
-                b             = (alpha * GET_FIELD(col, BLUE)) >> 8;
-                uint32_t *buf;
-                buf = frame_buffer +
-                      (tb->box_pos.y + tb->cur_pos.y + y0) * xsize +
-                      tb->box_pos.x + tb->cur_pos.x + x0;
-                *buf = RGB(r, g, b);
-            }
-        }
-    }
-}
+//     int x0, y0;
+//     for (x0 = 0; x0 < font_size; x0++)
+//     {
+//         for (y0 = 0; y0 < font_size; y0++)
+//         {
+//             if (ttf_info->bitmap[y0 * (int)font_size + x0])
+//             {
+//                 uint8_t r, g, b;
+//                 uint8_t alpha = ttf_info->bitmap[y0 * (int)font_size + x0];
+//                 r             = (alpha * GET_FIELD(col, RED)) >> 8;
+//                 g             = (alpha * GET_FIELD(col, GREEN)) >> 8;
+//                 b             = (alpha * GET_FIELD(col, BLUE)) >> 8;
+//                 uint32_t *buf;
+//                 buf = frame_buffer +
+//                       (tb->box_pos.y + tb->cur_pos.y + y0) * xsize +
+//                       tb->box_pos.x + tb->cur_pos.x + x0;
+//                 *buf = RGB(r, g, b);
+//             }
+//         }
+//     }
+// }
 
-PRIVATE uint64_t utf8_decode(const char **_str)
-{
-    unsigned char *str  = *((unsigned char **)_str);
-    uint64_t       code = 0;
-    if ((*str >> 7) == 0)
-    {
-        code = *str;
-        str++;
-    }
-    else if (((*str >> 5) & 0x0f) == 0x6)
-    {
-        code = (*str & 0x1f) << 6;
-        str++;
-        code |= (*str & 0x3f);
-        str++;
-    }
-    else if (((*str >> 4) & 0xf) == 0xe)
-    {
-        code = (*str & 0x0f) << 12;
-        str++;
-        code |= (*str & 0x3f) << 6;
-        str++;
-        code |= (*str & 0x3f) << 0;
-        str++;
-    }
-    *_str = (char *)str;
-    return code;
-}
+// PRIVATE uint64_t utf8_decode(const char **_str)
+// {
+//     unsigned char *str  = *((unsigned char **)_str);
+//     uint64_t       code = 0;
+//     if ((*str >> 7) == 0)
+//     {
+//         code = *str;
+//         str++;
+//     }
+//     else if (((*str >> 5) & 0x0f) == 0x6)
+//     {
+//         code = (*str & 0x1f) << 6;
+//         str++;
+//         code |= (*str & 0x3f);
+//         str++;
+//     }
+//     else if (((*str >> 4) & 0xf) == 0xe)
+//     {
+//         code = (*str & 0x0f) << 12;
+//         str++;
+//         code |= (*str & 0x3f) << 6;
+//         str++;
+//         code |= (*str & 0x3f) << 0;
+//         str++;
+//     }
+//     *_str = (char *)str;
+//     return code;
+// }
 
-PUBLIC void pr_ttf_str(
-    graph_info_t *graph_info,
-    ttf_info_t   *ttf_info,
-    textbox_t    *tb,
-    uint32_t      color,
-    const char   *str,
-    float         font_size
-)
-{
-    if (!ttf_info->has_ttf)
-    {
-        basic_print(graph_info, tb, color, str);
-        return;
-    }
-    font_size *= 2;
-    float scale   = stbtt_ScaleForPixelHeight(&ttf_info->info, font_size);
-    int   ascent  = 0;
-    int   descent = 0;
-    int   lineGap = 0;
-    stbtt_GetFontVMetrics(&ttf_info->info, &ascent, &descent, &lineGap);
-    ascent        = ceil(ascent * scale);
-    descent       = ceil(descent * scale);
-    uint64_t code = 0;
-    while (*str)
-    {
-        code                        = utf8_decode(&str);
-        int         advanceWidth    = 0;
-        int         leftSideBearing = 0;
-        const char *next            = str;
-        stbtt_GetCodepointHMetrics(
-            &ttf_info->info, code, &advanceWidth, &leftSideBearing
-        );
-        int kern = stbtt_GetCodepointKernAdvance(
-            &ttf_info->info, code, utf8_decode(&next)
-        );
+// PUBLIC void pr_ttf_str(
+//     graph_info_t *graph_info,
+//     ttf_info_t   *ttf_info,
+//     textbox_t    *tb,
+//     uint32_t      color,
+//     const char   *str,
+//     float         font_size
+// )
+// {
+//     if (!ttf_info->has_ttf)
+//     {
+//         basic_print(graph_info, tb, color, str);
+//         return;
+//     }
+//     font_size *= 2;
+//     float scale   = stbtt_ScaleForPixelHeight(&ttf_info->info, font_size);
+//     int   ascent  = 0;
+//     int   descent = 0;
+//     int   lineGap = 0;
+//     stbtt_GetFontVMetrics(&ttf_info->info, &ascent, &descent, &lineGap);
+//     ascent        = ceil(ascent * scale);
+//     descent       = ceil(descent * scale);
+//     uint64_t code = 0;
+//     while (*str)
+//     {
+//         code                        = utf8_decode(&str);
+//         int         advanceWidth    = 0;
+//         int         leftSideBearing = 0;
+//         const char *next            = str;
+//         stbtt_GetCodepointHMetrics(
+//             &ttf_info->info, code, &advanceWidth, &leftSideBearing
+//         );
+//         int kern = stbtt_GetCodepointKernAdvance(
+//             &ttf_info->info, code, utf8_decode(&next)
+//         );
 
-        uint32_t char_xsize = ceil(advanceWidth * scale) + ceil(kern * scale);
-        uint32_t char_ysize = (ascent - descent + lineGap);
-        if (code == '\n')
-        {
-            tb->cur_pos.x = 0;
-            tb->cur_pos.y += char_ysize;
-            continue;
-        }
-        if (code == ' ')
-        {
-            tb->cur_pos.x += char_xsize;
-            continue;
-        }
-        if (code == '\r')
-        {
-            tb->cur_pos.x = 0;
-            continue;
-        }
-        memset(ttf_info->bitmap, 0, sizeof(char[512 * 512]));
-        pr_ch(graph_info, ttf_info, tb, color, code, font_size);
+//         uint32_t char_xsize = ceil(advanceWidth * scale) + ceil(kern * scale);
+//         uint32_t char_ysize = (ascent - descent + lineGap);
+//         if (code == '\n')
+//         {
+//             tb->cur_pos.x = 0;
+//             tb->cur_pos.y += char_ysize;
+//             continue;
+//         }
+//         if (code == ' ')
+//         {
+//             tb->cur_pos.x += char_xsize;
+//             continue;
+//         }
+//         if (code == '\r')
+//         {
+//             tb->cur_pos.x = 0;
+//             continue;
+//         }
+//         memset(ttf_info->bitmap, 0, sizeof(char[512 * 512]));
+//         pr_ch(graph_info, ttf_info, tb, color, code, font_size);
 
-        tb->cur_pos.x += char_xsize;
+//         tb->cur_pos.x += char_xsize;
 
-        uint32_t max_x, max_y;
-        max_x = tb->xsize - char_xsize;
-        max_y = tb->ysize - char_ysize;
-        if (tb->cur_pos.x >= max_x)
-        {
-            tb->cur_pos.x = 0;
-            tb->cur_pos.y += char_ysize;
-            if (tb->cur_pos.y > max_y)
-            {
-                tb->cur_pos.y = 0;
-            }
-        }
-    }
-    return;
-}
+//         uint32_t max_x, max_y;
+//         max_x = tb->xsize - char_xsize;
+//         max_y = tb->ysize - char_ysize;
+//         if (tb->cur_pos.x >= max_x)
+//         {
+//             tb->cur_pos.x = 0;
+//             tb->cur_pos.y += char_ysize;
+//             if (tb->cur_pos.y > max_y)
+//             {
+//                 tb->cur_pos.y = 0;
+//             }
+//         }
+//     }
+//     return;
+// }

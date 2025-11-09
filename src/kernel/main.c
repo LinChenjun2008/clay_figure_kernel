@@ -79,7 +79,7 @@ PUBLIC void ap_kernel_main(void)
 {
     ap_init_all();
     char name[31];
-    sprintf(name, "k task %d", running_task()->cpu_id);
+    sprintf(name, "k task %d", get_current_task()->cpu_id);
     proc_execute(name, DEFAULT_PRIORITY, 1, 1, ktask);
 
     message_t msg;

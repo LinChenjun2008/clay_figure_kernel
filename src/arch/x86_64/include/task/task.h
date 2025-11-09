@@ -185,11 +185,18 @@ PUBLIC task_struct_t *pid_to_task(pid_t pid);
  */
 PUBLIC bool task_exist(pid_t pid);
 
+
+/**
+ * @brief 设置当前正在运行的任务的结构体
+ * @param task 当前任务
+ */
+PUBLIC void set_current_task(task_struct_t *task);
+
 /**
  * @brief 获取当前正在运行的任务的结构体
  * @return 当前正在运行的任务的结构体
  */
-PUBLIC task_struct_t *running_task(void);
+PUBLIC task_struct_t *get_current_task(void);
 
 /**
  * @brief 在任务表中分配一个任务

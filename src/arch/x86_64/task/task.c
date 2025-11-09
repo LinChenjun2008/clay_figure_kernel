@@ -73,8 +73,14 @@ PUBLIC bool task_exist(pid_t pid)
     return 0;
 }
 
-// running_task() can only be called in ring 0
-PUBLIC task_struct_t *running_task(void)
+PUBLIC void set_current_task(task_struct_t *task)
+{
+    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)task);
+    return;
+}
+
+// get_current_task() can only be called in ring 0
+PUBLIC task_struct_t *get_current_task(void)
 {
     return (task_struct_t *)rdmsr(IA32_KERNEL_GS_BASE);
 }
@@ -173,14 +179,14 @@ PUBLIC status_t init_task_struct(
     task->ustack_pages = ustack_pages;
 
     task->pid  = task_to_pid(task);
-    task->ppid = running_task()->pid;
+    task->ppid = get_current_task()->pid;
 
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
 
     task->status        = TASK_READY;
     task->preempt_count = 0;
-    task->cpu_id        = running_task()->cpu_id;
+    task->cpu_id        = get_current_task()->cpu_id;
     task->page_dir      = NULL;
 
     task->priority  = priority;
@@ -257,7 +263,7 @@ PUBLIC task_struct_t *task_start(
     create_task_struct(task, func, arg);
 
     task_struct_t *parent_task = pid_to_task(task->ppid);
-    ASSERT(parent_task == running_task());
+    ASSERT(parent_task == get_current_task());
     atomic_inc(&parent_task->childs);
 
     task_man_t *task_man = get_task_man(task->cpu_id);
@@ -269,7 +275,7 @@ PUBLIC task_struct_t *task_start(
 
 PUBLIC void task_exit(int status)
 {
-    task_struct_t *task = running_task();
+    task_struct_t *task = get_current_task();
     task->return_status = status;
 
     /// TODO: 处理未完成的IPC
@@ -293,7 +299,7 @@ PUBLIC int task_release_resource(pid_t pid)
 {
     task_struct_t *task        = pid_to_task(pid);
     task_struct_t *parent_task = pid_to_task(task->ppid);
-    ASSERT(parent_task == running_task());
+    ASSERT(parent_task == get_current_task());
     kfree(task->fxsave_region);
 
     free_physical_page(VIRT_TO_PHYS(task->kstack_base), task->kstack_pages);
@@ -322,7 +328,7 @@ PRIVATE void make_main_task(void)
     main_task->cpu_id        = apic_id();
 
     task_man_t *task_man = get_task_man(main_task->cpu_id);
-    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)main_task);
+    set_current_task(main_task);
 
     init_task_struct(
         main_task,
@@ -339,7 +345,7 @@ PRIVATE void make_main_task(void)
 
 PUBLIC void create_idle_task(void)
 {
-    task_struct_t *task     = running_task();
+    task_struct_t *task     = get_current_task();
     task_man_t    *task_man = get_task_man(task->cpu_id);
 
     task_struct_t *idle = task_start("idle", IDLE_PRIORITY, 4096, idle_task, 0);

@@ -200,7 +200,7 @@ PUBLIC void init_all(void)
     smp_start();
 
     *((uint64_t *)KERNEL_PAGE_DIR_TABLE_POS) = 0;
-    page_table_activate(running_task());
+    page_table_activate(get_current_task());
     return;
 }
 
@@ -216,9 +216,9 @@ PUBLIC void ap_init_all(void)
     load_gdt();
     load_tss(cpu_id);
 
-    wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)get_task_man(cpu_id)->main_task);
-    running_task()->status = TASK_RUNNING;
-    page_table_activate(running_task());
+    set_current_task(get_task_man(cpu_id)->main_task);
+    get_current_task()->status = TASK_RUNNING;
+    page_table_activate(get_current_task());
 
     ap_intr_init();
     local_apic_init();

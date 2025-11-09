@@ -64,7 +64,7 @@ PUBLIC uint64_t get_min_vrun_time(uint32_t cpu_id)
 PUBLIC void task_update(void)
 {
     ASSERT(intr_get_status() == INTR_OFF);
-    task_struct_t *cur_task = running_task();
+    task_struct_t *cur_task = get_current_task();
     cur_task->run_time++;
     update_vrun_time(cur_task);
     return;
@@ -149,7 +149,7 @@ asm_switch_to(task_context_t **cur, task_context_t **next);
 
 PUBLIC void schedule(void)
 {
-    task_struct_t *cur_task = running_task();
+    task_struct_t *cur_task = get_current_task();
     uint32_t       cpu_id   = cur_task->cpu_id;
     task_man_t    *task_man = get_task_man(cpu_id);
 
@@ -230,7 +230,7 @@ PUBLIC void task_list_insert(task_man_t *task_man, task_struct_t *task)
 PUBLIC void task_block(task_status_t status)
 {
     intr_status_t  intr_status = intr_disable();
-    task_struct_t *cur_task    = running_task();
+    task_struct_t *cur_task    = get_current_task();
     ASSERT(cur_task->preempt_count == 0);
     cur_task->status = status;
     schedule();

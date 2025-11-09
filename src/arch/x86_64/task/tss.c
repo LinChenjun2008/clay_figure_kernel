@@ -61,6 +61,6 @@ PUBLIC void init_tss(uint8_t cpu_id)
 PUBLIC void update_tss_rsp0(task_struct_t *task)
 {
     uint64_t kstack_base = task->kstack_base + task->kstack_pages * PG_SIZE;
-    tss[running_task()->cpu_id].rsp0 = kstack_base;
+    tss[get_current_task()->cpu_id].rsp0 = kstack_base;
     return;
 }

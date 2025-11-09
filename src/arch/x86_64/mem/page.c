@@ -105,7 +105,7 @@ PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
 
 PRIVATE void do_page_fault(intr_stack_t *stack)
 {
-    task_struct_t *task          = running_task();
+    task_struct_t *task          = get_current_task();
     uintptr_t      fault_address = get_cr2();
     uintptr_t      cr3           = get_cr3();
     uint64_t       error_code    = stack->error_code;

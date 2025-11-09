@@ -24,7 +24,7 @@ PUBLIC syscall_status_t kern_allocate_page(message_t *msg)
     uint64_t   in_count = (uint64_t)msg->m[IN_KERN_ALLOCATE_PAGE_COUNT];
     uintptr_t *out_addr = (uintptr_t *)&msg->m[OUT_KERN_ALLOCATE_PAGE_ADDR];
 
-    task_struct_t *cur_task = running_task();
+    task_struct_t *cur_task = get_current_task();
 
     status_t  status;
     uintptr_t vaddr = 0;
@@ -50,7 +50,7 @@ PUBLIC syscall_status_t kern_free_page(message_t *msg)
     uintptr_t in_addr  = (uintptr_t)msg->m[IN_KERN_FREE_PAGE_ADDR];
     uint64_t  in_count = (uint64_t)msg->m[IN_KERN_FREE_PAGE_COUNT];
 
-    task_struct_t *cur_task = running_task();
+    task_struct_t *cur_task = get_current_task();
 
     uintptr_t vaddr;
     void     *paddr;
