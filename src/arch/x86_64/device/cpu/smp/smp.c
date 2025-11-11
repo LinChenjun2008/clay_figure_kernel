@@ -55,7 +55,7 @@ PUBLIC status_t smp_init(void)
     status         = kmalloc(apu_stack_size, 0, 0, &apu_stack_base);
     if (ERROR(status))
     {
-        PANIC(1, "Failed to alloc memory for apu. \n");
+        PANIC(1, status, "Failed to alloc memory for apu.");
         return K_NOMEM;
     }
     *(uintptr_t *)AP_STACK_BASE_PTR = (uintptr_t)apu_stack_base;
@@ -68,7 +68,7 @@ PUBLIC status_t smp_init(void)
         task_struct_t *ap_main_task = task_alloc();
         if (ap_main_task == NULL)
         {
-            PANIC(1, "Failed to alloc task for AP.\n");
+            PANIC(1, status, "Failed to alloc task for AP.");
             return K_NOMEM;
         }
         init_task_struct(

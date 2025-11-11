@@ -74,6 +74,7 @@ PUBLIC void panic_spin(
     const char *filename,
     int         line,
     const char *func,
+    status_t    err_code,
     const char *message
 );
 
@@ -82,13 +83,13 @@ PUBLIC void panic_spin(
 #define PR_LOG(LEVEL, MESSAGE, args...) \
     pr_log(LEVEL, "%s: " MESSAGE, __func__, ##args)
 
-#define PANIC(CONDITION, MESSAGE)                              \
-    do                                                         \
-    {                                                          \
-        if (CONDITION)                                         \
-        {                                                      \
-            panic_spin(__FILE__, __LINE__, __func__, MESSAGE); \
-        }                                                      \
+#define PANIC(CONDITION, ERR_CODE, MESSAGE)                              \
+    do                                                                   \
+    {                                                                    \
+        if (CONDITION)                                                   \
+        {                                                                \
+            panic_spin(__FILE__, __LINE__, __func__, ERR_CODE, MESSAGE); \
+        }                                                                \
     } while (0)
 
 #if defined __DISABLE_ASSERT__
@@ -97,13 +98,13 @@ PUBLIC void panic_spin(
 
 #else
 
-#    define ASSERT(X)                        \
-        do                                   \
-        {                                    \
-            if (!(X))                        \
-            {                                \
-                PANIC(#X, "ASSERT(" #X ")"); \
-            }                                \
+#    define ASSERT(X)                           \
+        do                                      \
+        {                                       \
+            if (!(X))                           \
+            {                                   \
+                PANIC(#X, 0, "ASSERT(" #X ")"); \
+            }                                   \
         } while (0)
 
 #endif /* __DISABLE_ASSERT__ */

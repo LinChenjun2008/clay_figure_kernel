@@ -14,6 +14,7 @@
 #include <intr.h>          // intr_disable
 #include <io.h>            // io_hlt
 #include <mem/allocator.h> // kmalloc,kfree
+#include <mem/page.h>      // KERNEL_TEXT_BASE
 #include <ramfs.h>         // ramfs_open
 #include <std/stdarg.h>
 #include <std/stdio.h>
@@ -261,6 +262,34 @@ basic_print(graph_info_t *gi, textbox_t *tb, uint32_t col, const char *str)
     return;
 }
 
+PRIVATE const char *err_string(status_t err_code)
+{
+    switch (err_code)
+    {
+        case K_ERROR:
+            return "ERROR";
+        case K_NOMEM:
+            return "NOMEM";
+        case K_NOSUPPORT:
+            return "NOSUPPORT";
+        case K_HW_NOSUPPORT:
+            return "HW_NOSUPPORT";
+        case K_DEADLOCK:
+            return "DEADLOCK";
+        case K_INVALID_PARAM:
+            return "INVALID_PARAM";
+        case K_INVALID_ADDR:
+            return "INVALID_ADDR";
+        case K_OUT_OF_RESOURCE:
+            return "OUT_OF_RESOURCE";
+        case K_NOT_FOUND:
+            return "NOT_FOUND";
+        case K_TIMEOUT:
+            return "TIMEOUT";
+    }
+    return "";
+}
+
 PRIVATE spinlock_t panic_lock = { 1 };
 
 extern void ASMLINKAGE asm_debug_intr();
@@ -269,6 +298,7 @@ PUBLIC void panic_spin(
     const char *filename,
     int         line,
     const char *func,
+    status_t    err_code,
     const char *message
 )
 {
@@ -287,10 +317,18 @@ PUBLIC void panic_spin(
     send_ipi(icr);
     intr_disable();
     pr_msg("\n");
-    pr_msg(">>> PANIC <<<\n");
     pr_msg("%s: In function '%s':\n", filename, func);
-    pr_msg("%s:%d: %s\n", filename, line, message);
+    pr_msg("%s:%d: %s\n", filename, line, err_string(err_code));
+    pr_msg("\n");
+
+    pr_msg("Kernel panic - no syncing: %s\n", message);
     asm_debug_intr();
+    pr_msg(
+        "Kernel offset: %#08x from %p\n",
+        BOOT_INFO->relocate_base - KERNEL_TEXT_BASE,
+        KERNEL_TEXT_BASE
+    );
+    pr_msg("---[ end kernel panic - no syncing: %s ]---", message);
     while (1) io_hlt();
 }
 

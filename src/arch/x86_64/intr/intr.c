@@ -55,13 +55,8 @@ PRIVATE void set_gatedesc(gate_desc_t *gd, void *func, int selector, int ar)
 PRIVATE void pr_debug_info(intr_stack_t *stack)
 {
     pr_msg("\n");
-    int i;
-    for (i = 0; i < 19; i++)
-    {
-        pr_msg("=====");
-    }
-    pr_msg("\n");
-    pr_msg("Registers:\n\n");
+    pr_msg("CPUID: %d PID: %d\n", apic_id(), get_current_task()->pid);
+
     uint64_t cr2, cr3;
     cr2 = get_cr2();
     cr3 = get_cr3();
@@ -109,28 +104,14 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
         stack->r14,
         stack->r15
     );
-    uint32_t a, b, c, d;
-    asm_cpuid(1, 0, &a, &b, &c, &d);
-    b >>= 24;
-    pr_msg("CPUID: %d\n", b);
-
-    if (get_current_task() != NULL)
-    {
-        task_struct_t *running = get_current_task();
-        pr_msg("running task: %s\n", running->name);
-        pr_msg("task context: %p\n", running->context);
-    }
-
 
     // Backtrace
-    for (i = 0; i < 19; i++)
-    {
-        pr_msg("=====");
-    }
-    pr_msg("\nKernel Stack Backtrace:\n\n");
+
+    pr_msg("Call trace:\n");
     int        sym_idx;
     uintptr_t *rip = (uintptr_t *)stack->rip;
     uintptr_t *rbp = (uintptr_t *)stack->rbp;
+    int        i;
     for (i = 0; i < 8; i++)
     {
         status_t status = get_symbol_index_by_addr(rip, &sym_idx);
@@ -138,12 +119,17 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
         {
             break;
         }
-        size_t offset = (uintptr_t)rip - BOOT_INFO->relocate_base;
+        size_t    offset  = (uintptr_t)rip - BOOT_INFO->relocate_base;
+        uintptr_t sym_off = offset - (uintptr_t)index_to_addr(sym_idx);
+        size_t    sym_len =
+            (size_t)index_to_addr(sym_idx + 1) - (size_t)index_to_addr(sym_idx);
         pr_msg(
-            "    At address: %p [ %s + %#x ]\n",
+            "    [<%p>] %s+%#x/%#x\n",
             rip,
             index_to_symbol(sym_idx),
-            offset - (uintptr_t)index_to_addr(sym_idx)
+            sym_off,
+            sym_len
+
         );
         if (!IS_AVAILABLE_ADDRESS(rbp + 1))
         {
@@ -152,11 +138,7 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
         rip = (uintptr_t *)*(rbp + 1);
         rbp = (uintptr_t *)*rbp;
     }
-    for (i = 0; i < 19; i++)
-    {
-        pr_msg("=====");
-    }
-    pr_msg("\n");
+    pr_msg("---[end trace]---\n");
 }
 
 PUBLIC void default_irq_handler(intr_stack_t *stack)

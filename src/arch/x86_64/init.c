@@ -93,7 +93,7 @@ PUBLIC void init_all(void)
     PR_MSG("Check initramfs...\n");
 
     status_t status = ramfs_check(BOOT_INFO->initramfs);
-    PANIC(ERROR(status), "initramfs check failed.\n");
+    PANIC(ERROR(status), K_ERROR, "initramfs check failed.");
 
     ramfs_file_t fp;
     if (ERROR(ramfs_open(BOOT_INFO->initramfs, "config", &fp)))

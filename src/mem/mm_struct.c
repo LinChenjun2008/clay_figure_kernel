@@ -203,7 +203,7 @@ PUBLIC status_t mm_add_range(mm_struct_t *mm, uintptr_t start, size_t size)
     return ret;
 }
 
-PUBLIC status_t mm_alloc_sub(mm_struct_t *mm, size_t size, void *vaddr)
+PUBLIC status_t mm_alloc_sub(mm_struct_t *mm, size_t size, void *addr)
 {
     uint64_t  i;
     uintptr_t start;
@@ -215,7 +215,7 @@ PUBLIC status_t mm_alloc_sub(mm_struct_t *mm, size_t size, void *vaddr)
         {
             start = mm->blocks[i].start;
             mm_remove_range_sub(mm, start, size);
-            *(uintptr_t *)vaddr = start;
+            *(uintptr_t *)addr = start;
 
             ret = K_SUCCESS;
             break;
@@ -224,11 +224,11 @@ PUBLIC status_t mm_alloc_sub(mm_struct_t *mm, size_t size, void *vaddr)
     return ret;
 }
 
-PUBLIC status_t mm_alloc(mm_struct_t *mm, size_t size, void *vaddr)
+PUBLIC status_t mm_alloc(mm_struct_t *mm, size_t size, void *addr)
 {
     status_t ret = K_OUT_OF_RESOURCE;
     spinlock_lock(&mm->lock);
-    ret = mm_alloc_sub(mm, size, vaddr);
+    ret = mm_alloc_sub(mm, size, addr);
     spinlock_unlock(&mm->lock);
     return ret;
 }

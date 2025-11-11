@@ -360,7 +360,7 @@ PUBLIC void task_init(void)
     uint64_t  pages  = DIV_ROUND_UP(sizeof(*global_task_man), PG_SIZE);
     status_t  status = alloc_physical_page_sub(pages, &addr);
 
-    PANIC(ERROR(status), "Can not allocate memory for task manager.");
+    PANIC(ERROR(status), status, "Can not allocate memory for task manager.");
 
     global_task_man = PHYS_TO_VIRT(addr);
     memset(global_task_man, 0, sizeof(*global_task_man));

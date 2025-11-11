@@ -26,7 +26,7 @@ PUBLIC status_t fifo_write(fifo_t *fifo, void *item)
 {
     if (item == NULL)
     {
-        return K_INVAILD_ADDR;
+        return K_INVALID_ADDR;
     }
 
     if (fifo->free == 0) /* 没有空余 */
@@ -49,7 +49,7 @@ PUBLIC status_t fifo_read(fifo_t *fifo, void *item)
 {
     if (item == NULL)
     {
-        return K_INVAILD_ADDR;
+        return K_INVALID_ADDR;
     }
     if (fifo->free == fifo->size)
     {
