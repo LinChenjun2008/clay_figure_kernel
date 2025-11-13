@@ -22,8 +22,11 @@ extern void     io_out32(uint32_t port, uint32_t data);
 extern uint64_t get_flags(void);
 
 extern uint64_t get_rsp();
+extern uint64_t get_cr0();
 extern uint64_t get_cr2();
 extern uint64_t get_cr3();
-extern void     set_cr3(uint64_t cr3);
+extern uint64_t get_cr4();
+
+extern void set_cr3(uint64_t cr3);
 
 #endif

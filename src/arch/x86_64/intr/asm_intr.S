@@ -95,8 +95,8 @@ intr_exit:
     addq $16, %rsp
     iretq
 
-.global asm_debug_intr
-.type asm_debug_intr, @function
-asm_debug_intr:
+.global asm_panic
+.type asm_panic, @function
+asm_panic:
     int $0x82
     ret

@@ -124,6 +124,12 @@ get_rsp:
     movq %rsp, %rax
     ret
 
+.global get_cr0
+.type get_cr0,@function
+get_cr0:
+    movq %cr0, %rax
+    ret
+
 .global get_cr2
 .type get_cr2,@function
 get_cr2:
@@ -140,6 +146,12 @@ get_cr3:
 .type set_cr3,@function
 set_cr3:
     movq %rdi, %cr3
+    ret
+
+.global get_cr4
+.type get_cr4,@function
+get_cr4:
+    movq %cr4, %rax
     ret
 
 .global rdmsr

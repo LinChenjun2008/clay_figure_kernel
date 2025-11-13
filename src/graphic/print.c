@@ -287,12 +287,12 @@ PRIVATE const char *err_string(status_t err_code)
         case K_TIMEOUT:
             return "TIMEOUT";
     }
-    return "";
+    return "[???]";
 }
 
 PRIVATE spinlock_t panic_lock = { 1 };
 
-extern void ASMLINKAGE asm_debug_intr();
+extern void ASMLINKAGE asm_panic();
 
 PUBLIC void panic_spin(
     const char *filename,
@@ -302,6 +302,17 @@ PUBLIC void panic_spin(
     const char *message
 )
 {
+    spinlock_lock(&panic_lock);
+    intr_disable();
+    pr_msg("\n");
+    pr_msg("%s: In function '%s':\n", filename, func);
+    pr_msg("%s:%d: %s\n", filename, line, err_string(err_code));
+    pr_msg("\n");
+
+    pr_msg("Kernel panic - no syncing: %s\n", message);
+    asm_panic();
+    pr_msg("Kernel panic - no syncing: %s\n", message);
+    pr_msg("SMP: stopping secondary CPUs\n");
     uint64_t icr;
     icr = make_icr(
         0x81,
@@ -313,16 +324,8 @@ PUBLIC void panic_spin(
         ICR_ALL_EXCLUDE_SELF,
         0
     );
-    spinlock_lock(&panic_lock);
     send_ipi(icr);
-    intr_disable();
-    pr_msg("\n");
-    pr_msg("%s: In function '%s':\n", filename, func);
-    pr_msg("%s:%d: %s\n", filename, line, err_string(err_code));
-    pr_msg("\n");
 
-    pr_msg("Kernel panic - no syncing: %s\n", message);
-    asm_debug_intr();
     pr_msg(
         "Kernel offset: %#08x from %p\n",
         BOOT_INFO->relocate_base - KERNEL_TEXT_BASE,

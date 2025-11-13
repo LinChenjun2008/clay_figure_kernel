@@ -54,74 +54,99 @@ PRIVATE void set_gatedesc(gate_desc_t *gd, void *func, int selector, int ar)
 
 PRIVATE void pr_debug_info(intr_stack_t *stack)
 {
+    uint64_t ds = stack->ds;
+    uint64_t es = stack->es;
+    uint64_t fs = stack->fs;
+    uint64_t gs = stack->gs;
+
+    uint64_t rax = stack->rax;
+    uint64_t rbx = stack->rbx;
+    uint64_t rcx = stack->rcx;
+    uint64_t rdx = stack->rdx;
+    uint64_t rbp = stack->rbp;
+    uint64_t rsi = stack->rsi;
+    uint64_t rdi = stack->rdi;
+
+    uint64_t r8  = stack->r8;
+    uint64_t r9  = stack->r9;
+    uint64_t r10 = stack->r10;
+    uint64_t r11 = stack->r11;
+    uint64_t r12 = stack->r12;
+    uint64_t r13 = stack->r13;
+    uint64_t r14 = stack->r14;
+    uint64_t r15 = stack->r15;
+
+    uint64_t cs     = stack->cs;
+    uint64_t rflags = stack->rflags;
+    uint64_t rsp    = stack->rsp;
+    uint64_t ss     = stack->ss;
+
     pr_msg("\n");
     pr_msg("CPUID: %d PID: %d\n", apic_id(), get_current_task()->pid);
 
-    uint64_t cr2, cr3;
-    cr2 = get_cr2();
-    cr3 = get_cr3();
+    uintptr_t *rip;
+    rip = *((uintptr_t **)rbp + 1);
+    rbp = *(uintptr_t *)rbp;
+
+    size_t    offset;
+    uintptr_t sym_off;
+    size_t    sym_len;
+    int       sym_idx;
+    status_t  status = get_symbol_index_by_addr(rip, &sym_idx);
+    if (ERROR(status))
+    {
+        pr_msg("RIP: %04x:%016lx+%#x/%#x\n", cs, rip, 0, 0);
+    }
+    else
+    {
+        offset  = (uintptr_t)rip - BOOT_INFO->relocate_base;
+        sym_off = offset - (uintptr_t)index_to_addr(sym_idx);
+        sym_len =
+            (size_t)index_to_addr(sym_idx + 1) - (size_t)index_to_addr(sym_idx);
+        pr_msg(
+            "RIP: %04x:%s+%#x/%#x\n",
+            cs,
+            index_to_symbol(sym_idx),
+            sym_off,
+            sym_len
+
+        );
+    }
+
+    pr_msg("RSP: %04x:%016lx EFLAGS: %08x\n", ss, rsp, rflags);
+    pr_msg("RAX: %016lx RBX: %016lx RCX: %016lx\n", rax, rbx, rcx);
+    pr_msg("RDX: %016lx RSI: %016lx RDI: %016lx\n", rdx, rsi, rdi);
+    pr_msg("PBP: %016lx R08: %016lx R09: %016lx\n", rbp, r8, r9);
+    pr_msg("R10: %016lx R11: %016lx R12: %016lx\n", r10, r11, r12);
+    pr_msg("R13: %016lx R14: %016lx R15: %016lx\n", r13, r14, r15);
     pr_msg(
-        "CS:RIP %04x:%p\n"
-        "ERROR CODE: %016x ",
-        stack->cs,
-        stack->rip,
-        stack->error_code
+        "FS:  %016lx(%04x) GS:%016lx(%04x) knlGS:%016lx\n",
+        rdmsr(IA32_FS_BASE),
+        fs,
+        rdmsr(IA32_GS_BASE),
+        gs,
+        rdmsr(IA32_KERNEL_GS_BASE)
     );
-    pr_msg("\n");
-    pr_msg("CR2 - %016lx, CR3 - %016lx\n", cr2, cr3);
+
+    pr_msg("CS:  %04x DS: %04x ES: %04x CR0: %016lx\n", cs, ds, es, get_cr0());
+
     pr_msg(
-        "DS  - %016lx, ES  - %016lx, FS  - %016lx, GS  - %016lx\n",
-        stack->ds,
-        stack->es,
-        stack->fs,
-        stack->gs
-    );
-    pr_msg(
-        "RAX - %016lx, RBX - %016lx, RCX - %016lx, RDX - %016lx\n",
-        stack->rax,
-        stack->rbx,
-        stack->rcx,
-        stack->rdx
-    );
-    pr_msg(
-        "RSP - %016lx, RBP - %016lx, RSI - %016lx, RDI - %016lx\n",
-        stack->rsp,
-        stack->rbp,
-        stack->rsi,
-        stack->rdi
-    );
-    pr_msg(
-        "R8  - %016lx, R9  - %016lx, R10 - %016lx, R11 - %016lx\n",
-        stack->r8,
-        stack->r9,
-        stack->r10,
-        stack->r11
-    );
-    pr_msg(
-        "R12 - %016lx, R13 - %016lx, R14 - %016lx, R15 - %016lx\n",
-        stack->r12,
-        stack->r13,
-        stack->r14,
-        stack->r15
+        "CR2: %016lx CR3: %016lx CR4: %016lx\n", get_cr2(), get_cr3(), get_cr4()
     );
 
     // Backtrace
 
     pr_msg("Call trace:\n");
-    int        sym_idx;
-    uintptr_t *rip = (uintptr_t *)stack->rip;
-    uintptr_t *rbp = (uintptr_t *)stack->rbp;
-    int        i;
-    for (i = 0; i < 8; i++)
+    while (1)
     {
-        status_t status = get_symbol_index_by_addr(rip, &sym_idx);
+        status = get_symbol_index_by_addr(rip, &sym_idx);
         if (ERROR(status))
         {
             break;
         }
-        size_t    offset  = (uintptr_t)rip - BOOT_INFO->relocate_base;
-        uintptr_t sym_off = offset - (uintptr_t)index_to_addr(sym_idx);
-        size_t    sym_len =
+        offset  = (uintptr_t)rip - BOOT_INFO->relocate_base;
+        sym_off = offset - (uintptr_t)index_to_addr(sym_idx);
+        sym_len =
             (size_t)index_to_addr(sym_idx + 1) - (size_t)index_to_addr(sym_idx);
         pr_msg(
             "    [<%p>] %s+%#x/%#x\n",
@@ -135,11 +160,13 @@ PRIVATE void pr_debug_info(intr_stack_t *stack)
         {
             break;
         }
-        rip = (uintptr_t *)*(rbp + 1);
-        rbp = (uintptr_t *)*rbp;
+        rip = *((uintptr_t **)rbp + 1);
+        rbp = *(uintptr_t *)rbp;
     }
     pr_msg("---[end trace]---\n");
 }
+
+extern void ASMLINKAGE asm_panic();
 
 PUBLIC void default_irq_handler(intr_stack_t *stack)
 {
@@ -157,12 +184,13 @@ PUBLIC void default_irq_handler(intr_stack_t *stack)
     }
     pr_msg("\n");
     spinlock_unlock(&intr_lock);
-    pr_debug_info(stack);
+
     task_struct_t *running = get_current_task();
     if (running->page_dir != NULL)
     {
         proc_exit(-1);
     }
+    PANIC(1, K_ERROR, "unknow interrupt.");
     while (1) continue;
 }
 
