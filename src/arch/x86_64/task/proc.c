@@ -228,9 +228,9 @@ PUBLIC task_struct_t *proc_execute(
     task->ppid = parent_task->pid;
 
     task_man_t *task_man = get_task_man(task->cpu_id);
-    spinlock_lock(&task_man->task_list_lock);
+    spin_lock(&task_man->task_list_lock);
     task_list_insert(task_man, task);
-    spinlock_unlock(&task_man->task_list_lock);
+    spin_unlock(&task_man->task_list_lock);
 
     return task;
 

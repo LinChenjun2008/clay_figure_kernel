@@ -16,7 +16,7 @@ mm_struct_init(mm_struct_t *mm, mm_block_t *blocks, uint64_t total_blocks)
     mm->total_blocks = total_blocks;
     mm->using_blocks = 0;
     memset(blocks, 0, sizeof(*mm->blocks) * total_blocks);
-    init_spinlock(&mm->lock);
+    init_spin(&mm->lock);
     return;
 }
 
@@ -40,11 +40,10 @@ PRIVATE void move_backward(mm_struct_t *mm, uint64_t index)
     return;
 }
 
-PUBLIC status_t
-mm_remove_range_sub(mm_struct_t *mm, uintptr_t start, size_t size)
+PRIVATE status_t
+mm_remove_range_without_spin(mm_struct_t *mm, uintptr_t start, size_t size)
 {
     uintptr_t end = start + size;
-    uint64_t  i;
 
     status_t ret = K_ERROR;
 
@@ -52,6 +51,7 @@ mm_remove_range_sub(mm_struct_t *mm, uintptr_t start, size_t size)
     uintptr_t block_end   = 0;
 
     // 遍历所有空闲块
+    uint64_t i;
     for (i = 0; i < mm->using_blocks; i++)
     {
         block_start = mm->blocks[i].start;
@@ -81,11 +81,20 @@ mm_remove_range_sub(mm_struct_t *mm, uintptr_t start, size_t size)
         ret = K_SUCCESS;
         goto done;
     }
-    // 情况2：范围在块中间，需要分割
+    // 情况2：范围在块开头
+    if (start == block_start)
+    {
+        mm->blocks[i].start = end;
+        mm->blocks[i].size  = block_end - end;
+
+        ret = K_SUCCESS;
+        goto done;
+    }
+    // 情况3：范围在块中间，需要分割
     if (start > block_start && end < block_end)
     {
         // 检查是否有空间存储新块
-        if (mm->using_blocks >= mm->total_blocks)
+        if (mm->using_blocks + 1 >= mm->total_blocks)
         {
             ret = K_OUT_OF_RESOURCE; // 块数组已满
             goto done;
@@ -99,15 +108,6 @@ mm_remove_range_sub(mm_struct_t *mm, uintptr_t start, size_t size)
         mm->blocks[i + 1].start = end;
         mm->blocks[i + 1].size  = block_end - end;
         mm->using_blocks++;
-        ret = K_SUCCESS;
-        goto done;
-    }
-    // 情况3：范围在块开头
-    if (start == block_start)
-    {
-        mm->blocks[i].start = end;
-        mm->blocks[i].size  = block_end - end;
-
         ret = K_SUCCESS;
         goto done;
     }
@@ -125,16 +125,44 @@ done:
 
 PUBLIC status_t mm_remove_range(mm_struct_t *mm, uintptr_t start, size_t size)
 {
-    spinlock_lock(&mm->lock);
-    status_t ret = mm_remove_range_sub(mm, start, size);
-    spinlock_unlock(&mm->lock);
+    spin_lock(&mm->lock);
+    status_t ret = mm_remove_range_without_spin(mm, start, size);
+    spin_unlock(&mm->lock);
     return ret;
 }
 
-PUBLIC status_t mm_add_range_sub(mm_struct_t *mm, uintptr_t start, size_t size)
+PRIVATE void mm_combine(mm_struct_t *mm)
 {
+    uintptr_t start;
+    size_t    size;
+    uintptr_t next_start;
+    size_t    next_size;
+    uint64_t  i = 0;
+    while (i < mm->using_blocks - 1)
+    {
+        start      = mm->blocks[i].start;
+        size       = mm->blocks[i].size;
+        next_start = mm->blocks[i + 1].start;
+        next_size  = mm->blocks[i + 1].size;
+        if (start + size == next_start)
+        {
+            mm->blocks[i].size += next_size;
+            move_forward(mm, i + 1);
+            mm->using_blocks--;
+        }
+        else
+        {
+            i++;
+        }
+    }
+    return;
+}
+
+PUBLIC status_t mm_add_range(mm_struct_t *mm, uintptr_t start, size_t size)
+{
+    spin_lock(&mm->lock);
     uint64_t i;
-    status_t ret = K_ERROR;
+    status_t ret = K_SUCCESS;
     for (i = 0; i < mm->using_blocks; i++)
     {
         // [i - 1].start < start < [i].start
@@ -143,93 +171,42 @@ PUBLIC status_t mm_add_range_sub(mm_struct_t *mm, uintptr_t start, size_t size)
             break;
         }
     }
-    // i > 0: 前面存在block,尝试与前面的block合并
-    if (i > 0)
+    // 检查是否有空间存储新块
+    if (mm->using_blocks >= mm->total_blocks)
     {
-        if (mm->blocks[i - 1].start + mm->blocks[i - 1].size == start)
-        {
-            mm->blocks[i - 1].size += size;
-            // 当前是最后一个,结束
-            if (i == mm->using_blocks)
-            {
-                ret = K_SUCCESS;
-                goto done;
-            }
-
-            // 尝试与block[i]合并
-            if (start + size == mm->blocks[i].start)
-            {
-                mm->blocks[i - 1].size += mm->blocks[i].size;
-                move_forward(mm, i);
-                mm->using_blocks--;
-            }
-            ret = K_SUCCESS;
-            goto done;
-        }
-    }
-    // 不能和前面的合并
-    if (i < mm->using_blocks)
-    {
-        // 与后面的合并
-        if (start + size == mm->blocks[i].start)
-        {
-            mm->blocks[i].start = start;
-            mm->blocks[i].size += size;
-            ret = K_SUCCESS;
-            goto done;
-        }
-    }
-    // 无法合并,创建新block
-    if (mm->using_blocks < mm->total_blocks)
-    {
-        move_backward(mm, i);
-        mm->using_blocks++;
-        mm->blocks[i].start = start;
-        mm->blocks[i].size  = size;
-
-        ret = K_SUCCESS;
+        ret = K_OUT_OF_RESOURCE; // 块数组已满
         goto done;
     }
+    move_backward(mm, i);
+    mm->using_blocks++;
+    mm->blocks[i].start = start;
+    mm->blocks[i].size  = size;
+    mm_combine(mm);
 done:
+    spin_unlock(&mm->lock);
     return ret;
 }
 
-PUBLIC status_t mm_add_range(mm_struct_t *mm, uintptr_t start, size_t size)
+PUBLIC status_t mm_alloc(mm_struct_t *mm, size_t size, void *addr)
 {
-    status_t ret = K_ERROR;
-    spinlock_lock(&mm->lock);
-    ret = mm_add_range_sub(mm, start, size);
-    spinlock_unlock(&mm->lock);
-    return ret;
-}
-
-PUBLIC status_t mm_alloc_sub(mm_struct_t *mm, size_t size, void *addr)
-{
-    uint64_t  i;
+    spin_lock(&mm->lock);
     uintptr_t start;
     status_t  ret = K_OUT_OF_RESOURCE;
-
+    uint64_t  i;
     for (i = 0; i < mm->using_blocks; i++)
     {
         if (mm->blocks[i].size >= size)
         {
             start = mm->blocks[i].start;
-            mm_remove_range_sub(mm, start, size);
+            mm_remove_range_without_spin(mm, start, size);
             *(uintptr_t *)addr = start;
 
             ret = K_SUCCESS;
             break;
         }
     }
-    return ret;
-}
+    spin_unlock(&mm->lock);
 
-PUBLIC status_t mm_alloc(mm_struct_t *mm, size_t size, void *addr)
-{
-    status_t ret = K_OUT_OF_RESOURCE;
-    spinlock_lock(&mm->lock);
-    ret = mm_alloc_sub(mm, size, addr);
-    spinlock_unlock(&mm->lock);
     return ret;
 }
 
@@ -239,7 +216,7 @@ PUBLIC int mm_find(mm_struct_t *mm, uintptr_t addr)
     uintptr_t block_end;
 
     int ret = 0;
-    spinlock_lock(&mm->lock);
+    spin_lock(&mm->lock);
     // 遍历所有空闲块
     uint64_t i;
     for (i = 0; i < mm->using_blocks; i++)
@@ -250,9 +227,10 @@ PUBLIC int mm_find(mm_struct_t *mm, uintptr_t addr)
         if (addr >= block_start && addr < block_end)
         {
             ret = 1;
+            break;
         }
     }
-    spinlock_unlock(&mm->lock);
+    spin_unlock(&mm->lock);
     return ret;
 }
 
@@ -263,7 +241,7 @@ PUBLIC int mm_traversal(
 )
 {
     int ret = 0;
-    spinlock_lock(&mm->lock);
+    spin_lock(&mm->lock);
     uint64_t i;
     for (i = 0; i < mm->using_blocks; i++)
     {
@@ -273,6 +251,6 @@ PUBLIC int mm_traversal(
             break;
         }
     }
-    spinlock_unlock(&mm->lock);
+    spin_unlock(&mm->lock);
     return ret;
 }

@@ -17,7 +17,7 @@ PUBLIC void init_fifo(fifo_t *fifo, void *data, size_t item_size, int size)
     fifo->free       = size;
     fifo->next_read  = 0;
     fifo->next_write = 0;
-    init_spinlock(&fifo->lock);
+    init_spin(&fifo->lock);
     return;
 }
 
@@ -33,7 +33,7 @@ PUBLIC status_t fifo_write(fifo_t *fifo, void *item)
     {
         return K_OUT_OF_RESOURCE;
     }
-    spinlock_lock(&fifo->lock);
+    spin_lock(&fifo->lock);
     fifo->free--;
     memcpy(
         (uint8_t *)fifo->data + fifo->item_size * fifo->next_write,
@@ -41,7 +41,7 @@ PUBLIC status_t fifo_write(fifo_t *fifo, void *item)
         fifo->item_size
     );
     fifo->next_write = (fifo->next_write + 1) % fifo->size;
-    spinlock_unlock(&fifo->lock);
+    spin_unlock(&fifo->lock);
     return K_SUCCESS;
 }
 
@@ -55,7 +55,7 @@ PUBLIC status_t fifo_read(fifo_t *fifo, void *item)
     {
         return K_OUT_OF_RESOURCE;
     }
-    spinlock_lock(&fifo->lock);
+    spin_lock(&fifo->lock);
     fifo->free++;
     memcpy(
         item,
@@ -63,7 +63,7 @@ PUBLIC status_t fifo_read(fifo_t *fifo, void *item)
         fifo->item_size
     );
     fifo->next_read = (fifo->next_read + 1) % fifo->size;
-    spinlock_unlock(&fifo->lock);
+    spin_unlock(&fifo->lock);
     return K_SUCCESS;
 }
 

@@ -40,7 +40,6 @@
 #define ADDR_OFFSET_SHIFT      0
 #define ADDR_OFFSET_MASK       0x0fff
 
-
 #define KERNEL_VMA_BASE  0xffff800000000000
 #define KERNEL_TEXT_BASE 0xffffffff80000000
 
@@ -55,8 +54,8 @@
 
 #ifndef __ASM_INCLUDE__
 
-PUBLIC void   mem_page_init(void);
-PUBLIC size_t get_total_free_pages(void);
+PUBLIC void     mem_page_init(void);
+PUBLIC uint64_t get_total_free_pages(void);
 
 /**
  * @brief 分配number_of_pages个连续的大小为PG_SIZE的物理页
@@ -65,15 +64,6 @@ PUBLIC size_t get_total_free_pages(void);
  * @return 成功将返回K_SUCCESS,失败返回对应的错误码
  */
 PUBLIC status_t alloc_physical_page(uint64_t number_of_pages, void *addr);
-
-/**
- * @brief 在task_init阶段分配number_of_pages个连续的大小为PG_SIZE的物理页
- * @note 本函数不会操作自旋锁.
- * @param number_of_pages 要分配的页数
- * @param addr 如果成功,addr指针处存储了分配到的物理页基地址
- * @return 成功将返回K_SUCCESS,失败返回对应的错误码
- */
-PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr);
 
 /**
  * @brief 释放从addr地址开始,number_of_pages个大小为PG_SZIE的物理页

@@ -5,9 +5,9 @@
 
 .text
 
-.global asm_spinlock_lock
-.type asm_spinlock_lock,@function
-asm_spinlock_lock:
+.global asm_spin_lock
+.type asm_spin_lock,@function
+asm_spin_lock:
     movq $1,%rax
     movq $0,%rsi
     lock cmpxchgq %rsi,(%rdi)
@@ -16,7 +16,7 @@ asm_spinlock_lock:
     pause
     cmpq $1,(%rdi)
     jnz .wait
-    jmp asm_spinlock_lock
+    jmp asm_spin_lock
 .done:
     ret
 

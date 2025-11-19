@@ -8,26 +8,29 @@
 #include <log.h>
 
 #include <sync/spinlock.h>
-#include <task/task.h> // get_current_task
 
-PUBLIC void init_spinlock(spinlock_t *spinlock)
+PUBLIC void init_spin(spinlock_t *spinlock)
 {
-    spinlock->lock = 1;
+    spinlock->lock        = 1;
+    spinlock->intr_status = INTR_UNKNOW_STATUS;
     return;
 }
 
-extern void ASMLINKAGE asm_spinlock_lock(volatile uint64_t *lock);
+extern void ASMLINKAGE asm_spin_lock(volatile uint64_t *lock);
 
-PUBLIC void spinlock_lock(spinlock_t *spinlock)
+PUBLIC void spin_lock(spinlock_t *spinlock)
 {
-    get_current_task()->preempt_count++;
-    asm_spinlock_lock(&spinlock->lock);
+    intr_status_t intr_status = intr_disable();
+    asm_spin_lock(&spinlock->lock);
+    spinlock->intr_status = intr_status;
     return;
 }
 
-PUBLIC void spinlock_unlock(spinlock_t *spinlock)
+PUBLIC void spin_unlock(spinlock_t *spinlock)
 {
-    spinlock->lock = 1;
-    get_current_task()->preempt_count--;
+    intr_status_t intr_status = spinlock->intr_status;
+    spinlock->intr_status     = INTR_UNKNOW_STATUS;
+    spinlock->lock            = 1;
+    intr_set_status(intr_status);
     return;
 }

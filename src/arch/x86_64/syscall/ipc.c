@@ -40,9 +40,9 @@ PRIVATE void wait_receviced(void)
     task_struct_t *sender   = get_current_task();
     task_struct_t *receiver = pid_to_task(sender->send_to);
 
-    spinlock_lock(&receiver->send_lock);
+    spin_lock(&receiver->send_lock);
     list_append(&receiver->sender_list, &sender->send_tag);
-    spinlock_unlock(&receiver->send_lock);
+    spin_unlock(&receiver->send_lock);
 
     // 如果此刻receiver被唤醒,则sender->send_flag < 0
 
@@ -89,9 +89,9 @@ PRIVATE int received_from_any_task(pid_t pid)
 {
     task_struct_t *receiver = pid_to_task(pid);
 
-    spinlock_lock(&receiver->send_lock);
+    spin_lock(&receiver->send_lock);
     int ret = !list_empty(&receiver->sender_list);
-    spinlock_unlock(&receiver->send_lock);
+    spin_unlock(&receiver->send_lock);
 
     return ret;
 }
@@ -123,9 +123,9 @@ PRIVATE int received_from(pid_t pid, pid_t src)
     task_struct_t *receiver = pid_to_task(pid);
     task_struct_t *sender   = pid_to_task(src);
 
-    spinlock_lock(&receiver->send_lock);
+    spin_lock(&receiver->send_lock);
     int ret = list_find(&receiver->sender_list, &sender->send_tag);
-    spinlock_unlock(&receiver->send_lock);
+    spin_unlock(&receiver->send_lock);
 
     return ret;
 }
@@ -160,18 +160,18 @@ PUBLIC syscall_status_t msg_recv(pid_t src, message_t *msg)
             msg->type              = RECV_FROM_INT;
             return SYSCALL_SUCCESS;
         }
-        spinlock_lock(&receiver->send_lock);
+        spin_lock(&receiver->send_lock);
         list_node_t *src_node;
         src_node = list_pop(&receiver->sender_list);
-        spinlock_unlock(&receiver->send_lock);
+        spin_unlock(&receiver->send_lock);
         sender = CONTAINER_OF(task_struct_t, send_tag, src_node);
     }
     else
     {
         sender = pid_to_task(src);
-        spinlock_lock(&receiver->send_lock);
+        spin_lock(&receiver->send_lock);
         list_remove(&sender->send_tag);
-        spinlock_unlock(&receiver->send_lock);
+        spin_unlock(&receiver->send_lock);
     }
     memcpy(msg, &sender->msg, sizeof(message_t));
     receiver->recv_from = PID_NO_TASK;

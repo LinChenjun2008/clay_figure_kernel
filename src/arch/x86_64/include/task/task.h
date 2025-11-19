@@ -298,7 +298,6 @@ PUBLIC void task_update(void);
 
 /**
  * @brief 进行任务调度
- * @note 如果进程持有自旋锁,则不会触发调度
  */
 PUBLIC void schedule(void);
 
@@ -326,7 +325,7 @@ PUBLIC void task_unblock(pid_t pid);
  * @brief 将pid对应的进程解除阻塞,但不会操作task_list_lock锁
  * @param pid pid
  */
-PUBLIC void task_unblock_sub(pid_t pid);
+PUBLIC void task_unblock_without_spin(pid_t pid);
 
 /**
  * @brief 使当前进程让出cpu

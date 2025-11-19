@@ -48,6 +48,7 @@ typedef enum intr_status_e
 {
     INTR_OFF = 0,
     INTR_ON,
+    INTR_UNKNOW_STATUS,
 } intr_status_t;
 
 PUBLIC void            default_irq_handler(intr_stack_t *stack);

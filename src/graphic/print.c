@@ -290,7 +290,7 @@ PRIVATE const char *err_string(status_t err_code)
     return "[???]";
 }
 
-PRIVATE spinlock_t panic_lock = { 1 };
+PRIVATE spinlock_t panic_lock = { 1, INTR_UNKNOW_STATUS };
 
 extern void ASMLINKAGE asm_panic();
 
@@ -302,7 +302,7 @@ PUBLIC void panic_spin(
     const char *message
 )
 {
-    spinlock_lock(&panic_lock);
+    spin_lock(&panic_lock);
     intr_disable();
     pr_msg("\n");
     pr_msg("%s: In function '%s':\n", filename, func);

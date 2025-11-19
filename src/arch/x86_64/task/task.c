@@ -89,7 +89,7 @@ PUBLIC task_struct_t *task_alloc(void)
 {
     status_t       status;
     task_struct_t *task = NULL;
-    spinlock_lock(&global_task_man->task_table_lock);
+    spin_lock(&global_task_man->task_table_lock);
     pid_t i;
     for (i = 0; i < MAX_TASKS; i++)
     {
@@ -104,7 +104,7 @@ PUBLIC task_struct_t *task_alloc(void)
             break;
         }
     }
-    spinlock_unlock(&global_task_man->task_table_lock);
+    spin_unlock(&global_task_man->task_table_lock);
     return task;
 }
 
@@ -114,12 +114,12 @@ PUBLIC void task_free(task_struct_t *task)
     {
         return;
     }
-    spinlock_lock(&global_task_man->task_table_lock);
+    spin_lock(&global_task_man->task_table_lock);
 
     get_global_task_man()->task_table[task->pid] = NULL;
     kfree(task);
 
-    spinlock_unlock(&global_task_man->task_table_lock);
+    spin_unlock(&global_task_man->task_table_lock);
     return;
 }
 
@@ -131,7 +131,7 @@ PRIVATE void main_task_adopt_child(pid_t ppid)
     task_struct_t *parent_task = pid_to_task(ppid);
 
     // 防止在此期间还有子任务退出
-    spinlock_lock(&parent_task->child_list_lock);
+    spin_lock(&parent_task->child_list_lock);
     pid_t i;
     for (i = MIN_PID; i <= MAX_PID; i++)
     {
@@ -148,11 +148,11 @@ PRIVATE void main_task_adopt_child(pid_t ppid)
         list_node_t *node = list_pop(&parent_task->exited_child_list);
         child_task        = CONTAINER_OF(task_struct_t, general_tag, node);
         child_task_man    = get_task_man(child_task->cpu_id);
-        spinlock_lock(&child_task_man->main_task->child_list_lock);
+        spin_lock(&child_task_man->main_task->child_list_lock);
         list_append(&child_task_man->main_task->exited_child_list, node);
-        spinlock_unlock(&child_task_man->main_task->child_list_lock);
+        spin_unlock(&child_task_man->main_task->child_list_lock);
     }
-    spinlock_unlock(&parent_task->child_list_lock);
+    spin_unlock(&parent_task->child_list_lock);
     return;
 }
 
@@ -199,11 +199,11 @@ PUBLIC status_t init_task_struct(
     atomic_set(&task->recv_flag, 0);
 
     task->has_intr_msg = 0;
-    init_spinlock(&task->send_lock);
+    init_spin(&task->send_lock);
     init_list(&task->sender_list);
 
     atomic_set(&task->childs, 0);
-    init_spinlock(&task->child_list_lock);
+    init_spin(&task->child_list_lock);
     init_list(&task->exited_child_list);
     task->return_status = 0;
 
@@ -267,9 +267,9 @@ PUBLIC task_struct_t *task_start(
     atomic_inc(&parent_task->childs);
 
     task_man_t *task_man = get_task_man(task->cpu_id);
-    spinlock_lock(&task_man->task_list_lock);
+    spin_lock(&task_man->task_list_lock);
     task_list_insert(task_man, task);
-    spinlock_unlock(&task_man->task_list_lock);
+    spin_unlock(&task_man->task_list_lock);
     return task;
 }
 
@@ -289,9 +289,9 @@ PUBLIC void task_exit(int status)
 PUBLIC int task_has_exited_child(pid_t pid)
 {
     task_struct_t *task = pid_to_task(pid);
-    spinlock_lock(&task->child_list_lock);
+    spin_lock(&task->child_list_lock);
     int ret = !list_empty(&task->exited_child_list);
-    spinlock_unlock(&task->child_list_lock);
+    spin_unlock(&task->child_list_lock);
     return ret;
 }
 
@@ -358,7 +358,7 @@ PUBLIC void task_init(void)
 {
     uintptr_t addr;
     uint64_t  pages  = DIV_ROUND_UP(sizeof(*global_task_man), PG_SIZE);
-    status_t  status = alloc_physical_page_sub(pages, &addr);
+    status_t  status = alloc_physical_page(pages, &addr);
 
     PANIC(ERROR(status), status, "Can not allocate memory for task manager.");
 
@@ -374,7 +374,7 @@ PUBLIC void task_init(void)
         task_man_t *task_man = &global_task_man->cpus[i];
 
         init_list(&task_man->task_list);
-        init_spinlock(&task_man->task_list_lock);
+        init_spin(&task_man->task_list_lock);
 
         init_list(&task_man->waiting_list);
 
@@ -384,7 +384,7 @@ PUBLIC void task_init(void)
         task_man->main_task     = NULL;
         task_man->idle_task     = NULL;
     }
-    init_spinlock(&global_task_man->task_table_lock);
+    init_spin(&global_task_man->task_table_lock);
 
     make_main_task();
     create_idle_task();

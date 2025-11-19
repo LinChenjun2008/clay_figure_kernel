@@ -175,7 +175,7 @@ PUBLIC void default_irq_handler(intr_stack_t *stack)
     {
         return;
     }
-    spinlock_lock(&intr_lock);
+    spin_lock(&intr_lock);
     pr_msg("\n");
     pr_msg("INTR : 0x%x", int_vector);
     if (int_vector < 20)
@@ -183,14 +183,14 @@ PUBLIC void default_irq_handler(intr_stack_t *stack)
         pr_msg(": %s", intr_name[int_vector]);
     }
     pr_msg("\n");
-    spinlock_unlock(&intr_lock);
+    spin_unlock(&intr_lock);
 
     task_struct_t *running = get_current_task();
     if (running->page_dir != NULL)
     {
         proc_exit(-1);
     }
-    PANIC(1, K_ERROR, "unknow interrupt.");
+    PANIC(1, K_ERROR, "unexpected interrupt.");
     while (1) continue;
 }
 
@@ -228,7 +228,7 @@ PUBLIC void intr_init(void)
     idt_ptr[0] = ((((uint64_t)idt)) << 16) | (sizeof(idt) - 1);
     idt_ptr[1] = ((((uint64_t)idt)) >> 48) & 0xffff;
     asm_lidt(&idt_ptr);
-    init_spinlock(&intr_lock);
+    init_spin(&intr_lock);
 
     irq_handler[0x82] = pr_debug_info;
     return;

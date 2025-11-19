@@ -75,9 +75,9 @@ PRIVATE void inform_exit(pid_t exited_task)
     task_struct_t *task        = pid_to_task(exited_task);
     task_struct_t *parent_task = pid_to_task(task->ppid);
 
-    spinlock_lock(&parent_task->child_list_lock);
+    spin_lock(&parent_task->child_list_lock);
     list_append(&parent_task->exited_child_list, &task->general_tag);
-    spinlock_unlock(&parent_task->child_list_lock);
+    spin_unlock(&parent_task->child_list_lock);
     return;
 }
 
@@ -134,7 +134,7 @@ PRIVATE task_struct_t *get_next_task(task_man_t *task_man)
     else
     {
         // 无任务可运行 - 唤醒idle
-        task_unblock_sub(task_man->idle_task->pid);
+        task_unblock_without_spin(task_man->idle_task->pid);
         node = &task_man->idle_task->general_tag;
         list_remove(node);
     }
@@ -163,9 +163,9 @@ PUBLIC void schedule(void)
     switch (cur_task->status)
     {
         case TASK_RUNNING:
-            spinlock_lock(&task_man->task_list_lock);
+            spin_lock(&task_man->task_list_lock);
             task_list_insert(task_man, cur_task);
-            spinlock_unlock(&task_man->task_list_lock);
+            spin_unlock(&task_man->task_list_lock);
             break;
 
         case TASK_SENDING:
@@ -185,9 +185,9 @@ PUBLIC void schedule(void)
 
     task_struct_t *next = NULL;
 
-    spinlock_lock(&task_man->task_list_lock);
+    spin_lock(&task_man->task_list_lock);
     next = get_next_task(task_man);
-    spinlock_unlock(&task_man->task_list_lock);
+    spin_unlock(&task_man->task_list_lock);
 
     next->status = TASK_RUNNING;
     proc_activate(next);
@@ -245,15 +245,15 @@ PUBLIC void task_unblock(pid_t pid)
     task_struct_t *task     = pid_to_task(pid);
     task_man_t    *task_man = get_task_man(task->cpu_id);
 
-    spinlock_lock(&task_man->task_list_lock);
-    task_unblock_sub(pid);
-    spinlock_unlock(&task_man->task_list_lock);
+    spin_lock(&task_man->task_list_lock);
+    task_unblock_without_spin(pid);
+    spin_unlock(&task_man->task_list_lock);
 
     intr_set_status(intr_status);
     return;
 }
 
-PUBLIC void task_unblock_sub(pid_t pid)
+PUBLIC void task_unblock_without_spin(pid_t pid)
 {
     task_struct_t *task     = pid_to_task(pid);
     task_man_t    *task_man = get_task_man(task->cpu_id);

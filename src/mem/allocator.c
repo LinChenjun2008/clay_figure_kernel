@@ -56,7 +56,7 @@ PUBLIC void mem_allocator_init(void)
         mem_groups[i].block_size = block_size;
         mem_groups[i].total_free = 0;
         init_list(&mem_groups[i].free_block_list);
-        init_spinlock(&mem_groups[i].lock);
+        init_spin(&mem_groups[i].lock);
         block_size <<= 1;
     }
     return;
@@ -180,7 +180,7 @@ kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
         }
     }
 
-    spinlock_lock(&g->lock);
+    spin_lock(&g->lock);
     if (list_empty(&g->free_block_list))
     {
         uintptr_t cache_paddr;
@@ -218,7 +218,7 @@ kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
     c->group->total_free--;
     *(uintptr_t *)addr = (uintptr_t)b;
 done:
-    spinlock_unlock(&g->lock);
+    spin_unlock(&g->lock);
     return status;
 }
 
@@ -253,7 +253,7 @@ PUBLIC void kfree(void *addr)
 
     ASSERT(((uintptr_t)addr & (g->block_size - 1)) == 0);
 
-    spinlock_lock(&g->lock);
+    spin_lock(&g->lock);
     list_append(&g->free_block_list, &b->node);
     g->total_free++;
     c->cnt++;
@@ -271,6 +271,6 @@ PUBLIC void kfree(void *addr)
         g->total_free -= c->number_of_blocks;
         free_physical_page(VIRT_TO_PHYS(c), 1);
     }
-    spinlock_unlock(&g->lock);
+    spin_unlock(&g->lock);
     return;
 }

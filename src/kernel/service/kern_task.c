@@ -127,16 +127,16 @@ PUBLIC syscall_status_t kern_waitpid(message_t *msg)
     // any task
     if (in_pid == -1)
     {
-        spinlock_lock(&task->child_list_lock);
+        spin_lock(&task->child_list_lock);
         child_node = list_pop(&task->exited_child_list);
-        spinlock_unlock(&task->child_list_lock);
+        spin_unlock(&task->child_list_lock);
     }
     else
     {
-        spinlock_lock(&task->child_list_lock);
+        spin_lock(&task->child_list_lock);
         child_node =
             list_traversal(&task->exited_child_list, find_child, in_pid);
-        spinlock_unlock(&task->child_list_lock);
+        spin_unlock(&task->child_list_lock);
         if (child_node == NULL)
         {
             return SYSCALL_ERROR;

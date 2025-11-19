@@ -25,13 +25,8 @@ typedef struct mm_struct_s
 PUBLIC void
 mm_struct_init(mm_struct_t *mm, mm_block_t *blocks, uint64_t total_blocks);
 
-PUBLIC status_t
-mm_remove_range_sub(mm_struct_t *mm, uintptr_t start, size_t size);
 PUBLIC status_t mm_remove_range(mm_struct_t *mm, uintptr_t start, size_t size);
-PUBLIC status_t mm_add_range_sub(mm_struct_t *mm, uintptr_t start, size_t size);
 PUBLIC status_t mm_add_range(mm_struct_t *table, uintptr_t start, size_t size);
-
-PUBLIC status_t mm_alloc_sub(mm_struct_t *mm, size_t size, void *addr);
 PUBLIC status_t mm_alloc(mm_struct_t *mm, size_t size, void *addr);
 
 PUBLIC int mm_find(mm_struct_t *mm, uintptr_t addr);
