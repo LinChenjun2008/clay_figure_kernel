@@ -56,15 +56,34 @@ typedef struct
     uint64_t  Attribute;
 } ALIGNED(16) EFI_MEMORY_DESCRIPTOR;
 
-PRIVATE struct
+typedef struct
 {
-    mm_struct_t pages;
-    spinlock_t  lock;
-    size_t      mem_size;
-    size_t      total_pages;      // 总页数
-    size_t      total_free_pages; // 总空闲页数
-    size_t      free_pages;       // 当前空闲页数
-} mem_man;
+    spinlock_t lock;
+    uint64_t   id;
+    uint64_t   next;
+    uintptr_t  addr;            // 页的起始地址(物理)
+    uint64_t   attribure;       // 页属性
+    uint64_t   reference_count; // 引用次数
+} page_t;
+
+typedef struct
+{
+    spinlock_t lock;
+    page_t    *pages_struct;        // pages结构体数组地址
+    size_t     pages_struct_size;   // pages结构体数组大小(字节)
+    size_t     pages_struct_length; // pages 结构体数组长度(page的个数)
+} page_group_t;
+
+typedef struct
+{
+    mm_struct_t  mem_map;
+    spinlock_t   lock;
+    page_group_t shared_pages;
+    uint64_t     free_page_count;
+
+} global_mem_desc_t;
+
+PRIVATE global_mem_desc_t g_mem_desc;
 
 PRIVATE mm_block_t page_mm_blocks[PAGE_BLOCKS];
 
@@ -98,11 +117,6 @@ PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
     return MAX_MEMORY_TYPE;
 }
 
-// PRIVATE const char *memory_type_str[] = {
-//     "Invaild",         "Free memory",      "Reserved", "ACPI memory",
-//     "ACPI memory NVS", "Unuseable memory", "Invaild",
-// };
-
 PRIVATE void do_page_fault(intr_stack_t *stack)
 {
     task_struct_t *task          = get_current_task();
@@ -111,12 +125,19 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
     uint64_t       error_code    = stack->error_code;
 
     uintptr_t fault_page = fault_address & ~(PG_SIZE - 1);
+
     // 内核任务 - 错误
-    if (cr3 == KERNEL_PAGE_DIR_TABLE_POS)
+    if (get_current_task()->page_dir == NULL)
     {
         pr_log(LOG_ERROR, "Kernel task page fault.\n");
         default_irq_handler(stack);
     }
+    PANIC(
+        cr3 != (uintptr_t)get_current_task()->page_dir,
+        K_ERROR,
+        "Page table address error."
+    );
+
 
     // 未分配地址 - 错误
     if (!mm_find(&task->mm_using, fault_address))
@@ -135,7 +156,7 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
     status_t  status = alloc_physical_page(1, &paddr);
     if (ERROR(status))
     {
-        PANIC(ERROR(status), "Out of memory.\n");
+        PANIC(ERROR(status), status, "Out of memory.");
         default_irq_handler(stack);
     }
     mm_add_range(&task->mm_pages, paddr, PG_SIZE);
@@ -146,11 +167,8 @@ PRIVATE void do_page_fault(intr_stack_t *stack)
 
 PUBLIC void mem_page_init(void)
 {
-    mm_struct_init(&mem_man.pages, page_mm_blocks, PAGE_BLOCKS);
-    mem_man.mem_size    = 0;
-    mem_man.total_pages = 0;
-    mem_man.free_pages  = 0;
-    init_spinlock(&mem_man.lock);
+    mm_struct_init(&g_mem_desc.mem_map, page_mm_blocks, PAGE_BLOCKS);
+    init_spin(&g_mem_desc.lock);
 
     EFI_MEMORY_DESCRIPTOR *efi_memory_desc =
         (EFI_MEMORY_DESCRIPTOR *)BOOT_INFO->memory_map.buffer;
@@ -176,102 +194,70 @@ PUBLIC void mem_page_init(void)
 
         curr_type = memory_type(efi_memory_desc[i].Type);
 
-        mem_man.total_pages += curr_pages;
-        mem_man.mem_size += curr_size;
-        // PR_MSG(
-        //     "From %p to %p: size: %8d KiB Type: %s.\n",
-        //     curr_start,
-        //     curr_end,
-        //     curr_size >> 10,
-        //     memory_type_str[curr_type]
-        // );
+        if (curr_end < 0x2000000)
+        {
+            continue;
+        }
+        if (curr_start < 0x2000000)
+        {
+            curr_start = 0x2000000;
+            curr_size  = curr_end - curr_start;
+            curr_pages = curr_size >> 12;
+        }
         if (curr_type == FREE_MEMORY)
         {
-            if (curr_end < 0x2000000)
-            {
-                continue;
-            }
-            if (curr_start < 0x2000000)
-            {
-                curr_start = 0x2000000;
-                curr_size  = curr_end - curr_start;
-                curr_pages = curr_size >> 12;
-            }
-            mm_add_range_sub(&mem_man.pages, curr_start, curr_size);
-            mem_man.total_free_pages += curr_pages;
-            mem_man.free_pages += curr_pages;
+            g_mem_desc.free_page_count += curr_pages;
+            mm_add_range(&g_mem_desc.mem_map, curr_start, curr_size);
         }
     }
-    // PR_LOG(
-    //     LOG_INFO,
-    //     "Total Page(s): %d (Free: %d).\n",
-    //     mem_man.total_pages,
-    //     mem_man.total_free_pages
-    // );
-    // PR_LOG(
-    //     LOG_INFO,
-    //     "Mem Size: %d KiB(%d MiB), Free size: %d KiB(%d MiB)\n",
-    //     mem_man.mem_size / 1024,
-    //     mem_man.mem_size / (1024 * 1024),
-    //     mem_man.total_free_pages * 4,
-    //     mem_man.total_free_pages * 4 / 1024
-    // );
+
+    init_spin(&g_mem_desc.shared_pages.lock);
+    g_mem_desc.shared_pages.pages_struct        = NULL;
+    g_mem_desc.shared_pages.pages_struct_length = 0;
+    g_mem_desc.shared_pages.pages_struct_size   = 0;
     register_handle(0x0e, do_page_fault);
+
     return;
 }
 
-PUBLIC size_t get_total_free_pages(void)
+PUBLIC uint64_t get_total_free_pages(void)
 {
-    return mem_man.total_free_pages;
+    return g_mem_desc.free_page_count;
 }
 
 PUBLIC status_t alloc_physical_page(uint64_t number_of_pages, void *addr)
 {
     ASSERT(addr != NULL);
     ASSERT(number_of_pages != 0);
-    if (mem_man.free_pages < number_of_pages)
+    if (g_mem_desc.free_page_count < number_of_pages)
     {
         return K_NOMEM;
     }
-    spinlock_lock(&mem_man.lock);
+    spin_lock(&g_mem_desc.lock);
     status_t status;
-    status = mm_alloc(&mem_man.pages, number_of_pages * PG_SIZE, addr);
+    status = mm_alloc(&g_mem_desc.mem_map, number_of_pages * PG_SIZE, addr);
     if (ERROR(status))
     {
         PR_LOG(LOG_ERROR, "Out of Memory: %d.\n", status);
         return K_NOMEM;
     }
-    mem_man.free_pages -= number_of_pages;
-    spinlock_unlock(&mem_man.lock);
+    g_mem_desc.free_page_count -= number_of_pages;
+    spin_unlock(&g_mem_desc.lock);
     return status;
-}
-
-PUBLIC status_t alloc_physical_page_sub(uint64_t number_of_pages, void *addr)
-{
-    ASSERT(addr != NULL);
-    ASSERT(number_of_pages != 0);
-    status_t status;
-    status = mm_alloc_sub(&mem_man.pages, number_of_pages * PG_SIZE, addr);
-    if (ERROR(status))
-    {
-        PR_LOG(LOG_ERROR, "Out of Memory: %d.\n", status);
-        return K_NOMEM;
-    }
-    mem_man.free_pages -= number_of_pages;
-    return K_SUCCESS;
 }
 
 PUBLIC void free_physical_page(void *addr, uint64_t number_of_pages)
 {
     ASSERT(number_of_pages != 0);
     ASSERT(addr != NULL && ((((uintptr_t)addr) & (PG_SIZE - 1)) == 0));
-    spinlock_lock(&mem_man.lock);
-    mm_add_range(&mem_man.pages, (uintptr_t)addr, number_of_pages * PG_SIZE);
-    mem_man.free_pages += number_of_pages;
-    spinlock_unlock(&mem_man.lock);
+    spin_lock(&g_mem_desc.lock);
+    mm_add_range(
+        &g_mem_desc.mem_map, (uintptr_t)addr, number_of_pages * PG_SIZE
+    );
+    g_mem_desc.free_page_count += number_of_pages;
+    spin_unlock(&g_mem_desc.lock);
     return;
 }
-
 
 PUBLIC uint64_t *pml4t_entry(void *pml4t, void *vaddr)
 {

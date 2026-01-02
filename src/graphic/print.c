@@ -7,7 +7,6 @@
 
 #include <log.h>
 
-#include <config.h> // log level
 #include <device/cpu.h>
 #include <device/pic.h>    // ICRs
 #include <device/timer.h>  // IRQ0_FREQUENCY,get_current_ticks
@@ -15,7 +14,6 @@
 #include <io.h>            // io_hlt
 #include <mem/allocator.h> // kmalloc,kfree
 #include <mem/page.h>      // KERNEL_TEXT_BASE
-#include <ramfs.h>         // ramfs_open
 #include <std/stdarg.h>
 #include <std/stdio.h>
 #include <sync/spinlock.h> // spinlock
