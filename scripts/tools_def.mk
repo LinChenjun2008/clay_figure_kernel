@@ -1,4 +1,7 @@
-ifeq ($(shell uname -s),Linux)
+OS ?= Linux
+TOOL_DIR ?= $(PROJECT_DIR)/../tools
+
+ifeq ($(OS),Linux)
     ifeq ($(TOOLS_DEF),bootloader)
         CC  = x86_64-w64-mingw32-gcc
     else
@@ -12,8 +15,9 @@ ifeq ($(shell uname -s),Linux)
     RM      = rm
     NM      = nm
     OVMF    = OVMF.fd
-else
-    TOOL_DIR = $(PROJECT_DIR)/../tools
+endif
+
+ifeq ($(OS),Windows)
     ifeq ($(TOOLS_DEF),bootloader)
         CC  = $(TOOL_DIR)/MinGW64/bin/gcc.exe
     else
@@ -36,27 +40,9 @@ IMGCOPY  = $(SRC_DIR)/../build/imgcopy
 
 IMGCOPY_FLAGS = \
     -copy $(SRC_DIR)/config.txt config \
+    -copy $(TARGET_KERNEL) kernel \
 
-ifeq ($(TOOLS_DEF),bootloader)
-    CFLAGS += -Wall -Wextra -Werror
-    CFLAGS += -Wredundant-decls -Wnested-externs
-    CFLAGS += -Winline
-    CFLAGS += -Wshadow
-    CFLAGS += -Wpointer-arith
-    CFLAGS += -Wmissing-prototypes
-    CFLAGS += -Wmissing-declarations
-    CFLAGS += -Wuninitialized
-    CFLAGS += -Wno-long-long
-    CFLAGS += -Wno-implicit-fallthrough
-    CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader
-    CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader/include
-    CFLAGS += -I$(SRC_DIR)/include
-    CFLAGS += -I$(SRC_DIR)
-    CFLAGS += -D__BOOTLOADER__
-    CFLAGS += -e UefiMain -nostdinc -nostdlib
-    CFLAGS += -m64 -mcmodel=small
-    CFLAGS += -fno-stack-protector -fpic -fpie -fno-builtin -Wl,--subsystem,10
-else
+ifneq ($(TOOLS_DEF),bootloader)
     CFLAGS += -Wall -Wextra -Werror
     CFLAGS += -Wredundant-decls -Wnested-externs
     CFLAGS += -Winline
@@ -87,6 +73,25 @@ else
 
     OBJFLAGS  = -I elf64-x86-64
     OBJFLAGS += --strip-debug -S -R ".eh_frame" -R ".comment" -O binary
+else
+    CFLAGS += -Wall -Wextra -Werror
+    CFLAGS += -Wredundant-decls -Wnested-externs
+    CFLAGS += -Winline
+    CFLAGS += -Wshadow
+    CFLAGS += -Wpointer-arith
+    CFLAGS += -Wmissing-prototypes
+    CFLAGS += -Wmissing-declarations
+    CFLAGS += -Wuninitialized
+    CFLAGS += -Wno-long-long
+    CFLAGS += -Wno-implicit-fallthrough
+    CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader
+    CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader/include
+    CFLAGS += -I$(SRC_DIR)/include
+    CFLAGS += -I$(SRC_DIR)
+    CFLAGS += -D__BOOTLOADER__
+    CFLAGS += -e UefiMain -nostdinc -nostdlib
+    CFLAGS += -m64 -mcmodel=small
+    CFLAGS += -fno-stack-protector -fpic -fpie -fno-builtin -Wl,--subsystem,10
 endif
 
 QEMU_FLAGS = -m $(MEMORY) -bios $(OVMF) \
@@ -96,12 +101,5 @@ QEMU_FLAGS = -m $(MEMORY) -bios $(OVMF) \
  -device nec-usb-xhci,id=xhci \
  -device usb-mouse \
  -no-shutdown \
-
-# -device qemu-xhci,id=xhci
-# -device usb-kbd
-# -d cpu_reset
-
-# -chardev stdio,mux=on,id=com1 \
+ -chardev stdio,mux=on,id=com1 \
  -serial chardev:com1
-
-# -monitor stdio

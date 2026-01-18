@@ -1,30 +1,19 @@
-SRC += $(SRC_DIR)/kernel/main.c
-SRC += $(SRC_DIR)/kernel/symbols.c
-SRC += $(SRC_DIR)/kernel/config.c
-SRC += $(SRC_DIR)/kernel/service/kernel.c
-SRC += $(SRC_DIR)/kernel/service/kern_task.c
-SRC += $(SRC_DIR)/kernel/service/kern_mem.c
+SUB_DIR = .
+SUB_DIR += elf
+SUB_DIR += graphic
+SUB_DIR += kernel
+SUB_DIR += kernel/service
+SUB_DIR += lib
+SUB_DIR += mem
+SUB_DIR += mem/service
+SUB_DIR += ramfs
+SUB_DIR += softirq
+SUB_DIR += service
+SUB_DIR += service/tick
+SUB_DIR += service/view
+SUB_DIR += ulib
 
-SRC += $(SRC_DIR)/softirq/softirq.c
-SRC += $(SRC_DIR)/service/service.c
-SRC += $(SRC_DIR)/service/tick/tick.c
-SRC += $(SRC_DIR)/service/view/view.c
+SEARCH_DIR = $(SRC_DIR)
 
-SRC += $(SRC_DIR)/mem/allocator.c
-SRC += $(SRC_DIR)/mem/service/mm.c
-SRC += $(SRC_DIR)/mem/mm_struct.c
-
-SRC += $(SRC_DIR)/ramfs/ramfs.c
-SRC += $(SRC_DIR)/lib/bitmap.c
-SRC += $(SRC_DIR)/lib/list.c
-SRC += $(SRC_DIR)/lib/fifo.c
-SRC += $(SRC_DIR)/lib/stdio.c
-SRC += $(SRC_DIR)/lib/string.c
-SRC += $(SRC_DIR)/lib/stdlib.c
-SRC += $(SRC_DIR)/lib/math.c
-SRC += $(SRC_DIR)/graphic/print.c
-SRC += $(SRC_DIR)/graphic/character.c
-
-SRC += $(SRC_DIR)/ulib/ulib.c
-
-SRC += $(SRC_DIR)/elf/elf.c
+SRC := $(foreach DIR,$(SUB_DIR),$(abspath $(wildcard $(SEARCH_DIR)/$(DIR)/*.S)))
+SRC += $(foreach DIR,$(SUB_DIR),$(abspath $(wildcard $(SEARCH_DIR)/$(DIR)/*.c)))

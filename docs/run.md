@@ -40,6 +40,11 @@ gcc tools/imgcopy.c -o build/imgcopy
 make init
 make all
 ```
+在windows系统中，需添加参数`OS=Windows`:
+```bash
+make OS=Windows init
+make OS=Windows all
+```
 如果一切顺利，你将在`ESP_DIR`对应的路径中找到编译结果。
 
 # 运行

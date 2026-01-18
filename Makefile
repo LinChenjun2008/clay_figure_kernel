@@ -6,23 +6,21 @@ include $(SCRIPTS_DIR)/tools_def.mk
 include $(SCRIPTS_DIR)/target.mk
 
 include $(SRC_DIR)/arch/src_list.mk
-include $(SRC_DIR)/src_list.mk
+ASM_SRC := $(filter %.S,$(SRC))
+C_SRC   := $(filter %.c,$(SRC))
 
-ASM_SRC = $(filter %.S,$(SRC))
-C_SRC   = $(filter %.c,$(SRC))
+include $(SRC_DIR)/src_list.mk
+ASM_SRC += $(filter %.S,$(SRC))
+C_SRC   += $(filter %.c,$(SRC))
 
 .PHONY: all
 all:
 	@$(ECHO) compiling...
-	@$(MAKE) -C $(SRC_DIR)/arch/ bootloader
-	@$(MAKE) -C $(SRC_DIR)/arch/ kernel
-	@$(MAKE) -C $(SRC_DIR) kernel
-	@$(MAKE) $(TARGET_KERNEL) update-initramfs
-	@$(ECHO) done.
-
-.PHONY: update-initramfs
-update-initramfs:
+	@$(MAKE) -C $(SRC_DIR)/arch/ all
+	@$(MAKE) -C $(SRC_DIR) all
+	@$(MAKE) $(TARGET_KERNEL)
 	@$(MAKE) $(TARGET_INITRAMFS)
+	@$(ECHO) done.
 
 .PHONY: run
 run: all
@@ -46,8 +44,8 @@ init:
 	-$(MKDIR) "$(ESP_DIR)/EFI/Boot"
 	-$(MKDIR) "$(ESP_DIR)/Kernel"
 
-$(TARGET_INITRAMFS): $(SRC_DIR)/config.txt
-	@$(ECHO) make initramfs
+$(TARGET_INITRAMFS): $(SRC_DIR)/config.txt $(TARGET_KERNEL)
+	@$(ECHO) updating initramfs...
 	@"$(IMGCOPY)" $(IMGCOPY_FLAGS) > $(ESP_DIR)/Kernel/initramfs.img
 
 $(TARGET_KERNEL): $(ASM_SRC:S=o) $(C_SRC:c=o) $(KERNEL_LINKER_SCRIPT)

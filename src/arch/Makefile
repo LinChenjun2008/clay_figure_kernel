@@ -9,9 +9,12 @@ include src_list.mk
 ASM_SRC = $(filter %.S,$(SRC))
 C_SRC   = $(filter %.c,$(SRC))
 
+.PHONY: all
+all: bootloader kernel
+
 .PHONY: bootloader
 bootloader:
-	@$(MAKE) -C $(TARGET_ARCH)/bootloader
+	@$(MAKE) -C $(TARGET_ARCH)/bootloader TOOLS_DEF=bootloader
 
 include $(SCRIPTS_DIR)/rules.mk
 
