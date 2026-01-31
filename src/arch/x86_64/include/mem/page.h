@@ -52,7 +52,7 @@
 
 #define PAGE_BLOCKS 2048
 
-#ifndef __ASM_INCLUDE__
+#ifndef __ASSEMBLER__
 
 PUBLIC void     mem_page_init(void);
 PUBLIC uint64_t get_total_free_pages(void);

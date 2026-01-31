@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright (C) 2024 Lin Chenjun
+ * Copyright (C) 2024-2026 Lin Chenjun
  */
 
 #include <bootloader.h>
@@ -45,6 +45,7 @@ int CompareGuid(EFI_GUID *guid1, EFI_GUID *guid2)
         (guid1->Data4[7] == guid2->Data4[7])
     );
 }
+
 
 EFI_STATUS
 EFIAPI
@@ -117,16 +118,24 @@ UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
         EFI_ACPI_DESCRIPTION_HEADER *h =
             (EFI_ACPI_DESCRIPTION_HEADER *)point_to_other_sdt[i];
 
+        Printf(
+            L"%d: Signature: %c%c%c%c.\n\r",
+            i + 1,
+            (h->Signature >> 0) & 0xff,
+            (h->Signature >> 8) & 0xff,
+            (h->Signature >> 16) & 0xff,
+            (h->Signature >> 24) & 0xff
+        );
         if (h->Signature == MADT_SIGNATURE)
         {
             Status = gBS->AllocatePool(
                 EfiLoaderData, h->Length, (VOID **)&boot_info->madt_addr
             );
             gBS->CopyMem(boot_info->madt_addr, h, h->Length);
-            break;
+            // break;
         }
     }
-    if (i == entries)
+    if (boot_info->madt_addr == NULL)
     {
         gST->ConOut->SetAttribute(gST->ConOut, 0x0C | 0x00);
         gST->ConOut->OutputString(gST->ConOut, L"[ ERROR ] ");

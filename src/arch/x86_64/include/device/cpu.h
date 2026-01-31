@@ -28,7 +28,7 @@
 #define AP_STACK_BASE_PTR 0xffff800000001008 // AP 栈基地址指针
 #define AP_MAIN           0xffff800000001010 // AP 内核主函数地址指针
 
-#ifndef __ASM_INCLUDE__
+#ifndef __ASSEMBLER__
 
 extern uint64_t rdmsr(uint64_t address);
 extern void     wrmsr(uint64_t address, uint64_t value);
@@ -65,6 +65,6 @@ PUBLIC void     send_ipi(uint64_t icr);
 extern uint8_t AP_BOOT_BASE[];
 extern uint8_t AP_BOOT_END[];
 
-#endif /* __ASM_INCLUDE__ */
+#endif /* __ASSEMBLER__ */
 
 #endif

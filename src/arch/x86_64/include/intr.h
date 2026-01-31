@@ -6,7 +6,7 @@
 #ifndef __INTR_H__
 #define __INTR_H__
 
-#ifndef __ASM_INCLUDE__
+#ifndef __ASSEMBLER__
 
 typedef struct intr_stack_s
 {
@@ -62,7 +62,7 @@ PUBLIC intr_status_t intr_set_status(intr_status_t status);
 PUBLIC intr_status_t intr_enable(void);
 PUBLIC intr_status_t intr_disable(void);
 
-#endif /* __ASM_INCLUDE__ */
+#endif /* __ASSEMBLER__ */
 #endif
 
 #ifdef INTR_HANDLER

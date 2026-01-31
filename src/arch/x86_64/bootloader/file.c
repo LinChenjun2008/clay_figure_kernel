@@ -86,6 +86,7 @@ EFI_STATUS ReadFile(
         FileHandle->Read(FileHandle, &ReadSize, (VOID *)*FileBufferAddress);
     *FileSize       = FileInfo->FileSize;
     *FileBufferBase = *FileBufferAddress;
+
     gBS->FreePool(FileInfo);
     FileHandle->Close(FileHandle);
     Root->Close(Root);

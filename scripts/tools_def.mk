@@ -67,8 +67,6 @@ ifneq ($(TOOLS_DEF),bootloader)
     CFLAGS += -mstackrealign
     CFLAGS += -Wa,--noexecstack
 
-    AFLAGS = $(CFLAGS) -D__ASM_INCLUDE__
-
     LDFLAGS = -T $(KERNEL_LINKER_SCRIPT) -pie
 
     OBJFLAGS  = -I elf64-x86-64
@@ -100,6 +98,6 @@ QEMU_FLAGS = -m $(MEMORY) -bios $(OVMF) \
  -usb \
  -device nec-usb-xhci,id=xhci \
  -device usb-mouse \
- -no-shutdown \
+ -no-shutdown -no-reboot \
  -chardev stdio,mux=on,id=com1 \
  -serial chardev:com1

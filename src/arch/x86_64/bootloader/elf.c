@@ -25,7 +25,7 @@ ElfLoadExec(EFI_PHYSICAL_ADDRESS ElfFile, EFI_PHYSICAL_ADDRESS *Entry)
             }
             if (AddrHi < Phdr[i].p_vaddr + Phdr[i].p_memsz)
             {
-                AddrHi = Phdr[i].p_vaddr;
+                AddrHi = Phdr[i].p_vaddr + Phdr[i].p_memsz;
             }
         }
     }

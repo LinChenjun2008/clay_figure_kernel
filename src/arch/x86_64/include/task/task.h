@@ -6,7 +6,7 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-#ifndef __ASM_INCLUDE__
+#ifndef __ASSEMBLER__
 
 #    include <device/cpu.h> // NR_CPUS
 #    include <device/sse.h>
@@ -16,7 +16,7 @@
 #    include <sync/atomic.h>
 #    include <sync/spinlock.h>
 
-#endif /* __ASM_INCLUDE__ */
+#endif /* __ASSEMBLER__ */
 
 // 最大支持的任务数
 #define MAX_TASKS 32768
@@ -45,7 +45,7 @@
 
 #define MAX_VRUNTIME(A, B) ((int64_t)((A) - (B)) > 0 ? (A) : (B))
 
-#ifndef __ASM_INCLUDE__
+#ifndef __ASSEMBLER__
 
 // 任务状态标志
 typedef enum task_status_e
@@ -383,6 +383,6 @@ PUBLIC task_struct_t *proc_execute(
  */
 PUBLIC void proc_exit(int status);
 
-#endif /* __ASM_INCLUDE__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
