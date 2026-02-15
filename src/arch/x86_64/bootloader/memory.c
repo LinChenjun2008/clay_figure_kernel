@@ -1,170 +1,174 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright (C) 2024 Lin Chenjun
+ * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <bootloader.h>
+#include "bootloader.h"
 
-#define PG_P       0x1
-#define PG_RW_R    0x0
-#define PG_RW_W    0x2
-#define PG_US_S    0x0
-#define PG_US_U    0x4
-#define PG_SIZE_2M 0x80
-
-#define PT_SIZE 0x1000
-#define PG_SIZE 0x1000
-
-EFI_STATUS GetMemoryMap(memory_map_t *memmap)
+efi_status_t get_memory_map(memory_map_t *memmap)
 {
-    EFI_STATUS Status = EFI_SUCCESS;
-    Status =
-        gBS->AllocatePool(EfiLoaderData, memmap->map_size, &memmap->buffer);
-    if (EFI_ERROR(Status))
+    efi_status_t status = EFI_SUCCESS;
+
+    status = boot_services->allocate_pool(
+        EFI_LOADER_DATA, memmap->map_size, &memmap->buffer
+    );
+    if (EFI_ERROR(status))
     {
-        return Status;
+        printf(
+            L"get_memory_map: boot_services->allocate_pool: ERROR(%d).\n\r",
+            status
+        );
+        return status;
     }
-    Status = gBS->GetMemoryMap(
+    status = boot_services->get_memory_map(
         &memmap->map_size,
-        (EFI_MEMORY_DESCRIPTOR *)memmap->buffer,
+        (efi_memory_descriptor_t *)memmap->buffer,
         &memmap->map_key,
         &memmap->descriptor_size,
         &memmap->descriptor_version
     );
-    return Status;
+    return status;
 }
 
-STATIC EFI_PHYSICAL_ADDRESS GetPageTable(EFI_PHYSICAL_ADDRESS *PG_TABLE)
+static void page_map_sub(uint64_t *pml4t, void *paddr, void *vaddr)
 {
-    EFI_PHYSICAL_ADDRESS Addr = *PG_TABLE;
-    *PG_TABLE += PT_SIZE;
-    return Addr;
-}
+    paddr = (void *)((uintptr_t)paddr & ~(PG_SIZE - 1));
+    vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
 
-VOID CreatePage(EFI_PHYSICAL_ADDRESS PG_TABLE)
-{
-    /*
-    * 系统内存分配:
-    * 0x0100000 - 0x03fffff  (  3MB) - 内核
-    * 0x0400000 - 0x0400fff  (  4KB) - 内核栈
-    * 0x0401000 - 0x040ffff  ( 60KB) - boot info
-    * 0x0410000 - 0x140ffff  (  8MB) - 内核页表(部分)
-    * 0x1410000 - 0x1ffffff          - 空闲内存
-    * 0x2000000 - ...                - 可用空间(32MiB以上)
-    映射:
-        0x0000000000000000 - 0x00000000ffffffff
-    ==> 0x0000000000000000 - 0x00000000ffffffff
+    uint64_t *pml4e;
+    uint64_t *pdpt = NULL, *pdpte;
+    uint64_t *pdt  = NULL, *pde;
+    uint64_t *pt   = NULL, *pte;
 
-        0x0000000000000000 - 0x00000000ffffffff
-    ==> 0xffff800000000000 - 0xffff8000ffffffff
+    pml4e = pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
 
-        0xffffffff80000000 - 0xffffffff803fffff
-    ==> kernel
-
-        0xffffffffc0000000 - ...
-    ==> frame buffer
-
-    PML4E 0         PDPTE 3       PDE 511       offset
-    0(1)000 0000 0 | 000 0000 11 | 11 1111 111 | 1 1111 1111 1111 1111 1111
-    0(8)    0    0       0    f       f    f       f    f    f    f    f
-    PML4E 511       PDPTE 510     PDE 2         offset
-       1111 1111 1 | 111 1111 10 | 00 0000 010 | 0 0000 0000 0000 0000 0000
-       f    f    f       f    8       0    4       0    0    0    0    0
-    PML4E 511       PDPTE 511     PDE 0         offset
-       1111 1111 1 | 111 1111 11 | 00 0000 000 | 0 0000 0000 0000 0000 0000
-       f    f    f       f    c       0    0       0    0    0    0    0
-    */
-    UINTN *PML4T, *PDPT, *PDT, *PT;
-
-    UINTN PML4E, PDPTE, PDE, PTE;
-
-    // Clear page table
-    UINTN i;
-    for (i = 0; i < 0x1000 * 0x1000 / sizeof(UINTN); i++)
+    efi_status_t status;
+    if (!(*pml4e & PG_P))
     {
-        *((UINTN *)PG_TABLE + i) = 0;
-    }
-
-    PML4T = (UINTN *)GetPageTable(&PG_TABLE);
-
-    /*
-    * 进行以下映射:
-        0x0000000000000000 - 0x00000000ffffffff
-    ==> 0x0000000000000000 - 0x00000000ffffffff
-
-        0x0000000000000000 - 0x00000000ffffffff
-    ==> 0xffff800000000000 - 0xffff8000ffffffff
-    */
-    EFI_PHYSICAL_ADDRESS Addr = 0;
-
-    PDPT = (UINTN *)GetPageTable(&PG_TABLE);
-
-    PML4E      = (UINTN)PDPT | PG_US_U | PG_RW_W | PG_P;
-    PML4T[000] = PML4E; // 0x00000...
-    PML4T[256] = PML4E; // 0xffff8...
-
-    UINTN pdpt_index, pdt_index, pt_index;
-    for (pdpt_index = 0; pdpt_index < 4; pdpt_index++)
-    {
-        PDT              = (UINTN *)GetPageTable(&PG_TABLE);
-        PDPTE            = (UINTN)PDT | PG_US_U | PG_RW_W | PG_P;
-        PDPT[pdpt_index] = PDPTE;
-        for (pdt_index = 0; pdt_index < 512; pdt_index++)
+        status = boot_services->allocate_pages(
+            EFI_ALLOCATE_ANY_PAGES,
+            EFI_LOADER_DATA,
+            1,
+            (efi_physical_address_t *)&pdpt
+        );
+        if (EFI_ERROR(status))
         {
-            PT             = (UINTN *)GetPageTable(&PG_TABLE);
-            PDE            = (UINTN)PT | PG_US_U | PG_RW_W | PG_P;
-            PDT[pdt_index] = PDE;
-            for (pt_index = 0; pt_index < 512; pt_index++)
-            {
-                PTE          = Addr | PG_US_U | PG_RW_W | PG_P;
-                PT[pt_index] = PTE;
-                Addr += PG_SIZE;
-            }
+            printf(
+                L"page_map_sub: boot_services->allocate_pages(pdpt): "
+                L"ERROR(%d).\n\r",
+                status
+            );
+            return;
         }
+        boot_services->set_mem(pdpt, PT_SIZE, 0);
+        *pml4e = (uintptr_t)pdpt | PG_US_U | PG_RW_W | PG_P;
     }
 
-
-    /*
-    * 0 - 0x400000 ==> 0xffffffff80000000 - 0xffffffff80400000
-    */
-    Addr       = 0;
-    PDPT       = (UINTN *)GetPageTable(&PG_TABLE);
-    PML4E      = (UINTN)PDPT | PG_US_U | PG_RW_W | PG_P;
-    PML4T[511] = PML4E; // kernel
-
-    PDT       = (UINTN *)GetPageTable(&PG_TABLE);
-    PDPTE     = (UINTN)PDT | PG_US_U | PG_RW_W | PG_P;
-    PDPT[510] = PDPTE;
-    for (pdt_index = 0; pdt_index < 2; pdt_index++)
+    pdpt  = (uint64_t *)(*pml4e & (~0xfff));
+    pdpte = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
+    if (!(*pdpte & PG_P))
     {
-        PT             = (UINTN *)GetPageTable(&PG_TABLE);
-        PDE            = (UINTN)PT | PG_US_U | PG_RW_W | PG_P;
-        PDT[pdt_index] = PDE;
-        for (pt_index = 0; pt_index < 512; pt_index++)
+        status = boot_services->allocate_pages(
+            EFI_ALLOCATE_ANY_PAGES,
+            EFI_LOADER_DATA,
+            1,
+            (efi_physical_address_t *)&pdt
+        );
+        if (EFI_ERROR(status))
         {
-            PTE          = Addr | PG_US_U | PG_RW_W | PG_P;
-            PT[pt_index] = PTE;
-            Addr += PG_SIZE;
+            printf(
+                L"page_map_sub: boot_services->allocate_pages(pdt): "
+                L"ERROR(%d).\n\r",
+                status
+            );
+            return;
         }
+        boot_services->set_mem(pdt, PT_SIZE, 0);
+        *pdpte = (uintptr_t)pdt | PG_US_U | PG_RW_W | PG_P;
     }
 
-    // Frame buffer
-    Addr                = Gop->Mode->FrameBufferBase;
-    PDT                 = (UINTN *)GetPageTable(&PG_TABLE);
-    PDPTE               = (UINTN)PDT | PG_US_U | PG_RW_W | PG_P;
-    PDPT[511]           = PDPTE;
-    UINTN max_pdt_index = (Gop->Mode->FrameBufferSize + 0x1fffff) / 0x200000;
-    for (pdt_index = 0; pdt_index < max_pdt_index; pdt_index++)
+    pdt = (uint64_t *)(*pdpte & (~0xfff));
+    pde = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
+    if (!(*pde & PG_P))
     {
-        PT             = (UINTN *)GetPageTable(&PG_TABLE);
-        PDE            = (UINTN)PT | PG_US_U | PG_RW_W | PG_P;
-        PDT[pdt_index] = PDE;
-        for (pt_index = 0; pt_index < 512; pt_index++)
+        status = boot_services->allocate_pages(
+            EFI_ALLOCATE_ANY_PAGES,
+            EFI_LOADER_DATA,
+            1,
+            (efi_physical_address_t *)&pt
+        );
+        if (EFI_ERROR(status))
         {
-            PTE          = Addr | PG_US_U | PG_RW_W | PG_P;
-            PT[pt_index] = PTE;
-            Addr += PG_SIZE;
+            printf(
+                L"page_map_sub: boot_services->allocate_pages(pt): "
+                L"ERROR(%d).\n\r",
+                status
+            );
+            return;
         }
+        boot_services->set_mem(pt, PT_SIZE, 0);
+        *pde = (uintptr_t)pt | PG_US_U | PG_RW_W | PG_P;
     }
+
+    pt   = (uint64_t *)(*pde & (~0xfff));
+    pte  = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
+    *pte = (uintptr_t)paddr | PG_DEFAULT_FLAGS;
     return;
+}
+
+static void
+boot_page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t pages)
+{
+    uint64_t i;
+    for (i = 0; i < pages; i++)
+    {
+        page_map_sub(
+            pml4t,
+            (void *)((uintptr_t)paddr + i * PG_SIZE),
+            (void *)((uintptr_t)vaddr + i * PG_SIZE)
+        );
+    }
+}
+
+efi_status_t create_page_table(void *pml4t)
+{
+    efi_status_t status         = EFI_SUCCESS;
+    uint64_t    *page_table_pos = NULL;
+
+    status = boot_services->allocate_pages(
+        EFI_ALLOCATE_ANY_PAGES,
+        EFI_LOADER_DATA,
+        1,
+        (efi_physical_address_t *)&page_table_pos
+    );
+    if (EFI_ERROR(status))
+    {
+        printf(
+            L"create_page_table: boot_services->allcate_pages: ERROR(%d).\n\r",
+            status
+        );
+        return status;
+    }
+
+    boot_services->set_mem(page_table_pos, PT_SIZE, 0);
+
+    uintptr_t *paddr, *vaddr;
+
+    // 0 - 4 GiB
+    paddr = (uintptr_t *)0;
+    vaddr = PHYS_TO_VIRT(paddr);
+    boot_page_map(page_table_pos, paddr, vaddr, 1 << 20);
+    boot_page_map(page_table_pos, paddr, paddr, 1 << 20);
+
+    // frame buffer
+    paddr          = (void *)gop->mode->frame_buffer_base;
+    vaddr          = PHYS_TO_VIRT(paddr);
+    uint64_t pages = (gop->mode->frame_buffer_size + PG_SIZE - 1) / PG_SIZE;
+    boot_page_map(page_table_pos, paddr, vaddr, pages);
+
+    // kernel code
+    boot_page_map(page_table_pos, (void *)0, (void *)KERNEL_TEXT_BASE, 512);
+
+    *(uint64_t **)pml4t = page_table_pos;
+    return status;
 }

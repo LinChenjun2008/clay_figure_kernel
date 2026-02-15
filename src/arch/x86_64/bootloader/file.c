@@ -1,94 +1,142 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright (C) 2024 Lin Chenjun
+ * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <bootloader.h>
+#include "bootloader.h"
 
-EFI_STATUS ReadFile(
-    CHAR16               *FileName,
-    EFI_PHYSICAL_ADDRESS *FileBufferBase,
-    UINT64               *FileSize
+efi_status_t read_file(
+    char16_t               *file_name,
+    efi_physical_address_t *file_buffer_base,
+    efi_uint_t             *file_size
 )
 {
-    EFI_FILE_PROTOCOL *FileHandle;
-    EFI_STATUS         Status = EFI_SUCCESS;
+    efi_status_t         status = EFI_SUCCESS;
+    efi_file_protocol_t *file_handle;
 
-    EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *FileSystem;
-    EFI_FILE_PROTOCOL               *Root;
+    efi_file_protocol_t *root;
 
-    EFI_LOADED_IMAGE_PROTOCOL *LoadedImage;
-    Status = gBS->HandleProtocol(
-        gImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **)&LoadedImage
+    efi_loaded_image_protocol_t *loaded_image;
+    status = boot_services->handle_protocol(
+        image_handle, &efi_loaded_image_protocol_guid, (void **)&loaded_image
     );
-    if (EFI_ERROR(Status))
+    if (EFI_ERROR(status))
     {
-        return Status;
+        printf(
+            L"read_file: boot_services->handle_protocol(loaded_image): "
+            L"ERROR(%d).\n\r",
+            status
+        );
+        return status;
     }
 
-    Status = gBS->HandleProtocol(
-        LoadedImage->DeviceHandle,
-        &gEfiSimpleFileSystemProtocolGuid,
-        (VOID **)&FileSystem
+    efi_simple_file_system_protocol_t *file_system;
+    status = boot_services->handle_protocol(
+        loaded_image->device_handle,
+        &efi_simple_file_system_protocol_guid,
+        (void **)&file_system
     );
-    if (EFI_ERROR(Status))
+    if (EFI_ERROR(status))
     {
-        return Status;
+        printf(
+            L"read_file: boot_services->handle_protocol(file_system): "
+            L"ERROR(%d).\n\r",
+            status
+        );
+        return status;
     }
 
-    Status = FileSystem->OpenVolume(FileSystem, &Root);
-    if (EFI_ERROR(Status))
+    status = file_system->open_volume(file_system, &root);
+    if (EFI_ERROR(status))
     {
-        return Status;
+        printf(L"read_file: file_system->open_volume: ERROR(%d).\n\r", status);
+        return status;
     }
 
-    Status = Root->Open(
-        Root,
-        &FileHandle,
-        FileName,
+    status = root->open(
+        root,
+        &file_handle,
+        file_name,
         EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE,
         EFI_OPEN_PROTOCOL_GET_PROTOCOL
     );
-    if (EFI_ERROR(Status))
+    if (EFI_ERROR(status))
     {
-        return Status;
+        printf(L"read_file: root->open(%s): ERROR(%d).\n\r", file_name, status);
+        return status;
     }
-    EFI_FILE_INFO *FileInfo;
-    UINTN          InfoSize = sizeof(EFI_FILE_INFO) + sizeof(*FileName) * 256;
-    Status = gBS->AllocatePool(EfiLoaderData, InfoSize, (VOID **)&FileInfo);
-    if (EFI_ERROR(Status))
-    {
-        return Status;
-    }
-    Status =
-        FileHandle->GetInfo(FileHandle, &gEfiFileInfoGuid, &InfoSize, FileInfo);
-    if (EFI_ERROR(Status))
-    {
-        gBS->FreePool(FileInfo);
-        return Status;
-    }
-    UINTN                 FilePageSize = (FileInfo->FileSize + 0x0fff) / 0x1000;
-    EFI_PHYSICAL_ADDRESS *FileBufferAddress = FileBufferBase;
 
-    Status = gBS->AllocatePages(
-        AllocateAnyPages, EfiLoaderData, FilePageSize, FileBufferAddress
+    efi_file_info_t *file_info;
+    efi_uint_t file_info_size = sizeof(*file_info) + sizeof(*file_name) * 256;
+    status                    = boot_services->allocate_pool(
+        EFI_LOADER_DATA, file_info_size, (void **)&file_info
     );
-    gBS->SetMem((VOID *)*FileBufferAddress, FilePageSize * 0x1000, 0);
-
-    if (EFI_ERROR(Status))
+    if (EFI_ERROR(status))
     {
-        gBS->FreePool(FileInfo);
-        return Status;
+        printf(
+            L"read_file: boot_services->allocate_pool(file_info): "
+            L"ERROR(%d).\n\r",
+            status
+        );
+        return status;
     }
 
-    UINTN ReadSize = FileInfo->FileSize;
-    Status =
-        FileHandle->Read(FileHandle, &ReadSize, (VOID *)*FileBufferAddress);
-    *FileSize       = FileInfo->FileSize;
-    *FileBufferBase = *FileBufferAddress;
+    status = file_handle->get_info(
+        file_handle, &efi_file_info_guid, &file_info_size, file_info
+    );
+    if (EFI_ERROR(status))
+    {
+        printf(L"read_file: file_handle->get_info: ERROR(%d).\n\r", status);
+        boot_services->free_pool(file_info);
+        return status;
+    }
 
-    gBS->FreePool(FileInfo);
-    FileHandle->Close(FileHandle);
-    Root->Close(Root);
-    return Status;
+    efi_uint_t file_page_size = (file_info->file_size + 0x0fff) >> 12;
+    efi_physical_address_t file_buffer_address = 0;
+
+    status = boot_services->allocate_pages(
+        EFI_ALLOCATE_ANY_PAGES,
+        EFI_LOADER_DATA,
+        file_page_size,
+        &file_buffer_address
+    );
+    if (EFI_ERROR(status))
+    {
+        printf(
+            L"read_file: boot_services->allocate_pages(%lld): ERROR(%d).\n\r",
+            file_page_size,
+            status
+        );
+        boot_services->free_pool(file_info);
+        return status;
+    }
+
+    boot_services->set_mem(
+        (void *)file_buffer_address, file_page_size << 12, 0
+    );
+
+    efi_uint_t read_szie = file_info->file_size;
+    status =
+        file_handle->read(file_handle, &read_szie, (void *)file_buffer_address);
+    if (EFI_ERROR(status))
+    {
+        printf(
+            L"read_file: file_handle->read(%d): ERROR(%d).\n\r",
+            read_szie,
+            status
+        );
+        boot_services->free_pages(file_buffer_address, file_page_size);
+    }
+    else
+    {
+        *file_size        = file_info->file_size;
+        *file_buffer_base = file_buffer_address;
+        (void)file_size;
+        (void)file_buffer_base;
+    }
+
+    boot_services->free_pool(file_info);
+    file_handle->close(file_handle);
+    root->close(root);
+    return status;
 }

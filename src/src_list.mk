@@ -1,17 +1,10 @@
 SUB_DIR = .
-SUB_DIR += elf
-SUB_DIR += graphic
-SUB_DIR += kernel
-SUB_DIR += kernel/service
 SUB_DIR += lib
 SUB_DIR += mem
-SUB_DIR += mem/service
+SUB_DIR += print
 SUB_DIR += ramfs
-SUB_DIR += softirq
-SUB_DIR += service
-SUB_DIR += service/tick
-SUB_DIR += service/view
-SUB_DIR += ulib
+SUB_DIR += std
+SUB_DIR += task
 
 SEARCH_DIR = $(SRC_DIR)
 

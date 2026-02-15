@@ -1,206 +1,160 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright (C) 2024-2026 Lin Chenjun
+ * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <bootloader.h>
+#include "bootloader.h"
 
-static UINT32 VideoModes[12][2] = {
-    { 2560, 1600 }, { 1920, 1200 }, { 1920, 1080 }, { 1680, 1050 },
-    { 1600, 1200 }, { 1440, 900 },  { 1280, 1024 }, { 1280, 800 },
-    { 1280, 720 },  { 1024, 768 },  { 800, 600 },   { 0, 0 },
-};
+efi_system_table_t             *system_table;
+efi_boot_services_t            *boot_services;
+efi_graphics_output_protocol_t *gop;
+efi_handle_t                    image_handle;
 
-#define SIGNATURE_32(A, B, C, D) (D << 24 | C << 16 | B << 8 | A)
-
-#define MADT_SIGNATURE SIGNATURE_32('A', 'P', 'I', 'C')
-
-#define DISPLAY_INFO(msg)  (void)0
-#define DISPLAY_ERROR(msg) (void)0
-
-EFI_SYSTEM_TABLE             *gST;
-EFI_BOOT_SERVICES            *gBS;
-EFI_GRAPHICS_OUTPUT_PROTOCOL *Gop;
-EFI_HANDLE                    gImageHandle;
-
-EFI_GUID gEfiGraphicsOutputProtocolGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
-EFI_GUID gEfiLoadedImageProtocolGuid    = EFI_LOADED_IMAGE_PROTOCOL_GUID;
-EFI_GUID gEfiSimpleFileSystemProtocolGuid =
+efi_guid_t efi_graphics_output_protocol_guid =
+    EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+efi_guid_t efi_loaded_image_protocol_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+efi_guid_t efi_simple_file_system_protocol_guid =
     EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
-EFI_GUID gEfiFileInfoGuid  = EFI_FILE_INFO_ID;
-EFI_GUID gEfiAcpiTableGuid = EFI_ACPI_TABLE_GUID;
+efi_guid_t efi_file_info_guid  = EFI_FILE_INFO_ID;
+efi_guid_t efi_acpi_table_guid = EFI_ACPI_TABLE_GUID;
 
-int CompareGuid(EFI_GUID *guid1, EFI_GUID *guid2)
+efi_status_t EFIAPI
+efi_main(efi_handle_t in_image_handle, efi_system_table_t *in_system_table)
 {
-    return (
-        (guid1->Data1 == guid2->Data1) && (guid1->Data2 == guid2->Data2) &&
-        (guid1->Data3 == guid2->Data3) &&
-        (guid1->Data4[0] == guid2->Data4[0]) &&
-        (guid1->Data4[1] == guid2->Data4[1]) &&
-        (guid1->Data4[2] == guid2->Data4[2]) &&
-        (guid1->Data4[3] == guid2->Data4[3]) &&
-        (guid1->Data4[4] == guid2->Data4[4]) &&
-        (guid1->Data4[5] == guid2->Data4[5]) &&
-        (guid1->Data4[6] == guid2->Data4[6]) &&
-        (guid1->Data4[7] == guid2->Data4[7])
+    efi_status_t status = EFI_SUCCESS;
+
+    image_handle = in_image_handle;
+    system_table = in_system_table;
+
+    boot_services = system_table->boot_services;
+    boot_services->locate_protocol(
+        &efi_graphics_output_protocol_guid, NULL, (void **)&gop
     );
-}
-
-
-EFI_STATUS
-EFIAPI
-UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
-{
-    EFI_STATUS Status = EFI_SUCCESS;
-
-    // init
-    gST = SystemTable;
-    gBS = SystemTable->BootServices;
-    gBS->LocateProtocol(&gEfiGraphicsOutputProtocolGuid, NULL, (VOID **)&Gop);
-    gImageHandle = ImageHandle;
-
-    // disable watch dog timer
-    gST->BootServices->SetWatchdogTimer(0, 0, 0, NULL);
-
-    UINTN i;
-    for (i = 0; i < 12; i++)
-    {
-        Status = SetVideoMode(VideoModes[i][0], VideoModes[i][1]);
-        if (!EFI_ERROR(Status))
-        {
-            break;
-        }
-    }
-
-    DisplayLogo();
 
     // prepare boot info
     boot_info_t *boot_info = (boot_info_t *)0x401000;
-    gBS->AllocatePages(
-        AllocateAddress, EfiLoaderData, 1, (EFI_PHYSICAL_ADDRESS *)&boot_info
+
+    status = boot_services->allocate_pages(
+        EFI_ALLOCATE_ADDRESS,
+        EFI_LOADER_DATA,
+        (sizeof(*boot_info) + 0xfff) >> 12,
+        (efi_physical_address_t *)&boot_info
     );
-
-    gBS->SetMem(boot_info, sizeof(*boot_info), 0);
-    boot_info->magic                        = 0x5a42cb1613d4a62f;
-    boot_info->graph_info.frame_buffer_base = 0xffffffffc0000000;
-    boot_info->graph_info.horizontal_resolution =
-        Gop->Mode->Info->HorizontalResolution;
-    boot_info->graph_info.vertical_resolution =
-        Gop->Mode->Info->VerticalResolution;
-    boot_info->graph_info.pixel_per_scanline =
-        Gop->Mode->Info->PixelsPerScanLine;
-
-    // Get MADT
-    //    Get RSDP
-    EFI_CONFIGURATION_TABLE *ConfigTable = gST->ConfigurationTable;
-    EFI_ACPI_6_4_ROOT_SYSTEM_DESCRIPTION_POINTER *rsdp;
-
-    for (i = 0; i < gST->NumberOfTableEntries; i++)
+    if (EFI_ERROR(status))
     {
-        if (CompareGuid(&ConfigTable->VendorGuid, &gEfiAcpiTableGuid))
-        {
-            rsdp = ConfigTable->VendorTable;
-            if (rsdp->Revision == 2)
-            {
-                break;
-            }
-        }
-        ConfigTable++;
-    }
-
-    //    Get MADT
-    XSDT_TABLE *xsdt    = (void *)rsdp->XsdtAddress;
-    UINT32      entries = (xsdt->Header.Length - sizeof(xsdt->Header)) / 8;
-    UINT64     *point_to_other_sdt = &xsdt->Entry;
-
-    for (i = 0; i < entries; i++)
-    {
-        EFI_ACPI_DESCRIPTION_HEADER *h =
-            (EFI_ACPI_DESCRIPTION_HEADER *)point_to_other_sdt[i];
-
-        Printf(
-            L"%d: Signature: %c%c%c%c.\n\r",
-            i + 1,
-            (h->Signature >> 0) & 0xff,
-            (h->Signature >> 8) & 0xff,
-            (h->Signature >> 16) & 0xff,
-            (h->Signature >> 24) & 0xff
+        printf(
+            L"boot_services->allocate_pages: cannot alloc memory for "
+            L"boot_info.\n\r"
         );
-        if (h->Signature == MADT_SIGNATURE)
-        {
-            Status = gBS->AllocatePool(
-                EfiLoaderData, h->Length, (VOID **)&boot_info->madt_addr
-            );
-            gBS->CopyMem(boot_info->madt_addr, h, h->Length);
-            // break;
-        }
+        return status;
     }
-    if (boot_info->madt_addr == NULL)
+    boot_services->set_mem(boot_info, sizeof(boot_info), 0);
+
+    efi_uint_t             img_size;
+    efi_physical_address_t img_base;
+    status = read_file(L"kernel\\initramfs.img", &img_base, &img_size);
+    if (EFI_ERROR(status))
     {
-        gST->ConOut->SetAttribute(gST->ConOut, 0x0C | 0x00);
-        gST->ConOut->OutputString(gST->ConOut, L"[ ERROR ] ");
-        gST->ConOut->SetAttribute(gST->ConOut, 0x0F | 0x00);
-        gST->ConOut->OutputString(gST->ConOut, L"Can not get MADT\n");
+        printf(L"Open kernel/initramfs failed: ERROR(%d).\n\r", status);
+        return status;
+    }
+    boot_info->initramfs      = (void *)img_base;
+    boot_info->initramfs_size = img_size;
+
+    if (ramfs_check((void *)img_base) < 0)
+    {
+        printf(L"check ramfs failed!\n\r");
+        return EFI_ERR;
+    }
+    ramfs_file_t fp;
+    if (ramfs_open((void *)img_base, "config", &fp) < 0)
+    {
+        printf(L"ramfs_open(config): failed.\n\r");
+        return EFI_ERR;
+    }
+    parse_config(&fp);
+
+    set_video_mode();
+
+    graphic_info_t *graphic_info = &boot_info->graphic_info;
+    efi_graphcis_output_mode_information_t *mode_info = gop->mode->info;
+
+    graphic_info->frame_buffer_base     = gop->mode->frame_buffer_base;
+    graphic_info->horizontal_resolution = mode_info->horizontal_resolution;
+    graphic_info->vertical_resolution   = mode_info->vertical_resolution;
+    graphic_info->pixel_per_scanline    = mode_info->pixels_per_scan_line;
+
+    status = read_acpi_tables(boot_info);
+    if (EFI_ERROR(status))
+    {
+        printf(L"read_acpi_tables: ERROR(%d).\n\r", status);
+        return status;
+    }
+
+    if (ramfs_open((void *)img_base, "clfgkrnl", &fp) < 0)
+    {
+        printf(L"ramfs_open(kernel): failed.\n\r");
         return EFI_ERR;
     }
 
-    // load file
-
-    UINT64               FileSize   = 0;
-    EFI_PHYSICAL_ADDRESS KernelBase = 0;
-    // Kernel
-    Status = ReadFile(KERNEL_NAME, &KernelBase, &FileSize);
-    if (EFI_ERROR(Status))
-    {
-        gST->ConOut->OutputString(
-            gST->ConOut, L"Failed to read " KERNEL_NAME "\n"
-        );
-        while (1) continue;
-    }
-
-    // initramfs
-    Status = ReadFile(
-        INITRAMFS_NAME,
-        (EFI_PHYSICAL_ADDRESS *)&boot_info->initramfs,
-        &boot_info->initramfs_size
+    SYSV_ABI int (*kernel_entry)(boot_info_t *, void *);
+    uintptr_t physical_base = 0x100000;
+    uintptr_t relocate_base = KERNEL_TEXT_BASE;
+    load_segment(
+        (uintptr_t)fp.data,
+        &physical_base,
+        &relocate_base,
+        (uintptr_t *)&kernel_entry
     );
-    if (EFI_ERROR(Status))
+    boot_info->relocate_base = relocate_base;
+
+    // Create page table
+    uintptr_t *page_table_pos;
+    status = create_page_table(&page_table_pos);
+    if (EFI_ERROR(status))
     {
-        gST->ConOut->OutputString(
-            gST->ConOut, L"Failed to read " INITRAMFS_NAME "\n"
-        );
-        while (1) continue;
+        printf(L"create_page_table: ERROR(%d).\n\r", status);
     }
+    boot_info->page_table_pos = page_table_pos;
 
-    void (*kernel_entry)(void);
-    EFI_PHYSICAL_ADDRESS PhysicalBase = 0x100000;
-    EFI_PHYSICAL_ADDRESS RelocateBase = PhysicalBase + KERNEL_TEXT_BASE;
-
-    LoadSegment(
-        KernelBase,
-        &PhysicalBase,
-        &RelocateBase,
-        (EFI_PHYSICAL_ADDRESS *)&kernel_entry
+    // Allocate kernel stack (4kib)
+    efi_physical_address_t kstack;
+    status = boot_services->allocate_pages(
+        EFI_ALLOCATE_ANY_PAGES, EFI_LOADER_DATA, 1, &kstack
     );
-    boot_info->relocate_base = RelocateBase;
+    if (EFI_ERROR(status))
+    {
+        printf(
+            L"boot_services->allocate_pages(kstack): ERROR(%d).\n\r", status
+        );
+        return status;
+    }
+    boot_info->stack_base  = kstack;
+    boot_info->stack_pages = 1;
 
-    // Get memory map,exit boot services
+    // Memory map.
     boot_info->memory_map.map_size           = 4096 * 4;
     boot_info->memory_map.buffer             = NULL;
     boot_info->memory_map.map_key            = 0;
     boot_info->memory_map.descriptor_size    = 0;
     boot_info->memory_map.descriptor_version = 0;
-    Status = GetMemoryMap(&boot_info->memory_map);
-    if (EFI_ERROR(Status))
+
+    status = get_memory_map(&boot_info->memory_map);
+    if (EFI_ERROR(status))
     {
-        return EFI_ERR;
+        printf(L"get_memory_map: ERROR(%d).\n\r");
+        return status;
     }
-    gBS->ExitBootServices(gImageHandle, boot_info->memory_map.map_key);
 
-    // Create Page table
-    UINTN PG_TABLE_POS = 0x410000;
-    CreatePage(PG_TABLE_POS);
+    status = boot_services->exit_boot_services(
+        image_handle, boot_info->memory_map.map_key
+    );
+    if (EFI_ERROR(status))
+    {
+        return status;
+    }
 
-    kernel_entry();
-    return Status;
+    kernel_entry(boot_info, PHYS_TO_VIRT(kstack + PG_SIZE));
+    while (1);
+    return status;
 }

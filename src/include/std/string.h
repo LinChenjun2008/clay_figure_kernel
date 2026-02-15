@@ -1,16 +1,21 @@
-#ifndef __STRING_H__
-#define __STRING_H__
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2026 Lin Chenjun
+ */
 
-PUBLIC void  *memset(void *dst, int value, size_t size);
-PUBLIC void  *memcpy(void *dst, const void *src, size_t size);
-PUBLIC int    memcmp(const void *p1, const void *p2, size_t size);
-PUBLIC char  *strcpy(char *dst, const char *src);
-PUBLIC char  *strncpy(char *dst, const char *src, size_t n);
-PUBLIC int    strcmp(const char *str1, const char *str2);
-PUBLIC int    strncmp(const char *str1, const char *str2, size_t n);
-PUBLIC size_t strlen(const char *str);
-PUBLIC char  *strchr(const char *str, char ch);
-PUBLIC char  *strrchr(const char *str, char ch);
-PUBLIC char  *strcat(char *dst, char *src);
+#ifndef __STD_STRING_H__
+#define __STD_STRING_H__
 
-#endif
+void  *memset(void *dst, int value, size_t size);
+void  *memcpy(void *dst, const void *src, size_t size);
+int    memcmp(const void *p1, const void *p2, size_t size);
+char  *strcpy(char *dst, const char *src);
+char  *strncpy(char *dst, const char *src, size_t n);
+int    strcmp(const char *str1, const char *str2);
+int    strncmp(const char *str1, const char *str2, size_t n);
+size_t strlen(const char *str);
+char  *strchr(const char *str, char ch);
+char  *strrchr(const char *str, char ch);
+char  *strcat(char *dst, char *src);
+
+#endif /* __STD_STRING_H__ */

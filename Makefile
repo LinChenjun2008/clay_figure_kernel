@@ -18,7 +18,6 @@ all:
 	@$(ECHO) compiling...
 	@$(MAKE) -C $(SRC_DIR)/arch/ all
 	@$(MAKE) -C $(SRC_DIR) all
-	@$(MAKE) $(TARGET_KERNEL)
 	@$(MAKE) $(TARGET_INITRAMFS)
 	@$(ECHO) done.
 
@@ -28,25 +27,24 @@ run: all
 
 .PHONY: debug
 debug: all
-	-@"$(QEMU)" -S -s $(QEMU_FLAGS)
+	-@"$(QEMU)" $(QEMU_FLAGS) -S -s
 
 .PHONY: clean
 clean:
-	@$(MAKE) -C $(SRC_DIR)/arch clean
+	@$(MAKE) -C $(SRC_DIR)/arch/ clean
 	@$(MAKE) -C $(SRC_DIR) clean
-	-@$(RM) $(TARGET_KERNEL)
+	-@"$(RM)" $(TARGET_INITRAMFS)
 
 .PHONY: init
 init:
-	-$(MKDIR) "$(RUNNING_DIR)"
+	-$(MKDIR) "$(BUILD_DIR)"
 	-$(MKDIR) "$(ESP_DIR)"
-	-$(MKDIR) "$(ESP_DIR)/EFI"
-	-$(MKDIR) "$(ESP_DIR)/EFI/Boot"
-	-$(MKDIR) "$(ESP_DIR)/Kernel"
+	-$(MKDIR) "$(ESP_DIR)/efi"
+	-$(MKDIR) "$(ESP_DIR)/efi/boot"
+	-$(MKDIR) "$(ESP_DIR)/kernel"
 
-$(TARGET_INITRAMFS): $(SRC_DIR)/config.txt $(TARGET_KERNEL)
-	@$(ECHO) updating initramfs...
-	@"$(IMGCOPY)" $(IMGCOPY_FLAGS) > $(ESP_DIR)/Kernel/initramfs.img
+$(TARGET_INITRAMFS): $(IMGCOPY_DEP)
+	@"$(IMGCOPY)" $(IMGCOPY_FLAGS) > $@
 
 $(TARGET_KERNEL): $(ASM_SRC:S=o) $(C_SRC:c=o) $(KERNEL_LINKER_SCRIPT)
 	@$(ECHO) linking [1/2]

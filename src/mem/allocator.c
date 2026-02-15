@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright (C) 2024-2025 Lin Chenjun
+ * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <kernel/global.h>
+#include <base.h>
 
-#include <log.h>
+#include <asm/mem/page.h>
+#include <asm/sync/spinlock.h>
 
-#include <intr.h>          // intr functions
-#include <lib/list.h>      // list functions
-#include <mem/allocator.h> // MIN,MAX allocate size
-#include <mem/page.h>      // PHYS_TO_VIRT,VIRT_TO_PHYS
-#include <std/string.h>    // memset
-#include <sync/spinlock.h> // spinlock
+#include <lib/list.h>
+#include <mem/allocator.h>
+#include <print.h>
+#include <std/string.h>
 
 typedef struct
 {
@@ -29,7 +28,7 @@ typedef struct
     size_t       cnt;
 } mem_cache_t;
 
-typedef struct mem_block_s
+typedef struct
 {
     uint64_t    magic; // magic = block_index + cache.number_of_blocks
     list_node_t node;
@@ -45,9 +44,9 @@ STATIC_ASSERT(
 );
 STATIC_ASSERT(MAX_ALLOCATE_MEMORY_SIZE < PG_SIZE, "");
 
-PRIVATE mem_group_t mem_groups[NUMBER_OF_MEMORY_BLOCK_TYPES];
+static mem_group_t mem_groups[NUMBER_OF_MEMORY_BLOCK_TYPES];
 
-PUBLIC void mem_allocator_init(void)
+void mem_allocator_init(void)
 {
     size_t block_size = MIN_ALLOCATE_MEMORY_SIZE;
     int    i;
@@ -56,24 +55,25 @@ PUBLIC void mem_allocator_init(void)
         mem_groups[i].block_size = block_size;
         mem_groups[i].total_free = 0;
         init_list(&mem_groups[i].free_block_list);
-        init_spin(&mem_groups[i].lock);
+        init_spinlock(&mem_groups[i].lock);
         block_size <<= 1;
     }
     return;
 }
 
-PRIVATE mem_block_t *cache2block(mem_cache_t *c, size_t idx)
+
+static mem_block_t *cache2block(mem_cache_t *c, size_t idx)
 {
     uintptr_t addr = (uintptr_t)c + c->group->block_size;
     return ((mem_block_t *)(addr + (idx * (c->group->block_size))));
 }
 
-PRIVATE mem_cache_t *block2cache(mem_block_t *b)
+static mem_cache_t *block2cache(mem_block_t *b)
 {
     return ((mem_cache_t *)((uintptr_t)b & ~((uintptr_t)PG_SIZE - 1)));
 }
 
-PRIVATE size_t block_index(mem_cache_t *c, mem_block_t *b)
+static size_t block_index(mem_cache_t *c, mem_block_t *b)
 {
     uintptr_t addr = (uintptr_t)b;
     addr -= (uintptr_t)c + c->group->block_size;
@@ -81,31 +81,39 @@ PRIVATE size_t block_index(mem_cache_t *c, mem_block_t *b)
     return idx;
 }
 
-PRIVATE mem_block_t *
-kmalloc_find_block(list_t *list, size_t size, size_t alignment, size_t boundary)
+static mem_block_t *
+find_block(mem_group_t *g, size_t alignment, size_t boundary)
 {
-    list_node_t *node = list->head.next;
-    ASSERT(node->next->prev == node);
+    list_t *list = &g->free_block_list;
+    size_t  size = g->block_size;
+
+    list_node_t *node = list_next(list_head(list));
+    ASSERT(list_prev(list_next(node)) == node);
+
+    mem_block_t *b   = NULL;
+    mem_cache_t *c   = NULL;
+    size_t       idx = 0;
+
     if (alignment <= size && boundary == 0)
     {
-        goto done;
+        b = CONTAINER_OF(mem_block_t, node, node);
+        list_remove(node);
+        return b;
     }
-    for (; node != &list->tail; node = list_next(node))
+    for (; node != list_tail(list); node = list_next(node))
     {
-        mem_block_t *b   = CONTAINER_OF(mem_block_t, node, node);
-        mem_cache_t *c   = block2cache(b);
-        size_t       idx = block_index(c, b);
+        b   = CONTAINER_OF(mem_block_t, node, node);
+        c   = block2cache(b);
+        idx = block_index(c, b);
         // Check magic
         ASSERT(b->magic == idx + c->number_of_blocks);
 
         if (b->magic != idx + c->number_of_blocks)
         {
-            PR_LOG(
-                LOG_WARN, "Block magic error (memory may use after free).\n"
-            );
+            printk(MSG_WARN "kmalloc: block magic error.\n");
         }
 
-        ASSERT(node->next->prev == node);
+        ASSERT(list_prev(list_next(node)) == node);
         uintptr_t addr = (uintptr_t)b;
         if ((addr & (alignment - 1)) != 0)
         {
@@ -118,78 +126,43 @@ kmalloc_find_block(list_t *list, size_t size, size_t alignment, size_t boundary)
                 continue;
             }
         }
-        goto done;
+
+        list_remove(node);
+        return b;
     }
     return NULL;
-
-done:
-    list_remove(node);
-    mem_block_t *b = CONTAINER_OF(mem_block_t, node, node);
-    return b;
 }
 
-PUBLIC status_t
-kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
+static mem_group_t *size_to_group(size_t size)
 {
-    status_t status = K_SUCCESS;
-    ASSERT(addr != NULL);
-    if (size < MAX_ALLOCATE_MEMORY_SIZE && alignment > MAX_ALLOCATE_MEMORY_SIZE)
-    {
-        return K_INVALID_PARAM;
-    }
-    if ((alignment & (alignment - 1)) != 0)
-    {
-        return K_INVALID_PARAM;
-    }
-
-    int          i;
-    mem_cache_t *c = NULL;
-    mem_block_t *b = NULL;
-    mem_group_t *g = NULL;
-
-    // 超过最大分配内存大小，按页为单位分配
-    if (size > MAX_ALLOCATE_MEMORY_SIZE)
-    {
-        size_t    pages = DIV_ROUND_UP(sizeof(*c) + alignment + size, PG_SIZE);
-        uintptr_t page_addr;
-        status = alloc_physical_page(pages, &page_addr);
-        if (ERROR(status))
-        {
-            return status;
-        }
-        c                   = PHYS_TO_VIRT(page_addr);
-        c->group            = NULL;
-        c->cnt              = pages;
-        c->number_of_blocks = 0;
-
-        uintptr_t raw_ptr = (uintptr_t)c + sizeof(*c);
-        if (alignment != 0)
-        {
-            raw_ptr = (raw_ptr + alignment - 1) & ~(alignment - 1);
-        }
-        *(uintptr_t *)addr = raw_ptr;
-        return K_SUCCESS;
-    }
-
+    int i;
     for (i = 0; i < NUMBER_OF_MEMORY_BLOCK_TYPES; i++)
     {
         if (size <= mem_groups[i].block_size)
         {
-            g = &mem_groups[i];
-            break;
+            return &mem_groups[i];
         }
     }
+    return NULL;
+}
 
-    spin_lock(&g->lock);
+static int
+kmalloc_lock(mem_group_t *g, size_t alignment, size_t boundary, void **addr)
+{
+    int ret = 0;
+
+    mem_cache_t *c = NULL;
+    mem_block_t *b = NULL;
+
     if (list_empty(&g->free_block_list))
     {
-        uintptr_t cache_paddr;
-        status = alloc_physical_page(1, &cache_paddr);
-        if (ERROR(status))
+        ret = allocate_pages(1, (void **)&c);
+
+        if (ret < 0)
         {
-            goto done;
+            printk(MSG_ERR "kmalloc: failed to allocate page.\n");
+            return 0;
         }
-        c = PHYS_TO_VIRT(cache_paddr);
         memset(c, 0, PG_SIZE);
 
         c->group            = g;
@@ -206,52 +179,106 @@ kmalloc(size_t size, size_t alignment, size_t boundary, void *addr)
         }
     }
 
-    b = kmalloc_find_block(&g->free_block_list, size, alignment, boundary);
+    b = find_block(g, alignment, boundary);
     if (b == NULL)
     {
-        PR_LOG(LOG_WARN, "Can not find avilable memory block.\n");
-        return K_NOT_FOUND;
+        printk(MSG_WARN "kmalloc: can not find avilable memory block.\n");
+        return -1;
     }
     memset(b, 0, g->block_size);
     c = block2cache(b);
     c->cnt--;
     c->group->total_free--;
-    *(uintptr_t *)addr = (uintptr_t)b;
-done:
-    spin_unlock(&g->lock);
-    return status;
+    *addr = (void *)b;
+    return ret;
 }
 
-PUBLIC void kfree(void *addr)
+int kmalloc(size_t size, size_t alignment, size_t boundary, void **addr)
+{
+    int ret = 0;
+    if (size < MAX_ALLOCATE_MEMORY_SIZE && alignment > MAX_ALLOCATE_MEMORY_SIZE)
+    {
+        return -1;
+    }
+    if ((alignment & (alignment - 1)) != 0)
+    {
+        return -2;
+    }
+
+    mem_cache_t *c = NULL;
+    mem_group_t *g = NULL;
+
+    // 超过最大分配内存大小，按页为单位分配
+    if (size > MAX_ALLOCATE_MEMORY_SIZE)
+    {
+        size_t pages = DIV_ROUND_UP(sizeof(*c) + alignment + size, PG_SIZE);
+
+        ret = allocate_pages(pages, (void **)&c);
+        if (ret < 0)
+        {
+            return ret;
+        }
+        c->group            = NULL;
+        c->cnt              = pages;
+        c->number_of_blocks = 0;
+
+        uintptr_t raw_ptr = (uintptr_t)c + sizeof(*c);
+        if (alignment != 0)
+        {
+            raw_ptr = (raw_ptr + alignment - 1) & ~(alignment - 1);
+        }
+        *addr = (void *)raw_ptr;
+        return ret;
+    }
+    g = size_to_group(size);
+    ASSERT(g != NULL);
+
+    spin_lock(&g->lock);
+    ret = kmalloc_lock(g, alignment, boundary, addr);
+    spin_unlock(&g->lock);
+
+    return ret;
+}
+
+void kfree(void **addr)
 {
     if (addr == NULL)
     {
-        PR_LOG(LOG_WARN, "free nullptr.\n");
+        printk(MSG_ERR "kfree: bad pargma.\n");
+        return;
+    }
+    if (*addr == NULL)
+    {
+        printk(MSG_WARN "kfree: free nullptr.\n");
         return;
     }
     mem_cache_t *c = NULL;
     mem_block_t *b = NULL;
     mem_group_t *g = NULL;
 
-    b = (mem_block_t *)addr;
+    b = (mem_block_t *)*addr;
     c = block2cache(b);
     g = c->group;
 
     // 先处理大块内存
     if (c->group == NULL)
     {
-        free_physical_page(VIRT_TO_PHYS(c), c->cnt);
+        free_pages((void **)&c, c->cnt);
+        if (c == NULL)
+        {
+            *addr = NULL;
+        }
         return;
     }
     // 小块内存
     if (b->magic == block_index(c, b) + c->number_of_blocks)
     {
-        PR_LOG(LOG_WARN, "Double free: %p.\n", b);
+        printk(MSG_WARN "kfree: double free: %p.\n", b);
         return;
     }
     b->magic = block_index(c, b) + c->number_of_blocks;
 
-    ASSERT(((uintptr_t)addr & (g->block_size - 1)) == 0);
+    ASSERT(((uintptr_t)*addr & (g->block_size - 1)) == 0);
 
     spin_lock(&g->lock);
     list_append(&g->free_block_list, &b->node);
@@ -269,8 +296,9 @@ PUBLIC void kfree(void *addr)
             list_remove(&b->node);
         }
         g->total_free -= c->number_of_blocks;
-        free_physical_page(VIRT_TO_PHYS(c), 1);
+        free_pages((void **)&c, 1);
     }
     spin_unlock(&g->lock);
+    *addr = NULL;
     return;
 }

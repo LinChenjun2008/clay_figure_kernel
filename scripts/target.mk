@@ -1,8 +1,8 @@
-RUNNING_DIR       = $(abspath $(PROJECT_DIR)/../run)
-ESP_DIR           = $(abspath $(RUNNING_DIR)/esp)
-TARGET_BOOTLOADER = $(abspath $(ESP_DIR)/EFI/Boot/BootX64.efi)
-TARGET_KERNEL     = $(abspath $(ESP_DIR)/Kernel/clfgkrnl.sys)
-TARGET_INITRAMFS  = $(abspath $(ESP_DIR)/Kernel/initramfs.img)
+BUILD_DIR         = $(abspath $(PROJECT_DIR)/build)
+ESP_DIR           = $(abspath $(BUILD_DIR)/esp)
+TARGET_KERNEL     = $(abspath $(BUILD_DIR)/clfgkrnl.sys)
+TARGET_BOOTLOADER = $(abspath $(ESP_DIR)/efi/boot/bootx64.efi)
+TARGET_INITRAMFS  = $(abspath $(ESP_DIR)/kernel/initramfs.img)
 
 TARGET_ARCH       = x86_64
 SMP_CORES         = 4

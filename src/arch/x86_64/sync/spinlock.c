@@ -1,36 +1,42 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright (C) 2024 Lin Chenjun
+ * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <kernel/global.h>
+#include <base.h>
 
-#include <log.h>
+#include <asm/asmfunc.h>
+#include <asm/interrupt.h>
+#include <asm/sync/spinlock.h>
 
-#include <sync/spinlock.h>
+#include <print.h>
 
-PUBLIC void init_spin(spinlock_t *spinlock)
+void init_spinlock(spinlock_t *lk)
 {
-    spinlock->lock        = 1;
-    spinlock->intr_status = INTR_UNKNOW_STATUS;
+    asm_atomic_xchg(&lk->lock, 1);
+    lk->intr_status = MAX_INTR_STATUS;
     return;
 }
 
-extern void ASMLINKAGE asm_spin_lock(volatile uint64_t *lock);
-
-PUBLIC void spin_lock(spinlock_t *spinlock)
+void spin_lock(spinlock_t *lk)
 {
     intr_status_t intr_status = intr_disable();
-    asm_spin_lock(&spinlock->lock);
-    spinlock->intr_status = intr_status;
+    while (asm_atomic_xchg(&lk->lock, 0) == 0)
+    {
+        continue;
+    }
+    lk->intr_status = intr_status;
     return;
 }
 
-PUBLIC void spin_unlock(spinlock_t *spinlock)
+void spin_unlock(spinlock_t *lk)
 {
-    intr_status_t intr_status = spinlock->intr_status;
-    spinlock->intr_status     = INTR_UNKNOW_STATUS;
-    spinlock->lock            = 1;
+    intr_status_t intr_status = lk->intr_status;
+    lk->intr_status           = MAX_INTR_STATUS;
+
+    uint64_t lk_value;
+    lk_value = asm_atomic_xchg(&lk->lock, 1);
+    ASSERT(lk_value == 0);
     intr_set_status(intr_status);
     return;
 }

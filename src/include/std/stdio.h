@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2026 Lin Chenjun
+ */
+
 #ifndef __STDIO_H__
 #define __STDIO_H__
 

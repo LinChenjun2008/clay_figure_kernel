@@ -29,9 +29,8 @@ typedef struct ramfs_file_s
 
 #ifndef __RAMFS_TOOLS__
 
-PUBLIC status_t ramfs_check(void *ramfs_addr);
-PUBLIC status_t
-ramfs_open(void *ramfs_addr, const char *name, ramfs_file_t *file);
+int ramfs_check(void *ramfs_addr);
+int ramfs_open(void *ramfs_addr, const char *name, ramfs_file_t *file);
 
 #endif
 

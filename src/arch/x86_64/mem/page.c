@@ -1,519 +1,201 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright (C) 2025 Lin Chenjun
+ * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <kernel/global.h>
+#include <base.h>
 
-#include <log.h>
+#include <asm/asmfunc.h>
+#include <asm/mem/page.h>
+#include <asm/sync/spinlock.h>
 
-#include <io.h>            // get_cr2,get_cr3
-#include <lib/bitmap.h>    // bitmap
-#include <mem/allocator.h> // kmalloc
-#include <mem/page.h>      // previous
-#include <std/string.h>    // memset
-#include <sync/spinlock.h> // spinlock
+#include <efi.h>
+#include <mm_struct.h>
+#include <print.h>
+#include <std/string.h>
 
-// do_page_fault
-#include <intr.h>      // register_handler
-#include <task/task.h> // task_struct
-
-typedef enum
-{
-    FREE_MEMORY = 1,
-    RESERVED_MEMORY,
-    ACPI_MEMORY,
-    ACPI_MEMORY_NVS,
-    UNUSEABLE_MEMORY,
-    MAX_MEMORY_TYPE,
-} memory_type_t;
-
-typedef enum
-{
-    EfiReservedMemoryType,
-    EfiLoaderCode,
-    EfiLoaderData,
-    EfiBootServicesCode,
-    EfiBootServicesData,
-    EfiRuntimeServicesCode,
-    EfiRuntimeServicesData,
-    EfiConventionalMemory,
-    EfiUnusableMemory,
-    EfiACPIReclaimMemory,
-    EfiACPIMemoryNVS,
-    EfiMemoryMappedIO,
-    EfiMemoryMappedIOPortSpace,
-    EfiPalCode,
-    EfiMaxMemoryType
-} EFI_MEMORY_TYPE;
+static mm_block_t page_mm_blocks[2048];
 
 typedef struct
 {
-    uint32_t  Type;
-    uintptr_t PhysicalStart;
-    uintptr_t VirtualStart;
-    uint64_t  NumberOfPages;
-    uint64_t  Attribute;
-} ALIGNED(16) EFI_MEMORY_DESCRIPTOR;
+    spinlock_t  lock;
+    mm_struct_t mm;
+} page_man_t;
 
-typedef struct
-{
-    spinlock_t lock;
-    uint64_t   id;
-    uint64_t   next;
-    uintptr_t  addr;            // 页的起始地址(物理)
-    uint64_t   attribure;       // 页属性
-    uint64_t   reference_count; // 引用次数
-} page_t;
+static page_man_t page_man;
 
-typedef struct
-{
-    spinlock_t lock;
-    page_t    *pages_struct;        // pages结构体数组地址
-    size_t     pages_struct_size;   // pages结构体数组大小(字节)
-    size_t     pages_struct_length; // pages 结构体数组长度(page的个数)
-} page_group_t;
-
-typedef struct
-{
-    mm_struct_t  mem_map;
-    spinlock_t   lock;
-    page_group_t shared_pages;
-    uint64_t     free_page_count;
-
-} global_mem_desc_t;
-
-PRIVATE global_mem_desc_t g_mem_desc;
-
-PRIVATE mm_block_t page_mm_blocks[PAGE_BLOCKS];
-
-PRIVATE memory_type_t memory_type(EFI_MEMORY_TYPE efi_type)
+static mm_type_t get_page_type(efi_memory_type_t efi_type)
 {
     switch (efi_type)
     {
-        case EfiConventionalMemory:
-        case EfiBootServicesCode:
-        case EfiBootServicesData:
-        case EfiLoaderCode:
-            return FREE_MEMORY;
-        case EfiLoaderData:
-        case EfiRuntimeServicesCode:
-        case EfiRuntimeServicesData:
-        case EfiMemoryMappedIO:
-        case EfiMemoryMappedIOPortSpace:
-        case EfiPalCode:
-        case EfiReservedMemoryType:
-            return RESERVED_MEMORY;
-        case EfiACPIReclaimMemory:
-            return ACPI_MEMORY;
-        case EfiACPIMemoryNVS:
-            return ACPI_MEMORY_NVS;
-        case EfiUnusableMemory:
-        case EfiMaxMemoryType:
-            return UNUSEABLE_MEMORY;
-        default:
-            return MAX_MEMORY_TYPE;
+        case EFI_CONVENTIONAL_MEMORY:
+        case EFI_BOOT_SERVICES_CODE:
+        case EFI_BOOT_SERVICES_DATA:
+        case EFI_LOADER_CODE:
+            return MM_TYPE_FREE;
+
+        case EFI_LOADER_DATA:
+        case EFI_RUNTIME_SERVICES_CODE:
+        case EFI_RUNTIME_SERVICES_DATA:
+        case EFI_MEMORY_MAPPED_IO:
+        case EFI_MEMORY_MAPPED_IO_PORT_SPACE:
+        case EFI_PAL_CODE:
+        case EFI_RESERVED_TYPE:
+        case EFI_ACPI_RECLAIM_MEMORY:
+        case EFI_ACPI_MEMORY_NVS:
+            return MM_TYPE_RESERVED;
+
+        case EFI_UNUSABLE_MEMORY:
+        case EFI_MAX_MEMORY_TYPE:
+            return MAX_MM_TYPE;
     }
-    return MAX_MEMORY_TYPE;
+    return MAX_MM_TYPE;
 }
 
-PRIVATE void do_page_fault(intr_stack_t *stack)
+void page_init(boot_info_t *boot_info)
 {
-    task_struct_t *task          = get_current_task();
-    uintptr_t      fault_address = get_cr2();
-    uintptr_t      cr3           = get_cr3();
-    uint64_t       error_code    = stack->error_code;
+    init_mm_struct(&page_man.mm, page_mm_blocks, 2048);
+    init_spinlock(&page_man.lock);
 
-    uintptr_t fault_page = fault_address & ~(PG_SIZE - 1);
+    efi_memory_descriptor_t *memmap;
+    memmap = (efi_memory_descriptor_t *)boot_info->memory_map.buffer;
 
-    // 内核任务 - 错误
-    if (get_current_task()->page_dir == NULL)
-    {
-        pr_log(LOG_ERROR, "Kernel task page fault.\n");
-        default_irq_handler(stack);
-    }
-    PANIC(
-        cr3 != (uintptr_t)get_current_task()->page_dir,
-        K_ERROR,
-        "Page table address error."
-    );
+    size_t map_size   = boot_info->memory_map.map_size;
+    size_t desc_size  = boot_info->memory_map.descriptor_size;
+    int    desc_count = map_size / desc_size;
 
-
-    // 未分配地址 - 错误
-    if (!mm_find(&task->mm_using, fault_address))
-    {
-        pr_log(LOG_ERROR, "Page not allocated.\n");
-        default_irq_handler(stack);
-    }
-
-    //  页已存在而引发的异常
-    if (error_code & PG_P)
-    {
-        pr_log(LOG_ERROR, "Page existed.\n");
-        default_irq_handler(stack);
-    }
-    uintptr_t paddr  = 0;
-    status_t  status = alloc_physical_page(1, &paddr);
-    if (ERROR(status))
-    {
-        PANIC(ERROR(status), status, "Out of memory.");
-        default_irq_handler(stack);
-    }
-    mm_add_range(&task->mm_pages, paddr, PG_SIZE);
-    page_map(task->page_dir, (void *)paddr, (void *)fault_page, 1);
-    page_table_activate(task);
-    return;
-}
-
-PUBLIC void mem_page_init(void)
-{
-    mm_struct_init(&g_mem_desc.mem_map, page_mm_blocks, PAGE_BLOCKS);
-    init_spin(&g_mem_desc.lock);
-
-    EFI_MEMORY_DESCRIPTOR *efi_memory_desc =
-        (EFI_MEMORY_DESCRIPTOR *)BOOT_INFO->memory_map.buffer;
-
-    size_t map_size              = BOOT_INFO->memory_map.map_size;
-    size_t desc_size             = BOOT_INFO->memory_map.descriptor_size;
-    int    number_of_memory_desc = map_size / desc_size;
-
-    // curr_xxx - 当前内存块(efi_memory_desc[i])的起始地址,大小,结束地址和类型
-    uintptr_t     curr_start = 0;
-    uintptr_t     curr_end   = 0;
-    size_t        curr_size  = 0;
-    uint64_t      curr_pages = 0;
-    memory_type_t curr_type  = MAX_MEMORY_TYPE;
+    uintptr_t curr_start = 0;
+    uintptr_t curr_end   = 0;
+    size_t    curr_size  = 0;
+    uint64_t  curr_pages = 0;
+    mm_type_t curr_type  = MAX_MM_TYPE;
 
     int i;
-    for (i = 0; i < number_of_memory_desc; i++)
+    for (i = 0; i < desc_count; i++)
     {
-        curr_start = efi_memory_desc[i].PhysicalStart;
-        curr_pages = efi_memory_desc[i].NumberOfPages;
-        curr_size  = (curr_pages << 12);
-        curr_end   = curr_start + curr_size;
+        curr_type = get_page_type(memmap[i].type);
 
-        curr_type = memory_type(efi_memory_desc[i].Type);
-
-        if (curr_end < 0x2000000)
+        if (curr_type != MM_TYPE_FREE)
         {
             continue;
         }
-        if (curr_start < 0x2000000)
+
+        curr_start = memmap[i].physical_start;
+        curr_pages = memmap[i].number_of_pages;
+        curr_size  = (curr_pages << 12);
+        curr_end   = curr_start + curr_size;
+
+        if (curr_end < 0x100000)
         {
-            curr_start = 0x2000000;
+            continue;
+        }
+
+        if (curr_start < 0x100000)
+        {
+            curr_start = 0x100000;
             curr_size  = curr_end - curr_start;
             curr_pages = curr_size >> 12;
         }
-        if (curr_type == FREE_MEMORY)
-        {
-            g_mem_desc.free_page_count += curr_pages;
-            mm_add_range(&g_mem_desc.mem_map, curr_start, curr_size);
-        }
+        curr_start = (uintptr_t)PHYS_TO_VIRT(curr_start);
+        mm_add(&page_man.mm, curr_start, curr_size);
     }
-
-    init_spin(&g_mem_desc.shared_pages.lock);
-    g_mem_desc.shared_pages.pages_struct        = NULL;
-    g_mem_desc.shared_pages.pages_struct_length = 0;
-    g_mem_desc.shared_pages.pages_struct_size   = 0;
-    register_handle(0x0e, do_page_fault);
-
     return;
 }
 
-PUBLIC uint64_t get_total_free_pages(void)
+int allocate_pages(size_t pages, void **addr)
 {
-    return g_mem_desc.free_page_count;
+    uintptr_t page_addr;
+
+    spin_lock(&page_man.lock);
+    page_addr = mm_allocate(&page_man.mm, pages * PG_SIZE);
+    spin_unlock(&page_man.lock);
+
+    if (page_addr == -1UL)
+    {
+        *addr = NULL;
+        return -1;
+    }
+    ASSERT(addr != NULL);
+    *addr = (void *)page_addr;
+    return 0;
 }
 
-PUBLIC status_t alloc_physical_page(uint64_t number_of_pages, void *addr)
+void free_pages(void **addr, size_t pages)
 {
     ASSERT(addr != NULL);
-    ASSERT(number_of_pages != 0);
-    if (g_mem_desc.free_page_count < number_of_pages)
-    {
-        return K_NOMEM;
-    }
-    spin_lock(&g_mem_desc.lock);
-    status_t status;
-    status = mm_alloc(&g_mem_desc.mem_map, number_of_pages * PG_SIZE, addr);
-    if (ERROR(status))
-    {
-        PR_LOG(LOG_ERROR, "Out of Memory: %d.\n", status);
-        return K_NOMEM;
-    }
-    g_mem_desc.free_page_count -= number_of_pages;
-    spin_unlock(&g_mem_desc.lock);
-    return status;
-}
+    uintptr_t page_addr = (uintptr_t)*addr;
+    ASSERT(page_addr != 0 && !(page_addr & (PG_SIZE - 1)));
 
-PUBLIC void free_physical_page(void *addr, uint64_t number_of_pages)
-{
-    ASSERT(number_of_pages != 0);
-    ASSERT(addr != NULL && ((((uintptr_t)addr) & (PG_SIZE - 1)) == 0));
-    spin_lock(&g_mem_desc.lock);
-    mm_add_range(
-        &g_mem_desc.mem_map, (uintptr_t)addr, number_of_pages * PG_SIZE
-    );
-    g_mem_desc.free_page_count += number_of_pages;
-    spin_unlock(&g_mem_desc.lock);
+    int ret = 0;
+    spin_lock(&page_man.lock);
+    ret = mm_add(&page_man.mm, page_addr, pages * PG_SIZE);
+    spin_unlock(&page_man.lock);
+    if (ret != 0)
+    {
+        printk(MSG_ERR "free_pages: failed: %p.\n", page_addr);
+    }
+    *addr = NULL;
     return;
 }
 
-PUBLIC uint64_t *pml4t_entry(void *pml4t, void *vaddr)
+uint64_t *get_page_table(void)
 {
-    return (uint64_t *)pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
+    return (uint64_t *)get_cr3();
 }
 
-PUBLIC uint64_t *pdpt_entry(void *pml4t, void *vaddr)
+void set_page_table(void *page_table)
 {
-    return (uint64_t *)(*(uint64_t *)PHYS_TO_VIRT(pml4t_entry(pml4t, vaddr)) &
-                        ~0xfff) +
-           GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
-}
-
-PUBLIC uint64_t *pdt_entry(void *pml4t, void *vaddr)
-{
-    return (uint64_t *)(*(uint64_t *)PHYS_TO_VIRT(pdpt_entry(pml4t, vaddr)) &
-                        ~0xfff) +
-           GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
-}
-
-PUBLIC uint64_t *pt_entry(void *pml4t, void *vaddr)
-{
-    return (uint64_t *)(*(uint64_t *)PHYS_TO_VIRT(pdt_entry(pml4t, vaddr)) &
-                        ~0xfff) +
-           GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
-}
-
-PUBLIC void *to_physical_address(void *pml4t, void *vaddr)
-{
-    uint64_t *v_pml4t, *v_pml4e;
-    uint64_t *pdpt, *v_pdpte, *pdpte;
-    uint64_t *pdt, *v_pde, *pde;
-    uint64_t *pt, *v_pte, *pte;
-    v_pml4t = PHYS_TO_VIRT(pml4t);
-    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
-    if (!(*v_pml4e & PG_P))
-    {
-        return NULL;
-    }
-    pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
-    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
-    v_pdpte = PHYS_TO_VIRT(pdpte);
-    if (!(*v_pdpte & PG_P))
-    {
-        return NULL;
-    }
-    pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
-    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
-    v_pde = PHYS_TO_VIRT(pde);
-    if (!(*v_pde & PG_P))
-    {
-        return NULL;
-    }
-    pt    = (uint64_t *)(*v_pde & (~0xfff));
-    pte   = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
-    v_pte = PHYS_TO_VIRT(pte);
-    if (!(*v_pte & PG_P))
-    {
-        return NULL;
-    }
-    return (void *)((*v_pte & ~0xfff) +
-                    GET_FIELD((uintptr_t)vaddr, ADDR_OFFSET));
-}
-
-PRIVATE void page_map_sub(uint64_t *pml4t, void *paddr, void *vaddr)
-{
-    paddr = (void *)((uintptr_t)paddr & ~(PG_SIZE - 1));
-    vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
-    uint64_t *v_pml4t, *v_pml4e;
-    uint64_t *v_pdpt, *pdpt = NULL, *v_pdpte, *pdpte;
-    uint64_t *v_pdt, *pdt   = NULL, *v_pde, *pde;
-    uint64_t *v_pt, *pt     = NULL, *v_pte, *pte;
-
-    v_pml4t = PHYS_TO_VIRT(pml4t);
-    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
-    status_t status;
-    if (!(*v_pml4e & PG_P))
-    {
-        status = alloc_physical_page(1, &pdpt);
-        ASSERT(!ERROR(status));
-        UNUSED(status);
-        v_pdpt = PHYS_TO_VIRT(pdpt);
-        memset(v_pdpt, 0, PT_SIZE);
-        *v_pml4e = (uintptr_t)pdpt | PG_US_U | PG_RW_W | PG_P;
-    }
-    pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
-    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
-    v_pdpte = PHYS_TO_VIRT(pdpte);
-    if (!(*v_pdpte & PG_P))
-    {
-        status = alloc_physical_page(1, &pdt);
-        ASSERT(!ERROR(status));
-        UNUSED(status);
-        v_pdt = PHYS_TO_VIRT(pdt);
-        memset(v_pdt, 0, PT_SIZE);
-        *v_pdpte = (uintptr_t)pdt | PG_US_U | PG_RW_W | PG_P;
-    }
-    pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
-    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
-    v_pde = PHYS_TO_VIRT(pde);
-    if (!(*v_pde & PG_P))
-    {
-        status = alloc_physical_page(1, &pt);
-        ASSERT(!ERROR(status));
-        UNUSED(status);
-        v_pt = PHYS_TO_VIRT(pt);
-        memset(v_pt, 0, PT_SIZE);
-        *v_pde = (uintptr_t)pt | PG_US_U | PG_RW_W | PG_P;
-    }
-    pt     = (uint64_t *)(*v_pde & (~0xfff));
-    pte    = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
-    v_pte  = PHYS_TO_VIRT(pte);
-    *v_pte = (uintptr_t)paddr | PG_DEFAULT_FLAGS;
+    set_cr3((uint64_t)page_table);
     return;
 }
 
-PUBLIC void page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t count)
+static void page_map_sub(uint64_t *page_table, uintptr_t paddr, uintptr_t vaddr)
 {
-    uint64_t i;
+    paddr &= ~(PG_SIZE - 1);
+    vaddr &= ~(PG_SIZE - 1);
+
+    uint64_t *pml4t, *pdpt, *pdt, *pt;
+    uint64_t *pml4e, *pdpte, *pde, *pte;
+
+    pml4t = PHYS_TO_VIRT(page_table);
+    pml4e = pml4t + GET_FIELD(vaddr, ADDR_PML4T_INDEX);
+    if (!(*pml4e & PG_P))
+    {
+        allocate_pages(1, (void **)&pdpt);
+        memset(pdpt, 0, PT_SIZE);
+        *pml4e = (uintptr_t)VIRT_TO_PHYS(pdpt) | PG_DEFAULT_FLAGS;
+    }
+    pdpt  = PHYS_TO_VIRT(*pml4e & (~0xfff));
+    pdpte = pdpt + GET_FIELD(vaddr, ADDR_PDPT_INDEX);
+    if (!(*pdpte & PG_P))
+    {
+        allocate_pages(1, (void **)&pdt);
+        memset(pdt, 0, PT_SIZE);
+        *pdpte = (uintptr_t)VIRT_TO_PHYS(pdt) | PG_DEFAULT_FLAGS;
+    }
+    pdt = PHYS_TO_VIRT(*pdpte & (~0xfff));
+    pde = pdt + GET_FIELD(vaddr, ADDR_PDT_INDEX);
+    if (!(*pde & PG_P))
+    {
+        allocate_pages(1, (void **)&pt);
+        memset(pt, 0, PT_SIZE);
+        *pde = (uintptr_t)VIRT_TO_PHYS(pt) | PG_DEFAULT_FLAGS;
+    }
+    pt   = PHYS_TO_VIRT(*pde & (~0xfff));
+    pte  = pt + GET_FIELD(vaddr, ADDR_PT_INDEX);
+    *pte = paddr | PG_DEFAULT_FLAGS;
+    return;
+}
+
+void page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t count)
+{
+    uintptr_t v, p;
+    uint64_t  i;
     for (i = 0; i < count; i++)
     {
-        page_map_sub(
-            pml4t,
-            (void *)((uintptr_t)paddr + i * PG_SIZE),
-            (void *)((uintptr_t)vaddr + i * PG_SIZE)
-        );
+        v = (uintptr_t)vaddr + i * PG_SIZE;
+        p = (uintptr_t)paddr + i * PG_SIZE;
+        page_map_sub(pml4t, p, v);
     }
-    return;
-}
-
-PRIVATE void page_unmap_sub(uint64_t *pml4t, void *vaddr)
-{
-    vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
-    uint64_t *v_pml4t, *v_pml4e;
-    uint64_t *pdpt = NULL, *v_pdpte, *pdpte;
-    uint64_t *pdt  = NULL, *v_pde, *pde;
-    uint64_t *pt   = NULL, *v_pte, *pte;
-
-    v_pml4t = PHYS_TO_VIRT(pml4t);
-    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
-    ASSERT(*v_pml4e & PG_P);
-
-    pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
-    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
-    v_pdpte = PHYS_TO_VIRT(pdpte);
-    ASSERT(*v_pdpte & PG_P);
-
-    pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
-    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
-    v_pde = PHYS_TO_VIRT(pde);
-    ASSERT(*v_pde & PG_P);
-
-    pt    = (uint64_t *)(*v_pde & (~0xfff));
-    pte   = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
-    v_pte = PHYS_TO_VIRT(pte);
-    ASSERT(*v_pte & PG_P);
-    *v_pte &= ~PG_P;
-    return;
-}
-
-PUBLIC void page_unmap(uint64_t *pml4t, void *vaddr, uint64_t count)
-{
-    uint64_t i;
-    for (i = 0; i < count; i++)
-    {
-        page_unmap_sub(pml4t, (void *)((uintptr_t)vaddr + i * PG_SIZE));
-    }
-    return;
-}
-
-PUBLIC void set_page_flags(uint64_t *pml4t, void *vaddr, uint64_t flags)
-{
-    vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
-    uint64_t *v_pml4t, *v_pml4e;
-    uint64_t *pdpt, *v_pdpte, *pdpte;
-    uint64_t *pdt, *v_pde, *pde;
-    uint64_t *pt, *v_pte, *pte;
-
-    v_pml4t = PHYS_TO_VIRT(pml4t);
-    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
-    ASSERT(*v_pml4e & PG_P);
-
-    pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
-    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
-    v_pdpte = PHYS_TO_VIRT(pdpte);
-    ASSERT(*v_pdpte & PG_P);
-
-    pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
-    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
-    v_pde = PHYS_TO_VIRT(pde);
-    ASSERT(*v_pde & PG_P);
-
-    pt    = (uint64_t *)(*v_pde & (~0xfff));
-    pte   = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
-    v_pte = PHYS_TO_VIRT(pte);
-    ASSERT(*v_pte & PG_P);
-    *v_pte = (*v_pte & ~0xfff) | flags;
-    return;
-}
-
-PUBLIC void set_page_table(void *page_table_pos)
-{
-    set_cr3((uint64_t)page_table_pos);
-    return;
-}
-
-PRIVATE void free_pt(uintptr_t pt)
-{
-    free_physical_page((void *)pt, 1);
-    return;
-}
-
-PRIVATE void free_pdt(uintptr_t pdt)
-{
-    uint64_t *v_pdt = PHYS_TO_VIRT(pdt);
-
-    int i;
-    for (i = 0; i < 512; i++)
-    {
-        if (v_pdt[i] & PG_P)
-        {
-            free_pt(v_pdt[i] & (~0xfff));
-        }
-    }
-    free_physical_page((void *)pdt, 1);
-    return;
-}
-
-PRIVATE void free_pdpt(uintptr_t pdpt)
-{
-    uint64_t *v_pdpt = PHYS_TO_VIRT(pdpt);
-
-    int i;
-    for (i = 0; i < 512; i++)
-    {
-        if (v_pdpt[i] & PG_P)
-        {
-            free_pdt(v_pdpt[i] & (~0xfff));
-        }
-    }
-    free_physical_page((void *)pdpt, 1);
-    return;
-}
-
-PUBLIC void free_page_table(uint64_t *pml4t)
-{
-    uint64_t *v_pml4t = PHYS_TO_VIRT(pml4t);
-
-    int i;
-    for (i = 0; i < 256; i++) // 仅限用户空间
-    {
-        if (v_pml4t[i] & PG_P)
-        {
-            free_pdpt(v_pml4t[i] & (~0xfff));
-        }
-    }
-    free_physical_page((void *)pml4t, 1);
     return;
 }

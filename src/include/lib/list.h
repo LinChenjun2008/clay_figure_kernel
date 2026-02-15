@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright (C) 2024-2025 Lin Chenjun
+ * Copyright (C) 2026 Lin Chenjun
  */
 
 #ifndef __LIST_H__
@@ -21,30 +21,30 @@ struct list_node_s
     list_node_t *next;
 };
 
-typedef struct list_s
+typedef struct
 {
     list_node_t head;
     list_node_t tail;
 } list_t;
 
-PUBLIC void         init_list(list_t *list);
-PUBLIC void         list_in(list_node_t *node, list_node_t *in_before);
-PUBLIC void         list_push(list_t *list, list_node_t *node);
-PUBLIC void         list_append(list_t *list, list_node_t *node);
-PUBLIC void         list_remove(list_node_t *node);
-PUBLIC list_node_t *list_pop(list_t *list);
-PUBLIC bool         list_find(list_t *list, list_node_t *objnode);
-PUBLIC list_node_t *list_traversal(
+void         init_list(list_t *list);
+void         list_in(list_node_t *node, list_node_t *in_before);
+void         list_push(list_t *list, list_node_t *node);
+void         list_append(list_t *list, list_node_t *node);
+void         list_remove(list_node_t *node);
+list_node_t *list_pop(list_t *list);
+int          list_find(list_t *list, list_node_t *objnode);
+list_node_t *list_traversal(
     list_t *list,
     int (*func)(list_node_t *, uint64_t),
     uint64_t arg
 );
-PUBLIC int  list_len(list_t *list);
-PUBLIC bool list_empty(list_t *list);
+int list_len(list_t *list);
+int list_empty(list_t *list);
 
-PUBLIC list_node_t *list_head(list_t *list);
-PUBLIC list_node_t *list_tail(list_t *list);
-PUBLIC list_node_t *list_next(list_node_t *node);
-PUBLIC list_node_t *list_prev(list_node_t *node);
+list_node_t *list_head(list_t *list);
+list_node_t *list_tail(list_t *list);
+list_node_t *list_next(list_node_t *node);
+list_node_t *list_prev(list_node_t *node);
 
-#endif
+#endif /* __LIST_H__ */

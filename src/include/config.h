@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright (C) 2025 Lin Chenjun
+ * Copyright (C) 2025-2026 Lin Chenjun
  */
 
 #ifndef __CONFIG_H__
@@ -8,7 +8,7 @@
 
 #include <ramfs.h>
 
-PUBLIC void parse_config(ramfs_file_t *fp);
+void parse_config(ramfs_file_t *fp);
 
 /**
  * @brief 读取配置信息
@@ -17,6 +17,6 @@ PUBLIC void parse_config(ramfs_file_t *fp);
  * @param value_len 配置项值长度
  * @return
  */
-PUBLIC void read_config(const char *name, char *value, size_t *value_len);
+void read_config(const char *name, char *value, size_t *value_len);
 
 #endif

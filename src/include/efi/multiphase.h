@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2026 Lin Chenjun
+ */
+
+#ifndef __EFI_MULTI_PHASE_H__
+#define __EFI_MULTI_PHASE_H__
+
+typedef enum
+{
+    EFI_RESERVED_TYPE,
+    EFI_LOADER_CODE,
+    EFI_LOADER_DATA,
+    EFI_BOOT_SERVICES_CODE,
+    EFI_BOOT_SERVICES_DATA,
+    EFI_RUNTIME_SERVICES_CODE,
+    EFI_RUNTIME_SERVICES_DATA,
+    EFI_CONVENTIONAL_MEMORY,
+    EFI_UNUSABLE_MEMORY,
+    EFI_ACPI_RECLAIM_MEMORY,
+    EFI_ACPI_MEMORY_NVS,
+    EFI_MEMORY_MAPPED_IO,
+    EFI_MEMORY_MAPPED_IO_PORT_SPACE,
+    EFI_PAL_CODE,
+    EFI_MAX_MEMORY_TYPE
+} efi_memory_type_t;
+
+typedef enum
+{
+    EFI_RESET_COLD,
+    EFI_RESET_WARM,
+    EFI_RESET_SHUTDOWM,
+    EFI_RESET_PLATFORM_SPECIFIC
+} efi_reset_type_t;
+
+#endif /* __EFI_MULTI_PHASE_H__ */

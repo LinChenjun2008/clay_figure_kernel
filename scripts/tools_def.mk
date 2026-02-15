@@ -33,14 +33,15 @@ ifeq ($(OS),Windows)
     OVMF    = $(ESP_DIR)/../bios.bin
 endif
 
-KERNEL_LINKER_SCRIPT    = $(SCRIPTS_DIR)/kernel.lds
+KERNEL_LINKER_SCRIPT    = $(SRC_DIR)/arch/$(TARGET_ARCH)/scripts/kernel.lds
 
-KALLSYMS = $(SRC_DIR)/../build/kallsyms
-IMGCOPY  = $(SRC_DIR)/../build/imgcopy
+KALLSYMS = $(PROJECT_DIR)/tools/kallsyms
+IMGCOPY  = $(PROJECT_DIR)/tools/imgcopy
+
+IMGCOPY_DEP = $(SRC_DIR)/config.txt $(TARGET_KERNEL)
 
 IMGCOPY_FLAGS = \
-    -copy $(SRC_DIR)/config.txt config \
-    -copy $(TARGET_KERNEL) kernel \
+    $(foreach FILE,$(IMGCOPY_DEP),-copy $(FILE) $(basename $(notdir $(FILE))))
 
 ifneq ($(TOOLS_DEF),bootloader)
     CFLAGS += -Wall -Wextra -Werror
@@ -83,11 +84,11 @@ else
     CFLAGS += -Wno-long-long
     CFLAGS += -Wno-implicit-fallthrough
     CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader
-    CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/bootloader/include
+    CFLAGS += -I$(SRC_DIR)/arch/$(TARGET_ARCH)/include
     CFLAGS += -I$(SRC_DIR)/include
     CFLAGS += -I$(SRC_DIR)
     CFLAGS += -D__BOOTLOADER__
-    CFLAGS += -e UefiMain -nostdinc -nostdlib
+    CFLAGS += -e efi_main -nostdinc -nostdlib
     CFLAGS += -m64 -mcmodel=small
     CFLAGS += -fno-stack-protector -fpic -fpie -fno-builtin -Wl,--subsystem,10
 endif

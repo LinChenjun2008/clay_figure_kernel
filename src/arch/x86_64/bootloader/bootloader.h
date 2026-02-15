@@ -1,62 +1,66 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * Copyright (C) 2024 Lin Chenjun
+ * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __BOOTLOADER_CONFIG_H__
-#define __BOOTLOADER_CONFIG_H__
+#ifndef __BOOTLOADER_H__
+#define __BOOTLOADER_H__
 
-#include <Efi.h>
-#include <Guid/Acpi.h>
-#include <Procotol/LoadedImage.h>
-#include <Uefi/UefiAcpiDataTable.h>
-#include <common.h>
+#include <efi.h>
+#include <efi/acpi.h>
+#include <efi/protocol/graphics_output.h>
+#include <efi/protocol/loaded_image.h>
+
+// kernel
+#include <base.h>
+
+#include <asm/mem/page.h>
+#include <config.h>
 #include <elf.h>
+#include <ramfs.h>
 #include <std/stdarg.h>
 
-struct Files
-{
-    CHAR16           *Name;
-    EFI_ALLOCATE_TYPE FileBufferType;
-    file_info_t       Info;
-};
+#define KERNEL_TEXT_BASE 0xffffffff80000000
 
-#define KERNEL_NAME    L"Kernel\\clfgkrnl.sys"
-#define INITRAMFS_NAME L"Kernel\\initramfs.img"
-
-// main.c
-int CompareGuid(EFI_GUID *guid1, EFI_GUID *guid2);
-
-EFI_STATUS
-EFIAPI
-UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable);
-
-// video.c
-EFI_STATUS SetVideoMode(UINT32 xsize, UINT32 ysize);
-EFI_STATUS DisplayLogo(void);
-
-// file.c
-EFI_STATUS ReadFile(
-    CHAR16               *FileName,
-    EFI_PHYSICAL_ADDRESS *FileBufferBase,
-    UINT64               *FileSize
-);
-
-// memory.c
-EFI_STATUS GetMemoryMap(memory_map_t *memmap);
-VOID       CreatePage(EFI_PHYSICAL_ADDRESS PML4T);
+// acpi.c
+efi_status_t read_acpi_tables(boot_info_t *boot_info);
 
 // elf.c
-EFI_STATUS LoadSegment(
-    EFI_PHYSICAL_ADDRESS  ElfFile,
-    EFI_PHYSICAL_ADDRESS *PhysicalBase,
-    EFI_VIRTUAL_ADDRESS  *RelocateBase,
-    EFI_PHYSICAL_ADDRESS *Entry
+#include <elf_util.h>
+
+// file.c
+efi_status_t read_file(
+    char16_t               *file_name,
+    efi_physical_address_t *file_buffer_base,
+    efi_uint_t             *file_size
 );
 
-// print.c
-int Vsprintf(CHAR16 *buf, const CHAR16 *fmt, va_list ap);
-int Sprintf(CHAR16 *buf, const CHAR16 *fmt, ...);
-int Printf(const CHAR16 *fmt, ...);
+// main.c
+efi_status_t EFIAPI
+efi_main(efi_handle_t in_image_handle, efi_system_table_t *in_system_table);
 
-#endif
+// memory.c
+efi_status_t get_memory_map(memory_map_t *mmap);
+efi_status_t create_page_table(void *pml4t);
+
+// string.c
+char16_t *strcpy16(char16_t *dst, const char16_t *src);
+char16_t *strncpy16(char16_t *dst, const char16_t *src, size_t n);
+int       strcmp16(const char16_t *str1, const char16_t *str2);
+int       strncmp16(const char16_t *str1, const char16_t *str2, size_t n);
+size_t    strlen16(const char16_t *str);
+char16_t *strchr16(const char16_t *str, char16_t ch);
+char16_t *strrchr16(const char16_t *str, char16_t ch);
+char16_t *strcat16(char16_t *dst, char16_t *src);
+
+// utils.c
+int       vsprintf(char16_t *buf, const char16_t *fmt, va_list ap);
+int       sprintf(char16_t *buf, const char16_t *fmt, ...);
+int       printf(const char16_t *fmt, ...);
+char16_t *char_to_char16(char *ch, char16_t *in_ch16);
+int       compare_guid(efi_guid_t *guid1, efi_guid_t *guid2);
+
+// video.c
+efi_status_t set_video_mode(void);
+
+#endif /* __BOOTLOADER_H__ */
