@@ -6,8 +6,8 @@
 #include <base.h>
 
 #include <asm/desc/desc.h>
-#include <asm/driver/apic.h>
-#include <asm/driver/timer.h>
+#include <asm/drivers/apic.h>
+#include <asm/drivers/timer.h>
 #include <asm/interrupt.h>
 #include <asm/mem/page.h>
 #include <asm/mp.h>

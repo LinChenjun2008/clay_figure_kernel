@@ -1,8 +1,7 @@
 SUB_DIR = .
 SUB_DIR += desc
-SUB_DIR += driver/acpi
-SUB_DIR += driver/pic
-SUB_DIR += driver/timer
+SUB_DIR += drivers/pic
+SUB_DIR += drivers/timer
 SUB_DIR += init
 SUB_DIR += interrupt
 SUB_DIR += mem

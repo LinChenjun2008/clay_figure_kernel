@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __DRIVER_TIMER_H__
-#define __DRIVER_TIMER_H__
+#ifndef __ASM_DRIVER_TIMER_H__
+#define __ASM_DRIVER_TIMER_H__
 
 #define TIMER_FREQUENCY 1000UL
 
@@ -18,4 +18,4 @@ void     hpet_init(boot_info_t *boot_info);
 // timer.c
 void timer_init(boot_info_t *boot_info);
 
-#endif /* __DRIVER_TIMER_H__ */
+#endif /* __ASM_DRIVER_TIMER_H__ */

@@ -34,6 +34,7 @@ clean:
 	@$(MAKE) -C $(SRC_DIR)/arch/ clean
 	@$(MAKE) -C $(SRC_DIR) clean
 	-@"$(RM)" $(TARGET_INITRAMFS)
+	-@"$(RM)" $(TARGET_KERNEL) $(TARGET_KERNEL:sys=sym)
 
 .PHONY: init
 init:
@@ -48,9 +49,11 @@ $(TARGET_INITRAMFS): $(IMGCOPY_DEP)
 
 $(TARGET_KERNEL): $(ASM_SRC:S=o) $(C_SRC:c=o) $(KERNEL_LINKER_SCRIPT)
 	@$(ECHO) linking [1/2]
-	@"$(LD)" $(LDFLAGS) -o $@ $(ASM_SRC:S=o) $(C_SRC:c=o)
-	@"$(NM)" -W -n $@ | "$(KALLSYMS)" > $@_sym.c
-	@"$(CC)" $(KERNEL_FLAGS) -c -o $@_sym.o $@_sym.c
+	@"$(LD)" $(LDFLAGS) -o $(@:sys=tmp) $(ASM_SRC:S=o) $(C_SRC:c=o)
+	@"$(NM)" -W -n $(@:sys=tmp) | "$(KALLSYMS)" > $(@:sys=c)
+	@"$(CC)" $(KERNEL_FLAGS) -c -o $(@:sys=o) $(@:sys=c)
 	@$(ECHO) linking [2/2]
-	@"$(LD)" $(LDFLAGS) -o $@ $(ASM_SRC:S=o) $(C_SRC:c=o) $@_sym.o
-	@"$(RM)" $@_sym.c $@_sym.o
+	@"$(LD)" $(LDFLAGS) -o $(@:sys=tmp) $(ASM_SRC:S=o) $(C_SRC:c=o) $(@:sys=o)
+	@"$(OBJCOPY)" -S -R ".eh_frame" -R ".comment" $(@:sys=tmp) $@
+	@"$(OBJCOPY)" --only-keep-debug $(@:sys=tmp) $(@:sys=sym)
+	@"$(RM)" $(@:sys=o) $(@:sys=c) $(@:sys=tmp)

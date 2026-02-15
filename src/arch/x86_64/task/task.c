@@ -5,9 +5,9 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
 #include <asm/desc/tss.h> // update_tss_rsp0
-#include <asm/driver/apic.h>
+#include <asm/drivers/apic.h>
+#include <asm/utils.h>
 #include <asm/x86.h>
 
 #include <task.h>

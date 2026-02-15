@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __DRIVER_APIC_H__
-#define __DRIVER_APIC_H__
+#ifndef __ASM_DRIVER_APIC_H__
+#define __ASM_DRIVER_APIC_H__
 
 #define MADT_SIGNATURE SIGNATURE_32('A', 'P', 'I', 'C')
 
@@ -68,4 +68,4 @@ uint8_t  apic_max_lapic_id(void);
 void     apic_send_eoi(void);
 uint8_t  apic_id(void);
 
-#endif /* __DRIVER_APIC_H__ */
+#endif /* __ASM_DRIVER_APIC_H__ */

@@ -5,9 +5,9 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
 #include <asm/desc/desc.h> // SELECTOR_XXX,AR_XXX
 #include <asm/desc/idt.h>
+#include <asm/utils.h>
 #include <asm/x86.h>
 
 static gate_desc_t idt[256];

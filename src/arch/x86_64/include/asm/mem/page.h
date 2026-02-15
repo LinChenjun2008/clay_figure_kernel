@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __PAGE_H__
-#define __PAGE_H__
+#ifndef __ASM_PAGE_H__
+#define __ASM_PAGE_H__
 
 #define PT_SIZE 0x1000
 
@@ -67,4 +67,4 @@ void      page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t count);
 
 #endif /* __ASSEMBLER__ */
 
-#endif /* __PAGE_H__ */
+#endif /* __ASM_PAGE_H__ */

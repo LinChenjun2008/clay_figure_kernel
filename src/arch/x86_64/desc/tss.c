@@ -5,12 +5,12 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
 #include <asm/desc/desc.h> // AR_XXX,SELECTOR_XXX
 #include <asm/desc/gdt.h>  // segmdesc_t
 #include <asm/desc/tss.h>
-#include <asm/driver/apic.h> // apic_id
-#include <asm/mem/page.h>    // PG_SIZE
+#include <asm/drivers/apic.h> // apic_id
+#include <asm/mem/page.h>     // PG_SIZE
+#include <asm/utils.h>
 
 #include <std/string.h> // memset,memcpy
 

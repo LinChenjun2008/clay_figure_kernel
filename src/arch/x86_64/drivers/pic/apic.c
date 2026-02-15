@@ -5,13 +5,13 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
-#include <asm/driver/acpi.h>
-#include <asm/driver/apic.h>
-#include <asm/driver/pic.h>
+#include <asm/drivers/apic.h>
+#include <asm/drivers/pic.h>
 #include <asm/mem/page.h> // PHYS_TO_VIRT
-#include <asm/x86.h>      // IA32_APIC_BASE
+#include <asm/utils.h>
+#include <asm/x86.h> // IA32_APIC_BASE
 
+#include <drivers/acpi.h>
 #include <print.h>
 #include <std/string.h> // memset
 

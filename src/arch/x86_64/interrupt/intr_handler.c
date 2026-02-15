@@ -5,9 +5,9 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
-#include <asm/driver/timer.h>
+#include <asm/drivers/timer.h>
 #include <asm/interrupt.h>
+#include <asm/utils.h>
 #include <asm/x86.h>
 
 #include <print.h>

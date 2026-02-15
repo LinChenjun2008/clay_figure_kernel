@@ -5,7 +5,7 @@
 
 #include <base.h>
 
-#include <asm/driver/apic.h>
+#include <asm/drivers/apic.h>
 #include <asm/mem/page.h>
 #include <asm/sync/spinlock.h>
 

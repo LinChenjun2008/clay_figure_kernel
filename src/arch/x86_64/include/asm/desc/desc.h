@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __DESC_H__
-#define __DESC_H__
+#ifndef __ASM_DESC_H__
+#define __ASM_DESC_H__
 
 #define AR_G_4K      0x8000
 #define AR_D_32      0x4000
@@ -83,4 +83,4 @@ void ap_init_desc(void);
 
 #endif /* __ASSEMBLER__ */
 
-#endif /* __DESC_H__ */
+#endif /* __ASM_DESC_H__ */

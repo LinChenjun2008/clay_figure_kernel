@@ -1,4 +1,5 @@
 SUB_DIR = .
+SUB_DIR += drivers/acpi
 SUB_DIR += lib
 SUB_DIR += mem
 SUB_DIR += print

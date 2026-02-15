@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __ASMFUNC_H__
-#define __ASMFUNC_H__
+#ifndef __ASM_UTILS_H__
+#define __ASM_UTILS_H__
 
 extern SYSV_ABI void asm_load_gdt(void *gdt_ptr, uint16_t code, uint16_t data);
 extern SYSV_ABI void asm_lidt(void *idt_ptr);
@@ -27,12 +27,12 @@ extern SYSV_ABI void io_out16(uint32_t port, uint32_t data);
 extern SYSV_ABI void io_out32(uint32_t port, uint32_t data);
 
 extern SYSV_ABI uint64_t get_flags(void);
-extern SYSV_ABI uint64_t get_rsp();
-extern SYSV_ABI uint64_t get_cr0();
-extern SYSV_ABI uint64_t get_cr2();
-extern SYSV_ABI uint64_t get_cr3();
+extern SYSV_ABI uint64_t get_rsp(void);
+extern SYSV_ABI uint64_t get_cr0(void);
+extern SYSV_ABI uint64_t get_cr2(void);
+extern SYSV_ABI uint64_t get_cr3(void);
 extern SYSV_ABI void     set_cr3(uint64_t cr3);
-extern SYSV_ABI uint64_t get_cr4();
+extern SYSV_ABI uint64_t get_cr4(void);
 
 extern SYSV_ABI uint64_t rdmsr(uint64_t address);
 extern SYSV_ABI void     wrmsr(uint64_t address, uint64_t value);
@@ -59,4 +59,4 @@ extern uint64_t asm_atomic_btc(volatile uint64_t *atom, uint64_t bit);
 
 extern void asm_panic(void);
 
-#endif /* __ASMFUNC_H__ */
+#endif /* __ASM_UTILS_H__ */

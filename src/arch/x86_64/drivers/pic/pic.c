@@ -5,9 +5,8 @@
 
 #include <base.h>
 
-#include <asm/driver/apic.h>
-#include <asm/driver/pic.h>
-#include <asm/interrupt.h>
+#include <asm/drivers/apic.h>
+#include <asm/drivers/pic.h>
 
 void pic_init(boot_info_t *boot_info)
 {

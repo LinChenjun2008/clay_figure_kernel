@@ -5,9 +5,9 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
 #include <asm/mem/page.h> // PHYS_TO_VIRT
 #include <asm/sync/spinlock.h>
+#include <asm/utils.h>
 
 #include <print.h>
 #include <std/stdio.h>

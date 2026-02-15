@@ -5,9 +5,9 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
 #include <asm/desc/desc.h>
 #include <asm/desc/gdt.h>
+#include <asm/utils.h>
 
 segmdesc_t gdt_table[8192];
 

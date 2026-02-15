@@ -35,8 +35,9 @@
 #define USER_STACK_VADDR_TOP 0x0000800000000000
 #define USER_VADDR_START     0x800000
 
-#include <asm/arch_task.h>
 #include <asm/sync/spinlock.h>
+#include <asm/task.h>
+
 #include <lib/list.h>
 #include <mm_struct.h>
 

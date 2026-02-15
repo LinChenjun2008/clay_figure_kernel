@@ -14,6 +14,7 @@ ifeq ($(OS),Linux)
     MKDIR   = mkdir
     RM      = rm
     NM      = nm
+    OBJCOPY = objcopy
     OVMF    = OVMF.fd
 endif
 
@@ -30,6 +31,7 @@ ifeq ($(OS),Windows)
     MKDIR   = mkdir
     RM      = $(TOOL_DIR)/rm
     NM      = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/nm.exe
+    OBJCOPY = $(TOOL_DIR)/x86_64-elf-tools/x86_64-elf/bin/objcopy.exe
     OVMF    = $(ESP_DIR)/../bios.bin
 endif
 

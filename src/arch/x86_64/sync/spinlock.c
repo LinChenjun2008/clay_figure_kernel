@@ -5,9 +5,9 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
 #include <asm/interrupt.h>
 #include <asm/sync/spinlock.h>
+#include <asm/utils.h>
 
 #include <print.h>
 

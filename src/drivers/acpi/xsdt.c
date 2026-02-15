@@ -5,7 +5,7 @@
 
 #include <base.h>
 
-#include <asm/driver/acpi.h>
+#include <drivers/acpi.h>
 
 acpi_description_header_t *
 xsdt_find_table(boot_info_t *boot_info, uint32_t signature)

@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __X86_GDT_H__
-#define __X86_GDT_H__
+#ifndef __ASM_GDT_H__
+#define __ASM_GDT_H__
 
 #pragma pack(1)
 typedef struct
@@ -22,4 +22,4 @@ segmdesc_t make_segmdesc(uint32_t base, uint32_t limit, uint16_t access);
 void       gdt_init(void);
 void       load_gdt(void);
 
-#endif /* __X86_GDT_H__ */
+#endif /* __ASM_GDT_H__ */

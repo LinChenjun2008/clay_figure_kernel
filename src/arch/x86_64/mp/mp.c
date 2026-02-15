@@ -5,11 +5,11 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
-#include <asm/driver/apic.h>
-#include <asm/driver/timer.h>
+#include <asm/drivers/apic.h>
+#include <asm/drivers/timer.h>
 #include <asm/mem/page.h> // PHYS_TO_VIRT
 #include <asm/mp.h>
+#include <asm/utils.h>
 #include <asm/x86.h>
 
 #include <print.h>

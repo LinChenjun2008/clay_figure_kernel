@@ -3,14 +3,14 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __INTERRUPT_H__
-#define __INTERRUPT_H__
+#ifndef __ASM_INTERRUPT_H__
+#define __ASM_INTERRUPT_H__
 
 #define INTR_CNT 0x100
 
 #ifndef __ASSEMBLER__
 
-#    include <asm/x86.h>
+#    include <asm/ptrace.h>
 
 typedef enum
 {
@@ -33,7 +33,7 @@ void          intr_handler_init(void);
 void          register_handler(uint8_t vector, void *handler);
 
 #endif /* __ASSEMBLER__ */
-#endif /* __INTERUPT_H__ */
+#endif /* __ASM_INTERUPT_H__ */
 
 #ifdef INTR_HANDLER
 #define CODE 0

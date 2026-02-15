@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __SYNC_SPINLOCK_H__
-#define __SYNC_SPINLOCK_H__
+#ifndef __ASM_SYNC_SPINLOCK_H__
+#define __ASM_SYNC_SPINLOCK_H__
 
 #include <asm/interrupt.h>
 
@@ -18,4 +18,4 @@ void init_spinlock(spinlock_t *lk);
 void spin_lock(spinlock_t *lk);
 void spin_unlock(spinlock_t *lk);
 
-#endif /* __SYNC_SPINLOCK_H__ */
+#endif /* __ASM_SYNC_SPINLOCK_H__ */

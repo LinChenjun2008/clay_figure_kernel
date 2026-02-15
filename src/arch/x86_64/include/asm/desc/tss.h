@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __X86_TSS_H__
-#define __X86_TSS_H__
+#ifndef __ASM_TSS_H__
+#define __ASM_TSS_H__
 
 #include <task.h>
 
@@ -38,4 +38,4 @@ typedef struct
 void tss_init(void);
 void update_tss_rsp0(task_struct_t *task);
 
-#endif /* __X86_TSS_H__ */
+#endif /* __ASM_TSS_H__ */

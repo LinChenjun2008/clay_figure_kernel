@@ -5,8 +5,8 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
 #include <asm/interrupt.h>
+#include <asm/utils.h>
 
 intr_status_t intr_get_status(void)
 {

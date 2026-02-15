@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __X86_IDT_H__
-#define __X86_IDT_H__
+#ifndef __ASM_IDT_H__
+#define __ASM_IDT_H__
 
 #pragma pack(1)
 typedef struct
@@ -22,4 +22,4 @@ typedef struct
 void idt_init(void);
 void load_idt(void);
 
-#endif /* __X86_IDT_H__ */
+#endif /* __ASM_IDT_H__ */

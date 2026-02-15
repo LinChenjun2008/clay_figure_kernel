@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __ARCH_TASK_H__
-#define __ARCH_TASK_H__
+#ifndef __ASM_TASK_H__
+#define __ASM_TASK_H__
 
 // 任务上下文结构
 typedef struct task_context_s
@@ -20,4 +20,4 @@ typedef struct task_context_s
     uint64_t rdi;
 } task_context_t;
 
-#endif /* __ARCH_TASK_H__ */
+#endif /* __ASM_TASK_H__ */

@@ -5,11 +5,11 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
-#include <asm/driver/acpi.h>
-#include <asm/driver/timer.h>
+#include <asm/drivers/timer.h>
 #include <asm/mem/page.h> // PHYS_TO_VIRT
+#include <asm/utils.h>
 
+#include <drivers/acpi.h>
 #include <print.h>
 
 #define HPET_DEFAULT_ADDRESS 0xfed00000

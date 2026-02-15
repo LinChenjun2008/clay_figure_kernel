@@ -5,9 +5,9 @@
 
 #include <base.h>
 
-#include <asm/asmfunc.h>
 #include <asm/mem/page.h>
 #include <asm/sync/spinlock.h>
+#include <asm/utils.h>
 
 #include <efi.h>
 #include <mm_struct.h>
