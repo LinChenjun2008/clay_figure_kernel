@@ -15,6 +15,7 @@
 #include <init/init.h>
 #include <mem.h>
 #include <print.h>
+#include <syscall.h>
 #include <task.h>
 
 static void ap_init(uint64_t stack)
@@ -72,6 +73,9 @@ void init_all(boot_info_t *boot_info)
 
     printk(MSG_INFO MSG_HIGHLIGHT("Timer") " initializing...\n");
     timer_init(boot_info);
+
+    printk(MSG_INFO MSG_HIGHLIGHT("System call") " initializing...\n");
+    syscall_init();
 
     printk(MSG_INFO MSG_HIGHLIGHT("MP") " initializing...\n");
     mp_init(boot_info);

@@ -3,6 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
+.text
+
 .global kernel_entry
 kernel_entry:
     movq 16(%rdi),%rax          // page_table_pos

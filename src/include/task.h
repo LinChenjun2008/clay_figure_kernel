@@ -35,11 +35,13 @@
 #define USER_STACK_VADDR_TOP 0x0000800000000000
 #define USER_VADDR_START     0x800000
 
-#include <asm/sync/spinlock.h>
-#include <asm/task.h>
+#ifndef __ASSEMBLER__
 
-#include <lib/list.h>
-#include <mm_struct.h>
+#    include <asm/sync/spinlock.h>
+#    include <asm/task.h>
+
+#    include <lib/list.h>
+#    include <mm_struct.h>
 
 typedef int32_t pid_t;
 
@@ -179,5 +181,7 @@ void     schedule(void);
 void     task_block(task_status_t status);
 void     task_unblock(pid_t pid);
 void     task_yield(void);
+
+#endif /* __ASSEMBLER__ */
 
 #endif /* __TASK_H__ */

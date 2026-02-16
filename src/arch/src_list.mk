@@ -7,6 +7,7 @@ SUB_DIR += interrupt
 SUB_DIR += mem
 SUB_DIR += mp
 SUB_DIR += sync
+SUB_DIR += syscall
 SUB_DIR += task
 
 SEARCH_DIR = $(SRC_DIR)/arch/$(TARGET_ARCH)
