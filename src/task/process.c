@@ -26,9 +26,7 @@ static void kernel_proc(void *func)
     page_map(page_table, ustack, ustack_vaddr, curr_task->ustack_pages);
 
     task_page_table_active(curr_task);
-    uint64_t kstack = (uint64_t)curr_task->context;
-    kstack += sizeof(*curr_task->context);
-    switch_to_user(func, kstack);
+    switch_to_user(func);
     return;
 }
 

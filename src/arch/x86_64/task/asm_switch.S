@@ -50,16 +50,37 @@ asm_switch_context:
 .global asm_switch_to_user
 .type asm_switch_to_user,@function
 asm_switch_to_user:
-    movq %rdx, %rsp
-    movq $SELECTOR_USER_DATA64,%rax
+    movq %rdi,%rsp
+
+    popq %rax
     movw %ax, %ds
+    popq %rax
     movw %ax, %es
+    popq %rax
     movw %ax, %fs
+    popq %rax
     movw %ax, %gs
 
-    pushq %rax                  // ss
-    pushq %rcx                  // rsp
-    pushq %r8                   // rflags
-    pushq $SELECTOR_USER_CODE64 // cs
-    pushq %rsi                  // rip
-    iretq
+    popq %rax
+    popq %rbx
+    popq %rcx
+    popq %rdx
+    popq %rbp
+    popq %rsi
+    popq %rdi
+
+    popq %r8
+    popq %r9
+    popq %r10
+    popq %r11
+    popq %r12
+    popq %r13
+    popq %r14
+    popq %r15
+
+    addq $16,%rsp  // skip int_vector and error_code
+    popq %rcx      // rip
+    addq $8,%rsp   // skip user cs
+    popq %r11      // rflags
+    addq $16,%rsp  // skip rsp and user ss
+    sysretq

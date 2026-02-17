@@ -84,8 +84,6 @@ void init_task_struct(
     size_t         ustack_pages
 );
 
-void create_task_context(task_struct_t *task, void *func, void *arg);
-
 task_struct_t *task_start(
     const char *name,
     uint64_t    prio,

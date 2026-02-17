@@ -18,14 +18,6 @@
 
 static task_man_t *task_man;
 
-static void kernel_task(uintptr_t func, uint64_t arg)
-{
-    intr_enable();
-    ((void (*)(uint64_t))func)(arg);
-    while (1) continue;
-    return;
-}
-
 static void task_init_cpu(cpu_t *cpu, boot_info_t *boot_info)
 {
     init_spinlock(&cpu->lock);
@@ -189,20 +181,6 @@ void init_task_struct(
     task->prio      = prio;
     task->run_time  = 0;
     task->vrun_time = 0;
-    return;
-}
-
-void create_task_context(task_struct_t *task, void *func, void *arg)
-{
-    ASSERT(task->context != NULL);
-    uintptr_t kstack = (uintptr_t)task->context;
-    kstack -= sizeof(uintptr_t);
-    *(uintptr_t *)kstack = (uintptr_t)kernel_task;
-    kstack -= sizeof(task_context_t);
-    task->context           = (task_context_t *)kstack;
-    task_context_t *context = task->context;
-    context->rsi            = (uint64_t)arg;
-    context->rdi            = (uint64_t)func;
     return;
 }
 
