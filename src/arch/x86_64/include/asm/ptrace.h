@@ -41,6 +41,21 @@ typedef struct
     uint64_t rsp;
     uint64_t ss;
 } pt_regs_t;
+
+// 任务上下文结构
+typedef struct task_context_s
+{
+    uint64_t r15;
+    uint64_t r14;
+    uint64_t r13;
+    uint64_t r12;
+
+    uint64_t rbp;
+    uint64_t rbx;
+    uint64_t rsi;
+    uint64_t rdi;
+} task_context_t;
+
 #pragma pack()
 
 #endif /* __ASM_PTRACE_H__ */

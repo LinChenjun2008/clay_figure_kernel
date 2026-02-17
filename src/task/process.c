@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <asm/mem/page.h>
+#include <asm/task.h>
 
 #include <mem/allocator.h>
 #include <mm_struct.h>

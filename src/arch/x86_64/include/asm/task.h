@@ -6,18 +6,16 @@
 #ifndef __ASM_TASK_H__
 #define __ASM_TASK_H__
 
-// 任务上下文结构
-typedef struct task_context_s
-{
-    uint64_t r15;
-    uint64_t r14;
-    uint64_t r13;
-    uint64_t r12;
+#include <task/struct.h>
 
-    uint64_t rbp;
-    uint64_t rbx;
-    uint64_t rsi;
-    uint64_t rdi;
-} task_context_t;
+// arch/task.c
+void           arch_set_current_task(task_struct_t *task);
+task_struct_t *arch_get_current_task(void);
+uint8_t        arch_get_current_cpu_id(void);
+void           arch_switch_to(task_context_t **curr, task_context_t **next);
+void           arch_task_active(task_struct_t *task);
+
+// arch/process.c
+void switch_to_user(void *func, uint64_t kstack);
 
 #endif /* __ASM_TASK_H__ */

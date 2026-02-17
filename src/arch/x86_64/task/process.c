@@ -5,6 +5,7 @@
 
 #include <base.h>
 
+#include <asm/task.h>
 #include <asm/x86.h>
 
 #include <task.h>

@@ -4,7 +4,7 @@
  */
 
 #include <asm/desc/desc.h>
-#include <task.h>
+#include <task/struct.h>
 
 .text
 
@@ -89,6 +89,8 @@ asm_syscall_entry:
     leaq syscall_entry(%rip),%rax
     callq *%rax
     cli
+
+    movq %rax,(%rbp)
 
     // restore registers
     popq %rax

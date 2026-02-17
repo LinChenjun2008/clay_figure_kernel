@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <asm/mem/page.h>
+#include <asm/task.h>
 
 #include <print.h>
 #include <task.h>

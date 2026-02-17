@@ -8,6 +8,7 @@
 #include <asm/drivers/apic.h>
 #include <asm/mem/page.h>
 #include <asm/sync/spinlock.h>
+#include <asm/task.h>
 
 #include <lib/list.h>
 #include <mem/allocator.h>
@@ -82,6 +83,22 @@ task_man_t *get_task_man(void)
 cpu_t *get_cpu_struct(uint8_t id)
 {
     return &task_man->cpus[id];
+}
+
+void set_current_task(task_struct_t *task)
+{
+    arch_set_current_task(task);
+    return;
+}
+
+task_struct_t *get_current_task(void)
+{
+    return arch_get_current_task();
+}
+
+uint8_t get_current_cpu_id()
+{
+    return arch_get_current_cpu_id();
 }
 
 task_struct_t *pid_to_task(pid_t pid)
