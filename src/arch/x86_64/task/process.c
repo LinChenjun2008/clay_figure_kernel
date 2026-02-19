@@ -19,6 +19,7 @@ SYSV_ABI void asm_switch_to_user(pt_regs_t *regs);
 
 void switch_to_user(void *func)
 {
+    ASSERT(intr_get_status() == INTR_OFF);
     pt_regs_t *regs;
     uintptr_t  ustack = USER_STACK_VADDR_TOP;
 

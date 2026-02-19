@@ -85,10 +85,8 @@ asm_syscall_entry:
 
     movq %rsp,%rdi
 
-    sti
     leaq syscall_entry(%rip),%rax
     callq *%rax
-    cli
 
     movq %rax,(%rbp)
 

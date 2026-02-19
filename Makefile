@@ -34,7 +34,7 @@ clean:
 	@$(MAKE) -C $(SRC_DIR)/arch/ clean
 	@$(MAKE) -C $(SRC_DIR) clean
 	-@"$(RM)" $(TARGET_INITRAMFS)
-	-@"$(RM)" $(TARGET_KERNEL) $(TARGET_KERNEL:sys=sym)
+	-@"$(RM)" $(TARGET_KERNEL) $(TARGET_KERNEL:sys=sym) $(TARGET_KERNEL:sys=tmp)
 
 .PHONY: init
 init:
@@ -56,4 +56,4 @@ $(TARGET_KERNEL): $(ASM_SRC:S=o) $(C_SRC:c=o) $(KERNEL_LINKER_SCRIPT)
 	@"$(LD)" $(LDFLAGS) -o $(@:sys=tmp) $(ASM_SRC:S=o) $(C_SRC:c=o) $(@:sys=o)
 	@"$(OBJCOPY)" -S -R ".eh_frame" -R ".comment" $(@:sys=tmp) $@
 	@"$(OBJCOPY)" --only-keep-debug $(@:sys=tmp) $(@:sys=sym)
-	@"$(RM)" $(@:sys=o) $(@:sys=c) $(@:sys=tmp)
+	@"$(RM)" $(@:sys=o) $(@:sys=c)

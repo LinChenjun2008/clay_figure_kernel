@@ -5,6 +5,7 @@
 
 #include <base.h>
 
+#include <asm/interrupt.h>
 #include <asm/mem/page.h>
 #include <asm/task.h>
 
@@ -13,8 +14,10 @@
 #include <std/string.h>
 #include <task.h>
 
-static void kernel_proc(void *func)
+static void kernel_process(void *func)
 {
+    intr_disable();
+
     task_struct_t *curr_task = get_current_task();
 
     size_t ustack_size = curr_task->ustack_pages * PG_SIZE;
@@ -77,7 +80,7 @@ task_struct_t *process_execute(
     uintptr_t      kstack_base;
     allocate_pages(kstack_pages, (void **)&kstack_base);
     init_task_struct(task, name, prio, kstack_base, kstack_pages, ustack_pages);
-    create_task_context(task, kernel_proc, proc);
+    create_task_context(task, kernel_process, proc);
     task->page_dir = create_page_table();
     user_vaddr_table_init(task);
 

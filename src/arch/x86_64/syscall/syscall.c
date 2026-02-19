@@ -16,7 +16,7 @@
 
 extern SYSV_ABI void asm_syscall_entry(void);
 
-typedef int (*syscall_t)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+typedef int (*syscall_t)(pt_regs_t *);
 extern syscall_t syscall_table[NR_CONT];
 
 void arch_syscall_init(void)
@@ -37,6 +37,7 @@ void arch_syscall_init(void)
     wrmsr(IA32_FMASK, EFLAGS_IF_1);
     return;
 }
+
 void syscall_entry(pt_regs_t *regs);
 void syscall_entry(pt_regs_t *regs)
 {
@@ -53,13 +54,15 @@ void syscall_entry(pt_regs_t *regs)
         regs->rax = -2;
         return;
     }
-    uint64_t arg1, arg2, arg3, arg4, arg5, ret;
-    arg1      = regs->rsi;
-    arg2      = regs->rdx;
-    arg3      = regs->rcx;
-    arg4      = regs->r8;
-    arg5      = regs->r9;
-    ret       = syscall_table[func](arg1, arg2, arg3, arg4, arg5);
+
+    // uint64_t arg1, arg2, arg3, arg4, arg5, ret;
+    // arg1      = regs->rsi;
+    // arg2      = regs->rdx;
+    // arg3      = regs->rcx;
+    // arg4      = regs->r8;
+    // arg5      = regs->r9;
+
+    int ret   = syscall_table[func](regs);
     regs->rax = ret;
     return;
 }
