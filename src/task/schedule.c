@@ -112,7 +112,7 @@ void cpu_task_list_insert(cpu_t *cpu, task_struct_t *task)
 
 void task_page_table_active(task_struct_t *task)
 {
-    uint64_t *page_table = task->cpu->kernel_page_table_pos;
+    uint64_t *page_table = task->cpu->task_man->kernel_page_table_pos;
     if (task->page_dir != NULL)
     {
         page_table = task->page_dir;

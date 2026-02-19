@@ -46,6 +46,7 @@ struct task_man_s
     int             max_tasks;
     cpu_t          *cpus;
     int             max_cpus;
+    void           *kernel_page_table_pos;
 };
 
 struct cpu_s
@@ -59,7 +60,6 @@ struct cpu_s
     uint64_t       min_vrun_time;
     uint64_t       total_weight;
     task_struct_t *main_task;
-    void          *kernel_page_table_pos;
 };
 
 // task.c

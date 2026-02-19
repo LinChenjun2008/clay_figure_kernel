@@ -18,7 +18,7 @@
 
 static task_man_t *task_man;
 
-static void cpu_task_init(cpu_t *cpu, uint8_t id, boot_info_t *boot_info)
+static void cpu_task_init(cpu_t *cpu, uint8_t id)
 {
     cpu->task_man = task_man;
     cpu->id       = id;
@@ -26,10 +26,9 @@ static void cpu_task_init(cpu_t *cpu, uint8_t id, boot_info_t *boot_info)
     init_list(&cpu->task_list);
     cpu->running_tasks = 0;
 
-    cpu->min_vrun_time         = 0;
-    cpu->total_weight          = 0;
-    cpu->main_task             = NULL;
-    cpu->kernel_page_table_pos = boot_info->page_table_pos;
+    cpu->min_vrun_time = 0;
+    cpu->total_weight  = 0;
+    cpu->main_task     = NULL;
     return;
 }
 
@@ -53,10 +52,12 @@ void task_init(boot_info_t *boot_info, int max_tasks)
     task_man->cpus     = cpus;
     task_man->max_cpus = apic_max_lapic_id();
 
+    task_man->kernel_page_table_pos = boot_info->page_table_pos;
+
     int i;
     for (i = 0; i <= task_man->max_cpus; i++)
     {
-        cpu_task_init(&task_man->cpus[i], i, boot_info);
+        cpu_task_init(&task_man->cpus[i], i);
     }
     printk("Max tasks: %d.\n", max_tasks);
     printk("task_table at %p.\n", task_man->task_table);

@@ -38,8 +38,10 @@ static uint64_t *create_page_table(void)
     uint64_t *page_table = NULL;
     allocate_pages(1, (void **)&page_table);
 
-    cpu_t    *cpu               = get_current_task()->cpu;
-    uint64_t *kernel_page_table = PHYS_TO_VIRT(cpu->kernel_page_table_pos);
+    uint64_t   *kernel_page_table;
+    task_man_t *task_man = get_current_task()->cpu->task_man;
+    kernel_page_table    = PHYS_TO_VIRT(task_man->kernel_page_table_pos);
+
     memset(page_table, 0, PT_SIZE);
     memcpy(page_table + 0x100, kernel_page_table + 0x100, PT_SIZE / 2);
     return VIRT_TO_PHYS(page_table);
