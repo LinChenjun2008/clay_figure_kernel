@@ -38,7 +38,7 @@ static uint64_t *create_page_table(void)
     uint64_t *page_table = NULL;
     allocate_pages(1, (void **)&page_table);
 
-    cpu_t    *cpu               = get_cpu_struct(get_current_cpu_id());
+    cpu_t    *cpu               = get_current_task()->cpu;
     uint64_t *kernel_page_table = PHYS_TO_VIRT(cpu->kernel_page_table_pos);
     memset(page_table, 0, PT_SIZE);
     memcpy(page_table + 0x100, kernel_page_table + 0x100, PT_SIZE / 2);
@@ -85,7 +85,6 @@ task_struct_t *process_execute(
     user_vaddr_table_init(task);
 
     get_current_task()->childs++;
-    cpu_t *cpu = get_cpu_struct(task->cpu_id);
-    task_list_insert(cpu, task);
+    cpu_task_list_insert(task->cpu, task);
     return task;
 }

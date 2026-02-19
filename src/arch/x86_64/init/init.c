@@ -27,6 +27,9 @@ static void ap_init(uint64_t stack)
 
     local_apic_init();
     apic_timer_init();
+
+    syscall_init();
+
     intr_enable();
     while (1);
     return;

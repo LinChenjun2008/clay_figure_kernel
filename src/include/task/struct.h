@@ -29,6 +29,8 @@ typedef enum
     TASK_DIED       // 任务结束
 } task_status_t;
 
+typedef struct cpu_s cpu_t;
+
 typedef struct
 {
     task_context_t *context; // 任务上下文
@@ -39,6 +41,8 @@ typedef struct
     uintptr_t ustack_base;  // 用户栈基址(物理地址)(如果有)
     size_t    ustack_pages; // 用户栈所用的页数(如果有)
 
+    cpu_t *volatile cpu; // 任务所在cpu的id
+
     pid_t pid;  // 任务id
     pid_t ppid; // 父级任务id
 
@@ -47,7 +51,6 @@ typedef struct
     char                   name[32];      // 任务名
     volatile task_status_t status;        // 任务状态
     uint64_t               preempt_count; // 抢占计数
-    uint64_t               cpu_id;        // 任务所在cpu的id
     uint64_t              *page_dir;      // 任务页表地址(物理地址)
     list_node_t            general_tag;   // 任务在任务列表中的节点
 

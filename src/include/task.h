@@ -36,34 +36,36 @@
 
 #    include <task/struct.h>
 
-typedef struct
-{
-    list_t task_list;
+typedef struct task_man_s task_man_t;
+typedef struct cpu_s      cpu_t;
 
-    uint64_t       min_vrun_time;
-    uint64_t       running_tasks;
-    uint64_t       total_weight;
-    task_struct_t *main_task;
-    void          *kernel_page_table_pos;
-} cpu_t;
-
-typedef struct
+struct task_man_s
 {
     spinlock_t      lock;
     task_struct_t **task_table;
     int             max_tasks;
     cpu_t          *cpus;
     int             max_cpus;
-    list_t          blocked_tasks;
-    volatile int    unblocked_tasks;
-} task_man_t;
+};
+
+struct cpu_s
+{
+    task_man_t *task_man;
+    uint8_t     id;
+
+    list_t task_list;
+    int    running_tasks;
+
+    uint64_t       min_vrun_time;
+    uint64_t       total_weight;
+    task_struct_t *main_task;
+    void          *kernel_page_table_pos;
+};
 
 // task.c
 void task_init(boot_info_t *boot_info, int max_tasks);
 void make_main_task(uintptr_t stack_base, size_t stack_pages);
 
-task_man_t    *get_task_man(void);
-cpu_t         *get_cpu_struct(uint8_t id);
 void           set_current_task(task_struct_t *task);
 task_struct_t *get_current_task(void);
 uint8_t        get_current_cpu_id(void);
@@ -101,9 +103,9 @@ task_struct_t *process_execute(
 );
 
 // schedule.c
-uint64_t get_min_vrun_time(uint32_t cpu_id);
+uint64_t get_min_vrun_time(cpu_t *cpu);
 void     task_update(void);
-void     task_list_insert(cpu_t *cpu, task_struct_t *task);
+void     cpu_task_list_insert(cpu_t *cpu, task_struct_t *task);
 void     task_page_table_active(task_struct_t *task);
 void     task_active(task_struct_t *task);
 void     schedule(void);

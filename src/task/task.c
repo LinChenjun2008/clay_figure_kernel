@@ -18,11 +18,15 @@
 
 static task_man_t *task_man;
 
-static void task_init_cpu(cpu_t *cpu, boot_info_t *boot_info)
+static void cpu_task_init(cpu_t *cpu, uint8_t id, boot_info_t *boot_info)
 {
+    cpu->task_man = task_man;
+    cpu->id       = id;
+
     init_list(&cpu->task_list);
+    cpu->running_tasks = 0;
+
     cpu->min_vrun_time         = 0;
-    cpu->running_tasks         = 0;
     cpu->total_weight          = 0;
     cpu->main_task             = NULL;
     cpu->kernel_page_table_pos = boot_info->page_table_pos;
@@ -49,13 +53,10 @@ void task_init(boot_info_t *boot_info, int max_tasks)
     task_man->cpus     = cpus;
     task_man->max_cpus = apic_max_lapic_id();
 
-    init_list(&task_man->blocked_tasks);
-    task_man->unblocked_tasks = 0;
-
     int i;
     for (i = 0; i <= task_man->max_cpus; i++)
     {
-        task_init_cpu(&task_man->cpus[i], boot_info);
+        cpu_task_init(&task_man->cpus[i], i, boot_info);
     }
     printk("Max tasks: %d.\n", max_tasks);
     printk("task_table at %p.\n", task_man->task_table);
@@ -70,20 +71,10 @@ void make_main_task(uintptr_t stack_base, size_t stack_pages)
     task_struct_t *task = allocate_task_struct();
     set_current_task(task);
     init_task_struct(task, "Main", DEFAULT_PRIO, stack_base, stack_pages, 0);
-    task->cpu_id                           = get_current_cpu_id();
-    task->status                           = TASK_RUNNING;
-    task_man->cpus[task->cpu_id].main_task = task;
+    task->cpu            = &task_man->cpus[get_current_cpu_id()];
+    task->status         = TASK_RUNNING;
+    task->cpu->main_task = task;
     return;
-}
-
-task_man_t *get_task_man(void)
-{
-    return task_man;
-}
-
-cpu_t *get_cpu_struct(uint8_t id)
-{
-    return &task_man->cpus[id];
 }
 
 void set_current_task(task_struct_t *task)
@@ -174,6 +165,9 @@ void init_task_struct(
     task->ustack_base  = 0;
     task->ustack_pages = ustack_pages;
 
+
+    task->cpu = get_current_task()->cpu;
+
     task->pid  = task_to_pid(task);
     task->ppid = get_current_task()->pid;
 
@@ -184,7 +178,6 @@ void init_task_struct(
 
     task->status        = TASK_READY;
     task->preempt_count = 0;
-    task->cpu_id        = get_current_task()->cpu_id;
     task->page_dir      = NULL;
 
     task->prio      = prio;
@@ -217,7 +210,6 @@ task_struct_t *task_start(
     create_task_context(task, func, arg);
 
     get_current_task()->childs++;
-    cpu_t *cpu = get_cpu_struct(task->cpu_id);
-    task_list_insert(cpu, task);
+    cpu_task_list_insert(task->cpu, task);
     return task;
 }
