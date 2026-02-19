@@ -20,11 +20,11 @@ static int syscall_test(void)
     static int     i    = 0;
     task_struct_t *task = get_current_task();
     printk(
-        MSG_INFO "%d: syscall test: name='%s',pid=%d, cpu=%d.\r",
+        MSG_INFO "%d: syscall test: name='%s',pid=%-2d, cpu=%d.\n",
         i++,
         task->name,
         task->pid,
-        task->cpu_id
+        task->cpu->id
     );
     return 0;
 }

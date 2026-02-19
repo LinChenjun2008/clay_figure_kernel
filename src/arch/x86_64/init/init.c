@@ -18,23 +18,6 @@
 #include <syscall.h>
 #include <task.h>
 
-static void ap_init(uint64_t stack)
-{
-    intr_disable();
-    ap_init_desc();
-
-    make_main_task(stack - PG_SIZE, 1);
-
-    local_apic_init();
-    apic_timer_init();
-
-    syscall_init();
-
-    intr_enable();
-    while (1);
-    return;
-}
-
 void init_all(boot_info_t *boot_info)
 {
     intr_disable();
@@ -83,9 +66,25 @@ void init_all(boot_info_t *boot_info)
     printk(MSG_INFO MSG_HIGHLIGHT("MP") " initializing...\n");
     mp_init(boot_info);
 
-    mp_start(ap_init);
+    mp_start(ap_kernel_main);
 
     printk(MSG_INFO "Kernel initializing done.\n");
+    intr_enable();
+    return;
+}
+
+void ap_init(uint64_t stack)
+{
+    intr_disable();
+    ap_init_desc();
+
+    make_main_task(stack - PG_SIZE, 1);
+
+    local_apic_init();
+    apic_timer_init();
+
+    syscall_init();
+
     intr_enable();
     return;
 }

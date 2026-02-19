@@ -153,13 +153,13 @@ void schedule(void)
         cpu_task_list_insert(curr_cpu, curr_task);
     }
 
-    task_struct_t *next = cpu_get_next_task(curr_cpu);
-    ASSERT(next != NULL);
+    task_struct_t *next_task = cpu_get_next_task(curr_cpu);
+    ASSERT(next_task != NULL);
 
-    next->status = TASK_RUNNING;
+    next_task->status = TASK_RUNNING;
 
-    task_active(next);
-    switch_to(curr_task, next);
+    task_active(next_task);
+    switch_to(curr_task, next_task);
     return;
 }
 
@@ -168,10 +168,9 @@ void task_block(task_status_t status)
     intr_status_t  intr_status = intr_disable();
     task_struct_t *curr_task   = get_current_task();
     ASSERT(curr_task->preempt_count == 0);
-    ASSERT(task->status != TASK_READY);
-    ASSERT(task->status != TASK_RUNNING);
+    ASSERT(curr_task->status != TASK_READY);
+    ASSERT(curr_task->status != TASK_RUNNING);
     curr_task->status = status;
-
     schedule();
     intr_set_status(intr_status);
     return;

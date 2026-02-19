@@ -6,6 +6,10 @@
 #ifndef __INIT_H__
 #define __INIT_H__
 
+int kernel_main(boot_info_t *boot_info);
+int ap_kernel_main(uint64_t stack);
+
 void init_all(boot_info_t *boot_info);
+void ap_init(uint64_t stack);
 
 #endif /* __INIT_H__ */
