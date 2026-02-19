@@ -38,8 +38,7 @@
 
 typedef struct
 {
-    spinlock_t lock;
-    list_t     task_list;
+    list_t task_list;
 
     uint64_t       min_vrun_time;
     uint64_t       running_tasks;

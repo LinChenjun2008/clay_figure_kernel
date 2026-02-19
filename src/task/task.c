@@ -20,7 +20,6 @@ static task_man_t *task_man;
 
 static void task_init_cpu(cpu_t *cpu, boot_info_t *boot_info)
 {
-    init_spinlock(&cpu->lock);
     init_list(&cpu->task_list);
     cpu->min_vrun_time         = 0;
     cpu->running_tasks         = 0;
@@ -32,14 +31,27 @@ static void task_init_cpu(cpu_t *cpu, boot_info_t *boot_info)
 
 void task_init(boot_info_t *boot_info, int max_tasks)
 {
+    task_struct_t **task_table = NULL;
+    size_t task_table_size     = sizeof(task_man->task_table[0]) * max_tasks;
+    kmalloc(task_table_size, 0, 0, (void **)&task_table);
+    ASSERT(task_table != NULL);
+
+    cpu_t *cpus      = NULL;
+    int    max_cpus  = apic_max_lapic_id() + 1;
+    size_t cpus_size = sizeof(task_man->cpus[0]) * max_cpus;
+    kmalloc(cpus_size, 0, 0, (void **)&cpus);
+
     kmalloc(sizeof(*task_man), 0, 0, (void **)&task_man);
     init_spinlock(&task_man->lock);
-    size_t task_table_size = sizeof(task_man->task_table[0]) * max_tasks;
-    kmalloc(task_table_size, 0, 0, (void **)&task_man->task_table);
-    task_man->max_tasks = max_tasks;
+    task_man->task_table = task_table;
+    task_man->max_tasks  = max_tasks;
 
+    task_man->cpus     = cpus;
     task_man->max_cpus = apic_max_lapic_id();
-    kmalloc(sizeof(task_man->cpus[0]), 0, 0, (void **)&task_man->cpus);
+
+    init_list(&task_man->blocked_tasks);
+    task_man->unblocked_tasks = 0;
+
     int i;
     for (i = 0; i <= task_man->max_cpus; i++)
     {
@@ -47,9 +59,6 @@ void task_init(boot_info_t *boot_info, int max_tasks)
     }
     printk("Max tasks: %d.\n", max_tasks);
     printk("task_table at %p.\n", task_man->task_table);
-
-    init_list(&task_man->blocked_tasks);
-    task_man->unblocked_tasks = 0;
 
     uintptr_t stack_base = (uintptr_t)PHYS_TO_VIRT(boot_info->stack_base);
     make_main_task(stack_base, boot_info->stack_pages);
@@ -61,7 +70,7 @@ void make_main_task(uintptr_t stack_base, size_t stack_pages)
     task_struct_t *task = allocate_task_struct();
     set_current_task(task);
     init_task_struct(task, "Main", DEFAULT_PRIO, stack_base, stack_pages, 0);
-    task->cpu_id                           = apic_id();
+    task->cpu_id                           = get_current_cpu_id();
     task->status                           = TASK_RUNNING;
     task_man->cpus[task->cpu_id].main_task = task;
     return;

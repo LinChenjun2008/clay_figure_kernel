@@ -69,7 +69,7 @@ void task_update(void)
     return;
 }
 
-static task_struct_t *get_next_task_lock(cpu_t *cpu)
+static task_struct_t *get_next_task(cpu_t *cpu)
 {
     list_node_t *node;
     node = list_pop(&cpu->task_list);
@@ -113,7 +113,7 @@ static void get_unblocked_task_lock(cpu_t *cpu)
     return;
 }
 
-static void task_list_insert_lock(cpu_t *cpu, task_struct_t *task)
+void task_list_insert(cpu_t *cpu, task_struct_t *task)
 {
     list_t        *list = &cpu->task_list;
     list_node_t   *node = list_next(list_head(list));
@@ -131,14 +131,6 @@ static void task_list_insert_lock(cpu_t *cpu, task_struct_t *task)
     cpu->running_tasks++;
     cpu->total_weight += task_prio_to_weight[task->prio];
     task->status = TASK_READY;
-    return;
-}
-
-void task_list_insert(cpu_t *cpu, task_struct_t *task)
-{
-    spin_lock(&cpu->lock);
-    task_list_insert_lock(cpu, task);
-    spin_unlock(&cpu->lock);
     return;
 }
 
@@ -196,12 +188,7 @@ void schedule(void)
     ASSERT(task_man->unblocked_tasks == 0);
     spin_unlock(&task_man->lock);
 
-    task_struct_t *next = NULL;
-
-    spin_lock(&curr_cpu->lock);
-    next = get_next_task_lock(curr_cpu);
-    spin_unlock(&curr_cpu->lock);
-
+    task_struct_t *next = get_next_task(curr_cpu);
     ASSERT(next != NULL);
 
     next->status = TASK_RUNNING;
