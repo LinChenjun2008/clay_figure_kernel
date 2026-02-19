@@ -23,7 +23,7 @@ static void cpu_task_init(cpu_t *cpu, uint8_t id)
     cpu->task_man = task_man;
     cpu->id       = id;
 
-    init_list(&cpu->task_list);
+    init_list(&cpu->task_queue);
     cpu->running_tasks = 0;
 
     cpu->min_vrun_time = 0;

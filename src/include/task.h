@@ -54,7 +54,7 @@ struct cpu_s
     task_man_t *task_man;
     uint8_t     id;
 
-    list_t task_list;
+    list_t task_queue;
     int    running_tasks;
 
     uint64_t       min_vrun_time;

@@ -70,7 +70,7 @@ void task_update(void)
 static task_struct_t *cpu_get_next_task(cpu_t *cpu)
 {
     list_node_t *node;
-    node = list_pop(&cpu->task_list);
+    node = list_pop(&cpu->task_queue);
 
     task_struct_t *next = CONTAINER_OF(task_struct_t, general_tag, node);
     cpu->running_tasks--;
@@ -89,7 +89,7 @@ static task_struct_t *cpu_get_next_task(cpu_t *cpu)
 
 void cpu_task_list_insert(cpu_t *cpu, task_struct_t *task)
 {
-    list_t        *list = &cpu->task_list;
+    list_t        *list = &cpu->task_queue;
     list_node_t   *node = list_next(list_head(list));
     task_struct_t *tmp;
     while (node != &list->tail)
