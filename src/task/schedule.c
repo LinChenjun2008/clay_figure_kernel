@@ -67,17 +67,13 @@ void task_update(void)
     return;
 }
 
-// static void adjust_vrun_time(cpu_t *cpu, task_struct_t *task)
-// {
-//     int64_t balance = task->vrun_time - get_min_vrun_time(task->cpu);
-//     task->vrun_time = cpu->min_vrun_time + balance;
-//     return;
-// }
-
-static task_struct_t *cpu_get_next_task(cpu_t *cpu)
+static task_struct_t *cpu_get_next_task_lock(cpu_t *cpu)
 {
     list_node_t   *node = NULL;
     task_struct_t *next = NULL;
+
+    ASSERT(!list_empty(&cpu->task_queue));
+    ASSERT(cpu->running_tasks == list_len(&cpu->task_queue));
 
     node = list_pop(&cpu->task_queue);
     ASSERT(node != NULL);
@@ -87,11 +83,20 @@ static task_struct_t *cpu_get_next_task(cpu_t *cpu)
     cpu->running_tasks--;
     cpu->total_weight -= task_prio_to_weight[next->prio];
     ASSERT(cpu->running_tasks >= 0);
-
     return next;
 }
 
-void cpu_task_list_insert(cpu_t *cpu, task_struct_t *task)
+static task_struct_t *cpu_get_next_task(cpu_t *cpu)
+{
+    task_struct_t *ret = NULL;
+
+    spin_lock(&cpu->lock);
+    ret = cpu_get_next_task_lock(cpu);
+    spin_unlock(&cpu->lock);
+    return ret;
+}
+
+static void cpu_task_list_insert_lock(cpu_t *cpu, task_struct_t *task)
 {
     list_t        *list = &cpu->task_queue;
     list_node_t   *node = list_next(list_head(list));
@@ -109,8 +114,129 @@ void cpu_task_list_insert(cpu_t *cpu, task_struct_t *task)
     cpu->running_tasks++;
     cpu->total_weight += task_prio_to_weight[task->prio];
     ASSERT(cpu->running_tasks >= 0);
+    ASSERT(cpu->running_tasks == list_len(&cpu->task_queue));
 
     task->status = TASK_READY;
+    return;
+}
+
+void cpu_task_list_insert(cpu_t *cpu, task_struct_t *task)
+{
+    spin_lock(&cpu->lock);
+    cpu_task_list_insert_lock(cpu, task);
+    spin_unlock(&cpu->lock);
+    return;
+}
+
+static void adjust_vrun_time(cpu_t *cpu, task_struct_t *task)
+{
+    int64_t balance = task->vrun_time - get_min_vrun_time(task->cpu);
+    task->vrun_time = cpu->min_vrun_time + balance;
+    return;
+}
+
+static void cpu_lock_double(cpu_t *cpu1, cpu_t *cpu2)
+{
+    ASSERT(cpu1 != cpu2);
+    ASSERT(cpu1->id != cpu2->id);
+    if (cpu1->id < cpu2->id)
+    {
+        spin_lock(&cpu1->lock);
+        spin_lock(&cpu2->lock);
+    }
+    else
+    {
+        spin_lock(&cpu2->lock);
+        spin_lock(&cpu1->lock);
+    }
+    return;
+}
+
+static void cpu_unlock_double(cpu_t *cpu1, cpu_t *cpu2)
+{
+    spin_unlock(&cpu1->lock);
+    spin_unlock(&cpu2->lock);
+    return;
+}
+
+static void do_task_balance_lock(cpu_t *busy, cpu_t *idle)
+{
+    task_struct_t *task = cpu_get_next_task_lock(busy);
+    ASSERT(task != NULL);
+    if (task == busy->main_task)
+    {
+        task = cpu_get_next_task_lock(busy);
+        ASSERT(task != NULL);
+        cpu_task_list_insert_lock(busy, busy->main_task);
+    }
+    adjust_vrun_time(idle, task);
+    cpu_task_list_insert_lock(idle, task);
+    return;
+}
+
+static void task_balance_lock(cpu_t *busy, cpu_t *idle)
+{
+    int max_running = busy->running_tasks;
+    int min_running = idle->running_tasks;
+
+    if (max_running <= 2)
+    {
+        return;
+    }
+    if (max_running - min_running <= 1)
+    {
+        return;
+    }
+    int task_should_be_move = (max_running - min_running) / 2;
+    int i;
+    for (i = 0; i < task_should_be_move; i++)
+    {
+        do_task_balance_lock(busy, idle);
+    }
+    return;
+}
+
+void task_balance(void)
+{
+    ASSERT(intr_get_status() == INTR_OFF);
+    task_man_t *task_man = get_current_task()->cpu->task_man;
+
+    int    min_running = task_man->max_tasks + 1;
+    int    max_running = -1;
+    int    cur_running = 0;
+    cpu_t *cpu = NULL, *busy = NULL, *idle = NULL;
+    int    i = 0;
+    for (i = 0; i < task_man->max_cpus; i++)
+    {
+        cpu = &task_man->cpus[i];
+        if (cpu->main_task == NULL)
+        {
+            continue;
+        }
+
+        spin_lock(&cpu->lock);
+        cur_running = cpu->running_tasks;
+        spin_unlock(&cpu->lock);
+
+        if (cur_running > max_running)
+        {
+            max_running = cur_running;
+            busy        = cpu;
+        }
+        if (cur_running < min_running)
+        {
+            min_running = cur_running;
+            idle        = cpu;
+        }
+    }
+
+    if (busy == idle)
+    {
+        return;
+    }
+    cpu_lock_double(busy, idle);
+    task_balance_lock(busy, idle);
+    cpu_unlock_double(busy, idle);
     return;
 }
 
@@ -131,6 +257,7 @@ void task_active(task_struct_t *task)
     task_page_table_active(task);
     arch_task_active(task);
     set_current_task(task);
+    task->status = TASK_RUNNING;
     return;
 }
 
@@ -159,8 +286,6 @@ void schedule(void)
 
     task_struct_t *next_task = cpu_get_next_task(curr_cpu);
     ASSERT(next_task != NULL);
-
-    next_task->status = TASK_RUNNING;
 
     task_active(next_task);
     switch_to(curr_task, next_task);

@@ -15,6 +15,13 @@
 static void timer()
 {
     send_eoi();
+    static uint64_t tick = 0;
+    tick++;
+    if (tick >= 1000)
+    {
+        tick = 0;
+        task_balance();
+    }
     return;
 }
 

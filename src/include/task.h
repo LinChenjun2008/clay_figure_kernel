@@ -54,8 +54,9 @@ struct cpu_s
     task_man_t *task_man;
     uint8_t     id;
 
-    list_t task_queue;
-    int    running_tasks;
+    spinlock_t lock;
+    list_t     task_queue;
+    int        running_tasks;
 
     uint64_t       min_vrun_time;
     uint64_t       total_weight;
@@ -105,6 +106,7 @@ task_struct_t *process_execute(
 // schedule.c
 uint64_t get_min_vrun_time(cpu_t *cpu);
 void     task_update(void);
+void     task_balance(void);
 void     cpu_task_list_insert(cpu_t *cpu, task_struct_t *task);
 void     task_page_table_active(task_struct_t *task);
 void     task_active(task_struct_t *task);

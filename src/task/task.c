@@ -20,9 +20,11 @@ static task_man_t *task_man;
 
 static void cpu_task_init(cpu_t *cpu, uint8_t id)
 {
+    memset(cpu, 0, sizeof(*cpu));
     cpu->task_man = task_man;
     cpu->id       = id;
 
+    init_spinlock(&cpu->lock);
     init_list(&cpu->task_queue);
     cpu->running_tasks = 0;
 
