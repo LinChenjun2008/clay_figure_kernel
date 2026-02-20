@@ -50,12 +50,12 @@ void task_init(boot_info_t *boot_info, int max_tasks)
     task_man->max_tasks  = max_tasks;
 
     task_man->cpus     = cpus;
-    task_man->max_cpus = apic_max_lapic_id();
+    task_man->max_cpus = max_cpus;
 
     task_man->kernel_page_table_pos = boot_info->page_table_pos;
 
     int i;
-    for (i = 0; i <= task_man->max_cpus; i++)
+    for (i = 0; i < task_man->max_cpus; i++)
     {
         cpu_task_init(&task_man->cpus[i], i);
     }

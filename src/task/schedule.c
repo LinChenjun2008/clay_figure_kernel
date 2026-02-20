@@ -67,25 +67,29 @@ void task_update(void)
     return;
 }
 
-static task_struct_t *cpu_get_next_task(cpu_t *cpu)
-{
-    list_node_t *node;
-    node = list_pop(&cpu->task_queue);
-
-    task_struct_t *next = CONTAINER_OF(task_struct_t, general_tag, node);
-    cpu->running_tasks--;
-    cpu->total_weight -= task_prio_to_weight[next->prio];
-
-    ASSERT(cpu->running_tasks >= 0);
-    return next;
-}
-
 // static void adjust_vrun_time(cpu_t *cpu, task_struct_t *task)
 // {
 //     int64_t balance = task->vrun_time - get_min_vrun_time(task->cpu);
 //     task->vrun_time = cpu->min_vrun_time + balance;
 //     return;
 // }
+
+static task_struct_t *cpu_get_next_task(cpu_t *cpu)
+{
+    list_node_t   *node = NULL;
+    task_struct_t *next = NULL;
+
+    node = list_pop(&cpu->task_queue);
+    ASSERT(node != NULL);
+    next = CONTAINER_OF(task_struct_t, general_tag, node);
+    ASSERT(next != NULL);
+
+    cpu->running_tasks--;
+    cpu->total_weight -= task_prio_to_weight[next->prio];
+    ASSERT(cpu->running_tasks >= 0);
+
+    return next;
+}
 
 void cpu_task_list_insert(cpu_t *cpu, task_struct_t *task)
 {
