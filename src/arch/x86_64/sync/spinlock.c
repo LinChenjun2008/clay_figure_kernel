@@ -37,6 +37,8 @@ void spin_unlock(spinlock_t *lk)
     uint64_t lk_value;
     lk_value = asm_atomic_xchg(&lk->lock, 1);
     ASSERT(lk_value == 0);
+    (void)lk_value;
+
     intr_set_status(intr_status);
     return;
 }

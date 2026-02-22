@@ -40,3 +40,9 @@ void syscall_init(void)
     syscall_table[0] = syscall_test;
     return;
 }
+
+void ap_syscall_init(void)
+{
+    arch_syscall_init();
+    return;
+}
