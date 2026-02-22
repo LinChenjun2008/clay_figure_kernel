@@ -215,7 +215,7 @@ set_ioapic_irq_override(struct madt_ioapic_irq_override *irq_override)
     return;
 }
 
-static void read_madt(boot_info_t *boot_info)
+static void read_madt(struct boot_info *boot_info)
 {
     apic.cores              = 0;
     apic.local_apic_address = 0;
@@ -472,7 +472,7 @@ static void ioapic_init(uint8_t ioapic_id)
     return;
 }
 
-void apic_init(boot_info_t *boot_info)
+void apic_init(struct boot_info *boot_info)
 {
     read_madt(boot_info);
 

@@ -5,7 +5,7 @@
 
 #include "bootloader.h"
 
-efi_status_t get_memory_map(memory_map_t *memmap)
+efi_status_t get_memory_map(struct memory_map *memmap)
 {
     efi_status_t status = EFI_SUCCESS;
 

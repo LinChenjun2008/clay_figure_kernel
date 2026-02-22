@@ -32,7 +32,7 @@ static void apic_timer(void)
     return;
 }
 
-void timer_init(boot_info_t *boot_info)
+void timer_init(struct boot_info *boot_info)
 {
     register_handler(0x20, timer);
     register_handler(0x80, apic_timer);

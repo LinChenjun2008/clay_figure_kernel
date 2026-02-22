@@ -6,6 +6,6 @@
 #ifndef __MEM_H__
 #define __MEM_H__
 
-void mem_init(boot_info_t *boot_info);
+void mem_init(struct boot_info *boot_info);
 
 #endif /* __MEM_H__ */

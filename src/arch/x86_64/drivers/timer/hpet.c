@@ -63,7 +63,7 @@ uint64_t get_nano_time(void)
     return 0;
 }
 
-void hpet_init(boot_info_t *boot_info)
+void hpet_init(struct boot_info *boot_info)
 {
     uint32_t          signature = SIGNATURE_32('H', 'P', 'E', 'T');
     struct acpi_hpet *hpet_table;

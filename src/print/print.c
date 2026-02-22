@@ -96,7 +96,7 @@ static void serial_printk(uint16_t port, char *buf)
     return;
 }
 
-void init_print(graphic_info_t *graphic_info)
+void init_print(struct graphic_info *graphic_info)
 {
     uint32_t  char_xsize = 8;
     uint32_t  char_ysize = 16;

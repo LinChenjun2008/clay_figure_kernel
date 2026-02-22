@@ -15,7 +15,7 @@
 
 #ifndef __ASSEMBLER__
 
-void mp_init(boot_info_t *boot_info);
+void mp_init(struct boot_info *boot_info);
 void mp_start(void *mp_entry);
 
 #endif /* __ASSEMBLER__ */

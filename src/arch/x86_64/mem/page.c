@@ -16,13 +16,13 @@
 
 static mm_block_t page_mm_blocks[2048];
 
-typedef struct
+struct page_man
 {
     struct spinlock lock;
     mm_struct_t     mm;
-} page_man_t;
+};
 
-static page_man_t page_man;
+static struct page_man page_man;
 
 static mm_type_t get_page_type(efi_memory_type_t efi_type)
 {
@@ -52,7 +52,7 @@ static mm_type_t get_page_type(efi_memory_type_t efi_type)
     return MAX_MM_TYPE;
 }
 
-void page_init(boot_info_t *boot_info)
+void page_init(struct boot_info *boot_info)
 {
     init_mm_struct(&page_man.mm, page_mm_blocks, 2048);
     init_spinlock(&page_man.lock);

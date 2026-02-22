@@ -48,7 +48,7 @@ static void send_ipi(uint64_t icr)
     return;
 }
 
-void mp_init(boot_info_t *boot_info)
+void mp_init(struct boot_info *boot_info)
 {
     size_t ap_boot_size = (uintptr_t)AP_BOOT_END - (uintptr_t)AP_BOOT_START;
     printk("mp_init: copy AP_BOOT to %p, size=%d.\n", AP_START, ap_boot_size);

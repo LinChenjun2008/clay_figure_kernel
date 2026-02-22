@@ -64,7 +64,7 @@ struct cpu_s
 };
 
 // task.c
-void task_init(boot_info_t *boot_info, int max_tasks);
+void task_init(struct boot_info *boot_info, int max_tasks);
 void make_main_task(uintptr_t stack_base, size_t stack_pages);
 
 void           set_current_task(task_struct_t *task);

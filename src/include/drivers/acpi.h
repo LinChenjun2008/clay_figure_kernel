@@ -13,6 +13,6 @@ typedef efi_acpi_description_header_t acpi_description_header_t;
 
 // xsdt.c
 acpi_description_header_t *
-xsdt_find_table(boot_info_t *boot_info, uint32_t signature);
+xsdt_find_table(struct boot_info *boot_info, uint32_t signature);
 
 #endif /* __DRIVER_ACPI_H__ */

@@ -18,7 +18,7 @@
 #include <syscall.h>
 #include <task.h>
 
-void init_all(boot_info_t *boot_info)
+void init_all(struct boot_info *boot_info)
 {
     intr_disable();
     init_print(&boot_info->graphic_info);
@@ -31,7 +31,7 @@ void init_all(boot_info_t *boot_info)
     printk("Page table at %p.\n", boot_info->page_table_pos);
     printk("Kernel relocate base: %p.\n", boot_info->relocate_base);
 
-    graphic_info_t *graphic_info = &boot_info->graphic_info;
+    struct graphic_info *graphic_info = &boot_info->graphic_info;
     printk("Frame buffer base: %p.\n", graphic_info->frame_buffer_base);
     printk(
         "Resolution: %dx%d.\n",

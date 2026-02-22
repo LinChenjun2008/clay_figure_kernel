@@ -11,7 +11,7 @@
 #include <mem/allocator.h>
 #include <print.h>
 
-void mem_init(boot_info_t *boot_info)
+void mem_init(struct boot_info *boot_info)
 {
     printk("mem_init: page management initializing...\n");
     page_init(boot_info);

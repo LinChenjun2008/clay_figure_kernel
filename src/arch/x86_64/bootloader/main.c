@@ -32,10 +32,10 @@ efi_main(efi_handle_t in_image_handle, efi_system_table_t *in_system_table)
     );
 
     // prepare boot info
-    boot_info_t *boot_info = (boot_info_t *)0x401000;
+    struct boot_info *boot_info = NULL;
 
     status = boot_services->allocate_pages(
-        EFI_ALLOCATE_ADDRESS,
+        EFI_ALLOCATE_ANY_PAGES,
         EFI_LOADER_DATA,
         (sizeof(*boot_info) + 0xfff) >> 12,
         (efi_physical_address_t *)&boot_info
@@ -76,7 +76,7 @@ efi_main(efi_handle_t in_image_handle, efi_system_table_t *in_system_table)
 
     set_video_mode();
 
-    graphic_info_t *graphic_info = &boot_info->graphic_info;
+    struct graphic_info *graphic_info = &boot_info->graphic_info;
     efi_graphcis_output_mode_information_t *mode_info = gop->mode->info;
 
     graphic_info->frame_buffer_base     = gop->mode->frame_buffer_base;
@@ -97,7 +97,7 @@ efi_main(efi_handle_t in_image_handle, efi_system_table_t *in_system_table)
         return EFI_ERR;
     }
 
-    SYSV_ABI int (*kernel_entry)(boot_info_t *, void *);
+    SYSV_ABI int (*kernel_entry)(struct boot_info *, void *);
     uintptr_t physical_base = 0x100000;
     uintptr_t relocate_base = KERNEL_TEXT_BASE;
     load_segment(

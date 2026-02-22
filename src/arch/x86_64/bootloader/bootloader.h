@@ -15,6 +15,7 @@
 #include <base.h>
 
 #include <asm/mem/page.h>
+
 #include <config.h>
 #include <elf.h>
 #include <ramfs.h>
@@ -23,7 +24,7 @@
 #define KERNEL_TEXT_BASE 0xffffffff80000000
 
 // acpi.c
-efi_status_t read_acpi_tables(boot_info_t *boot_info);
+efi_status_t read_acpi_tables(struct boot_info *boot_info);
 
 // elf.c
 #include <elf_util.h>
@@ -40,7 +41,7 @@ efi_status_t EFIAPI
 efi_main(efi_handle_t in_image_handle, efi_system_table_t *in_system_table);
 
 // memory.c
-efi_status_t get_memory_map(memory_map_t *mmap);
+efi_status_t get_memory_map(struct memory_map *mmap);
 efi_status_t create_page_table(void *pml4t);
 
 // string.c

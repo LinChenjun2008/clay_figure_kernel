@@ -8,7 +8,7 @@
 #include <drivers/acpi.h>
 
 acpi_description_header_t *
-xsdt_find_table(boot_info_t *boot_info, uint32_t signature)
+xsdt_find_table(struct boot_info *boot_info, uint32_t signature)
 {
     acpi_description_header_t *head;
 

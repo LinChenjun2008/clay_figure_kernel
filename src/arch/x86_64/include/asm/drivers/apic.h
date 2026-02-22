@@ -62,7 +62,7 @@ void     local_apic_init(void);
 uint64_t ioapic_rte_read(uint8_t ioapic_id, uint8_t index);
 void     ioapic_rte_write(uint8_t ioapic_id, uint8_t index, uint64_t value);
 int      ioapic_irq_enable(uint8_t irq, uint8_t vector, uint8_t destination);
-void     apic_init(boot_info_t *boot_info);
+void     apic_init(struct boot_info *boot_info);
 uint8_t  apic_cpu_count(void);
 uint8_t  apic_max_lapic_id(void);
 void     apic_send_eoi(void);

@@ -54,7 +54,7 @@ typedef struct
 
 void basic_put_char(textbox_t *textbox, int x, int y, uint8_t c);
 
-void init_print(graphic_info_t *graphic_info);
+void init_print(struct graphic_info *graphic_info);
 
 int  printk(const char *fmt, ...);
 void panic_spin(const char *function, int line, const char *message);

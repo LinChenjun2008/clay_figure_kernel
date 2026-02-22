@@ -7,7 +7,6 @@
 #define __BASE_H__
 
 #include "errno.h"
-
 #include <std/stddef.h>
 #include <std/stdint.h>
 
@@ -48,24 +47,24 @@
 typedef unsigned char char8_t;
 typedef unsigned short char16_t;
 
-typedef struct
+struct graphic_info
 {
     uintptr_t frame_buffer_base;
     uint32_t  horizontal_resolution;
     uint32_t  vertical_resolution;
     uint32_t  pixel_per_scanline;
-} graphic_info_t;
+};
 
-typedef struct
+struct memory_map
 {
     uint64_t map_size;
     void    *buffer;
     uint64_t map_key;
     uint64_t descriptor_size;
     uint32_t descriptor_version;
-} memory_map_t;
+};
 
-typedef struct
+struct boot_info
 {
     void  *initramfs;
     size_t initramfs_size;
@@ -76,21 +75,21 @@ typedef struct
     uintptr_t stack_base;
     size_t    stack_pages;
 
-    memory_map_t   memory_map;   // 内存描述符
-    graphic_info_t graphic_info; // 图形信息
+    struct memory_map   memory_map;   // 内存描述符
+    struct graphic_info graphic_info; // 图形信息
 
     uintptr_t **sdt_baseaddr_array;
     uint32_t    sdt_entries;
-} boot_info_t;
+};
 
 STATIC_ASSERT(
-    OFFSET(boot_info_t, page_table_pos) == 16,
-    "boot_info_t: offset of 'page_table_pos' not 16."
+    OFFSET(struct boot_info, page_table_pos) == 16,
+    "struct boot_info: offset of 'page_table_pos' not 16."
 );
 
 STATIC_ASSERT(
-    OFFSET(boot_info_t, relocate_base) == 24,
-    "boot_info_t: offset of 'relocate_base' not 24."
+    OFFSET(struct boot_info, relocate_base) == 24,
+    "struct boot_info: offset of 'relocate_base' not 24."
 );
 
 #endif /* __BASE_H__ */

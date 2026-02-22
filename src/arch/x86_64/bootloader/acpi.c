@@ -5,7 +5,7 @@
 
 #include "bootloader.h"
 
-efi_status_t read_acpi_tables(boot_info_t *boot_info)
+efi_status_t read_acpi_tables(struct boot_info *boot_info)
 {
     efi_status_t status = EFI_SUCCESS;
 

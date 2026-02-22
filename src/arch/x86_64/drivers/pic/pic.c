@@ -8,7 +8,7 @@
 #include <asm/drivers/apic.h>
 #include <asm/drivers/pic.h>
 
-void pic_init(boot_info_t *boot_info)
+void pic_init(struct boot_info *boot_info)
 {
     apic_init(boot_info);
     return;

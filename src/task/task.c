@@ -34,7 +34,7 @@ static void cpu_task_init(cpu_t *cpu, uint8_t id)
     return;
 }
 
-void task_init(boot_info_t *boot_info, int max_tasks)
+void task_init(struct boot_info *boot_info, int max_tasks)
 {
     task_struct_t **task_table = NULL;
     size_t task_table_size     = sizeof(task_man->task_table[0]) * max_tasks;

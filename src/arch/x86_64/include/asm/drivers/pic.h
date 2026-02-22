@@ -9,7 +9,7 @@
 #define IRQ_START 0x20
 #define IRQ_CNT   0xe0
 
-void pic_init(boot_info_t *boot_info);
+void pic_init(struct boot_info *boot_info);
 void send_eoi(void);
 
 #endif /* __ASM_DRIVER_PIC_H__ */

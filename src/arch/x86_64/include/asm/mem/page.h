@@ -58,7 +58,7 @@ typedef enum
     MAX_MM_TYPE,
 } mm_type_t;
 
-void      page_init(boot_info_t *boot_info);
+void      page_init(struct boot_info *boot_info);
 int       allocate_pages(size_t pages, void **addr);
 void      free_pages(void **addr, size_t pages);
 uint64_t *get_page_table(void);

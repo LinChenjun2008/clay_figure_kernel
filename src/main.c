@@ -7,7 +7,7 @@
 
 #include <init/init.h>
 
-int kernel_main(boot_info_t *boot_info)
+int kernel_main(struct boot_info *boot_info)
 {
     init_all(boot_info);
     while (1);
