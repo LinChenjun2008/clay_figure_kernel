@@ -20,14 +20,14 @@
 typedef int32_t pid_t;
 
 // 任务状态标志
-typedef enum
+enum task_status
 {
     TASK_READY = 1, // 任务就绪,随时进入运行状态
     TASK_RUNNING,   // 任务正在运行
     TASK_BLOCKED,   // 任务阻塞
     TASK_WAITING,   // 等待子任务结束
     TASK_DIED       // 任务结束
-} task_status_t;
+};
 
 struct task
 {
@@ -46,11 +46,11 @@ struct task
 
     int childs;
 
-    char                   name[32];      // 任务名
-    volatile task_status_t status;        // 任务状态
-    uint64_t               preempt_count; // 抢占计数
-    uint64_t              *page_dir;      // 任务页表地址(物理地址)
-    struct list_node       general_tag;   // 任务在任务列表中的节点
+    char                      name[32];      // 任务名
+    volatile enum task_status status;        // 任务状态
+    uint64_t                  preempt_count; // 抢占计数
+    uint64_t                 *page_dir;      // 任务页表地址(物理地址)
+    struct list_node          general_tag;   // 任务在任务列表中的节点
 
     uint64_t prio;      // 任务优先级
     uint64_t run_time;  // 任务运行时间(总计)

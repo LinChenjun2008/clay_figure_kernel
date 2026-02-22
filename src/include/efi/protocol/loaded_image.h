@@ -31,10 +31,10 @@ struct efi_loaded_image_protocol
     // location where image was loaded
     void                            *image_base;
 
-    uint64_t          image_size;
-    efi_memory_type_t image_code_type;
+    uint64_t             image_size;
+    enum efi_memory_type image_code_type;
 
-    efi_memory_type_t image_data_type;
+    enum efi_memory_type image_data_type;
 
     efi_image_unload_t unload;
 };

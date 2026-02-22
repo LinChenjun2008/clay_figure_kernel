@@ -108,7 +108,7 @@ void     cpu_task_list_insert(struct cpu *cpu, struct task *task);
 void     task_page_table_active(struct task *task);
 void     task_active(struct task *task);
 void     schedule(void);
-void     task_block(task_status_t status);
+void     task_block(enum task_status status);
 void     task_unblock(pid_t pid);
 void     task_yield(void);
 

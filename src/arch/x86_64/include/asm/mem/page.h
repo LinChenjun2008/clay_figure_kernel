@@ -50,13 +50,13 @@
 
 #    include <base.h>
 
-typedef enum
+enum mm_type
 {
     MM_TYPE_FREE = 1,
     MM_TYPE_RESERVED,
     MM_TYPE_UNUSEABLE,
     MAX_MM_TYPE,
-} mm_type_t;
+};
 
 void      page_init(struct boot_info *boot_info);
 int       allocate_pages(size_t pages, void **addr);

@@ -11,7 +11,7 @@
 struct spinlock
 {
     volatile uint64_t lock;
-    intr_status_t     intr_status;
+    enum intr_status  intr_status;
 };
 
 void init_spinlock(struct spinlock *lk);

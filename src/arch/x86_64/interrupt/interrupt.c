@@ -8,15 +8,15 @@
 #include <asm/interrupt.h>
 #include <asm/utils.h>
 
-intr_status_t intr_get_status(void)
+enum intr_status intr_get_status(void)
 {
     uint64_t flags = get_flags();
     return (flags & 0x00000200) ? INTR_ON : INTR_OFF;
 }
 
-intr_status_t intr_enable(void)
+enum intr_status intr_enable(void)
 {
-    intr_status_t intr_status;
+    enum intr_status intr_status;
     intr_status = intr_get_status();
     if (intr_status == INTR_OFF)
     {
@@ -25,9 +25,9 @@ intr_status_t intr_enable(void)
     return intr_status;
 }
 
-intr_status_t intr_disable(void)
+enum intr_status intr_disable(void)
 {
-    intr_status_t intr_status;
+    enum intr_status intr_status;
     intr_status = intr_get_status();
     if (intr_status == INTR_ON)
     {
@@ -36,7 +36,7 @@ intr_status_t intr_disable(void)
     return intr_status;
 }
 
-intr_status_t intr_set_status(intr_status_t status)
+enum intr_status intr_set_status(enum intr_status status)
 {
     return (status == INTR_ON ? intr_enable() : intr_disable());
 }

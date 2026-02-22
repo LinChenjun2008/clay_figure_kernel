@@ -12,17 +12,17 @@
 
 #    include <asm/ptrace.h>
 
-typedef enum
+enum intr_status
 {
     INTR_OFF = 0,
     INTR_ON,
     MAX_INTR_STATUS,
-} intr_status_t;
+};
 
-intr_status_t intr_get_status(void);
-intr_status_t intr_enable(void);
-intr_status_t intr_disable(void);
-intr_status_t intr_set_status(intr_status_t status);
+enum intr_status intr_get_status(void);
+enum intr_status intr_enable(void);
+enum intr_status intr_disable(void);
+enum intr_status intr_set_status(enum intr_status status);
 
 void intr_init(void);
 

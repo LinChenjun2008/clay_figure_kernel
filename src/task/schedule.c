@@ -292,10 +292,10 @@ void schedule(void)
     return;
 }
 
-void task_block(task_status_t status)
+void task_block(enum task_status status)
 {
-    intr_status_t intr_status = intr_disable();
-    struct task  *curr_task   = get_current_task();
+    enum intr_status intr_status = intr_disable();
+    struct task     *curr_task   = get_current_task();
     ASSERT(curr_task->preempt_count == 0);
     ASSERT(curr_task->status != TASK_READY);
     ASSERT(curr_task->status != TASK_RUNNING);
@@ -307,8 +307,8 @@ void task_block(task_status_t status)
 
 void task_unblock(pid_t pid)
 {
-    intr_status_t intr_status = intr_disable();
-    struct task  *task        = pid_to_task(pid);
+    enum intr_status intr_status = intr_disable();
+    struct task     *task        = pid_to_task(pid);
     ASSERT(task->status != TASK_READY);
     ASSERT(task->status != TASK_RUNNING);
     task->status = TASK_READY;
@@ -319,7 +319,7 @@ void task_unblock(pid_t pid)
 
 void task_yield(void)
 {
-    intr_status_t intr_status = intr_disable();
+    enum intr_status intr_status = intr_disable();
     schedule();
     intr_set_status(intr_status);
     return;

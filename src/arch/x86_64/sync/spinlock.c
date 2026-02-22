@@ -20,7 +20,7 @@ void init_spinlock(struct spinlock *lk)
 
 void spin_lock(struct spinlock *lk)
 {
-    intr_status_t intr_status = intr_disable();
+    enum intr_status intr_status = intr_disable();
     while (asm_atomic_xchg(&lk->lock, 0) == 0)
     {
         continue;
@@ -31,8 +31,8 @@ void spin_lock(struct spinlock *lk)
 
 void spin_unlock(struct spinlock *lk)
 {
-    intr_status_t intr_status = lk->intr_status;
-    lk->intr_status           = MAX_INTR_STATUS;
+    enum intr_status intr_status = lk->intr_status;
+    lk->intr_status              = MAX_INTR_STATUS;
 
     uint64_t lk_value;
     lk_value = asm_atomic_xchg(&lk->lock, 1);

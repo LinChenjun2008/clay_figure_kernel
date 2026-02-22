@@ -24,7 +24,7 @@ struct page_man
 
 static struct page_man page_man;
 
-static mm_type_t get_page_type(efi_memory_type_t efi_type)
+static enum mm_type get_page_type(enum efi_memory_type efi_type)
 {
     switch (efi_type)
     {
@@ -68,7 +68,8 @@ void page_init(struct boot_info *boot_info)
     uintptr_t curr_end   = 0;
     size_t    curr_size  = 0;
     uint64_t  curr_pages = 0;
-    mm_type_t curr_type  = MAX_MM_TYPE;
+
+    enum mm_type curr_type = MAX_MM_TYPE;
 
     int i;
     for (i = 0; i < desc_count; i++)

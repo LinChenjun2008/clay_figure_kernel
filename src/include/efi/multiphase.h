@@ -6,7 +6,7 @@
 #ifndef __EFI_MULTI_PHASE_H__
 #define __EFI_MULTI_PHASE_H__
 
-typedef enum
+enum efi_memory_type
 {
     EFI_RESERVED_TYPE,
     EFI_LOADER_CODE,
@@ -23,14 +23,14 @@ typedef enum
     EFI_MEMORY_MAPPED_IO_PORT_SPACE,
     EFI_PAL_CODE,
     EFI_MAX_MEMORY_TYPE
-} efi_memory_type_t;
+};
 
-typedef enum
+enum efi_reset_type
 {
     EFI_RESET_COLD,
     EFI_RESET_WARM,
     EFI_RESET_SHUTDOWM,
     EFI_RESET_PLATFORM_SPECIFIC
-} efi_reset_type_t;
+};
 
 #endif /* __EFI_MULTI_PHASE_H__ */

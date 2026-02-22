@@ -10,13 +10,13 @@
 #include <efi/protocol/simple_text_in.h>
 #include <efi/protocol/simple_text_out.h>
 
-typedef enum
+enum efi_allocate_type
 {
     EFI_ALLOCATE_ANY_PAGES,
     EFI_ALLOCATE_MAX_ADDRESS,
     EFI_ALLOCATE_ADDRESS,
     EFI_MAX_ALLOCATE_TYPE
-} efi_allocate_type_t;
+};
 
 struct efi_memory_descriptor
 {
@@ -28,8 +28,8 @@ struct efi_memory_descriptor
 } ALIGNED(16);
 
 typedef efi_status_t(EFIAPI *efi_allocate_pages_t)(
-    efi_allocate_type_t     type,
-    efi_memory_type_t       memory_type,
+    enum efi_allocate_type  type,
+    enum efi_memory_type    memory_type,
     efi_uint_t              pages,
     efi_physical_address_t *memory
 );
@@ -48,9 +48,9 @@ typedef efi_status_t(EFIAPI *efi_get_memory_map_t)(
 );
 
 typedef efi_status_t(EFIAPI *efi_allocate_pool_t)(
-    efi_memory_type_t pool_type,
-    efi_uint_t        size,
-    void            **buffer
+    enum efi_memory_type pool_type,
+    efi_uint_t           size,
+    void               **buffer
 );
 
 typedef efi_status_t(EFIAPI *efi_free_pool_t)(void *buffer);
@@ -97,19 +97,19 @@ typedef efi_status_t(EFIAPI *efi_close_protocol_t)(
     efi_handle_t     controller_handle
 );
 
-typedef enum
+enum efi_local_search_type
 {
     ALL_HANDLES,
     BY_REGISTER_NOTIFY,
     BY_PROTOCOL
-} efi_local_search_type_t;
+};
 
 typedef efi_status_t(EFIAPI *efi_locate_handle_buffer_t)(
-    efi_local_search_type_t search_type,
-    struct efi_guid        *protocol,
-    void                   *search_key,
-    efi_uint_t             *no_handles,
-    efi_handle_t          **buffer
+    enum efi_local_search_type search_type,
+    struct efi_guid           *protocol,
+    void                      *search_key,
+    efi_uint_t                *no_handles,
+    efi_handle_t             **buffer
 );
 
 typedef efi_status_t(EFIAPI *efi_locate_protocol_t)(
@@ -129,10 +129,10 @@ typedef void(EFIAPI
                  *efi_set_mem_t)(void *buffer, efi_uint_t size, uint8_t value);
 
 typedef void(EFIAPI *efi_reset_system_t)(
-    efi_reset_type_t reset_type,
-    efi_status_t     reset_status,
-    efi_uint_t       data_size,
-    void            *reset_data
+    enum efi_reset_type reset_type,
+    efi_status_t        reset_status,
+    efi_uint_t          data_size,
+    void               *reset_data
 );
 
 /// Uefi Runtime services
