@@ -10,13 +10,13 @@ efi_boot_services_t            *boot_services;
 efi_graphics_output_protocol_t *gop;
 efi_handle_t                    image_handle;
 
-efi_guid_t efi_graphics_output_protocol_guid =
+struct efi_guid efi_graphics_output_protocol_guid =
     EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
-efi_guid_t efi_loaded_image_protocol_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
-efi_guid_t efi_simple_file_system_protocol_guid =
+struct efi_guid efi_loaded_image_protocol_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+struct efi_guid efi_simple_file_system_protocol_guid =
     EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
-efi_guid_t efi_file_info_guid  = EFI_FILE_INFO_ID;
-efi_guid_t efi_acpi_table_guid = EFI_ACPI_TABLE_GUID;
+struct efi_guid efi_file_info_guid  = EFI_FILE_INFO_ID;
+struct efi_guid efi_acpi_table_guid = EFI_ACPI_TABLE_GUID;
 
 efi_status_t EFIAPI
 efi_main(efi_handle_t in_image_handle, efi_system_table_t *in_system_table)

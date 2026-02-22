@@ -39,7 +39,7 @@ typedef struct
     uintptr_t ustack_base;  // 用户栈基址(物理地址)(如果有)
     size_t    ustack_pages; // 用户栈所用的页数(如果有)
 
-    volatile struct cpu *volatile cpu; // 任务所在cpu的id
+    struct cpu *volatile cpu; // 任务所在cpu的id
 
     pid_t pid;  // 任务id
     pid_t ppid; // 父级任务id

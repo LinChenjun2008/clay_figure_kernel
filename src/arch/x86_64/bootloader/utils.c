@@ -432,7 +432,7 @@ char16_t *char_to_char16(char *ch, char16_t *in_ch16)
     return in_ch16;
 }
 
-int compare_guid(efi_guid_t *guid1, efi_guid_t *guid2)
+int compare_guid(struct efi_guid *guid1, struct efi_guid *guid2)
 {
     return (
         (guid1->data1 == guid2->data1) && (guid1->data2 == guid2->data2) &&

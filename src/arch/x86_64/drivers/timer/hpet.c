@@ -32,12 +32,12 @@ struct hpet_address
 
 struct acpi_hpet
 {
-    acpi_description_header_t header;
-    uint32_t                  id;
-    struct hpet_address       address;
-    uint8_t                   hpet_number;
-    uint16_t                  minimum_tick;
-    uint8_t                   page_protection;
+    struct acpi_description_header header;
+    uint32_t                       id;
+    struct hpet_address            address;
+    uint8_t                        hpet_number;
+    uint16_t                       minimum_tick;
+    uint8_t                        page_protection;
 };
 #pragma pack()
 

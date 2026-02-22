@@ -21,13 +21,13 @@ typedef unsigned char efi_boolen_t;
 typedef uint64_t      efi_uint_t;
 typedef int64_t       efi_int_t;
 
-typedef struct
+struct efi_guid
 {
     uint32_t data1;
     uint16_t data2;
     uint16_t data3;
     uint8_t  data4[8];
-} efi_guid_t;
+};
 
 typedef efi_uint_t efi_return_status_t;
 

@@ -63,6 +63,6 @@ struct efi_simple_text_output_protocol_s
     simple_text_output_mode_t *mode;
 };
 
-extern efi_guid_t efi_simple_text_out_protocol_guid;
+extern struct efi_guid efi_simple_text_out_protocol_guid;
 
 #endif /* __EFI_SIMPLE_TEXT_OUT_H__ */

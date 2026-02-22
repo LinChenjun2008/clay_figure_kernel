@@ -59,7 +59,7 @@ int       vsprintf(char16_t *buf, const char16_t *fmt, va_list ap);
 int       sprintf(char16_t *buf, const char16_t *fmt, ...);
 int       printf(const char16_t *fmt, ...);
 char16_t *char_to_char16(char *ch, char16_t *in_ch16);
-int       compare_guid(efi_guid_t *guid1, efi_guid_t *guid2);
+int       compare_guid(struct efi_guid *guid1, struct efi_guid *guid2);
 
 // video.c
 efi_status_t set_video_mode(void);

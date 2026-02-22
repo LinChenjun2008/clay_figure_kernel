@@ -11,7 +11,7 @@
       0x11d2,                          \
       { 0x8E, 0x3F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B } }
 
-extern efi_guid_t efi_loaded_image_protocol_guid;
+extern struct efi_guid efi_loaded_image_protocol_guid;
 
 #include <efi/protocol/device_path.h>
 #include <efi/spec.h> // IMAGE_UNLOAD

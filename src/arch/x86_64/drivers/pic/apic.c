@@ -21,9 +21,9 @@
 #pragma pack(1)
 struct madt
 {
-    acpi_description_header_t header;
-    uint32_t                  local_apic_address;
-    uint32_t                  flags;
+    struct acpi_description_header header;
+    uint32_t                       local_apic_address;
+    uint32_t                       flags;
 };
 
 struct madt_head

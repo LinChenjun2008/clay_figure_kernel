@@ -21,13 +21,13 @@
 #define ACPI_10_TABLE_GUID     ACPI_TABLE_GUID
 #define EFI_ACPI_20_TABLE_GUID EFI_ACPI_TABLE_GUID
 
-extern efi_guid_t efi_acpi_table_guid;
-extern efi_guid_t efi_acpi_10_table_guid;
-extern efi_guid_t efi_acpi_20_table_guid;
+extern struct efi_guid efi_acpi_table_guid;
+extern struct efi_guid efi_acpi_10_table_guid;
+extern struct efi_guid efi_acpi_20_table_guid;
 
 #pragma pack(1)
 
-typedef struct
+struct efi_acpi_description_header
 {
     uint32_t signature;
     uint32_t length;
@@ -38,21 +38,21 @@ typedef struct
     uint32_t oem_revision;
     uint32_t creator_id;
     uint32_t creator_revision;
-} efi_acpi_description_header_t;
+};
 
-typedef struct
+struct rsdt_table
 {
-    efi_acpi_description_header_t header;
-    uint32_t                      entry;
-} rsdt_table_t;
+    struct efi_acpi_description_header header;
+    uint32_t                           entry;
+};
 
-typedef struct
+struct xsdt_table
 {
-    efi_acpi_description_header_t header;
-    uint64_t                      entry;
-} xsdt_table_t;
+    struct efi_acpi_description_header header;
+    uint64_t                           entry;
+};
 
-typedef struct
+struct efi_acpi_6_4_root_system_description_pointer
 {
     uint64_t signature;
     uint8_t  checksum;
@@ -63,14 +63,14 @@ typedef struct
     uint64_t xsdt_address;
     uint8_t  extended_checksum;
     uint8_t  reserved[3];
-} efi_acpi_6_4_root_system_description_pointer_t;
+};
 
-typedef struct
+struct efi_acpi_data_table
 {
-    efi_acpi_description_header_t header;
-    efi_guid_t                    identifier;
-    uint16_t                      data_offset;
-} efi_acpi_data_table_t;
+    struct efi_acpi_description_header header;
+    struct efi_guid                    identifier;
+    uint16_t                           data_offset;
+};
 
 #pragma pack()
 

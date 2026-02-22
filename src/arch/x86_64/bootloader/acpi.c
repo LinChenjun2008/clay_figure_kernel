@@ -12,7 +12,7 @@ efi_status_t read_acpi_tables(struct boot_info *boot_info)
     // Read acpi table
     // find rsdp
     efi_configuration_table_t *config_table = system_table->configuration_table;
-    efi_acpi_6_4_root_system_description_pointer_t *rsdp;
+    struct efi_acpi_6_4_root_system_description_pointer *rsdp;
 
     uint32_t i;
     for (i = 0; i < system_table->number_of_table_entries; i++)
@@ -29,8 +29,8 @@ efi_status_t read_acpi_tables(struct boot_info *boot_info)
     }
 
     // read sdt
-    xsdt_table_t *xsdt    = (void *)rsdp->xsdt_address;
-    uint32_t  sdt_entries = (xsdt->header.length - sizeof(xsdt->header)) / 8;
+    struct xsdt_table *xsdt = (void *)rsdp->xsdt_address;
+    uint32_t  sdt_entries   = (xsdt->header.length - sizeof(xsdt->header)) / 8;
     uint64_t *point_to_othre_sdt = &xsdt->entry;
 
 
@@ -51,8 +51,8 @@ efi_status_t read_acpi_tables(struct boot_info *boot_info)
 
     for (i = 0; i < sdt_entries; i++)
     {
-        efi_acpi_description_header_t *h =
-            (efi_acpi_description_header_t *)point_to_othre_sdt[i];
+        struct efi_acpi_description_header *h;
+        h = (struct efi_acpi_description_header *)point_to_othre_sdt[i];
 
         status = boot_services->allocate_pool(
             EFI_LOADER_DATA,

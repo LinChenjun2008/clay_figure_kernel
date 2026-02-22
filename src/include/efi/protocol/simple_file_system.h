@@ -37,8 +37,8 @@ typedef struct efi_file_info
     char16_t file_name[1]; /* 文件名 */
 } efi_file_info_t;
 
-extern efi_guid_t efi_simple_file_system_protocol_guid;
-extern efi_guid_t efi_file_info_guid;
+extern struct efi_guid efi_simple_file_system_protocol_guid;
+extern struct efi_guid efi_file_info_guid;
 
 typedef struct efi_file_protocol_s efi_file_protocol_t;
 typedef struct efi_simple_file_system_protocol_s
@@ -72,9 +72,9 @@ typedef efi_status_t(EFIAPI *efi_file_write_t)(
 
 typedef efi_status_t(EFIAPI *efi_file_get_info_t)(
     efi_file_protocol_t *this,
-    efi_guid_t *information_type,
-    efi_uint_t *buffer_size,
-    void       *buffer
+    struct efi_guid *information_type,
+    efi_uint_t      *buffer_size,
+    void            *buffer
 );
 
 struct efi_file_protocol_s

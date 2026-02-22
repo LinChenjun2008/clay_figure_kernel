@@ -62,9 +62,9 @@ typedef efi_status_t(EFIAPI *efi_wait_for_event_t)(
 );
 
 typedef efi_status_t(EFIAPI *efi_handle_protocol_t)(
-    efi_handle_t handle,
-    efi_guid_t  *protocol,
-    void       **interface
+    efi_handle_t     handle,
+    struct efi_guid *protocol,
+    void           **interface
 );
 
 typedef efi_status_t(EFIAPI *efi_image_unload_t)(efi_handle_t image_handle);
@@ -82,19 +82,19 @@ typedef efi_status_t(EFIAPI *efi_set_watchdog_timer_t)(
 );
 
 typedef efi_status_t(EFIAPI *efi_open_protocol_t)(
-    efi_handle_t handle,
-    efi_guid_t  *protocol,
-    void       **interface,
-    efi_handle_t agent_handle,
-    efi_handle_t controller_handle,
-    uint32_t     attributes
+    efi_handle_t     handle,
+    struct efi_guid *protocol,
+    void           **interface,
+    efi_handle_t     agent_handle,
+    efi_handle_t     controller_handle,
+    uint32_t         attributes
 );
 
 typedef efi_status_t(EFIAPI *efi_close_protocol_t)(
-    efi_handle_t handle,
-    efi_guid_t  *protocol,
-    efi_handle_t agent_handle,
-    efi_handle_t controller_handle
+    efi_handle_t     handle,
+    struct efi_guid *protocol,
+    efi_handle_t     agent_handle,
+    efi_handle_t     controller_handle
 );
 
 typedef enum
@@ -106,16 +106,16 @@ typedef enum
 
 typedef efi_status_t(EFIAPI *efi_locate_handle_buffer_t)(
     efi_local_search_type_t search_type,
-    efi_guid_t             *protocol,
+    struct efi_guid        *protocol,
     void                   *search_key,
     efi_uint_t             *no_handles,
     efi_handle_t          **buffer
 );
 
 typedef efi_status_t(EFIAPI *efi_locate_protocol_t)(
-    efi_guid_t *protocol,
-    void       *registration,
-    void      **interface
+    struct efi_guid *protocol,
+    void            *registration,
+    void           **interface
 );
 
 
@@ -218,8 +218,8 @@ typedef struct
 
 typedef struct
 {
-    efi_guid_t vendor_guid;
-    void      *vendor_table;
+    struct efi_guid vendor_guid;
+    void           *vendor_table;
 } efi_configuration_table_t;
 
 typedef struct
