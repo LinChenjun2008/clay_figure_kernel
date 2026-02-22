@@ -36,8 +36,8 @@ static void cpu_task_init(struct cpu *cpu, uint8_t id)
 
 void task_init(struct boot_info *boot_info, int max_tasks)
 {
-    task_struct_t **task_table = NULL;
-    size_t task_table_size     = sizeof(task_man->task_table[0]) * max_tasks;
+    struct task **task_table      = NULL;
+    size_t        task_table_size = sizeof(task_man->task_table[0]) * max_tasks;
     kmalloc(task_table_size, 0, 0, (void **)&task_table);
     ASSERT(task_table != NULL);
 
@@ -71,7 +71,7 @@ void task_init(struct boot_info *boot_info, int max_tasks)
 
 void make_main_task(uintptr_t stack_base, size_t stack_pages)
 {
-    task_struct_t *task = allocate_task_struct();
+    struct task *task = allocate_task_struct();
     set_current_task(task);
     init_task_struct(task, "Main", DEFAULT_PRIO, stack_base, stack_pages, 0);
     task->cpu            = &task_man->cpus[get_current_cpu_id()];
@@ -80,13 +80,13 @@ void make_main_task(uintptr_t stack_base, size_t stack_pages)
     return;
 }
 
-void set_current_task(task_struct_t *task)
+void set_current_task(struct task *task)
 {
     arch_set_current_task(task);
     return;
 }
 
-task_struct_t *get_current_task(void)
+struct task *get_current_task(void)
 {
     return arch_get_current_task();
 }
@@ -96,7 +96,7 @@ uint8_t get_current_cpu_id()
     return arch_get_current_cpu_id();
 }
 
-task_struct_t *pid_to_task(pid_t pid)
+struct task *pid_to_task(pid_t pid)
 {
     if (pid > task_man->max_tasks)
     {
@@ -105,7 +105,7 @@ task_struct_t *pid_to_task(pid_t pid)
     return task_man->task_table[pid];
 }
 
-pid_t task_to_pid(task_struct_t *task)
+pid_t task_to_pid(struct task *task)
 {
     pid_t i;
     for (i = 0; i < task_man->max_tasks; i++)
@@ -133,7 +133,7 @@ static pid_t allocate_task_lock(void)
     return i;
 }
 
-task_struct_t *allocate_task_struct(void)
+struct task *allocate_task_struct(void)
 {
     pid_t pid;
 
@@ -144,7 +144,7 @@ task_struct_t *allocate_task_struct(void)
     return pid_to_task(pid);
 }
 
-void free_task_struuct(task_struct_t *task)
+void free_task_struuct(struct task *task)
 {
     spin_lock(&task_man->lock);
     kfree((void **)&task_man->task_table[task->pid]);
@@ -152,12 +152,12 @@ void free_task_struuct(task_struct_t *task)
 }
 
 void init_task_struct(
-    task_struct_t *task,
-    const char    *name,
-    uint64_t       prio,
-    uintptr_t      kstack_base,
-    size_t         kstack_pages,
-    size_t         ustack_pages
+    struct task *task,
+    const char  *name,
+    uint64_t     prio,
+    uintptr_t    kstack_base,
+    size_t       kstack_pages,
+    size_t       ustack_pages
 )
 {
     memset(task, 0, sizeof(*task));
@@ -189,7 +189,7 @@ void init_task_struct(
     return;
 }
 
-task_struct_t *task_start(
+struct task *task_start(
     const char *name,
     uint64_t    prio,
     size_t      kstack_pages,
@@ -201,7 +201,7 @@ task_struct_t *task_start(
     {
         return NULL;
     }
-    task_struct_t *task = allocate_task_struct();
+    struct task *task = allocate_task_struct();
     if (task == NULL)
     {
         return NULL;

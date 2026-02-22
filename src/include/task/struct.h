@@ -29,7 +29,7 @@ typedef enum
     TASK_DIED       // 任务结束
 } task_status_t;
 
-typedef struct
+struct task
 {
     struct task_context *context; // 任务上下文
 
@@ -59,15 +59,12 @@ typedef struct
     struct mm mm_alloc; // 任务可分配的虚拟地址表
     struct mm mm_using; // 任务使用中的虚拟地址表
     struct mm mm_pages; // 任务正在使用的物理页表
-} task_struct_t;
+};
+
+STATIC_ASSERT(OFFSET(struct task, kstack_base) == TASK_STRUCT_KSTACK_BASE, "");
 
 STATIC_ASSERT(
-    OFFSET(task_struct_t, kstack_base) == TASK_STRUCT_KSTACK_BASE,
-    ""
-);
-
-STATIC_ASSERT(
-    OFFSET(task_struct_t, kstack_pages) == TASK_STRUCT_KSTACK_PAGES,
+    OFFSET(struct task, kstack_pages) == TASK_STRUCT_KSTACK_PAGES,
     ""
 );
 

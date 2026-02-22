@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct
+struct symbol_entry
 {
     unsigned long long int address;
     char                   type;
     char                  *symbol;
-} symbol_entry_t;
+};
 
-static void read_symbol(FILE *fp, symbol_entry_t *sym_entry)
+static void read_symbol(FILE *fp, struct symbol_entry *sym_entry)
 {
     char string[100];
 
@@ -18,10 +18,10 @@ static void read_symbol(FILE *fp, symbol_entry_t *sym_entry)
     sym_entry->symbol = strdup(string);
 }
 
-void read_map(FILE *fp, int *count, symbol_entry_t **ptable)
+void read_map(FILE *fp, int *count, struct symbol_entry **ptable)
 {
-    int             size  = 0;
-    symbol_entry_t *table = *ptable;
+    int                  size  = 0;
+    struct symbol_entry *table = *ptable;
     while (!feof(fp))
     {
         if (*count >= size)
@@ -34,7 +34,7 @@ void read_map(FILE *fp, int *count, symbol_entry_t **ptable)
     }
 }
 
-void write_src(symbol_entry_t *table, int *count)
+void write_src(struct symbol_entry *table, int *count)
 {
     printf("void *kallsyms_address[] =\n{");
     int i;
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 {
     int count = 0;
 
-    symbol_entry_t *table = NULL;
+    struct symbol_entry *table = NULL;
 
     read_map(stdin, &count, &table);
 

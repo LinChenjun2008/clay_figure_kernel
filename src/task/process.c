@@ -18,7 +18,7 @@ static void kernel_process(void *func)
 {
     intr_disable();
 
-    task_struct_t *curr_task = get_current_task();
+    struct task *curr_task = get_current_task();
 
     size_t ustack_size = curr_task->ustack_pages * PG_SIZE;
     allocate_pages(curr_task->ustack_pages, (void **)&curr_task->ustack_base);
@@ -47,7 +47,7 @@ static uint64_t *create_page_table(void)
     return VIRT_TO_PHYS(page_table);
 }
 
-static void user_vaddr_table_init(task_struct_t *task)
+static void user_vaddr_table_init(struct task *task)
 {
     size_t   block_size   = sizeof(*task->mm_alloc.blocks);
     uint64_t total_blocks = 256;
@@ -70,7 +70,7 @@ static void user_vaddr_table_init(task_struct_t *task)
     return;
 }
 
-task_struct_t *process_execute(
+struct task *process_execute(
     const char *name,
     uint64_t    prio,
     size_t      kstack_pages,
@@ -78,8 +78,8 @@ task_struct_t *process_execute(
     void       *proc
 )
 {
-    task_struct_t *task = allocate_task_struct();
-    uintptr_t      kstack_base;
+    struct task *task = allocate_task_struct();
+    uintptr_t    kstack_base;
     allocate_pages(kstack_pages, (void **)&kstack_base);
     init_task_struct(task, name, prio, kstack_base, kstack_pages, ustack_pages);
     create_task_context(task, kernel_process, proc);

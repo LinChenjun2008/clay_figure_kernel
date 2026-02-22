@@ -31,7 +31,7 @@ static void update_min_vrun_time(struct cpu *cpu, uint64_t vrun_time)
     return;
 }
 
-static void update_vrun_time(task_struct_t *task)
+static void update_vrun_time(struct task *task)
 {
     uint64_t nice0_weight = task_prio_to_weight[DEFAULT_PRIO];
     uint64_t cur_weight   = task_prio_to_weight[task->prio];
@@ -61,23 +61,23 @@ uint64_t get_min_vrun_time(struct cpu *cpu)
 void task_update(void)
 {
     ASSERT(intr_get_status() == INTR_OFF);
-    task_struct_t *curr_task = get_current_task();
+    struct task *curr_task = get_current_task();
     curr_task->run_time++;
     update_vrun_time(curr_task);
     return;
 }
 
-static task_struct_t *cpu_get_next_task_lock(struct cpu *cpu)
+static struct task *cpu_get_next_task_lock(struct cpu *cpu)
 {
     struct list_node *node = NULL;
-    task_struct_t    *next = NULL;
+    struct task      *next = NULL;
 
     ASSERT(!list_empty(&cpu->task_queue));
     ASSERT(cpu->running_tasks == list_len(&cpu->task_queue));
 
     node = list_pop(&cpu->task_queue);
     ASSERT(node != NULL);
-    next = CONTAINER_OF(task_struct_t, general_tag, node);
+    next = CONTAINER_OF(struct task, general_tag, node);
     ASSERT(next != NULL);
 
     cpu->running_tasks--;
@@ -86,9 +86,9 @@ static task_struct_t *cpu_get_next_task_lock(struct cpu *cpu)
     return next;
 }
 
-static task_struct_t *cpu_get_next_task(struct cpu *cpu)
+static struct task *cpu_get_next_task(struct cpu *cpu)
 {
-    task_struct_t *ret = NULL;
+    struct task *ret = NULL;
 
     spin_lock(&cpu->lock);
     ret = cpu_get_next_task_lock(cpu);
@@ -96,14 +96,14 @@ static task_struct_t *cpu_get_next_task(struct cpu *cpu)
     return ret;
 }
 
-static void cpu_task_list_insert_lock(struct cpu *cpu, task_struct_t *task)
+static void cpu_task_list_insert_lock(struct cpu *cpu, struct task *task)
 {
     struct list      *list = &cpu->task_queue;
     struct list_node *node = list_next(list_head(list));
-    task_struct_t    *tmp;
+    struct task      *tmp;
     while (node != &list->tail)
     {
-        tmp = CONTAINER_OF(task_struct_t, general_tag, node);
+        tmp = CONTAINER_OF(struct task, general_tag, node);
         if ((int64_t)(task->vrun_time - tmp->vrun_time) < 0)
         {
             break;
@@ -120,7 +120,7 @@ static void cpu_task_list_insert_lock(struct cpu *cpu, task_struct_t *task)
     return;
 }
 
-void cpu_task_list_insert(struct cpu *cpu, task_struct_t *task)
+void cpu_task_list_insert(struct cpu *cpu, struct task *task)
 {
     spin_lock(&cpu->lock);
     cpu_task_list_insert_lock(cpu, task);
@@ -128,7 +128,7 @@ void cpu_task_list_insert(struct cpu *cpu, task_struct_t *task)
     return;
 }
 
-static void adjust_vrun_time(struct cpu *cpu, task_struct_t *task)
+static void adjust_vrun_time(struct cpu *cpu, struct task *task)
 {
     int64_t balance = task->vrun_time - get_min_vrun_time(task->cpu);
     task->vrun_time = cpu->min_vrun_time + balance;
@@ -161,7 +161,7 @@ static void cpu_unlock_double(struct cpu *cpu1, struct cpu *cpu2)
 
 static void do_task_balance_lock(struct cpu *busy, struct cpu *idle)
 {
-    task_struct_t *task = cpu_get_next_task_lock(busy);
+    struct task *task = cpu_get_next_task_lock(busy);
     ASSERT(task != NULL);
     if (task == busy->main_task)
     {
@@ -240,7 +240,7 @@ void task_balance(void)
     return;
 }
 
-void task_page_table_active(task_struct_t *task)
+void task_page_table_active(struct task *task)
 {
     uint64_t *page_table = task->cpu->task_man->kernel_page_table_pos;
     if (task->page_dir != NULL)
@@ -251,7 +251,7 @@ void task_page_table_active(task_struct_t *task)
     return;
 }
 
-void task_active(task_struct_t *task)
+void task_active(struct task *task)
 {
     task->cpu = get_current_task()->cpu;
     task_page_table_active(task);
@@ -261,7 +261,7 @@ void task_active(task_struct_t *task)
     return;
 }
 
-static void switch_to(task_struct_t *curr, task_struct_t *next)
+static void switch_to(struct task *curr, struct task *next)
 {
     set_current_task(next);
     arch_switch_to(&curr->context, &next->context);
@@ -271,8 +271,8 @@ static void switch_to(task_struct_t *curr, task_struct_t *next)
 void schedule(void)
 {
     ASSERT(intr_get_status() == INTR_OFF);
-    task_struct_t *curr_task = get_current_task();
-    struct cpu    *curr_cpu  = curr_task->cpu;
+    struct task *curr_task = get_current_task();
+    struct cpu  *curr_cpu  = curr_task->cpu;
 
     if (curr_task->preempt_count > 0)
     {
@@ -284,7 +284,7 @@ void schedule(void)
         cpu_task_list_insert(curr_cpu, curr_task);
     }
 
-    task_struct_t *next_task = cpu_get_next_task(curr_cpu);
+    struct task *next_task = cpu_get_next_task(curr_cpu);
     ASSERT(next_task != NULL);
 
     task_active(next_task);
@@ -294,8 +294,8 @@ void schedule(void)
 
 void task_block(task_status_t status)
 {
-    intr_status_t  intr_status = intr_disable();
-    task_struct_t *curr_task   = get_current_task();
+    intr_status_t intr_status = intr_disable();
+    struct task  *curr_task   = get_current_task();
     ASSERT(curr_task->preempt_count == 0);
     ASSERT(curr_task->status != TASK_READY);
     ASSERT(curr_task->status != TASK_RUNNING);
@@ -307,8 +307,8 @@ void task_block(task_status_t status)
 
 void task_unblock(pid_t pid)
 {
-    intr_status_t  intr_status = intr_disable();
-    task_struct_t *task        = pid_to_task(pid);
+    intr_status_t intr_status = intr_disable();
+    struct task  *task        = pid_to_task(pid);
     ASSERT(task->status != TASK_READY);
     ASSERT(task->status != TASK_RUNNING);
     task->status = TASK_READY;

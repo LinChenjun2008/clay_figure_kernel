@@ -13,29 +13,29 @@
 #include <print.h>
 #include <std/string.h>
 
-typedef struct
+struct mem_group
 {
     size_t          block_size;
     uint32_t        total_free;
     struct list     free_block_list;
     struct spinlock lock;
-} mem_group_t;
+};
 
-typedef struct
+struct mem_cache
 {
-    mem_group_t *group;
-    uint64_t     number_of_blocks;
-    size_t       cnt;
-} mem_cache_t;
+    struct mem_group *group;
+    uint64_t          number_of_blocks;
+    size_t            cnt;
+};
 
-typedef struct
+struct mem_block
 {
     uint64_t         magic; // magic = block_index + cache.number_of_blocks
     struct list_node node;
-} mem_block_t;
+};
 
-STATIC_ASSERT(sizeof(mem_cache_t) <= MIN_ALLOCATE_MEMORY_SIZE, "");
-STATIC_ASSERT(sizeof(mem_block_t) <= MIN_ALLOCATE_MEMORY_SIZE, "");
+STATIC_ASSERT(sizeof(struct mem_cache) <= MIN_ALLOCATE_MEMORY_SIZE, "");
+STATIC_ASSERT(sizeof(struct mem_block) <= MIN_ALLOCATE_MEMORY_SIZE, "");
 
 STATIC_ASSERT(
     MIN_ALLOCATE_MEMORY_SIZE << (NUMBER_OF_MEMORY_BLOCK_TYPES - 1) ==
@@ -44,7 +44,7 @@ STATIC_ASSERT(
 );
 STATIC_ASSERT(MAX_ALLOCATE_MEMORY_SIZE < PG_SIZE, "");
 
-static mem_group_t mem_groups[NUMBER_OF_MEMORY_BLOCK_TYPES];
+static struct mem_group mem_groups[NUMBER_OF_MEMORY_BLOCK_TYPES];
 
 void mem_allocator_init(void)
 {
@@ -62,18 +62,18 @@ void mem_allocator_init(void)
 }
 
 
-static mem_block_t *cache2block(mem_cache_t *c, size_t idx)
+static struct mem_block *cache2block(struct mem_cache *c, size_t idx)
 {
     uintptr_t addr = (uintptr_t)c + c->group->block_size;
-    return ((mem_block_t *)(addr + (idx * (c->group->block_size))));
+    return ((struct mem_block *)(addr + (idx * (c->group->block_size))));
 }
 
-static mem_cache_t *block2cache(mem_block_t *b)
+static struct mem_cache *block2cache(struct mem_block *b)
 {
-    return ((mem_cache_t *)((uintptr_t)b & ~((uintptr_t)PG_SIZE - 1)));
+    return ((struct mem_cache *)((uintptr_t)b & ~((uintptr_t)PG_SIZE - 1)));
 }
 
-static size_t block_index(mem_cache_t *c, mem_block_t *b)
+static size_t block_index(struct mem_cache *c, struct mem_block *b)
 {
     uintptr_t addr = (uintptr_t)b;
     addr -= (uintptr_t)c + c->group->block_size;
@@ -81,8 +81,8 @@ static size_t block_index(mem_cache_t *c, mem_block_t *b)
     return idx;
 }
 
-static mem_block_t *
-find_block(mem_group_t *g, size_t alignment, size_t boundary)
+static struct mem_block *
+find_block(struct mem_group *g, size_t alignment, size_t boundary)
 {
     struct list *list = &g->free_block_list;
     size_t       size = g->block_size;
@@ -90,19 +90,19 @@ find_block(mem_group_t *g, size_t alignment, size_t boundary)
     struct list_node *node = list_next(list_head(list));
     ASSERT(list_prev(list_next(node)) == node);
 
-    mem_block_t *b   = NULL;
-    mem_cache_t *c   = NULL;
-    size_t       idx = 0;
+    struct mem_block *b   = NULL;
+    struct mem_cache *c   = NULL;
+    size_t            idx = 0;
 
     if (alignment <= size && boundary == 0)
     {
-        b = CONTAINER_OF(mem_block_t, node, node);
+        b = CONTAINER_OF(struct mem_block, node, node);
         list_remove(node);
         return b;
     }
     for (; node != list_tail(list); node = list_next(node))
     {
-        b   = CONTAINER_OF(mem_block_t, node, node);
+        b   = CONTAINER_OF(struct mem_block, node, node);
         c   = block2cache(b);
         idx = block_index(c, b);
         // Check magic
@@ -133,7 +133,7 @@ find_block(mem_group_t *g, size_t alignment, size_t boundary)
     return NULL;
 }
 
-static mem_group_t *size_to_group(size_t size)
+static struct mem_group *size_to_group(size_t size)
 {
     int i;
     for (i = 0; i < NUMBER_OF_MEMORY_BLOCK_TYPES; i++)
@@ -146,13 +146,17 @@ static mem_group_t *size_to_group(size_t size)
     return NULL;
 }
 
-static int
-kmalloc_lock(mem_group_t *g, size_t alignment, size_t boundary, void **addr)
+static int kmalloc_lock(
+    struct mem_group *g,
+    size_t            alignment,
+    size_t            boundary,
+    void            **addr
+)
 {
     int ret = 0;
 
-    mem_cache_t *c = NULL;
-    mem_block_t *b = NULL;
+    struct mem_cache *c = NULL;
+    struct mem_block *b = NULL;
 
     if (list_empty(&g->free_block_list))
     {
@@ -205,8 +209,8 @@ int kmalloc(size_t size, size_t alignment, size_t boundary, void **addr)
         return -2;
     }
 
-    mem_cache_t *c = NULL;
-    mem_group_t *g = NULL;
+    struct mem_cache *c = NULL;
+    struct mem_group *g = NULL;
 
     // 超过最大分配内存大小，按页为单位分配
     if (size > MAX_ALLOCATE_MEMORY_SIZE)
@@ -252,11 +256,11 @@ void kfree(void **addr)
         printk(MSG_WARN "kfree: free nullptr.\n");
         return;
     }
-    mem_cache_t *c = NULL;
-    mem_block_t *b = NULL;
-    mem_group_t *g = NULL;
+    struct mem_cache *c = NULL;
+    struct mem_block *b = NULL;
+    struct mem_group *g = NULL;
 
-    b = (mem_block_t *)*addr;
+    b = (struct mem_block *)*addr;
     c = block2cache(b);
     g = c->group;
 

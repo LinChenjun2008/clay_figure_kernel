@@ -36,6 +36,6 @@ struct tss64
 #pragma pack()
 
 void tss_init(void);
-void update_tss_rsp0(task_struct_t *task);
+void update_tss_rsp0(struct task *task);
 
 #endif /* __ASM_TSS_H__ */

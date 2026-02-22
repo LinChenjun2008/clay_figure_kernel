@@ -39,7 +39,7 @@ static void load_tss(uint8_t cpu_id)
     return;
 }
 
-void update_tss_rsp0(task_struct_t *task)
+void update_tss_rsp0(struct task *task)
 {
     uint64_t kstack_base = task->kstack_base + task->kstack_pages * PG_SIZE;
     tss_table[task->cpu->id].rsp0 = kstack_base;

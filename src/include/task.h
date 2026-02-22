@@ -39,7 +39,7 @@
 struct task_man
 {
     struct spinlock lock;
-    task_struct_t **task_table;
+    struct task   **task_table;
     int             max_tasks;
     struct cpu     *cpus;
     int             max_cpus;
@@ -55,35 +55,35 @@ struct cpu
     struct list     task_queue;
     int             running_tasks;
 
-    uint64_t       min_vrun_time;
-    uint64_t       total_weight;
-    task_struct_t *main_task;
+    uint64_t     min_vrun_time;
+    uint64_t     total_weight;
+    struct task *main_task;
 };
 
 // task.c
 void task_init(struct boot_info *boot_info, int max_tasks);
 void make_main_task(uintptr_t stack_base, size_t stack_pages);
 
-void           set_current_task(task_struct_t *task);
-task_struct_t *get_current_task(void);
-uint8_t        get_current_cpu_id(void);
+void         set_current_task(struct task *task);
+struct task *get_current_task(void);
+uint8_t      get_current_cpu_id(void);
 
-task_struct_t *pid_to_task(pid_t pid);
-pid_t          task_to_pid(task_struct_t *task);
+struct task *pid_to_task(pid_t pid);
+pid_t        task_to_pid(struct task *task);
 
-task_struct_t *allocate_task_struct(void);
-void           free_task_struuct(task_struct_t *task);
+struct task *allocate_task_struct(void);
+void         free_task_struuct(struct task *task);
 
 void init_task_struct(
-    task_struct_t *task,
-    const char    *name,
-    uint64_t       prio,
-    uintptr_t      kstack_base,
-    size_t         kstack_pages,
-    size_t         ustack_pages
+    struct task *task,
+    const char  *name,
+    uint64_t     prio,
+    uintptr_t    kstack_base,
+    size_t       kstack_pages,
+    size_t       ustack_pages
 );
 
-task_struct_t *task_start(
+struct task *task_start(
     const char *name,
     uint64_t    prio,
     size_t      kstack_pages,
@@ -92,7 +92,7 @@ task_struct_t *task_start(
 );
 
 // process.c
-task_struct_t *process_execute(
+struct task *process_execute(
     const char *name,
     uint64_t    prio,
     size_t      kstack_pages,
@@ -104,9 +104,9 @@ task_struct_t *process_execute(
 uint64_t get_min_vrun_time(struct cpu *cpu);
 void     task_update(void);
 void     task_balance(void);
-void     cpu_task_list_insert(struct cpu *cpu, task_struct_t *task);
-void     task_page_table_active(task_struct_t *task);
-void     task_active(task_struct_t *task);
+void     cpu_task_list_insert(struct cpu *cpu, struct task *task);
+void     task_page_table_active(struct task *task);
+void     task_active(struct task *task);
 void     schedule(void);
 void     task_block(task_status_t status);
 void     task_unblock(pid_t pid);

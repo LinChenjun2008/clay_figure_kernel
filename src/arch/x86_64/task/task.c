@@ -23,7 +23,7 @@ static void kernel_task(uintptr_t func, uint64_t arg)
     return;
 }
 
-void create_task_context(task_struct_t *task, void *func, void *arg)
+void create_task_context(struct task *task, void *func, void *arg)
 {
     ASSERT(task->context != NULL);
     uintptr_t kstack = (uintptr_t)task->context;
@@ -37,15 +37,15 @@ void create_task_context(task_struct_t *task, void *func, void *arg)
     return;
 }
 
-void arch_set_current_task(task_struct_t *task)
+void arch_set_current_task(struct task *task)
 {
     wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)task);
     return;
 }
 
-task_struct_t *arch_get_current_task(void)
+struct task *arch_get_current_task(void)
 {
-    return (task_struct_t *)rdmsr(IA32_KERNEL_GS_BASE);
+    return (struct task *)rdmsr(IA32_KERNEL_GS_BASE);
 }
 
 uint8_t arch_get_current_cpu_id()
@@ -62,7 +62,7 @@ void arch_switch_to(struct task_context **curr, struct task_context **next)
     return;
 }
 
-void arch_task_active(task_struct_t *task)
+void arch_task_active(struct task *task)
 {
     if (task->page_dir != NULL)
     {
