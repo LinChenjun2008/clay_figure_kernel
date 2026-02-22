@@ -9,11 +9,11 @@
 #include <asm/desc/gdt.h>
 #include <asm/utils.h>
 
-segmdesc_t gdt_table[8192];
+struct segmdesc gdt_table[8192];
 
-segmdesc_t make_segmdesc(uint32_t base, uint32_t limit, uint16_t access)
+struct segmdesc make_segmdesc(uint32_t base, uint32_t limit, uint16_t access)
 {
-    segmdesc_t desc;
+    struct segmdesc desc;
     desc.limit_low    = (limit & 0x0000ffff);
     desc.base_low     = (base & 0x0000ffff);
     desc.base_mid     = ((base & 0x00ff0000) >> 16);

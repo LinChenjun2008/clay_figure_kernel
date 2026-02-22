@@ -9,7 +9,7 @@
 #include <task.h>
 
 #pragma pack(1)
-typedef struct
+struct tss64
 {
     uint32_t reserved1;
 
@@ -32,7 +32,7 @@ typedef struct
     uint32_t reserved5;
 
     uint32_t io_map;
-} tss64_t;
+};
 #pragma pack()
 
 void tss_init(void);

@@ -11,14 +11,14 @@
 
 #include <print.h>
 
-void init_spinlock(spinlock_t *lk)
+void init_spinlock(struct spinlock *lk)
 {
     asm_atomic_xchg(&lk->lock, 1);
     lk->intr_status = MAX_INTR_STATUS;
     return;
 }
 
-void spin_lock(spinlock_t *lk)
+void spin_lock(struct spinlock *lk)
 {
     intr_status_t intr_status = intr_disable();
     while (asm_atomic_xchg(&lk->lock, 0) == 0)
@@ -29,7 +29,7 @@ void spin_lock(spinlock_t *lk)
     return;
 }
 
-void spin_unlock(spinlock_t *lk)
+void spin_unlock(struct spinlock *lk)
 {
     intr_status_t intr_status = lk->intr_status;
     lk->intr_status           = MAX_INTR_STATUS;

@@ -8,14 +8,14 @@
 
 #include <asm/interrupt.h>
 
-typedef struct
+struct spinlock
 {
     volatile uint64_t lock;
     intr_status_t     intr_status;
-} spinlock_t;
+};
 
-void init_spinlock(spinlock_t *lk);
-void spin_lock(spinlock_t *lk);
-void spin_unlock(spinlock_t *lk);
+void init_spinlock(struct spinlock *lk);
+void spin_lock(struct spinlock *lk);
+void spin_unlock(struct spinlock *lk);
 
 #endif /* __ASM_SYNC_SPINLOCK_H__ */

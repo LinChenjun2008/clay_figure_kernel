@@ -16,7 +16,7 @@
 
 extern SYSV_ABI void asm_syscall_entry(void);
 
-typedef int (*syscall_t)(pt_regs_t *);
+typedef int (*syscall_t)(struct pt_regs *);
 extern syscall_t syscall_table[NR_CONT];
 
 void arch_syscall_init(void)
@@ -38,8 +38,8 @@ void arch_syscall_init(void)
     return;
 }
 
-void syscall_entry(pt_regs_t *regs);
-void syscall_entry(pt_regs_t *regs)
+void syscall_entry(struct pt_regs *regs);
+void syscall_entry(struct pt_regs *regs)
 {
     uint64_t func = regs->rdi;
     if (func >= NR_CONT)

@@ -41,9 +41,9 @@ static const char *intr_name[20] = {
     "SIMD floating-point exception",
 };
 
-void (*irq_handler[INTR_CNT])(pt_regs_t *);
+void (*irq_handler[INTR_CNT])(struct pt_regs *);
 
-static void print_registers(pt_regs_t *regs)
+static void print_registers(struct pt_regs *regs)
 {
     uint64_t ds = regs->ds;
     uint64_t es = regs->es;
@@ -113,7 +113,7 @@ static void print_registers(pt_regs_t *regs)
     return;
 }
 
-void general_handler(pt_regs_t *regs)
+void general_handler(struct pt_regs *regs)
 {
     uint64_t nsecond = get_nano_time();
     uint64_t second  = nsecond / 1000000000;
@@ -140,15 +140,15 @@ void general_handler(pt_regs_t *regs)
     return;
 }
 
-SYSV_ABI void interrupt_handler(pt_regs_t *regs)
+SYSV_ABI void interrupt_handler(struct pt_regs *regs)
 {
-    int int_vector               = regs->int_vector;
-    void (*handler)(pt_regs_t *) = irq_handler[int_vector];
+    int int_vector                    = regs->int_vector;
+    void (*handler)(struct pt_regs *) = irq_handler[int_vector];
     handler != NULL ? handler(regs) : general_handler(regs);
     return;
 }
 
-static void debug_print(pt_regs_t *regs)
+static void debug_print(struct pt_regs *regs)
 {
     print_registers(regs);
     while (1);

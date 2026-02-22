@@ -16,10 +16,10 @@ typedef struct mm_block_s
 
 typedef struct mm_struct_s
 {
-    spinlock_t  lock;
-    mm_block_t *blocks;
-    int         count;
-    int         total_blocks;
+    struct spinlock lock;
+    mm_block_t     *blocks;
+    int             count;
+    int             total_blocks;
 } mm_struct_t;
 
 void      init_mm_struct(mm_struct_t *mm, mm_block_t *blocks, int total_blocks);

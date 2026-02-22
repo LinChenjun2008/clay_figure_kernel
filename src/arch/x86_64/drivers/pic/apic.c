@@ -19,84 +19,84 @@
 #define MAX_IOAPIC 256
 
 #pragma pack(1)
-typedef struct
+struct madt
 {
     acpi_description_header_t header;
     uint32_t                  local_apic_address;
     uint32_t                  flags;
-} madt_t;
+};
 
-typedef struct
+struct madt_head
 {
     uint8_t type;
     uint8_t record_length;
-} madt_head_t;
+};
 
 // Entry type 0: Processor local APIC
-typedef struct
+struct madt_lapic
 {
-    madt_head_t head;
-    uint8_t     processor_id;
-    uint8_t     apic_id;
-    uint32_t    flags;
-} madt_lapic_t;
+    struct madt_head head;
+    uint8_t          processor_id;
+    uint8_t          apic_id;
+    uint32_t         flags;
+};
 
 // Entry type 1: I/O APIC
-typedef struct
+struct madt_ioapic
 {
-    madt_head_t head;
-    uint8_t     ioapic_id;
-    uint8_t     reserved;
-    uint32_t    address;
-    uint32_t    gsi_base;
-} madt_ioapic_t;
+    struct madt_head head;
+    uint8_t          ioapic_id;
+    uint8_t          reserved;
+    uint32_t         address;
+    uint32_t         gsi_base;
+};
 
 // Entry type 2: I/O APIC interrupt source override
-typedef struct
+struct madt_ioapic_irq_override
 {
-    madt_head_t head;
-    uint8_t     bus;
-    uint8_t     irq;
-    uint32_t    gsi;
-    uint16_t    flags;
-} madt_ioapic_irq_override_t;
+    struct madt_head head;
+    uint8_t          bus;
+    uint8_t          irq;
+    uint32_t         gsi;
+    uint16_t         flags;
+};
 
 // Entry type 3: I/O APIC Non-maskable interrupt source
-typedef struct
+struct madt_ioapic_non_maskable_irq_src
 {
-    madt_head_t head;
-    uint8_t     nmi_source;
-    uint8_t     reserved;
-    uint16_t    flags;
-    uint32_t    gsi;
-} madt_ioapic_non_maskable_irq_src_t;
+    struct madt_head head;
+    uint8_t          nmi_source;
+    uint8_t          reserved;
+    uint16_t         flags;
+    uint32_t         gsi;
+};
 
 // Entry type 4: Local APIC Non-maskable interrupts
-typedef struct
+struct madt_lapic_non_maskable_irq_src
 {
-    madt_head_t head;
-    uint8_t     processor_id;
-    uint16_t    flags;
-    uint8_t     lint;
-} madt_lapic_non_maskable_irq_src_t;
+    struct madt_head head;
+    uint8_t          processor_id;
+    uint16_t         flags;
+    uint8_t          lint;
+};
 
 // Entry type 5: Local APIC address override
-typedef struct
+struct madt_lapic_irq_override
 {
-    madt_head_t head;
-    uint16_t    reserved;
-    uint64_t    address;
-} madt_lapic_irq_override_t;
+    struct madt_head head;
+    uint16_t         reserved;
+    uint64_t         address;
+};
 
 // Entry type 9: Processor local x2APIC
-typedef struct
+struct madt_x2apic
 {
-    madt_head_t head;
-    uint16_t    reserved;
-    uint32_t    x2apic_id;
-    uint32_t    flags;
-    uint32_t    acpi_id;
-} madt_x2apic_t;
+    struct madt_head head;
+    uint16_t         reserved;
+    uint32_t         x2apic_id;
+    uint32_t         flags;
+    uint32_t         acpi_id;
+};
 #pragma pack()
 
 // Flags fields for type 2,3 and 4:
@@ -117,12 +117,12 @@ typedef struct
 // |      4 |     12 | Reserved.                             |
 // |--------|--------|---------------------------------------|
 
-typedef struct
+struct lapic
 {
     uint8_t processor_id;
-} lapic_t;
+};
 
-typedef struct
+struct ioapic
 {
     uint8_t   id;
     uint8_t  *index_addr;
@@ -130,30 +130,30 @@ typedef struct
     uint32_t *eoi_addr;
     uint32_t  gsi_start;
     uint32_t  gsi_end;
-} ioapic_t;
+};
 
-typedef struct
+struct ioapic_irq_override
 {
     uint8_t bus;
     uint8_t gsi;
     uint8_t flags;
-} ioapic_irq_override_t;
+};
 
-typedef struct
+struct apic
 {
-    uint8_t               cores;
-    uint64_t              local_apic_address;
-    uint8_t               max_lapic_id;
-    lapic_t               lapic[MAX_LAPIC];
-    ioapic_t              ioapic[MAX_IOAPIC];
-    ioapic_irq_override_t irq[IRQ_CNT];
-} apic_t;
+    uint8_t                    cores;
+    uint64_t                   local_apic_address;
+    uint8_t                    max_lapic_id;
+    struct lapic               lapic[MAX_LAPIC];
+    struct ioapic              ioapic[MAX_IOAPIC];
+    struct ioapic_irq_override irq[IRQ_CNT];
+};
 
-static apic_t apic;
+static struct apic apic;
 
-static uint8_t set_lapic(madt_lapic_t *apic_lapic)
+static uint8_t set_lapic(struct madt_lapic *apic_lapic)
 {
-    lapic_t *lapic      = &apic.lapic[apic_lapic->apic_id];
+    struct lapic *lapic = &apic.lapic[apic_lapic->apic_id];
     lapic->processor_id = apic_lapic->processor_id;
     printk(
         "lapic[%d]: processor_id=%d, flags=%08x.\n",
@@ -164,9 +164,9 @@ static uint8_t set_lapic(madt_lapic_t *apic_lapic)
     return apic_lapic->apic_id;
 }
 
-static void set_ioapic(madt_ioapic_t *apic_ioapic)
+static void set_ioapic(struct madt_ioapic *apic_ioapic)
 {
-    ioapic_t *ioapic = &apic.ioapic[apic_ioapic->ioapic_id];
+    struct ioapic *ioapic = &apic.ioapic[apic_ioapic->ioapic_id];
 
     uintptr_t ioapic_addr = apic_ioapic->address;
 
@@ -192,9 +192,10 @@ static void set_ioapic(madt_ioapic_t *apic_ioapic)
     return;
 }
 
-static void set_ioapic_irq_override(madt_ioapic_irq_override_t *irq_override)
+static void
+set_ioapic_irq_override(struct madt_ioapic_irq_override *irq_override)
 {
-    ioapic_irq_override_t *irq = &apic.irq[irq_override->irq];
+    struct ioapic_irq_override *irq = &apic.irq[irq_override->irq];
 
     const char *polarity_mode_str[4] = { "dfl", "high", "Reserved", "low" };
     const char *trigger_mode_str[4]  = { "dfl", "edge", "Reserved", "level" };
@@ -232,30 +233,31 @@ static void read_madt(boot_info_t *boot_info)
     apic.irq[0].gsi = 2;
     apic.irq[2].gsi = -1;
 
-    madt_t *madt = (madt_t *)xsdt_find_table(boot_info, MADT_SIGNATURE);
+    struct madt *madt;
+    madt = (struct madt *)xsdt_find_table(boot_info, MADT_SIGNATURE);
     apic.local_apic_address = madt->local_apic_address;
     printk("local apic address: %p.\n", apic.local_apic_address);
     uint8_t max_lapic_id = 0;
 
-    uint8_t     *p2 = (uint8_t *)madt + madt->header.length;
-    uint8_t     *p;
-    madt_head_t *madt_head = (madt_head_t *)(madt + 1);
+    uint8_t          *p2 = (uint8_t *)madt + madt->header.length;
+    uint8_t          *p;
+    struct madt_head *madt_head = (struct madt_head *)(madt + 1);
     for (p = (uint8_t *)(madt + 1); p < p2; p += madt_head->record_length)
     {
-        madt_head = (madt_head_t *)p;
+        madt_head = (struct madt_head *)p;
         switch (madt_head->type)
         {
             case 0:
                 apic.cores++;
-                max_lapic_id      = set_lapic((madt_lapic_t *)madt_head);
+                max_lapic_id      = set_lapic((struct madt_lapic *)madt_head);
                 apic.max_lapic_id = MAX(apic.max_lapic_id, max_lapic_id);
                 break;
             case 1:
-                set_ioapic((madt_ioapic_t *)madt_head);
+                set_ioapic((struct madt_ioapic *)madt_head);
                 break;
             case 2:
                 set_ioapic_irq_override(
-                    (madt_ioapic_irq_override_t *)madt_head
+                    (struct madt_ioapic_irq_override *)madt_head
                 );
                 break;
         }
@@ -347,7 +349,7 @@ void local_apic_init()
 
 uint64_t ioapic_rte_read(uint8_t ioapic_id, uint8_t index)
 {
-    ioapic_t *ioapic = &apic.ioapic[ioapic_id];
+    struct ioapic *ioapic = &apic.ioapic[ioapic_id];
 
     uint64_t ret;
     io_mfence();
@@ -368,7 +370,7 @@ uint64_t ioapic_rte_read(uint8_t ioapic_id, uint8_t index)
 
 void ioapic_rte_write(uint8_t ioapic_id, uint8_t index, uint64_t value)
 {
-    ioapic_t *ioapic = &apic.ioapic[ioapic_id];
+    struct ioapic *ioapic = &apic.ioapic[ioapic_id];
 
     io_mfence();
     *(volatile uint8_t *)PHYS_TO_VIRT(ioapic->index_addr) = index;
@@ -410,9 +412,9 @@ ioapic_enable(uint8_t ioapic_id, uint8_t pin, uint8_t vector, uint16_t flags)
 
 int ioapic_irq_enable(uint8_t irq, uint8_t vector, uint8_t destination)
 {
-    ioapic_t *ioapic;
-    uint8_t   gsi = apic.irq[irq].gsi;
-    int       i;
+    struct ioapic *ioapic;
+    uint8_t        gsi = apic.irq[irq].gsi;
+    int            i;
     for (i = 0; i < MAX_IOAPIC; i++)
     {
         ioapic = &apic.ioapic[i];
@@ -441,7 +443,7 @@ int ioapic_irq_enable(uint8_t irq, uint8_t vector, uint8_t destination)
 
 static void ioapic_init(uint8_t ioapic_id)
 {
-    ioapic_t *ioapic = &apic.ioapic[ioapic_id];
+    struct ioapic *ioapic = &apic.ioapic[ioapic_id];
     if (ioapic->index_addr == NULL)
     {
         return;

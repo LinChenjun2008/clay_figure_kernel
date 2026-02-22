@@ -32,8 +32,8 @@ static uint32_t palette[8][2] = {
 
 extern uint8_t font_8x16[256][16];
 
-static spinlock_t print_lock;
-static spinlock_t panic_lock;
+static struct spinlock print_lock;
+static struct spinlock panic_lock;
 
 static textbox_t textbox;
 

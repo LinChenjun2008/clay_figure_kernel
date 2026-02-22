@@ -29,11 +29,11 @@ void create_task_context(task_struct_t *task, void *func, void *arg)
     uintptr_t kstack = (uintptr_t)task->context;
     kstack -= sizeof(uintptr_t);
     *(uintptr_t *)kstack = (uintptr_t)kernel_task;
-    kstack -= sizeof(task_context_t);
-    task->context           = (task_context_t *)kstack;
-    task_context_t *context = task->context;
-    context->rsi            = (uint64_t)arg;
-    context->rdi            = (uint64_t)func;
+    kstack -= sizeof(struct task_context);
+    struct task_context *context = (struct task_context *)kstack;
+    task->context                = context;
+    context->rsi                 = (uint64_t)arg;
+    context->rdi                 = (uint64_t)func;
     return;
 }
 
@@ -53,9 +53,10 @@ uint8_t arch_get_current_cpu_id()
     return apic_id();
 }
 
-SYSV_ABI void asm_switch_to(task_context_t **curr, task_context_t **next);
+SYSV_ABI void
+asm_switch_to(struct task_context **curr, struct task_context **next);
 
-void arch_switch_to(task_context_t **curr, task_context_t **next)
+void arch_switch_to(struct task_context **curr, struct task_context **next)
 {
     asm_switch_to(curr, next);
     return;

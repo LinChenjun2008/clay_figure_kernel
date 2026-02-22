@@ -10,9 +10,9 @@
 #include <asm/utils.h>
 #include <asm/x86.h>
 
-static gate_desc_t idt[256];
+static struct gate_desc idt[256];
 
-static void set_gatedesc(gate_desc_t *gd, void *func, int selector, int ar)
+static void set_gatedesc(struct gate_desc *gd, void *func, int selector, int ar)
 {
     gd->offset_low  = ((uint64_t)func) & 0x000000000000ffff;
     gd->selector    = selector;
@@ -24,7 +24,7 @@ static void set_gatedesc(gate_desc_t *gd, void *func, int selector, int ar)
 }
 
 #define INTR_HANDLER(ENTRY, NR, ERROR_CODE) \
-    extern SYSV_ABI void ENTRY(pt_regs_t *);
+    extern SYSV_ABI void ENTRY(struct pt_regs *);
 #include <asm/interrupt.h>
 #undef INTR_HANDLER
 

@@ -161,7 +161,7 @@ void init_task_struct(
 )
 {
     memset(task, 0, sizeof(*task));
-    task->context = (task_context_t *)(kstack_base + kstack_pages * PG_SIZE);
+    task->context      = (void *)(kstack_base + kstack_pages * PG_SIZE);
     task->kstack_base  = kstack_base;
     task->kstack_pages = kstack_pages;
 

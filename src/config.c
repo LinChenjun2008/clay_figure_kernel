@@ -12,18 +12,18 @@
 #define IS_KEY_NAME(x) \
     ((x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z') || x == '_')
 
-typedef struct key_item_s
+struct conf_item
 {
     char   name[64];
     size_t name_len;
     char   val[64];
     size_t val_len;
-} conf_item_t;
+};
 
 static struct
 {
-    conf_item_t items[64];
-    int         number_of_items;
+    struct conf_item items[64];
+    int              number_of_items;
 } configures;
 
 static void skip_space(uint8_t **src, uint8_t *end)
@@ -44,7 +44,7 @@ static void skip_line(uint8_t **src, uint8_t *end)
     return;
 }
 
-static int read_item(uint8_t **src, uint8_t *end, conf_item_t *item)
+static int read_item(uint8_t **src, uint8_t *end, struct conf_item *item)
 {
     item->name_len = 0;
     item->val_len  = 0;
@@ -94,7 +94,7 @@ void parse_config(ramfs_file_t *fp)
         }
         else
         {
-            conf_item_t item;
+            struct conf_item item;
             if (read_item(&src, end, &item) < 0)
             {
                 skip_line(&src, end);
@@ -111,7 +111,7 @@ void read_config(const char *name, char *value, size_t *value_len)
     int i;
     for (i = 0; i < configures.number_of_items; i++)
     {
-        conf_item_t *item = &configures.items[i];
+        struct conf_item *item = &configures.items[i];
         if (strcmp(name, item->name) == 0)
         {
             if (*value_len < item->val_len)

@@ -18,8 +18,8 @@ static mm_block_t page_mm_blocks[2048];
 
 typedef struct
 {
-    spinlock_t  lock;
-    mm_struct_t mm;
+    struct spinlock lock;
+    mm_struct_t     mm;
 } page_man_t;
 
 static page_man_t page_man;

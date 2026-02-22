@@ -41,7 +41,7 @@ typedef struct cpu_s      cpu_t;
 
 struct task_man_s
 {
-    spinlock_t      lock;
+    struct spinlock lock;
     task_struct_t **task_table;
     int             max_tasks;
     cpu_t          *cpus;
@@ -54,9 +54,9 @@ struct cpu_s
     task_man_t *task_man;
     uint8_t     id;
 
-    spinlock_t lock;
-    list_t     task_queue;
-    int        running_tasks;
+    struct spinlock lock;
+    list_t          task_queue;
+    int             running_tasks;
 
     uint64_t       min_vrun_time;
     uint64_t       total_weight;

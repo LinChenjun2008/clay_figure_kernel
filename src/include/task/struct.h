@@ -33,7 +33,7 @@ typedef struct cpu_s cpu_t;
 
 typedef struct
 {
-    task_context_t *context; // 任务上下文
+    struct task_context *context; // 任务上下文
 
     uintptr_t kstack_base;  // 内核栈基地值(虚拟地址)
     size_t    kstack_pages; // 内核栈所用的页数

@@ -15,16 +15,16 @@
 #include <std/string.h>
 #include <task.h>
 
-SYSV_ABI void asm_switch_to_user(pt_regs_t *regs);
+SYSV_ABI void asm_switch_to_user(struct pt_regs *regs);
 
 void switch_to_user(void *func)
 {
     ASSERT(intr_get_status() == INTR_OFF);
-    pt_regs_t *regs;
-    uintptr_t  ustack = USER_STACK_VADDR_TOP;
+    struct pt_regs *regs;
+    uintptr_t       ustack = USER_STACK_VADDR_TOP;
 
     ustack -= sizeof(*regs);
-    regs = (pt_regs_t *)ustack;
+    regs = (struct pt_regs *)ustack;
     memset(regs, 0, sizeof(*regs));
 
     regs->ds = SELECTOR_USER_DATA64;

@@ -27,8 +27,8 @@ intr_status_t intr_set_status(intr_status_t status);
 void intr_init(void);
 
 // intr_handler.c
-void          general_handler(pt_regs_t *regs);
-SYSV_ABI void interrupt_handler(pt_regs_t *regs);
+void          general_handler(struct pt_regs *regs);
+SYSV_ABI void interrupt_handler(struct pt_regs *regs);
 void          intr_handler_init(void);
 void          register_handler(uint8_t vector, void *handler);
 

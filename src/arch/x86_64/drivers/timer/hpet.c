@@ -21,40 +21,27 @@
 #define HPET_TIME0_COMP 0x108
 
 #pragma pack(1)
-typedef struct
+struct hpet_address
 {
     uint8_t  address_space_id; // 0 - system memory, 1 - system I/O
     uint8_t  register_bit_width;
     uint8_t  register_bit_offset;
     uint8_t  reserved;
     uint64_t address;
-} hpet_address_t;
-
-struct description_table_header
-{
-    char     signature[4]; // 'HPET' in case of HPET table
-    uint32_t length;
-    uint8_t  revision;
-    uint8_t  checksum;
-    char     oemid[6];
-    uint64_t oem_tableid;
-    uint32_t oem_revision;
-    uint32_t creator_id;
-    uint32_t creator_revision;
 };
 
-typedef struct
+struct acpi_hpet
 {
     acpi_description_header_t header;
     uint32_t                  id;
-    hpet_address_t            address;
+    struct hpet_address       address;
     uint8_t                   hpet_number;
     uint16_t                  minimum_tick;
     uint8_t                   page_protection;
-} acpi_hpet_t;
+};
 #pragma pack()
 
-typedef struct
+struct hpet
 {
     uintptr_t addr;
     uint64_t *gcap_id;
@@ -63,9 +50,9 @@ typedef struct
     uint64_t *time0_conf;
     uint64_t *time0_comp;
     uint64_t  period_fs;
-} hpet_t;
+};
 
-static hpet_t hpet;
+static struct hpet hpet;
 
 uint64_t get_nano_time(void)
 {
@@ -78,11 +65,12 @@ uint64_t get_nano_time(void)
 
 void hpet_init(boot_info_t *boot_info)
 {
-    uint32_t     signature = SIGNATURE_32('H', 'P', 'E', 'T');
-    acpi_hpet_t *hpet_table;
-    hpet_table = (acpi_hpet_t *)xsdt_find_table(boot_info, signature);
+    uint32_t          signature = SIGNATURE_32('H', 'P', 'E', 'T');
+    struct acpi_hpet *hpet_table;
+    hpet_table = (struct acpi_hpet *)xsdt_find_table(boot_info, signature);
 
-    hpet_address_t *hpet_addr = (hpet_address_t *)&hpet_table->address;
+    struct hpet_address *hpet_addr;
+    hpet_addr = (struct hpet_address *)&hpet_table->address;
 
     hpet.addr       = (uintptr_t)PHYS_TO_VIRT(hpet_addr->address);
     hpet.gcap_id    = (uint64_t *)(hpet.addr + HPET_GCAP_ID);

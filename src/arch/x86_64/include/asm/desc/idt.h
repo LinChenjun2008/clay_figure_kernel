@@ -7,7 +7,7 @@
 #define __ASM_IDT_H__
 
 #pragma pack(1)
-typedef struct
+struct gate_desc
 {
     uint16_t offset_low;
     uint16_t selector;
@@ -16,7 +16,7 @@ typedef struct
     uint16_t offset_mid;
     uint32_t offset_high;
     uint32_t reserved;
-} gate_desc_t;
+};
 #pragma pack()
 
 void idt_init(void);

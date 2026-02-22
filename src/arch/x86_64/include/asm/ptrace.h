@@ -8,7 +8,7 @@
 
 #pragma pack(1)
 
-typedef struct
+struct pt_regs
 {
     uint64_t ds;
     uint64_t es;
@@ -40,10 +40,10 @@ typedef struct
     uint64_t rflags;
     uint64_t rsp;
     uint64_t ss;
-} pt_regs_t;
+};
 
 // 任务上下文结构
-typedef struct task_context_s
+struct task_context
 {
     uint64_t r15;
     uint64_t r14;
@@ -54,7 +54,7 @@ typedef struct task_context_s
     uint64_t rbx;
     uint64_t rsi;
     uint64_t rdi;
-} task_context_t;
+};
 
 #pragma pack()
 

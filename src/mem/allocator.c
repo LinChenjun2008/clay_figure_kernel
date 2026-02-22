@@ -15,10 +15,10 @@
 
 typedef struct
 {
-    size_t     block_size;
-    uint32_t   total_free;
-    list_t     free_block_list;
-    spinlock_t lock;
+    size_t          block_size;
+    uint32_t        total_free;
+    list_t          free_block_list;
+    struct spinlock lock;
 } mem_group_t;
 
 typedef struct
