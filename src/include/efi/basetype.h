@@ -16,7 +16,7 @@ typedef void *efi_event_t;
 typedef efi_uint_t efi_physical_address_t;
 typedef efi_uint_t efi_virtual_address_t;
 
-typedef struct
+struct efi_time
 {
     uint16_t year;   /* 1900 - 9999       */
     uint8_t  month;  /*    1 - 12         */
@@ -29,6 +29,6 @@ typedef struct
     int16_t  time_zone;
     uint8_t  daylight;
     uint8_t  pad2;
-} efi_time_t;
+};
 
 #endif /* __EFI_BASE_TYPE_H__ */

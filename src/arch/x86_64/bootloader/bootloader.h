@@ -37,8 +37,10 @@ efi_status_t read_file(
 );
 
 // main.c
-efi_status_t EFIAPI
-efi_main(efi_handle_t in_image_handle, efi_system_table_t *in_system_table);
+efi_status_t EFIAPI efi_main(
+    efi_handle_t             in_image_handle,
+    struct efi_system_table *in_system_table
+);
 
 // memory.c
 efi_status_t get_memory_map(struct memory_map *mmap);

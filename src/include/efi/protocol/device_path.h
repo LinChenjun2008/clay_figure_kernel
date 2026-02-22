@@ -12,11 +12,11 @@
       0x11d2,                         \
       { 0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b } }
 
-typedef struct
+struct efi_device_path_protocol
 {
     uint8_t type;
     uint8_t sub_type;
     uint8_t length[2];
-} efi_device_path_protocol_t;
+};
 
 #endif /* __EFI_DEVICE_PATH_H__ */

@@ -18,18 +18,18 @@ extern struct efi_guid efi_loaded_image_protocol_guid;
 
 typedef struct efi_loaded_image_protocol_s
 {
-    uint32_t                    revision;
-    efi_handle_t                parent_handle;
-    efi_system_table_t         *system_table;
+    uint32_t                         revision;
+    efi_handle_t                     parent_handle;
+    struct efi_system_table         *system_table;
     // source location of the image
-    efi_handle_t                device_handle;
-    efi_device_path_protocol_t *file_path;
-    void                       *reserved;
+    efi_handle_t                     device_handle;
+    struct efi_device_path_protocol *file_path;
+    void                            *reserved;
     // image's load options
-    uint32_t                    load_options_size;
-    void                       *load_options;
+    uint32_t                         load_options_size;
+    void                            *load_options;
     // location where image was loaded
-    void                       *image_base;
+    void                            *image_base;
 
     uint64_t          image_size;
     efi_memory_type_t image_code_type;

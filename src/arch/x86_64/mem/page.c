@@ -57,8 +57,8 @@ void page_init(struct boot_info *boot_info)
     init_mm_struct(&page_man.mm_struct, page_mm_blocks, 2048);
     init_spinlock(&page_man.lock);
 
-    efi_memory_descriptor_t *memmap;
-    memmap = (efi_memory_descriptor_t *)boot_info->memory_map.buffer;
+    struct efi_memory_descriptor *memmap;
+    memmap = (struct efi_memory_descriptor *)boot_info->memory_map.buffer;
 
     size_t map_size   = boot_info->memory_map.map_size;
     size_t desc_size  = boot_info->memory_map.descriptor_size;

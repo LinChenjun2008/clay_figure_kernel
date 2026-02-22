@@ -18,14 +18,14 @@ typedef enum
     EFI_MAX_ALLOCATE_TYPE
 } efi_allocate_type_t;
 
-typedef struct
+struct efi_memory_descriptor
 {
     uint32_t               type;
     efi_physical_address_t physical_start;
     efi_virtual_address_t  virtual_start;
     uint64_t               number_of_pages;
     uint64_t               attribute;
-} ALIGNED(16) efi_memory_descriptor_t;
+} ALIGNED(16);
 
 typedef efi_status_t(EFIAPI *efi_allocate_pages_t)(
     efi_allocate_type_t     type,
@@ -40,11 +40,11 @@ typedef efi_status_t(EFIAPI *efi_free_pages_t)(
 );
 
 typedef efi_status_t(EFIAPI *efi_get_memory_map_t)(
-    efi_uint_t              *memory_map_size,
-    efi_memory_descriptor_t *memory_map,
-    efi_uint_t              *map_key,
-    efi_uint_t              *descriptor_size,
-    uint32_t                *descriptor_version
+    efi_uint_t                   *memory_map_size,
+    struct efi_memory_descriptor *memory_map,
+    efi_uint_t                   *map_key,
+    efi_uint_t                   *descriptor_size,
+    uint32_t                     *descriptor_version
 );
 
 typedef efi_status_t(EFIAPI *efi_allocate_pool_t)(
@@ -136,7 +136,7 @@ typedef void(EFIAPI *efi_reset_system_t)(
 );
 
 /// Uefi Runtime services
-typedef struct
+struct efi_runtime_services
 {
     uint8_t buf_rs1[24];
 
@@ -160,9 +160,9 @@ typedef struct
     //
     efi_uint_t         buf_rs5;
     efi_reset_system_t reset_system;
-} efi_runtime_services_t;
+};
 
-typedef struct
+struct efi_boot_services
 {
     char buf1[24];
 
@@ -214,25 +214,25 @@ typedef struct
     efi_copy_mem_t copy_mem;
     efi_set_mem_t  set_mem;
     efi_uint_t     buf12;
-} efi_boot_services_t;
+};
 
-typedef struct
+struct efi_configuration_table
 {
     struct efi_guid vendor_guid;
     void           *vendor_table;
-} efi_configuration_table_t;
+};
 
-typedef struct
+struct efi_system_table
 {
     uint8_t                            buf1[44];
     efi_simple_text_input_protocol_t  *con_in;
     efi_uint_t                         buf2;
     efi_simple_text_output_protocol_t *con_out;
     unsigned long long                 buf3[2];
-    efi_runtime_services_t            *runtime_services;
-    efi_boot_services_t               *boot_services;
+    struct efi_runtime_services       *runtime_services;
+    struct efi_boot_services          *boot_services;
     efi_uint_t                         number_of_table_entries;
-    efi_configuration_table_t         *configuration_table;
-} efi_system_table_t;
+    struct efi_configuration_table    *configuration_table;
+};
 
 #endif /* __EFI_SPEC_H__ */

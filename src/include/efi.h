@@ -36,8 +36,8 @@
 #include <efi/protocol/graphics_output.h>
 #include <efi/protocol/simple_file_system.h>
 
-extern efi_handle_t         image_handle;
-extern efi_system_table_t  *system_table;
-extern efi_boot_services_t *boot_services;
+extern efi_handle_t              image_handle;
+extern struct efi_system_table  *system_table;
+extern struct efi_boot_services *boot_services;
 
 #endif /* __EFI_H__ */

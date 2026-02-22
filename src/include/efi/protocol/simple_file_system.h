@@ -28,9 +28,9 @@ typedef struct efi_file_info
     uint64_t file_size;     /* 文件大小(单位:byet) */
     uint64_t physical_size; /* 文件在文件系统上所占用的物理空间大小 */
 
-    efi_time_t create_time;       /* 文件创建时间 */
-    efi_time_t last_access_time;  /* 文件最后一次访问时间 */
-    efi_time_t modification_time; /* 文件最后一次修改时间 */
+    struct efi_time create_time;       /* 文件创建时间 */
+    struct efi_time last_access_time;  /* 文件最后一次访问时间 */
+    struct efi_time modification_time; /* 文件最后一次修改时间 */
 
     uint64_t attribute; /* 文件属性 */
 

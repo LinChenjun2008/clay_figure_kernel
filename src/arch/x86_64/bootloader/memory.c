@@ -22,7 +22,7 @@ efi_status_t get_memory_map(struct memory_map *memmap)
     }
     status = boot_services->get_memory_map(
         &memmap->map_size,
-        (efi_memory_descriptor_t *)memmap->buffer,
+        (struct efi_memory_descriptor *)memmap->buffer,
         &memmap->map_key,
         &memmap->descriptor_size,
         &memmap->descriptor_version

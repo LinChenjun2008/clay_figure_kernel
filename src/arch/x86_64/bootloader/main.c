@@ -5,8 +5,8 @@
 
 #include "bootloader.h"
 
-efi_system_table_t             *system_table;
-efi_boot_services_t            *boot_services;
+struct efi_system_table        *system_table;
+struct efi_boot_services       *boot_services;
 efi_graphics_output_protocol_t *gop;
 efi_handle_t                    image_handle;
 
@@ -19,7 +19,7 @@ struct efi_guid efi_file_info_guid  = EFI_FILE_INFO_ID;
 struct efi_guid efi_acpi_table_guid = EFI_ACPI_TABLE_GUID;
 
 efi_status_t EFIAPI
-efi_main(efi_handle_t in_image_handle, efi_system_table_t *in_system_table)
+efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
 {
     efi_status_t status = EFI_SUCCESS;
 

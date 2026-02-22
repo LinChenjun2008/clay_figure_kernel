@@ -11,8 +11,10 @@ efi_status_t read_acpi_tables(struct boot_info *boot_info)
 
     // Read acpi table
     // find rsdp
-    efi_configuration_table_t *config_table = system_table->configuration_table;
+    struct efi_configuration_table                      *config_table;
     struct efi_acpi_6_4_root_system_description_pointer *rsdp;
+
+    config_table = system_table->configuration_table;
 
     uint32_t i;
     for (i = 0; i < system_table->number_of_table_entries; i++)
