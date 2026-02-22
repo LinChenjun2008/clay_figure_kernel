@@ -14,12 +14,12 @@
 #include <print.h>
 #include <std/string.h>
 
-static mm_block_t page_mm_blocks[2048];
+static struct mm_block page_mm_blocks[2048];
 
 struct page_man
 {
     struct spinlock lock;
-    mm_struct_t     mm;
+    struct mm       mm_struct;
 };
 
 static struct page_man page_man;
@@ -54,7 +54,7 @@ static mm_type_t get_page_type(efi_memory_type_t efi_type)
 
 void page_init(struct boot_info *boot_info)
 {
-    init_mm_struct(&page_man.mm, page_mm_blocks, 2048);
+    init_mm_struct(&page_man.mm_struct, page_mm_blocks, 2048);
     init_spinlock(&page_man.lock);
 
     efi_memory_descriptor_t *memmap;
@@ -97,7 +97,7 @@ void page_init(struct boot_info *boot_info)
             curr_pages = curr_size >> 12;
         }
         curr_start = (uintptr_t)PHYS_TO_VIRT(curr_start);
-        mm_add(&page_man.mm, curr_start, curr_size);
+        mm_add(&page_man.mm_struct, curr_start, curr_size);
     }
     return;
 }
@@ -107,7 +107,7 @@ int allocate_pages(size_t pages, void **addr)
     uintptr_t page_addr;
 
     spin_lock(&page_man.lock);
-    page_addr = mm_allocate(&page_man.mm, pages * PG_SIZE);
+    page_addr = mm_allocate(&page_man.mm_struct, pages * PG_SIZE);
     spin_unlock(&page_man.lock);
 
     if (page_addr == -1UL)
@@ -128,7 +128,7 @@ void free_pages(void **addr, size_t pages)
 
     int ret = 0;
     spin_lock(&page_man.lock);
-    ret = mm_add(&page_man.mm, page_addr, pages * PG_SIZE);
+    ret = mm_add(&page_man.mm_struct, page_addr, pages * PG_SIZE);
     spin_unlock(&page_man.lock);
     if (ret != 0)
     {

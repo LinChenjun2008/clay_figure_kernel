@@ -35,9 +35,9 @@ extern uint8_t font_8x16[256][16];
 static struct spinlock print_lock;
 static struct spinlock panic_lock;
 
-static textbox_t textbox;
+static struct textbox textbox;
 
-void basic_put_char(textbox_t *tb, int x, int y, uint8_t c)
+void basic_put_char(struct textbox *tb, int x, int y, uint8_t c)
 {
     uint8_t *character = font_8x16[(uint32_t)c];
 
@@ -146,7 +146,7 @@ static int skip_atoi(const char **s)
     return i;
 }
 
-static int analyze_sgr(textbox_t *tb, const char *str, int cur)
+static int analyze_sgr(struct textbox *tb, const char *str, int cur)
 {
     const char *s = str + cur;
     if (*s != '\033')
@@ -208,7 +208,7 @@ static int analyze_sgr(textbox_t *tb, const char *str, int cur)
     return (uintptr_t)s - (uintptr_t)str;
 }
 
-static void clear_line(textbox_t *tb)
+static void clear_line(struct textbox *tb)
 {
     uint32_t  bg_color = tb->default_bg_color;
     uint32_t *pixel;

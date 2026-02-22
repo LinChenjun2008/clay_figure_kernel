@@ -32,7 +32,7 @@
         }                                                             \
     } while (0)
 
-typedef struct
+struct textbox
 {
     uint32_t *fb;   // frame buffer
     uint32_t  ppsl; // pixel per scanline
@@ -50,9 +50,9 @@ typedef struct
 
     uint32_t ch_color;
     uint32_t bg_color;
-} textbox_t;
+};
 
-void basic_put_char(textbox_t *textbox, int x, int y, uint8_t c);
+void basic_put_char(struct textbox *textbox, int x, int y, uint8_t c);
 
 void init_print(struct graphic_info *graphic_info);
 

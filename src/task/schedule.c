@@ -22,7 +22,7 @@ static const uint64_t task_prio_to_weight[40] = {
     /* +15 */ 36,    29,    23,    18,    15
 };
 
-static void update_min_vrun_time(cpu_t *cpu, uint64_t vrun_time)
+static void update_min_vrun_time(struct cpu *cpu, uint64_t vrun_time)
 {
     uint64_t min_vrun_time     = vrun_time;
     uint64_t cur_min_vrun_time = cpu->min_vrun_time;
@@ -53,7 +53,7 @@ static void update_vrun_time(task_struct_t *task)
     return;
 }
 
-uint64_t get_min_vrun_time(cpu_t *cpu)
+uint64_t get_min_vrun_time(struct cpu *cpu)
 {
     return cpu->min_vrun_time;
 }
@@ -67,7 +67,7 @@ void task_update(void)
     return;
 }
 
-static task_struct_t *cpu_get_next_task_lock(cpu_t *cpu)
+static task_struct_t *cpu_get_next_task_lock(struct cpu *cpu)
 {
     list_node_t   *node = NULL;
     task_struct_t *next = NULL;
@@ -86,7 +86,7 @@ static task_struct_t *cpu_get_next_task_lock(cpu_t *cpu)
     return next;
 }
 
-static task_struct_t *cpu_get_next_task(cpu_t *cpu)
+static task_struct_t *cpu_get_next_task(struct cpu *cpu)
 {
     task_struct_t *ret = NULL;
 
@@ -96,7 +96,7 @@ static task_struct_t *cpu_get_next_task(cpu_t *cpu)
     return ret;
 }
 
-static void cpu_task_list_insert_lock(cpu_t *cpu, task_struct_t *task)
+static void cpu_task_list_insert_lock(struct cpu *cpu, task_struct_t *task)
 {
     list_t        *list = &cpu->task_queue;
     list_node_t   *node = list_next(list_head(list));
@@ -120,7 +120,7 @@ static void cpu_task_list_insert_lock(cpu_t *cpu, task_struct_t *task)
     return;
 }
 
-void cpu_task_list_insert(cpu_t *cpu, task_struct_t *task)
+void cpu_task_list_insert(struct cpu *cpu, task_struct_t *task)
 {
     spin_lock(&cpu->lock);
     cpu_task_list_insert_lock(cpu, task);
@@ -128,14 +128,14 @@ void cpu_task_list_insert(cpu_t *cpu, task_struct_t *task)
     return;
 }
 
-static void adjust_vrun_time(cpu_t *cpu, task_struct_t *task)
+static void adjust_vrun_time(struct cpu *cpu, task_struct_t *task)
 {
     int64_t balance = task->vrun_time - get_min_vrun_time(task->cpu);
     task->vrun_time = cpu->min_vrun_time + balance;
     return;
 }
 
-static void cpu_lock_double(cpu_t *cpu1, cpu_t *cpu2)
+static void cpu_lock_double(struct cpu *cpu1, struct cpu *cpu2)
 {
     ASSERT(cpu1 != cpu2);
     ASSERT(cpu1->id != cpu2->id);
@@ -152,14 +152,14 @@ static void cpu_lock_double(cpu_t *cpu1, cpu_t *cpu2)
     return;
 }
 
-static void cpu_unlock_double(cpu_t *cpu1, cpu_t *cpu2)
+static void cpu_unlock_double(struct cpu *cpu1, struct cpu *cpu2)
 {
     spin_unlock(&cpu1->lock);
     spin_unlock(&cpu2->lock);
     return;
 }
 
-static void do_task_balance_lock(cpu_t *busy, cpu_t *idle)
+static void do_task_balance_lock(struct cpu *busy, struct cpu *idle)
 {
     task_struct_t *task = cpu_get_next_task_lock(busy);
     ASSERT(task != NULL);
@@ -174,7 +174,7 @@ static void do_task_balance_lock(cpu_t *busy, cpu_t *idle)
     return;
 }
 
-static void task_balance_lock(cpu_t *busy, cpu_t *idle)
+static void task_balance_lock(struct cpu *busy, struct cpu *idle)
 {
     int max_running = busy->running_tasks;
     int min_running = idle->running_tasks;
@@ -199,13 +199,13 @@ static void task_balance_lock(cpu_t *busy, cpu_t *idle)
 void task_balance(void)
 {
     ASSERT(intr_get_status() == INTR_OFF);
-    task_man_t *task_man = get_current_task()->cpu->task_man;
+    struct task_man *task_man = get_current_task()->cpu->task_man;
 
-    int    min_running = task_man->max_tasks + 1;
-    int    max_running = -1;
-    int    cur_running = 0;
-    cpu_t *cpu = NULL, *busy = NULL, *idle = NULL;
-    int    i = 0;
+    int         min_running = task_man->max_tasks + 1;
+    int         max_running = -1;
+    int         cur_running = 0;
+    struct cpu *cpu = NULL, *busy = NULL, *idle = NULL;
+    int         i = 0;
     for (i = 0; i < task_man->max_cpus; i++)
     {
         cpu = &task_man->cpus[i];
@@ -272,7 +272,7 @@ void schedule(void)
 {
     ASSERT(intr_get_status() == INTR_OFF);
     task_struct_t *curr_task = get_current_task();
-    cpu_t         *curr_cpu  = curr_task->cpu;
+    struct cpu    *curr_cpu  = curr_task->cpu;
 
     if (curr_task->preempt_count > 0)
     {

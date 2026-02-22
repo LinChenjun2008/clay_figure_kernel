@@ -16,9 +16,9 @@
 #include <std/string.h>
 #include <task.h>
 
-static task_man_t *task_man;
+static struct task_man *task_man;
 
-static void cpu_task_init(cpu_t *cpu, uint8_t id)
+static void cpu_task_init(struct cpu *cpu, uint8_t id)
 {
     memset(cpu, 0, sizeof(*cpu));
     cpu->task_man = task_man;
@@ -41,9 +41,9 @@ void task_init(struct boot_info *boot_info, int max_tasks)
     kmalloc(task_table_size, 0, 0, (void **)&task_table);
     ASSERT(task_table != NULL);
 
-    cpu_t *cpus      = NULL;
-    int    max_cpus  = apic_max_lapic_id() + 1;
-    size_t cpus_size = sizeof(task_man->cpus[0]) * max_cpus;
+    struct cpu *cpus      = NULL;
+    int         max_cpus  = apic_max_lapic_id() + 1;
+    size_t      cpus_size = sizeof(task_man->cpus[0]) * max_cpus;
     kmalloc(cpus_size, 0, 0, (void **)&cpus);
 
     kmalloc(sizeof(*task_man), 0, 0, (void **)&task_man);

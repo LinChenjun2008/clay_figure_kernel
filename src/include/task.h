@@ -36,23 +36,20 @@
 
 #    include <task/struct.h>
 
-typedef struct task_man_s task_man_t;
-typedef struct cpu_s      cpu_t;
-
-struct task_man_s
+struct task_man
 {
     struct spinlock lock;
     task_struct_t **task_table;
     int             max_tasks;
-    cpu_t          *cpus;
+    struct cpu     *cpus;
     int             max_cpus;
     void           *kernel_page_table_pos;
 };
 
-struct cpu_s
+struct cpu
 {
-    task_man_t *task_man;
-    uint8_t     id;
+    struct task_man *task_man;
+    uint8_t          id;
 
     struct spinlock lock;
     list_t          task_queue;
@@ -104,10 +101,10 @@ task_struct_t *process_execute(
 );
 
 // schedule.c
-uint64_t get_min_vrun_time(cpu_t *cpu);
+uint64_t get_min_vrun_time(struct cpu *cpu);
 void     task_update(void);
 void     task_balance(void);
-void     cpu_task_list_insert(cpu_t *cpu, task_struct_t *task);
+void     cpu_task_list_insert(struct cpu *cpu, task_struct_t *task);
 void     task_page_table_active(task_struct_t *task);
 void     task_active(task_struct_t *task);
 void     schedule(void);

@@ -66,7 +66,7 @@ efi_main(efi_handle_t in_image_handle, efi_system_table_t *in_system_table)
         printf(L"check ramfs failed!\n\r");
         return EFI_ERR;
     }
-    ramfs_file_t fp;
+    struct ramfs_file fp;
     if (ramfs_open((void *)img_base, "config", &fp) < 0)
     {
         printf(L"ramfs_open(config): failed.\n\r");

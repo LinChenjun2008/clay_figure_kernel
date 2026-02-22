@@ -20,11 +20,11 @@
 #define __RAMFS_TOOLS__
 #include "../src/include/ramfs.h"
 
-typedef struct
+struct file_list
 {
     char *origin_name;
     char *name;
-} file_list_t;
+};
 
 void print_useage(char *argv[])
 {
@@ -44,10 +44,10 @@ int main(int argc, char *argv[])
         print_useage(argv);
         return -1;
     }
-    ramfs_info_t ramfs_info;
+    struct ramfs_info ramfs_info;
 
     ramfs_info.files = (argc - 1) / 3;
-    file_list_t *file_list;
+    struct file_list *file_list;
     file_list = malloc(sizeof(*file_list) * ramfs_info.files);
     int i;
     for (i = 0; i < ramfs_info.files; i++)
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
             return -1;
         }
 
-        ramfs_file_meta_data_t fdata;
+        struct ramfs_file_meta_data fdata;
         fdata.file_size = ftell(fp);
         strncpy(fdata.file_name, file_list[i].name, MAX_NAME_LEN);
         int j;

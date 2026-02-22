@@ -8,29 +8,29 @@
 
 #define MAX_NAME_LEN 63
 
-typedef struct ramfs_info_s
+struct ramfs_info
 {
     uint64_t magic;
     uint64_t files;
-} ramfs_info_t;
+};
 
-typedef struct ramfs_file_meta_data_s
+struct ramfs_file_meta_data
 {
     size_t  file_size;
     uint8_t file_name[MAX_NAME_LEN + 1];
-} ramfs_file_meta_data_t;
+};
 
-typedef struct ramfs_file_s
+struct ramfs_file
 {
     uint8_t name[MAX_NAME_LEN + 1];
     size_t  size;
     void   *data;
-} ramfs_file_t;
+};
 
 #ifndef __RAMFS_TOOLS__
 
 int ramfs_check(void *ramfs_addr);
-int ramfs_open(void *ramfs_addr, const char *name, ramfs_file_t *file);
+int ramfs_open(void *ramfs_addr, const char *name, struct ramfs_file *file);
 
 #endif
 

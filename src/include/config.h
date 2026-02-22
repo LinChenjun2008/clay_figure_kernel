@@ -8,7 +8,7 @@
 
 #include <ramfs.h>
 
-void parse_config(ramfs_file_t *fp);
+void parse_config(struct ramfs_file *fp);
 
 /**
  * @brief 读取配置信息

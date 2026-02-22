@@ -29,8 +29,6 @@ typedef enum
     TASK_DIED       // 任务结束
 } task_status_t;
 
-typedef struct cpu_s cpu_t;
-
 typedef struct
 {
     struct task_context *context; // 任务上下文
@@ -41,7 +39,7 @@ typedef struct
     uintptr_t ustack_base;  // 用户栈基址(物理地址)(如果有)
     size_t    ustack_pages; // 用户栈所用的页数(如果有)
 
-    cpu_t *volatile cpu; // 任务所在cpu的id
+    volatile struct cpu *volatile cpu; // 任务所在cpu的id
 
     pid_t pid;  // 任务id
     pid_t ppid; // 父级任务id
@@ -58,9 +56,9 @@ typedef struct
     uint64_t run_time;  // 任务运行时间(总计)
     uint64_t vrun_time; // 虚拟运行时间
 
-    mm_struct_t mm_alloc; // 任务可分配的虚拟地址表
-    mm_struct_t mm_using; // 任务使用中的虚拟地址表
-    mm_struct_t mm_pages; // 任务正在使用的物理页表
+    struct mm mm_alloc; // 任务可分配的虚拟地址表
+    struct mm mm_using; // 任务使用中的虚拟地址表
+    struct mm mm_pages; // 任务正在使用的物理页表
 } task_struct_t;
 
 STATIC_ASSERT(

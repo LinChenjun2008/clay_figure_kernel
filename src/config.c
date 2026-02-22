@@ -72,7 +72,7 @@ static int read_item(uint8_t **src, uint8_t *end, struct conf_item *item)
     return 0;
 }
 
-void parse_config(ramfs_file_t *fp)
+void parse_config(struct ramfs_file *fp)
 {
     configures.number_of_items = 0;
     uint8_t *src;

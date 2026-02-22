@@ -8,23 +8,28 @@
 
 #include <asm/sync/spinlock.h>
 
-typedef struct mm_block_s
+struct mm_block
 {
     uintptr_t start;
     size_t    size;
-} mm_block_t;
+};
 
-typedef struct mm_struct_s
+struct mm
 {
-    struct spinlock lock;
-    mm_block_t     *blocks;
-    int             count;
-    int             total_blocks;
-} mm_struct_t;
+    struct spinlock  lock;
+    struct mm_block *blocks;
+    int              count;
+    int              total_blocks;
+};
 
-void      init_mm_struct(mm_struct_t *mm, mm_block_t *blocks, int total_blocks);
-int       mm_add(mm_struct_t *mm, uintptr_t start, size_t size);
-uintptr_t mm_allocate(mm_struct_t *mm, size_t size);
-int       mm_remove(mm_struct_t *mm, uintptr_t start, size_t size);
+void init_mm_struct(
+    struct mm       *mm_struct,
+    struct mm_block *blocks,
+    int              total_blocks
+);
+
+int       mm_add(struct mm *mm_struct, uintptr_t start, size_t size);
+uintptr_t mm_allocate(struct mm *mm_struct, size_t size);
+int       mm_remove(struct mm *mm_struct, uintptr_t start, size_t size);
 
 #endif /* __MM_STRUCT_H__ */
