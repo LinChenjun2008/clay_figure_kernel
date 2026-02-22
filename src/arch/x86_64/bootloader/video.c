@@ -14,10 +14,10 @@ efi_status_t set_video_mode(void)
     read_config("VIDEO", video_config, &video_config_len);
     char_to_char16(video_config, video_config_ch16);
 
-    char16_t                                current_mode[64];
-    efi_uint_t                              size_of_info = 0;
-    efi_graphcis_output_mode_information_t *mode_info    = NULL;
-    efi_uint_t                              i;
+    char16_t                                     current_mode[64];
+    efi_uint_t                                   size_of_info = 0;
+    struct efi_graphcis_output_mode_information *mode_info    = NULL;
+    efi_uint_t                                   i;
     for (i = 0; i < gop->mode->max_mode; i++)
     {
         gop->query_mode(gop, i, &size_of_info, &mode_info);

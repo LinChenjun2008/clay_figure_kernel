@@ -5,10 +5,10 @@
 
 #include "bootloader.h"
 
-struct efi_system_table        *system_table;
-struct efi_boot_services       *boot_services;
-efi_graphics_output_protocol_t *gop;
-efi_handle_t                    image_handle;
+struct efi_system_table             *system_table;
+struct efi_boot_services            *boot_services;
+struct efi_graphics_output_protocol *gop;
+efi_handle_t                         image_handle;
 
 struct efi_guid efi_graphics_output_protocol_guid =
     EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
@@ -77,7 +77,7 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     set_video_mode();
 
     struct graphic_info *graphic_info = &boot_info->graphic_info;
-    efi_graphcis_output_mode_information_t *mode_info = gop->mode->info;
+    struct efi_graphcis_output_mode_information *mode_info = gop->mode->info;
 
     graphic_info->frame_buffer_base     = gop->mode->frame_buffer_base;
     graphic_info->horizontal_resolution = mode_info->horizontal_resolution;

@@ -224,15 +224,15 @@ struct efi_configuration_table
 
 struct efi_system_table
 {
-    uint8_t                            buf1[44];
-    efi_simple_text_input_protocol_t  *con_in;
-    efi_uint_t                         buf2;
-    efi_simple_text_output_protocol_t *con_out;
-    unsigned long long                 buf3[2];
-    struct efi_runtime_services       *runtime_services;
-    struct efi_boot_services          *boot_services;
-    efi_uint_t                         number_of_table_entries;
-    struct efi_configuration_table    *configuration_table;
+    uint8_t                                 buf1[44];
+    struct efi_simple_text_input_protocol  *con_in;
+    efi_uint_t                              buf2;
+    struct efi_simple_text_output_protocol *con_out;
+    unsigned long long                      buf3[2];
+    struct efi_runtime_services            *runtime_services;
+    struct efi_boot_services               *boot_services;
+    efi_uint_t                              number_of_table_entries;
+    struct efi_configuration_table         *configuration_table;
 };
 
 #endif /* __EFI_SPEC_H__ */

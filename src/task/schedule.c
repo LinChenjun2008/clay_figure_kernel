@@ -69,8 +69,8 @@ void task_update(void)
 
 static task_struct_t *cpu_get_next_task_lock(struct cpu *cpu)
 {
-    list_node_t   *node = NULL;
-    task_struct_t *next = NULL;
+    struct list_node *node = NULL;
+    task_struct_t    *next = NULL;
 
     ASSERT(!list_empty(&cpu->task_queue));
     ASSERT(cpu->running_tasks == list_len(&cpu->task_queue));
@@ -98,9 +98,9 @@ static task_struct_t *cpu_get_next_task(struct cpu *cpu)
 
 static void cpu_task_list_insert_lock(struct cpu *cpu, task_struct_t *task)
 {
-    list_t        *list = &cpu->task_queue;
-    list_node_t   *node = list_next(list_head(list));
-    task_struct_t *tmp;
+    struct list      *list = &cpu->task_queue;
+    struct list_node *node = list_next(list_head(list));
+    task_struct_t    *tmp;
     while (node != &list->tail)
     {
         tmp = CONTAINER_OF(task_struct_t, general_tag, node);

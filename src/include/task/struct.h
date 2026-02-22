@@ -50,7 +50,7 @@ typedef struct
     volatile task_status_t status;        // 任务状态
     uint64_t               preempt_count; // 抢占计数
     uint64_t              *page_dir;      // 任务页表地址(物理地址)
-    list_node_t            general_tag;   // 任务在任务列表中的节点
+    struct list_node       general_tag;   // 任务在任务列表中的节点
 
     uint64_t prio;      // 任务优先级
     uint64_t run_time;  // 任务运行时间(总计)

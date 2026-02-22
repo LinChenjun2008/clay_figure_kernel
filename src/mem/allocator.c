@@ -17,7 +17,7 @@ typedef struct
 {
     size_t          block_size;
     uint32_t        total_free;
-    list_t          free_block_list;
+    struct list     free_block_list;
     struct spinlock lock;
 } mem_group_t;
 
@@ -30,8 +30,8 @@ typedef struct
 
 typedef struct
 {
-    uint64_t    magic; // magic = block_index + cache.number_of_blocks
-    list_node_t node;
+    uint64_t         magic; // magic = block_index + cache.number_of_blocks
+    struct list_node node;
 } mem_block_t;
 
 STATIC_ASSERT(sizeof(mem_cache_t) <= MIN_ALLOCATE_MEMORY_SIZE, "");
@@ -84,10 +84,10 @@ static size_t block_index(mem_cache_t *c, mem_block_t *b)
 static mem_block_t *
 find_block(mem_group_t *g, size_t alignment, size_t boundary)
 {
-    list_t *list = &g->free_block_list;
-    size_t  size = g->block_size;
+    struct list *list = &g->free_block_list;
+    size_t       size = g->block_size;
 
-    list_node_t *node = list_next(list_head(list));
+    struct list_node *node = list_next(list_head(list));
     ASSERT(list_prev(list_next(node)) == node);
 
     mem_block_t *b   = NULL;

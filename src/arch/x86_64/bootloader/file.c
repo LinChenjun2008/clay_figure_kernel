@@ -11,12 +11,12 @@ efi_status_t read_file(
     efi_uint_t             *file_size
 )
 {
-    efi_status_t         status = EFI_SUCCESS;
-    efi_file_protocol_t *file_handle;
+    efi_status_t              status = EFI_SUCCESS;
+    struct efi_file_protocol *file_handle;
 
-    efi_file_protocol_t *root;
+    struct efi_file_protocol *root;
 
-    efi_loaded_image_protocol_t *loaded_image;
+    struct efi_loaded_image_protocol *loaded_image;
     status = boot_services->handle_protocol(
         image_handle, &efi_loaded_image_protocol_guid, (void **)&loaded_image
     );
@@ -30,7 +30,7 @@ efi_status_t read_file(
         return status;
     }
 
-    efi_simple_file_system_protocol_t *file_system;
+    struct efi_simple_file_system_protocol *file_system;
     status = boot_services->handle_protocol(
         loaded_image->device_handle,
         &efi_simple_file_system_protocol_guid,
@@ -66,7 +66,7 @@ efi_status_t read_file(
         return status;
     }
 
-    efi_file_info_t *file_info;
+    struct efi_file_info *file_info;
     efi_uint_t file_info_size = sizeof(*file_info) + sizeof(*file_name) * 256;
     status                    = boot_services->allocate_pool(
         EFI_LOADER_DATA, file_info_size, (void **)&file_info

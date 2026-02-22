@@ -22,7 +22,7 @@
 #define EFI_FILE_MODE_WRITE  0x0000000000000002
 #define EFI_FILE_MODE_CREATE 0x8000000000000000
 
-typedef struct efi_file_info
+struct efi_file_info
 {
     uint64_t size;          /* 这是file_info的大小(包括file_name) */
     uint64_t file_size;     /* 文件大小(单位:byet) */
@@ -35,49 +35,48 @@ typedef struct efi_file_info
     uint64_t attribute; /* 文件属性 */
 
     char16_t file_name[1]; /* 文件名 */
-} efi_file_info_t;
+};
 
 extern struct efi_guid efi_simple_file_system_protocol_guid;
 extern struct efi_guid efi_file_info_guid;
 
-typedef struct efi_file_protocol_s efi_file_protocol_t;
-typedef struct efi_simple_file_system_protocol_s
-    efi_simple_file_system_protocol_t;
+struct efi_file_protocol;
+struct efi_simple_file_system_protocol;
 
 typedef efi_status_t(EFIAPI *efi_file_open_t)(
-    efi_file_protocol_t *this,
-    efi_file_protocol_t **new_handle, /* 被打开的文件handle */
-    char16_t             *file_name,  /* 文件名 */
-    efi_uint_t            open_mode,  /* 打开文件的模式,支持:
-                                    * READ(只读),
-                                    * READ | WRITE(读写),
-                                    * READ | WRITE | CREAT(读写,不存在则创建) 三种
-                                    */
-    efi_uint_t            attributes  /* 文件属性(新建文件时) */
+    struct efi_file_protocol *this,
+    struct efi_file_protocol **new_handle, /* 被打开的文件handle */
+    char16_t                  *file_name,  /* 文件名 */
+    efi_uint_t                 open_mode,  /* 打开文件的模式,支持:
+                                            * READ(只读),
+                                            * READ | WRITE(读写),
+                                            * READ | WRITE | CREAT(读写,不存在则创建) 三种
+                                            */
+    efi_uint_t                 attributes  /* 文件属性(新建文件时) */
 );
 
-typedef efi_status_t(EFIAPI *efi_file_close_t)(efi_file_protocol_t *this);
+typedef efi_status_t(EFIAPI *efi_file_close_t)(struct efi_file_protocol *this);
 
 typedef efi_status_t(EFIAPI *efi_file_read_t)(
-    efi_file_protocol_t *this,
+    struct efi_file_protocol *this,
     efi_uint_t *buffer_size,
     void       *buffer
 );
 
 typedef efi_status_t(EFIAPI *efi_file_write_t)(
-    efi_file_protocol_t *this,
+    struct efi_file_protocol *this,
     efi_uint_t *buffer_size,
     void       *buffer
 );
 
 typedef efi_status_t(EFIAPI *efi_file_get_info_t)(
-    efi_file_protocol_t *this,
+    struct efi_file_protocol *this,
     struct efi_guid *information_type,
     efi_uint_t      *buffer_size,
     void            *buffer
 );
 
-struct efi_file_protocol_s
+struct efi_file_protocol
 {
     uint64_t            buf;
     efi_file_open_t     open;
@@ -92,16 +91,16 @@ struct efi_file_protocol_s
 };
 
 typedef efi_status_t(EFIAPI *efi_simple_file_system_protocol_open_volume_t)(
-    efi_simple_file_system_protocol_t *this,
-    efi_file_protocol_t **root
+    struct efi_simple_file_system_protocol *this,
+    struct efi_file_protocol **root
 );
 
-struct efi_simple_file_system_protocol_s
+struct efi_simple_file_system_protocol
 {
     efi_uint_t                                    revision;
     efi_simple_file_system_protocol_open_volume_t open_volume;
 };
 
-extern efi_simple_file_system_protocol_t *sfsp;
+extern struct efi_simple_file_system_protocol *sfsp;
 
 #endif /* __EFI_SIMPLE_FILE_SYSTEM_H__ */

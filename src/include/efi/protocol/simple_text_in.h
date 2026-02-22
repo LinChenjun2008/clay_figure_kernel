@@ -29,21 +29,20 @@
 #define SCAN_F10       0x0014
 #define SCAN_ESC       0x0017
 
-typedef struct efi_simple_text_input_protocol_s
-    efi_simple_text_input_protocol_t;
+struct efi_simple_text_input_protocol;
 
-typedef struct efi_input_key_s
+struct efi_input_key
 {
     char16_t scan_code;
     uint16_t unicode_char;
-} efi_input_key_t;
+};
 
 typedef efi_status_t(EFIAPI *efi_input_read_key_t)(
-    efi_simple_text_input_protocol_t *this,
-    efi_input_key_t *key
+    struct efi_simple_text_input_protocol *this,
+    struct efi_input_key *key
 );
 
-struct efi_simple_text_input_protocol_s
+struct efi_simple_text_input_protocol
 {
     efi_uint_t           buf;
     efi_input_read_key_t read_key_stroke;

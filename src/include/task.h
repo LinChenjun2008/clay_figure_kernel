@@ -52,7 +52,7 @@ struct cpu
     uint8_t          id;
 
     struct spinlock lock;
-    list_t          task_queue;
+    struct list     task_queue;
     int             running_tasks;
 
     uint64_t       min_vrun_time;

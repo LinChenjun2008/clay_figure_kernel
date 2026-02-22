@@ -13,38 +13,38 @@
     ((CONTAINER_TYPE *)((uintptr_t)MEMBER_PTR -               \
                         OFFSET(CONTAINER_TYPE, MEMBER_NAME)))
 
-typedef struct list_node_s list_node_t;
+struct list_node;
 
-struct list_node_s
+struct list_node
 {
-    list_node_t *prev;
-    list_node_t *next;
+    struct list_node *prev;
+    struct list_node *next;
 };
 
-typedef struct
+struct list
 {
-    list_node_t head;
-    list_node_t tail;
-} list_t;
+    struct list_node head;
+    struct list_node tail;
+};
 
-void         init_list(list_t *list);
-void         list_in(list_node_t *node, list_node_t *in_before);
-void         list_push(list_t *list, list_node_t *node);
-void         list_append(list_t *list, list_node_t *node);
-void         list_remove(list_node_t *node);
-list_node_t *list_pop(list_t *list);
-int          list_find(list_t *list, list_node_t *objnode);
-list_node_t *list_traversal(
-    list_t *list,
-    int (*func)(list_node_t *, uint64_t),
+void              init_list(struct list *list);
+void              list_in(struct list_node *node, struct list_node *in_before);
+void              list_push(struct list *list, struct list_node *node);
+void              list_append(struct list *list, struct list_node *node);
+void              list_remove(struct list_node *node);
+struct list_node *list_pop(struct list *list);
+int               list_find(struct list *list, struct list_node *objnode);
+struct list_node *list_traversal(
+    struct list *list,
+    int (*func)(struct list_node *, uint64_t),
     uint64_t arg
 );
-int list_len(list_t *list);
-int list_empty(list_t *list);
+int list_len(struct list *list);
+int list_empty(struct list *list);
 
-list_node_t *list_head(list_t *list);
-list_node_t *list_tail(list_t *list);
-list_node_t *list_next(list_node_t *node);
-list_node_t *list_prev(list_node_t *node);
+struct list_node *list_head(struct list *list);
+struct list_node *list_tail(struct list *list);
+struct list_node *list_next(struct list_node *node);
+struct list_node *list_prev(struct list_node *node);
 
 #endif /* __LIST_H__ */

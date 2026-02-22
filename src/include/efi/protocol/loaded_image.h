@@ -16,7 +16,7 @@ extern struct efi_guid efi_loaded_image_protocol_guid;
 #include <efi/protocol/device_path.h>
 #include <efi/spec.h> // IMAGE_UNLOAD
 
-typedef struct efi_loaded_image_protocol_s
+struct efi_loaded_image_protocol
 {
     uint32_t                         revision;
     efi_handle_t                     parent_handle;
@@ -37,7 +37,6 @@ typedef struct efi_loaded_image_protocol_s
     efi_memory_type_t image_data_type;
 
     efi_image_unload_t unload;
-
-} efi_loaded_image_protocol_t;
+};
 
 #endif /* __EFI_LOADED_IMAGE_H__ */
