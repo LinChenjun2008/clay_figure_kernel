@@ -15,7 +15,7 @@
 #include <std/string.h>
 #include <task.h>
 
-SYSV_ABI void asm_switch_to_user(struct pt_regs *regs);
+void ASMLINKAGE asm_switch_to_user(struct pt_regs *regs);
 
 void switch_to_user(void *func)
 {

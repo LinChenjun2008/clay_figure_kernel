@@ -140,7 +140,7 @@ void general_handler(struct pt_regs *regs)
     return;
 }
 
-SYSV_ABI void interrupt_handler(struct pt_regs *regs)
+void ASMLINKAGE interrupt_handler(struct pt_regs *regs)
 {
     int int_vector                    = regs->int_vector;
     void (*handler)(struct pt_regs *) = irq_handler[int_vector];

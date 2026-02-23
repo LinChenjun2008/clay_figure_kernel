@@ -24,7 +24,7 @@ static void set_gatedesc(struct gate_desc *gd, void *func, int selector, int ar)
 }
 
 #define INTR_HANDLER(ENTRY, NR, ERROR_CODE) \
-    extern SYSV_ABI void ENTRY(struct pt_regs *);
+    void ASMLINKAGE ENTRY(struct pt_regs *);
 #include <asm/interrupt.h>
 #undef INTR_HANDLER
 

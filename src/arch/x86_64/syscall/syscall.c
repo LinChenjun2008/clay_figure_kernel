@@ -14,7 +14,7 @@
 #include <print.h>
 #include <syscall.h>
 
-extern SYSV_ABI void asm_syscall_entry(void);
+extern ASMLINKAGE void asm_syscall_entry(void);
 
 typedef int (*syscall_t)(struct pt_regs *);
 extern syscall_t syscall_table[NR_CONT];

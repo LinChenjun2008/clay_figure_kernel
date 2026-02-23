@@ -53,7 +53,7 @@ uint8_t arch_get_current_cpu_id()
     return apic_id();
 }
 
-SYSV_ABI void
+void ASMLINKAGE
 asm_switch_to(struct task_context **curr, struct task_context **next);
 
 void arch_switch_to(struct task_context **curr, struct task_context **next)

@@ -97,7 +97,7 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
         return EFI_ERR;
     }
 
-    SYSV_ABI int (*kernel_entry)(struct boot_info *, void *);
+    int(ASMLINKAGE * kernel_entry)(struct boot_info *, void *);
     uintptr_t physical_base = 0x100000;
     uintptr_t relocate_base = KERNEL_TEXT_BASE;
     load_segment(

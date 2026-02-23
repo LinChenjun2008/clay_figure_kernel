@@ -27,10 +27,10 @@ enum intr_status intr_set_status(enum intr_status status);
 void intr_init(void);
 
 // intr_handler.c
-void          general_handler(struct pt_regs *regs);
-SYSV_ABI void interrupt_handler(struct pt_regs *regs);
-void          intr_handler_init(void);
-void          register_handler(uint8_t vector, void *handler);
+void            general_handler(struct pt_regs *regs);
+void ASMLINKAGE interrupt_handler(struct pt_regs *regs);
+void            intr_handler_init(void);
+void            register_handler(uint8_t vector, void *handler);
 
 #endif /* __ASSEMBLER__ */
 #endif /* __ASM_INTERUPT_H__ */

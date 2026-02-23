@@ -31,6 +31,8 @@
 #define WEAK           __attribute__((weak))
 #define ALIGNED(ALIGN) __attribute__((aligned(ALIGN)))
 
+#define ASMLINKAGE SYSV_ABI
+
 #ifndef STATIC_ASSERT
 #    define STATIC_ASSERT(CONDITION, MESSAGE) _Static_assert(CONDITION, MESSAGE)
 #endif

@@ -21,13 +21,13 @@
 
 static uint32_t palette[8][2] = {
     { 0x000000, 0x555555 }, // black
-    { 0xaa0000, 0xff5555 }, // red
-    { 0x00aa00, 0x55ff55 }, // green
-    { 0xaa5500, 0xffff55 }, // yellow
-    { 0x0000aa, 0x5555ff }, // blue
-    { 0xaa00aa, 0xff55ff }, // light red
-    { 0x00aaaa, 0x55ffff }, // light green
-    { 0xaaaaaa, 0xffffff }, // white
+    { 0xaa0000, 0xee3333 }, // red
+    { 0x22aa66, 0x44ffaa }, // green
+    { 0xcccc00, 0xffee44 }, // yellow
+    { 0x3366aa, 0x7799cc }, // blue
+    { 0xaa4488, 0xdd66bb }, // magenta
+    { 0x0088aa, 0x33eeee }, // cyan
+    { 0xaaaaaa, 0xeeeeee }, // white
 };
 
 extern uint8_t font_8x16[256][16];
