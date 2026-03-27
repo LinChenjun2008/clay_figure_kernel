@@ -19,7 +19,7 @@ extern ASMLINKAGE void asm_syscall_entry(void);
 typedef int (*syscall_t)(struct pt_regs *);
 extern syscall_t syscall_table[NR_CONT];
 
-void arch_syscall_init(void)
+void arch_syscall_enable(void)
 {
     uint64_t msr = 0;
 

@@ -62,7 +62,7 @@ void init_all(struct boot_info *boot_info)
 
     printk(MSG_INFO MSG_HIGHLIGHT("System call") " initializing...\n");
     syscall_init();
-
+    syscall_enable();
     printk(MSG_INFO MSG_HIGHLIGHT("MP") " initializing...\n");
     mp_init(boot_info);
 
@@ -83,7 +83,7 @@ void ap_init(uint64_t stack)
     local_apic_init();
     apic_timer_init();
 
-    ap_syscall_init();
+    syscall_enable();
 
     intr_enable();
     return;

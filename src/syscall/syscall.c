@@ -31,7 +31,6 @@ static int syscall_test(void)
 
 void syscall_init(void)
 {
-    arch_syscall_init();
     int i;
     for (i = 0; i < NR_CONT; i++)
     {
@@ -41,8 +40,8 @@ void syscall_init(void)
     return;
 }
 
-void ap_syscall_init(void)
+void syscall_enable(void)
 {
-    arch_syscall_init();
+    arch_syscall_enable();
     return;
 }

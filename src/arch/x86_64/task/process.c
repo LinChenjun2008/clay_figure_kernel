@@ -21,10 +21,9 @@ void switch_to_user(void *func)
 {
     ASSERT(intr_get_status() == INTR_OFF);
     struct pt_regs *regs;
-    uintptr_t       ustack = USER_STACK_VADDR_TOP;
-
-    ustack -= sizeof(*regs);
-    regs = (struct pt_regs *)ustack;
+    uintptr_t       stack = USER_STACK_VADDR_TOP;
+    stack -= sizeof(*regs);
+    regs = (struct pt_regs *)stack;
     memset(regs, 0, sizeof(*regs));
 
     regs->ds = SELECTOR_USER_DATA64;
@@ -33,7 +32,10 @@ void switch_to_user(void *func)
     regs->gs = SELECTOR_USER_DATA64;
 
     regs->rip    = (uint64_t)func;
+    regs->cs     = SELECTOR_USER_CODE64;
     regs->rflags = EFLAGS_IOPL_0 | EFLAGS_MBS | EFLAGS_IF_1;
+    regs->rsp    = USER_STACK_VADDR_TOP;
+    regs->ss     = SELECTOR_USER_DATA64;
 
     asm_switch_to_user(regs);
     return;

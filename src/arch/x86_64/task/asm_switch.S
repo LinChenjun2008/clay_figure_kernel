@@ -79,8 +79,5 @@ asm_switch_to_user:
     popq %r15
 
     addq $16,%rsp  // skip int_vector and error_code
-    popq %rcx      // rip
-    addq $8,%rsp   // skip user cs
-    popq %r11      // rflags
-    addq $16,%rsp  // skip rsp and user ss
-    sysretq
+
+    iretq

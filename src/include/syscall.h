@@ -19,6 +19,6 @@
 #define NR_CONT 9
 
 void syscall_init(void);
-void ap_syscall_init(void);
+void syscall_enable(void);
 
 #endif /* __SYSCALL_H__ */
