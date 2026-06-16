@@ -8,7 +8,7 @@ include $(SCRIPTS_DIR)/target.mk
 SRC = $(abspath $(wildcard ./*.c))
 
 $(TARGET_BOOTLOADER): $(SRC:c=o)
-	@$(ECHO) making $@
+	@$(ECHO) "LD      $@"
 	@"$(CC)" $(CFLAGS) -o $@ $^
 
 include $(SCRIPTS_DIR)/rules.mk

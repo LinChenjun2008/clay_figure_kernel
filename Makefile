@@ -15,11 +15,11 @@ C_SRC   += $(filter %.c,$(SRC))
 
 .PHONY: all
 all:
-	@$(ECHO) compiling...
-	@$(MAKE) -C $(SRC_DIR)/arch/ all
-	@$(MAKE) -C $(SRC_DIR) all
-	@$(MAKE) $(TARGET_INITRAMFS)
-	@$(ECHO) done.
+	@$(ECHO) ---[ Build ]---
+	@$(MAKE) --no-print-directory -C $(SRC_DIR)/arch/ all
+	@$(MAKE) --no-print-directory -C $(SRC_DIR) all
+	@$(MAKE) --no-print-directory $(TARGET_INITRAMFS)
+	@$(ECHO) ---[ Done  ]---
 
 .PHONY: run
 run: all
@@ -48,12 +48,14 @@ $(TARGET_INITRAMFS): $(IMGCOPY_DEP)
 	@"$(IMGCOPY)" $(IMGCOPY_FLAGS) > $@
 
 $(TARGET_KERNEL): $(ASM_SRC:S=o) $(C_SRC:c=o) $(KERNEL_LINKER_SCRIPT)
-	@$(ECHO) linking [1/2]
+	@$(ECHO) "LD      $(@:sys=tmp)"
 	@"$(LD)" $(LDFLAGS) -o $(@:sys=tmp) $(ASM_SRC:S=o) $(C_SRC:c=o)
 	@"$(NM)" -W -n $(@:sys=tmp) | "$(KALLSYMS)" > $(@:sys=c)
 	@"$(CC)" $(KERNEL_FLAGS) -c -o $(@:sys=o) $(@:sys=c)
-	@$(ECHO) linking [2/2]
+	@$(ECHO) "LD      $(@:sys=tmp)"
 	@"$(LD)" $(LDFLAGS) -o $(@:sys=tmp) $(ASM_SRC:S=o) $(C_SRC:c=o) $(@:sys=o)
-	@"$(OBJCOPY)" -S -R ".eh_frame" -R ".comment" $(@:sys=tmp) $@
+	@$(ECHO) "OBJCOPY $(@:sys=sym)"
 	@"$(OBJCOPY)" --only-keep-debug $(@:sys=tmp) $(@:sys=sym)
+	@$(ECHO) "OBJCOPY $@"
+	@"$(OBJCOPY)" -S -R ".eh_frame" -R ".comment" $(@:sys=tmp) $@
 	@"$(RM)" $(@:sys=o) $(@:sys=c)

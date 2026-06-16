@@ -1,7 +1,7 @@
 %.o: %.c
-	@$(ECHO) compiling $*.c
+	@$(ECHO) "CC      $*.c"
 	@"$(CC)" $(CFLAGS) -MP -MD -MF $*.dep -c -o $*.o $*.c
 
 %.o: %.S
-	@$(ECHO) compiling $*.S
+	@$(ECHO) "AS      $*.S"
 	@"$(CC)" $(CFLAGS) -MP -MD -MF $*.dep -c -o $*.o $*.S
