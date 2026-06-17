@@ -42,13 +42,12 @@ char *strcpy(char *dst, const char *src)
     while ((*dst++ = *(char *)src++) != '\0');
     return ret;
 }
-
 char *strncpy(char *dst, const char *src, size_t n)
 {
-    char *ret = dst;
-    while (n-- > 0 && *src != '\0') *dst++ = *src++;
-
-    while (n-- > 0) *dst++ = '\0';
+    char  *ret = dst;
+    size_t i;
+    for (i = 0; i < n && src[i] != '\0'; i++) dst[i] = src[i];
+    for (; i < n; i++) dst[i] = '\0';
     return ret;
 }
 

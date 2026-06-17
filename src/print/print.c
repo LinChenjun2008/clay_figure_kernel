@@ -131,6 +131,20 @@ void init_print(struct graphic_info *graphic_info)
     init_spinlock(&print_lock);
     init_spinlock(&panic_lock);
 
+    char str[10];
+    int  i;
+    for (i = 40; i < 48; i++)
+    {
+        sprintf(str, "\033[%dm   \033[0m", i);
+        printk(str);
+    }
+    printk("\n");
+    for (i = 100; i < 108; i++)
+    {
+        sprintf(str, "\033[%dm   \033[0m", i);
+        printk(str);
+    }
+    printk("\n");
     return;
 }
 

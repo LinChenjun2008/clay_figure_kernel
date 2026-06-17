@@ -48,7 +48,7 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
         );
         return status;
     }
-    boot_services->set_mem(boot_info, sizeof(boot_info), 0);
+    boot_services->set_mem(boot_info, sizeof(*boot_info), 0);
 
     efi_uint_t             img_size;
     efi_physical_address_t img_base;

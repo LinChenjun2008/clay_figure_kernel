@@ -17,15 +17,7 @@ void *syscall_table[NR_CONT];
 
 static int syscall_test(void)
 {
-    static int   i    = 0;
-    struct task *task = get_current_task();
-    printk(
-        MSG_INFO "%d: syscall test: name='%s',pid=%-2d, cpu=%d.\n",
-        i++,
-        task->name,
-        task->pid,
-        task->cpu->id
-    );
+    printk(MSG_INFO "syscall test\n");
     return 0;
 }
 

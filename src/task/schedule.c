@@ -263,7 +263,6 @@ void task_active(struct task *task)
 
 static void switch_to(struct task *curr, struct task *next)
 {
-    set_current_task(next);
     arch_switch_to(&curr->context, &next->context);
     return;
 }
@@ -297,8 +296,8 @@ void task_block(enum task_status status)
     enum intr_status intr_status = intr_disable();
     struct task     *curr_task   = get_current_task();
     ASSERT(curr_task->preempt_count == 0);
-    ASSERT(curr_task->status != TASK_READY);
-    ASSERT(curr_task->status != TASK_RUNNING);
+    ASSERT(curr_task->status == TASK_READY);
+    ASSERT(curr_task->status == TASK_RUNNING);
     curr_task->status = status;
     schedule();
     intr_set_status(intr_status);

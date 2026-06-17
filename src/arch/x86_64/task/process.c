@@ -15,14 +15,20 @@
 #include <std/string.h>
 #include <task.h>
 
+//
+#include <asm/drivers/timer.h>
+#include <asm/utils.h>
+
 void ASMLINKAGE asm_switch_to_user(struct pt_regs *regs);
 
 void switch_to_user(void *func)
 {
     ASSERT(intr_get_status() == INTR_OFF);
     struct pt_regs *regs;
-    uintptr_t       stack = USER_STACK_VADDR_TOP;
-    stack -= sizeof(*regs);
+
+    uintptr_t stack = USER_STACK_VADDR_TOP;
+    stack -= sizeof(struct pt_regs);
+
     regs = (struct pt_regs *)stack;
     memset(regs, 0, sizeof(*regs));
 

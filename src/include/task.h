@@ -72,7 +72,7 @@ struct task *pid_to_task(pid_t pid);
 pid_t        task_to_pid(struct task *task);
 
 struct task *allocate_task_struct(void);
-void         free_task_struuct(struct task *task);
+void         free_task_struct(struct task *task);
 
 void init_task_struct(
     struct task *task,

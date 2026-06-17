@@ -23,6 +23,7 @@ void spin_lock(struct spinlock *lk)
     enum intr_status intr_status = intr_disable();
     while (asm_atomic_xchg(&lk->lock, 0) == 0)
     {
+        asm_pause();
         continue;
     }
     lk->intr_status = intr_status;

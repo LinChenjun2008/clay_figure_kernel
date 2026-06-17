@@ -200,3 +200,40 @@ void page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t count)
     }
     return;
 }
+
+void *to_physical_address(void *pml4t, void *vaddr)
+{
+    uint64_t *v_pml4t, *v_pml4e;
+    uint64_t *pdpt, *v_pdpte, *pdpte;
+    uint64_t *pdt, *v_pde, *pde;
+    uint64_t *pt, *v_pte, *pte;
+    v_pml4t = PHYS_TO_VIRT(pml4t);
+    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
+    if (!(*v_pml4e & PG_P))
+    {
+        return NULL;
+    }
+    pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
+    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
+    v_pdpte = PHYS_TO_VIRT(pdpte);
+    if (!(*v_pdpte & PG_P))
+    {
+        return NULL;
+    }
+    pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
+    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
+    v_pde = PHYS_TO_VIRT(pde);
+    if (!(*v_pde & PG_P))
+    {
+        return NULL;
+    }
+    pt    = (uint64_t *)(*v_pde & (~0xfff));
+    pte   = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
+    v_pte = PHYS_TO_VIRT(pte);
+    if (!(*v_pte & PG_P))
+    {
+        return NULL;
+    }
+    return (void *)((*v_pte & ~0xfff) +
+                    GET_FIELD((uintptr_t)vaddr, ADDR_OFFSET));
+}

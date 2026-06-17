@@ -24,7 +24,7 @@ static struct
 {
     struct conf_item items[64];
     int              number_of_items;
-} configures;
+} configs;
 
 static void skip_space(uint8_t **src, uint8_t *end)
 {
@@ -74,7 +74,7 @@ static int read_item(uint8_t **src, uint8_t *end, struct conf_item *item)
 
 void parse_config(struct ramfs_file *fp)
 {
-    configures.number_of_items = 0;
+    configs.number_of_items = 0;
     uint8_t *src;
     uint8_t *end = ((uint8_t *)fp->data + fp->size);
     for (src = (uint8_t *)fp->data; src < end; src++)
@@ -100,7 +100,7 @@ void parse_config(struct ramfs_file *fp)
                 skip_line(&src, end);
                 continue;
             }
-            configures.items[configures.number_of_items++] = item;
+            configs.items[configs.number_of_items++] = item;
         }
     }
     return;
@@ -109,9 +109,9 @@ void parse_config(struct ramfs_file *fp)
 void read_config(const char *name, char *value, size_t *value_len)
 {
     int i;
-    for (i = 0; i < configures.number_of_items; i++)
+    for (i = 0; i < configs.number_of_items; i++)
     {
-        struct conf_item *item = &configures.items[i];
+        struct conf_item *item = &configs.items[i];
         if (strcmp(name, item->name) == 0)
         {
             if (*value_len < item->val_len)

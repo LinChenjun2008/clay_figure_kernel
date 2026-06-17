@@ -57,6 +57,8 @@ uint64_t ASMLINKAGE asm_atomic_bts(volatile uint64_t *atom, uint64_t bit);
 uint64_t ASMLINKAGE asm_atomic_btr(volatile uint64_t *atom, uint64_t bit);
 uint64_t ASMLINKAGE asm_atomic_btc(volatile uint64_t *atom, uint64_t bit);
 
+void ASMLINKAGE asm_pause(void);
+
 void ASMLINKAGE asm_panic(void);
 
 #endif /* __ASM_UTILS_H__ */

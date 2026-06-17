@@ -27,8 +27,8 @@ static void kernel_process(void *func)
     void     *ustack       = VIRT_TO_PHYS(curr_task->ustack_base);
     void     *ustack_vaddr = (void *)(USER_STACK_VADDR_TOP - ustack_size);
     page_map(page_table, ustack, ustack_vaddr, curr_task->ustack_pages);
-
     task_page_table_active(curr_task);
+
     switch_to_user(func);
     return;
 }
@@ -83,6 +83,7 @@ struct task *process_execute(
     allocate_pages(kstack_pages, (void **)&kstack_base);
     init_task_struct(task, name, prio, kstack_base, kstack_pages, ustack_pages);
     create_task_context(task, kernel_process, proc);
+
     task->page_dir = create_page_table();
     user_vaddr_table_init(task);
 

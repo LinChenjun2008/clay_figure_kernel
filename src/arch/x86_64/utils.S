@@ -285,6 +285,12 @@ asm_atomic_btc:
     movq $0,%rax
     retq
 
+.global asm_pause
+.type asm_pause,@function
+asm_pause:
+    pause
+    retq
+
 .global asm_panic
 .type asm_panic,@function
 asm_panic:

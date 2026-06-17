@@ -16,6 +16,7 @@ C_SRC   += $(filter %.c,$(SRC))
 .PHONY: all
 all:
 	@$(ECHO) ---[ Build ]---
+	@$(ECHO) ESP: $(ESP_DIR)
 	@$(MAKE) --no-print-directory -C $(SRC_DIR)/arch/ all
 	@$(MAKE) --no-print-directory -C $(SRC_DIR) all
 	@$(MAKE) --no-print-directory $(TARGET_INITRAMFS)

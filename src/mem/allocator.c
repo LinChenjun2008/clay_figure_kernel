@@ -165,7 +165,7 @@ static int kmalloc_lock(
         if (ret < 0)
         {
             printk(MSG_ERR "kmalloc: failed to allocate page.\n");
-            return 0;
+            return ret;
         }
         memset(c, 0, PG_SIZE);
 
@@ -186,7 +186,7 @@ static int kmalloc_lock(
     b = find_block(g, alignment, boundary);
     if (b == NULL)
     {
-        printk(MSG_WARN "kmalloc: can not find avilable memory block.\n");
+        printk(MSG_WARN "kmalloc: can not find available memory block.\n");
         return -1;
     }
     memset(b, 0, g->block_size);

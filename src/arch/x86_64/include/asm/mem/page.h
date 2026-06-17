@@ -64,6 +64,7 @@ void      free_pages(void **addr, size_t pages);
 uint64_t *get_page_table(void);
 void      set_page_table(void *page_table);
 void      page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t count);
+void     *to_physical_address(void *pml4t, void *vaddr);
 
 #endif /* __ASSEMBLER__ */
 

@@ -144,7 +144,7 @@ struct task *allocate_task_struct(void)
     return pid_to_task(pid);
 }
 
-void free_task_struuct(struct task *task)
+void free_task_struct(struct task *task)
 {
     spin_lock(&task_man->lock);
     kfree((void **)&task_man->task_table[task->pid]);

@@ -36,7 +36,7 @@ struct task
     uintptr_t kstack_base;  // 内核栈基地值(虚拟地址)
     size_t    kstack_pages; // 内核栈所用的页数
 
-    uintptr_t ustack_base;  // 用户栈基址(物理地址)(如果有)
+    uintptr_t ustack_base;  // 用户栈基址(虚拟地址)(如果有)
     size_t    ustack_pages; // 用户栈所用的页数(如果有)
 
     struct cpu *volatile cpu; // 任务所在cpu的id
