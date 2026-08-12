@@ -240,7 +240,7 @@ int kmalloc(size_t size, size_t alignment, size_t boundary, void **addr)
     spin_lock(&g->lock);
     ret = kmalloc_lock(g, alignment, boundary, addr);
     spin_unlock(&g->lock);
-
+    memset(*addr, 0, size);
     return ret;
 }
 

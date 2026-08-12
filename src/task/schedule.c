@@ -110,7 +110,7 @@ static void cpu_task_list_insert_lock(struct cpu *cpu, struct task *task)
         }
         node = list_next(node);
     }
-    list_in(&task->general_tag, node);
+    list_insert(&task->general_tag, node);
     cpu->running_tasks++;
     cpu->total_weight += task_prio_to_weight[task->prio];
     ASSERT(cpu->running_tasks >= 0);

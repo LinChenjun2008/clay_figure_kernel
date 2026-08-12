@@ -40,11 +40,13 @@ void task_init(struct boot_info *boot_info, int max_tasks)
     size_t        task_table_size = sizeof(task_man->task_table[0]) * max_tasks;
     kmalloc(task_table_size, 0, 0, (void **)&task_table);
     ASSERT(task_table != NULL);
+    memset(task_table, 0, task_table_size);
 
     struct cpu *cpus      = NULL;
     int         max_cpus  = apic_max_lapic_id() + 1;
     size_t      cpus_size = sizeof(task_man->cpus[0]) * max_cpus;
     kmalloc(cpus_size, 0, 0, (void **)&cpus);
+    memset(cpus, 0, cpus_size);
 
     kmalloc(sizeof(*task_man), 0, 0, (void **)&task_man);
     init_spinlock(&task_man->lock);

@@ -16,7 +16,7 @@ void init_list(struct list *list)
     return;
 }
 
-void list_in(struct list_node *node, struct list_node *in_before)
+void list_insert(struct list_node *node, struct list_node *in_before)
 {
     in_before->prev->next = node;
 
@@ -29,13 +29,13 @@ void list_in(struct list_node *node, struct list_node *in_before)
 
 void list_push(struct list *list, struct list_node *node)
 {
-    list_in(node, list->head.next);
+    list_insert(node, list->head.next);
     return;
 }
 
 void list_append(struct list *list, struct list_node *node)
 {
-    list_in(node, &list->tail);
+    list_insert(node, &list->tail);
     return;
 }
 

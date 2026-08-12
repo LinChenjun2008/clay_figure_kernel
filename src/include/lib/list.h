@@ -27,11 +27,11 @@ struct list
     struct list_node tail;
 };
 
-void              init_list(struct list *list);
-void              list_in(struct list_node *node, struct list_node *in_before);
-void              list_push(struct list *list, struct list_node *node);
-void              list_append(struct list *list, struct list_node *node);
-void              list_remove(struct list_node *node);
+void init_list(struct list *list);
+void list_insert(struct list_node *node, struct list_node *in_before);
+void list_push(struct list *list, struct list_node *node);
+void list_append(struct list *list, struct list_node *node);
+void list_remove(struct list_node *node);
 struct list_node *list_pop(struct list *list);
 int               list_find(struct list *list, struct list_node *objnode);
 struct list_node *list_traversal(
