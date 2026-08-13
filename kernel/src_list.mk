@@ -1,0 +1,21 @@
+SUB_DIR = .
+SUB_DIR += arch/$(TARGET_ARCH)
+SUB_DIR += arch/$(TARGET_ARCH)/drivers/pic
+SUB_DIR += arch/$(TARGET_ARCH)/drivers/timer
+SUB_DIR += arch/$(TARGET_ARCH)/init
+SUB_DIR += arch/$(TARGET_ARCH)/interrupt
+SUB_DIR += arch/$(TARGET_ARCH)/mem
+SUB_DIR += arch/$(TARGET_ARCH)/mp
+SUB_DIR += arch/$(TARGET_ARCH)/sync
+SUB_DIR += arch/$(TARGET_ARCH)/syscall
+SUB_DIR += arch/$(TARGET_ARCH)/task
+SUB_DIR += drivers
+SUB_DIR += lib
+SUB_DIR += mem
+SUB_DIR += print
+SUB_DIR += std
+SUB_DIR += syscall
+SUB_DIR += task
+
+C_SRC = $(foreach DIR,$(SUB_DIR),$(wildcard $(SRC_DIR)/$(DIR)/*.c))
+A_SRC = $(foreach DIR,$(SUB_DIR),$(wildcard $(SRC_DIR)/$(DIR)/*.S))
