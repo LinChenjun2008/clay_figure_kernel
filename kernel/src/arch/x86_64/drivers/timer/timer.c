@@ -12,9 +12,12 @@
 
 #include <task.h>
 
+static uint64_t ticks = 0;
+
 static void timer()
 {
     send_eoi();
+    ticks++;
     return;
 }
 
@@ -34,6 +37,7 @@ static void apic_timer(void)
 
 void timer_init(struct boot_info *boot_info)
 {
+    ticks = 0;
     register_handler(0x20, timer);
     register_handler(0x80, apic_timer);
 
@@ -41,4 +45,9 @@ void timer_init(struct boot_info *boot_info)
     apic_timer_init();
     ioapic_irq_enable(0, 0x20, get_current_cpu_id());
     return;
+}
+
+uint64_t get_ticks(void)
+{
+    return ticks;
 }

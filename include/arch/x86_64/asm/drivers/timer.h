@@ -16,6 +16,7 @@ uint64_t get_nano_time(void);
 void     hpet_init(struct boot_info *boot_info);
 
 // timer.c
-void timer_init(struct boot_info *boot_info);
+void     timer_init(struct boot_info *boot_info);
+uint64_t get_ticks(void);
 
 #endif /* __ASM_DRIVERS_TIMER_H__ */

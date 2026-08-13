@@ -10,6 +10,7 @@ SUB_DIR += arch/$(TARGET_ARCH)/sync
 SUB_DIR += arch/$(TARGET_ARCH)/syscall
 SUB_DIR += arch/$(TARGET_ARCH)/task
 SUB_DIR += drivers
+SUB_DIR += drivers/timer
 SUB_DIR += lib
 SUB_DIR += mem
 SUB_DIR += print

@@ -12,6 +12,7 @@
 #include <asm/utils.h>
 #include <asm/x86.h>
 
+#include <drivers/timer.h>
 #include <print.h>
 #include <std/string.h>
 
@@ -46,6 +47,18 @@ static void send_ipi(uint64_t icr)
     local_apic_write(APIC_REG_ICR_HI, icr >> 32);
     local_apic_write(APIC_REG_ICR_LO, icr & 0xffffffff);
     return;
+}
+
+static int wait_mp_start(void *arg)
+{
+    uint64_t cpu_count = *(uint64_t *)arg;
+    return *(volatile uint64_t *)PHYS_TO_VIRT(AP_BOOT_FLAG) < cpu_count;
+}
+
+static int wait_mp_get_stack(void *arg)
+{
+    uintptr_t stack_top = *(uintptr_t *)arg;
+    return *(volatile uint64_t *)PHYS_TO_VIRT(AP_STACK) == stack_top;
 }
 
 void mp_init(struct boot_info *boot_info)
@@ -89,7 +102,10 @@ void mp_init(struct boot_info *boot_info)
     *(volatile uint64_t *)PHYS_TO_VIRT(AP_BOOT_FLAG) = 1;
 
     uint64_t cpu_count = apic_cpu_count();
-    while (*(volatile uint64_t *)PHYS_TO_VIRT(AP_BOOT_FLAG) < cpu_count);
+    if (run_timeout(wait_mp_start, &cpu_count, 1000))
+    {
+        PANIC("Secondary cpu start-up timeout!\n");
+    }
 
     cpu_count = *(volatile uint64_t *)PHYS_TO_VIRT(AP_BOOT_FLAG);
     printk("mp_init: %d cpu(s) started.\n", cpu_count);
@@ -101,8 +117,12 @@ void mp_init(struct boot_info *boot_info)
     {
         stack = (uintptr_t)allocate_pages(1);
         ASSERT(stack != 0);
-        *(volatile uintptr_t *)PHYS_TO_VIRT(AP_STACK) = stack + PG_SIZE;
-        while (*(volatile uint64_t *)PHYS_TO_VIRT(AP_STACK) == stack + PG_SIZE);
+        uintptr_t stack_top                           = stack + PG_SIZE;
+        *(volatile uintptr_t *)PHYS_TO_VIRT(AP_STACK) = stack_top;
+        if (run_timeout(wait_mp_get_stack, &stack_top, 1000))
+        {
+            PANIC("Secondary cpu get stack point timeout!\n");
+        }
     }
     printk("mp_init: secondary cpu(s) are ready.\n");
 
