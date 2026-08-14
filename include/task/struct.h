@@ -9,8 +9,10 @@
 #ifndef __ASSEMBLER__
 
 #    include <asm/ptrace.h>
+#    include <asm/sync/spinlock.h>
 
 #    include <lib/linked_list.h>
+#    include <sync/atomic.h>
 
 typedef int32_t pid_t;
 
@@ -51,8 +53,10 @@ struct task
     uint64_t run_time;
     uint64_t vrun_time;
 
-    pid_t childs;
-    int   return_status;
+    struct atomic   childs;
+    int             return_status;
+    struct list     exited_childs;
+    struct spinlock exited_lock;
 };
 
 #endif /* __ASSEMBLER__ */

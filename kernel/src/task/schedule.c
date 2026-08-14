@@ -278,6 +278,17 @@ void task_active(struct task *task)
     return;
 }
 
+static void inform_exit(struct task *task)
+{
+    struct task *parent_task = pid_to_task(task->ppid);
+
+    spin_lock(&parent_task->exited_lock);
+    list_append(&parent_task->exited_childs, &task->general_node);
+    spin_unlock(&parent_task->exited_lock);
+
+    return;
+}
+
 static void switch_to(struct task *curr, struct task *next)
 {
     arch_switch_to(&curr->context, &next->context);
@@ -296,9 +307,16 @@ void schedule(void)
         return;
     }
 
-    if (curr_task->status == TASK_RUNNING)
+    switch (curr_task->status)
     {
-        cpu_task_list_insert(curr_cpu, curr_task);
+        case TASK_RUNNING:
+            cpu_task_list_insert(curr_cpu, curr_task);
+            break;
+        case TASK_DIED:
+            inform_exit(curr_task);
+            break;
+        default:
+            break;
     }
     struct task *next_task = cpu_get_next_task(curr_cpu);
     ASSERT(next_task != NULL);

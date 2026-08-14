@@ -12,6 +12,7 @@
 
 #include <print.h>
 #include <std/string.h>
+#include <sync/atomic.h>
 #include <task.h>
 #include <task/struct.h>
 
@@ -89,7 +90,7 @@ struct task *process_execute(
         return NULL;
     }
 
-    get_current_task()->childs++;
+    atomic_inc(&get_current_task()->childs);
 
     struct cpu *cpu = get_cpu_struct(task->cpu_id);
 

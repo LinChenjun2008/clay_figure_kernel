@@ -31,6 +31,11 @@ struct list_node *list_pop(struct list *list);
 int               list_find(struct list *list, struct list_node *node);
 struct list_node *
 list_traversal(struct list *list, list_traversal_func_t func, uint64_t arg);
+struct list_node *list_traversal_remove(
+    struct list          *list,
+    list_traversal_func_t func,
+    uint64_t              arg
+);
 size_t            list_len(struct list *list);
 int               list_empty(struct list *list);
 struct list_node *list_head(struct list *list);

@@ -237,8 +237,10 @@ void init_task_struct(
     task->run_time  = 0;
     task->vrun_time = 0;
 
-    task->childs        = 0;
+    atomic_set(&task->childs, 0);
     task->return_status = 0;
+    init_list(&task->exited_childs);
+    init_spinlock(&task->exited_lock);
     return;
 }
 
@@ -269,7 +271,7 @@ struct task *task_start(
     init_task_struct(task, name, prio, kstack_base, kstack_pages, 0);
     create_task_context(task, func, arg);
 
-    get_current_task()->childs++;
+    atomic_inc(&get_current_task()->childs);
 
     struct cpu *cpu = get_cpu_struct(task->cpu_id);
 
@@ -279,11 +281,93 @@ struct task *task_start(
 
 void task_exit(int return_value)
 {
-    struct task *task   = get_current_task();
+    struct task *task = get_current_task();
+
     task->return_status = return_value;
 
     /// TODO: 将子任务由Main task接管
 
     task_block(TASK_DIED);
     return;
+}
+
+static size_t exited_childs(struct task *task)
+{
+    spin_lock(&task->exited_lock);
+    size_t exited_childs = list_len(&task->exited_childs);
+    spin_unlock(&task->exited_lock);
+    return exited_childs;
+}
+
+static int find_child(struct list_node *node, uint64_t arg)
+{
+    struct task *task = NULL;
+    task              = CONTAINER_OF(struct task, general_node, node);
+    return task->pid == (pid_t)arg;
+}
+
+int task_release_resources(struct task *task)
+{
+    struct task *parent_task = pid_to_task(task->ppid);
+    ASSERT(get_current_task() == parent_task);
+
+    free_pages((void *)task->kstack_base, task->kstack_pages);
+    int ret = task->return_status;
+    atomic_dec(&parent_task->childs);
+    free_task(task);
+    return ret;
+}
+
+pid_t task_waitpid(pid_t pid, int *status, int options)
+{
+    // unsupport
+    if (pid == 0 || pid < -1)
+    {
+        return -1;
+    }
+    struct task *task = get_current_task();
+
+    if (atomic_read(&task->childs) == 0)
+    {
+        return -1;
+    }
+    if (exited_childs(task) == 0 && options & WNOHANG)
+    {
+        return 0;
+    }
+
+    while (exited_childs(task) == 0)
+    {
+        task_block(TASK_WAITING);
+    }
+
+    struct list_node *node;
+
+    // any task
+    if (pid == -1)
+    {
+        spin_lock(&task->exited_lock);
+        node = list_pop(&task->exited_childs);
+        spin_unlock(&task->exited_lock);
+    }
+    else
+    {
+        spin_lock(&task->exited_lock);
+        node = list_traversal_remove(&task->exited_childs, find_child, pid);
+        spin_unlock(&task->exited_lock);
+
+        if (node == NULL)
+        {
+            return -1;
+        }
+    }
+    struct task *child      = CONTAINER_OF(struct task, general_node, node);
+    pid_t        ret        = child->pid;
+    int          ret_status = task_release_resources(child);
+    if (status != NULL)
+    {
+        printk(MSG_INFO "exit: %d.\n", ret_status);
+        *status = ret_status;
+    }
+    return ret;
 }

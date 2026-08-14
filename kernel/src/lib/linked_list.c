@@ -104,6 +104,27 @@ list_traversal(struct list *list, list_traversal_func_t func, uint64_t arg)
     return ret;
 }
 
+struct list_node *list_traversal_remove(
+    struct list          *list,
+    list_traversal_func_t func,
+    uint64_t              arg
+)
+{
+    struct list_node *temp_node = list->head.next;
+    struct list_node *ret       = NULL;
+    size_t            i;
+    for (i = 0; i < list->len; i++)
+    {
+        if (func(temp_node, arg))
+        {
+            ret = temp_node;
+            break;
+        }
+    }
+    list_remove(ret);
+    return ret;
+}
+
 size_t list_len(struct list *list)
 {
     return list->len;

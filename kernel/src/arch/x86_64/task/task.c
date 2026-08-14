@@ -14,11 +14,11 @@
 #include <print.h>
 #include <task.h>
 
-static void kernel_task(void (*func)(uint64_t), uint64_t arg)
+static void kernel_task(int (*func)(uint64_t), uint64_t arg)
 {
     intr_enable();
-    func(arg);
-    while (1) PANIC("Should not be here.\n");
+    int ret = func(arg);
+    task_exit(ret);
     return;
 }
 

@@ -94,6 +94,12 @@ struct task *task_start(
     void       *arg
 );
 void task_exit(int return_value);
+int  task_release_resources(struct task *task);
+
+// waitpid
+#    define WNOHANG 1
+
+pid_t task_waitpid(pid_t pid, int *status, int options);
 
 // process.c
 struct task *process_execute(

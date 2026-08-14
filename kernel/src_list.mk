@@ -15,6 +15,7 @@ SUB_DIR += lib
 SUB_DIR += mem
 SUB_DIR += print
 SUB_DIR += std
+SUB_DIR += sync
 SUB_DIR += syscall
 SUB_DIR += task
 
