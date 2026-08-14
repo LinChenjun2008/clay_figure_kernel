@@ -16,8 +16,7 @@
 
 extern ASMLINKAGE void asm_syscall_entry(void);
 
-typedef int (*syscall_t)(struct pt_regs *);
-extern syscall_t syscall_table[NR_CONT];
+extern void *syscall_table[NR_CONT];
 
 void arch_syscall_enable(void)
 {
@@ -55,14 +54,9 @@ void syscall_entry(struct pt_regs *regs)
         return;
     }
 
-    // uint64_t arg1, arg2, arg3, arg4, arg5, ret;
-    // arg1      = regs->rsi;
-    // arg2      = regs->rdx;
-    // arg3      = regs->rcx;
-    // arg4      = regs->r8;
-    // arg5      = regs->r9;
-
-    int ret   = syscall_table[func](regs);
+    int (*sys_func)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+    sys_func  = syscall_table[func];
+    int ret   = sys_func(regs->rsi, regs->rdx, regs->r10, regs->r8, regs->r9);
     regs->rax = ret;
     return;
 }
