@@ -93,6 +93,7 @@ struct task *task_start(
     void       *func,
     void       *arg
 );
+void task_exit(int return_value);
 
 // process.c
 struct task *process_execute(
@@ -113,6 +114,10 @@ void     task_balance(void);
 void     task_pg_active(struct task *task);
 void     task_active(struct task *task);
 void     schedule(void);
+
+void task_block(enum task_status status);
+void task_unblock(pid_t pid);
+void task_yield(void);
 
 #endif /* __ASSEMBLER__ */
 

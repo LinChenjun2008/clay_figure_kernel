@@ -40,8 +40,6 @@ struct task
     pid_t pid;
     pid_t ppid;
 
-    pid_t childs;
-
     char name[32];
 
     volatile enum task_status status;
@@ -52,6 +50,9 @@ struct task
     uint64_t prio;
     uint64_t run_time;
     uint64_t vrun_time;
+
+    pid_t childs;
+    int   return_status;
 };
 
 #endif /* __ASSEMBLER__ */

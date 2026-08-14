@@ -8,8 +8,6 @@
 #include <asm/init.h>
 
 // TEST
-#include <asm/drivers/apic.h>
-
 #include <print.h>
 #include <task.h>
 
@@ -31,5 +29,7 @@ int main(struct boot_info *boot_info)
 int ap_main(uintptr_t stack)
 {
     ap_init_all(stack);
+    process_execute("process", DEFAULT_PRIO, 1, 1, proc);
+
     while (1);
 }

@@ -306,3 +306,35 @@ void schedule(void)
     switch_to(curr_task, next_task);
     return;
 }
+
+void task_block(enum task_status status)
+{
+    enum intr_status intr_status = intr_disable();
+    struct task     *task        = get_current_task();
+    ASSERT(task->preempt_count == 0);
+
+    task->status = status;
+    schedule();
+    intr_set_status(intr_status);
+    return;
+}
+
+void task_unblock(pid_t pid)
+{
+    enum intr_status intr_status = intr_disable();
+
+    struct task *task = pid_to_task(pid);
+    struct cpu  *cpu  = get_cpu_struct(task->cpu_id);
+    cpu_task_list_insert(cpu, task);
+
+    intr_set_status(intr_status);
+    return;
+}
+
+void task_yield(void)
+{
+    enum intr_status intr_status = intr_disable();
+    schedule();
+    intr_set_status(intr_status);
+    return;
+}

@@ -226,8 +226,6 @@ void init_task_struct(
 
     task->ppid = get_current_task()->pid;
 
-    task->childs = 0;
-
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
 
@@ -238,6 +236,9 @@ void init_task_struct(
     task->prio      = prio;
     task->run_time  = 0;
     task->vrun_time = 0;
+
+    task->childs        = 0;
+    task->return_status = 0;
     return;
 }
 
@@ -274,4 +275,15 @@ struct task *task_start(
 
     cpu_task_list_insert(cpu, task);
     return task;
+}
+
+void task_exit(int return_value)
+{
+    struct task *task   = get_current_task();
+    task->return_status = return_value;
+
+    /// TODO: 将子任务由Main task接管
+
+    task_block(TASK_DIED);
+    return;
 }
