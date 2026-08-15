@@ -20,6 +20,7 @@
 
 void syscall_init(void);
 void syscall_enable(void);
+void register_syscall(uint64_t num, void *func);
 
 void syscall_0(uint64_t);
 void syscall_1(uint64_t, uint64_t);

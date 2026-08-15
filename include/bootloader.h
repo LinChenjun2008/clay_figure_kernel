@@ -42,7 +42,7 @@ int compare_guid(struct efi_guid *guid1, struct efi_guid *guid2);
 #include <asm/page.h>
 
 efi_status_t get_memory_map(struct memory_map *mmap);
-efi_status_t create_page_table(void *pml4t);
+efi_status_t create_page_table(void *pg_dir);
 
 // stdio.c
 int       vsprintf(char16_t *buf, const char16_t *fmt, va_list ap);

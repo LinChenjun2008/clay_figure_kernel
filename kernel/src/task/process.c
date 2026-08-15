@@ -24,6 +24,10 @@ static void kernel_process(void *func)
 
     task->ustack_base = (uintptr_t)allocate_pages(task->ustack_pages);
     ASSERT(task->ustack_base != 0);
+    if (task->ustack_base == 0)
+    {
+        process_exit(-1);
+    }
 
     ASSERT(task->pg_dir != NULL);
     size_t    ustack_size  = task->ustack_pages * PG_SIZE;
@@ -76,8 +80,7 @@ struct task *process_execute(
     uintptr_t kstack_base = (uintptr_t)allocate_pages(kstack_pages);
     if (kstack_base == 0)
     {
-        free_task(task);
-        return NULL;
+        goto fail;
     }
     init_task_struct(task, name, prio, kstack_base, kstack_pages, ustack_pages);
     create_task_context(task, kernel_process, func);
@@ -85,9 +88,7 @@ struct task *process_execute(
     task->pg_dir = create_pg_dir();
     if (task->pg_dir == NULL)
     {
-        free_pages((void *)kstack_base, kstack_pages);
-        free_task(task);
-        return NULL;
+        goto fail;
     }
 
     atomic_inc(&get_current_task()->childs);
@@ -96,4 +97,25 @@ struct task *process_execute(
 
     cpu_task_list_insert(cpu, task);
     return task;
+
+fail:
+    free_pg_table(task->pg_dir);
+    free_pages((void *)kstack_base, kstack_pages);
+    free_task(task);
+    return NULL;
+}
+
+void process_exit(int status)
+{
+    struct task *task = get_current_task();
+
+    void *pg_dir = task->pg_dir;
+    task->pg_dir = NULL;
+    task_pg_active(task);
+
+    free_pg_table(pg_dir);
+
+    free_pages((void *)task->ustack_base, task->ustack_pages);
+    task_exit(status);
+    return;
 }

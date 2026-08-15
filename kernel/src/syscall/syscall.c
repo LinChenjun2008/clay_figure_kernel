@@ -9,6 +9,9 @@
 
 #include <syscall.h>
 
+// syscall functions
+#include <task.h>
+
 void *syscall_table[NR_CONT];
 
 void syscall_init(void)
@@ -18,11 +21,23 @@ void syscall_init(void)
     {
         syscall_table[i] = NULL;
     }
+    register_syscall(NR_EXIT, process_exit);
+    register_syscall(NR_WAIT, task_waitpid);
     return;
 }
 
 void syscall_enable(void)
 {
     arch_syscall_enable();
+    return;
+}
+
+void register_syscall(uint64_t num, void *func)
+{
+    if (num >= NR_CONT)
+    {
+        return;
+    }
+    syscall_table[num] = func;
     return;
 }

@@ -239,6 +239,7 @@ void free_pages(void *addr, size_t pages)
 {
     if (addr == NULL)
     {
+        printk(MSG_WARN "free_pages: Free null point.\n");
         return;
     }
     ASSERT(((uintptr_t)addr & (PG_SIZE - 1)) == 0);
@@ -277,11 +278,11 @@ static void page_map_sub(uint64_t *page_table, uintptr_t paddr, uintptr_t vaddr)
     paddr &= ~(PG_SIZE - 1);
     vaddr &= ~(PG_SIZE - 1);
 
-    uint64_t *pml4t, *pdpt, *pdt, *pt;
+    uint64_t *pg_dir, *pdpt, *pdt, *pt;
     uint64_t *pml4e, *pdpte, *pde, *pte;
 
-    pml4t = PHYS_TO_VIRT(page_table);
-    pml4e = pml4t + GET_FIELD(vaddr, ADDR_PML4T_INDEX);
+    pg_dir = PHYS_TO_VIRT(page_table);
+    pml4e  = pg_dir + GET_FIELD(vaddr, ADDR_PML4T_INDEX);
     if (!(*pml4e & PG_P))
     {
         pdpt = allocate_pages(1);
@@ -310,7 +311,7 @@ static void page_map_sub(uint64_t *page_table, uintptr_t paddr, uintptr_t vaddr)
     return;
 }
 
-void page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t count)
+void page_map(uint64_t *pg_dir, void *paddr, void *vaddr, uint64_t count)
 {
     uintptr_t v, p;
     uint64_t  i;
@@ -318,18 +319,18 @@ void page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t count)
     {
         v = (uintptr_t)vaddr + i * PG_SIZE;
         p = (uintptr_t)paddr + i * PG_SIZE;
-        page_map_sub(pml4t, p, v);
+        page_map_sub(pg_dir, p, v);
     }
     return;
 }
 
-void *to_physical_address(void *pml4t, void *vaddr)
+void *to_physical_address(void *pg_dir, void *vaddr)
 {
     uint64_t *v_pml4t, *v_pml4e;
     uint64_t *pdpt, *v_pdpte, *pdpte;
     uint64_t *pdt, *v_pde, *pde;
     uint64_t *pt, *v_pte, *pte;
-    v_pml4t = PHYS_TO_VIRT(pml4t);
+    v_pml4t = PHYS_TO_VIRT(pg_dir);
     v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
     if (!(*v_pml4e & PG_P))
     {
@@ -358,4 +359,60 @@ void *to_physical_address(void *pml4t, void *vaddr)
     }
     return (void *)((*v_pte & ~0xfff) +
                     GET_FIELD((uintptr_t)vaddr, ADDR_OFFSET));
+}
+
+static void free_pt(uintptr_t pt)
+{
+    uint64_t *v_pt = PHYS_TO_VIRT(pt);
+
+    free_pages(v_pt, 1);
+    return;
+}
+
+static void free_pdt(uintptr_t pdt)
+{
+    uint64_t *v_pdt = PHYS_TO_VIRT(pdt);
+
+    int i;
+    for (i = 0; i < 512; i++)
+    {
+        if (v_pdt[i] & PG_P)
+        {
+            free_pt(v_pdt[i] & (~0xfff));
+        }
+    }
+    free_pages(v_pdt, 1);
+    return;
+}
+
+static void free_pdpt(uintptr_t pdpt)
+{
+    uint64_t *v_pdpt = PHYS_TO_VIRT(pdpt);
+
+    int i;
+    for (i = 0; i < 512; i++)
+    {
+        if (v_pdpt[i] & PG_P)
+        {
+            free_pdt(v_pdpt[i] & (~0xfff));
+        }
+    }
+    free_pages(v_pdpt, 1);
+    return;
+}
+
+void free_pg_table(uint64_t *pg_dir)
+{
+    uint64_t *v_pml4t = PHYS_TO_VIRT(pg_dir);
+
+    int i;
+    for (i = 0; i < 256; i++) // 仅限用户空间
+    {
+        if (v_pml4t[i] & PG_P)
+        {
+            free_pdpt(v_pml4t[i] & (~0xfff));
+        }
+    }
+    free_pages(v_pml4t, 1);
+    return;
 }

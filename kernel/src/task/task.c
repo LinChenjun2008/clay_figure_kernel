@@ -259,14 +259,13 @@ struct task *task_start(
     struct task *task = allocate_task();
     if (task == NULL)
     {
-        return NULL;
+        goto fail;
     }
 
     uintptr_t kstack_base = (uintptr_t)allocate_pages(kstack_pages);
     if (kstack_base == 0)
     {
-        free_task(task);
-        return NULL;
+        goto fail;
     }
     init_task_struct(task, name, prio, kstack_base, kstack_pages, 0);
     create_task_context(task, func, arg);
@@ -277,6 +276,11 @@ struct task *task_start(
 
     cpu_task_list_insert(cpu, task);
     return task;
+
+fail:
+    free_pages((void *)kstack_base, kstack_pages);
+    free_task(task);
+    return NULL;
 }
 
 void task_exit(int return_value)
@@ -361,12 +365,12 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
             return -1;
         }
     }
+
     struct task *child      = CONTAINER_OF(struct task, general_node, node);
     pid_t        ret        = child->pid;
     int          ret_status = task_release_resources(child);
     if (status != NULL)
     {
-        printk(MSG_INFO "exit: %d.\n", ret_status);
         *status = ret_status;
     }
     return ret;

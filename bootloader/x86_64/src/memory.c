@@ -30,7 +30,7 @@ efi_status_t get_memory_map(struct memory_map *memmap)
     return status;
 }
 
-static void page_map_sub(uint64_t *pml4t, void *paddr, void *vaddr)
+static void page_map_sub(uint64_t *pg_dir, void *paddr, void *vaddr)
 {
     paddr = (void *)((uintptr_t)paddr & ~(PG_SIZE - 1));
     vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
@@ -40,7 +40,7 @@ static void page_map_sub(uint64_t *pml4t, void *paddr, void *vaddr)
     uint64_t *pdt  = NULL, *pde;
     uint64_t *pt   = NULL, *pte;
 
-    pml4e = pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
+    pml4e = pg_dir + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
 
     efi_status_t status;
     if (!(*pml4e & PG_P))
@@ -117,20 +117,20 @@ static void page_map_sub(uint64_t *pml4t, void *paddr, void *vaddr)
 }
 
 static void
-boot_page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t pages)
+boot_page_map(uint64_t *pg_dir, void *paddr, void *vaddr, uint64_t pages)
 {
     uint64_t i;
     for (i = 0; i < pages; i++)
     {
         page_map_sub(
-            pml4t,
+            pg_dir,
             (void *)((uintptr_t)paddr + i * PG_SIZE),
             (void *)((uintptr_t)vaddr + i * PG_SIZE)
         );
     }
 }
 
-efi_status_t create_page_table(void *pml4t)
+efi_status_t create_page_table(void *pg_dir)
 {
     efi_status_t status         = EFI_SUCCESS;
     uint64_t    *page_table_pos = NULL;
@@ -172,6 +172,6 @@ efi_status_t create_page_table(void *pml4t)
     printf(L"mmap: %p - %p.\r\n", 0, KERNEL_TEXT_BASE);
     boot_page_map(page_table_pos, (void *)0, (void *)KERNEL_TEXT_BASE, 512);
 
-    *(uint64_t **)pml4t = page_table_pos;
+    *(uint64_t **)pg_dir = page_table_pos;
     return status;
 }

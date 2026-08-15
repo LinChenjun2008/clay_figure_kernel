@@ -109,6 +109,7 @@ struct task *process_execute(
     size_t      ustack_pages,
     void       *func
 );
+void process_exit(int status);
 
 // schedule.c
 

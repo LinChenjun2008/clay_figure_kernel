@@ -57,8 +57,9 @@ void *allocate_pages(size_t pages);
 
 void set_pg_table(void *pg_table);
 
-void  page_map(uint64_t *pml4t, void *paddr, void *vaddr, uint64_t count);
-void *to_physical_address(void *pml4t, void *vaddr);
+void  page_map(uint64_t *pg_dir, void *paddr, void *vaddr, uint64_t count);
+void *to_physical_address(void *pg_dir, void *vaddr);
+void  free_pg_table(uint64_t *pg_dir);
 
 #endif /* __ASSEMBLER__ */
 
