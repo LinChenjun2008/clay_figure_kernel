@@ -62,9 +62,9 @@ void create_task_context(struct task *task, void *func, void *arg)
 void ASMLINKAGE
 asm_switch_to(struct task_context **curr, struct task_context **next);
 
-void arch_switch_to(struct task_context **curr, struct task_context **next)
+void arch_switch_to(struct task *curr, struct task *next)
 {
-    asm_switch_to(curr, next);
+    asm_switch_to(&curr->context, &next->context);
     return;
 }
 

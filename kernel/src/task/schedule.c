@@ -291,7 +291,8 @@ static void inform_exit(struct task *task)
 
 static void switch_to(struct task *curr, struct task *next)
 {
-    arch_switch_to(&curr->context, &next->context);
+    task_active(next);
+    arch_switch_to(curr, next);
     return;
 }
 
@@ -320,7 +321,6 @@ void schedule(void)
     }
     struct task *next_task = cpu_get_next_task(curr_cpu);
     ASSERT(next_task != NULL);
-    task_active(next_task);
     switch_to(curr_task, next_task);
     return;
 }
