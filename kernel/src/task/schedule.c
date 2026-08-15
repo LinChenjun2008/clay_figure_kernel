@@ -167,52 +167,134 @@ static void cpu_unlock_double(uint8_t cpu1_id, uint8_t cpu2_id)
     return;
 }
 
-static void do_task_balance_lock(struct cpu *busy, struct cpu *idle)
+/**
+ * 批量迁移:一次遍历busy队列,摘下要迁移的任务(跳过main_task),
+ * 统一换算vrun_time并更新cpu_id后,归并插入idle队列。
+ * 相比逐个迁移,把多次O(n)链表插入合并为单次O(n+m),缩短持锁时间。
+ */
+static void migrate_tasks_lock(
+    uint8_t  busy_id,
+    uint8_t  idle_id,
+    int      max_move,
+    uint64_t target_weight
+)
 {
-    struct task *task = cpu_get_next_task_lock(busy);
-    ASSERT(task != NULL);
-    if (task == busy->main_task)
+    struct cpu *busy = get_cpu_struct(busy_id);
+    struct cpu *idle = get_cpu_struct(idle_id);
+
+    struct list       migrate_list;
+    struct list_node *node         = NULL;
+    struct task      *task         = NULL;
+    int               moved        = 0;
+    uint64_t          moved_weight = 0;
+
+    init_list(&migrate_list);
+
+    /* 1. 从busy队头(最小vrun_time)收集要迁移的任务 */
+    node = list_next(list_head(&busy->task_queue));
+    while (node != list_tail(&busy->task_queue) && moved < max_move)
     {
-        task = cpu_get_next_task_lock(busy);
-        ASSERT(task != NULL);
-        cpu_task_list_insert_lock(busy, busy->main_task);
+        task = CONTAINER_OF(struct task, general_node, node);
+        node = list_next(node);
+
+        if (task == busy->main_task)
+        {
+            continue; /* main_task不可迁移 */
+        }
+        list_remove(&task->general_node);
+        busy->running_tasks--;
+        busy->total_weight -= task_prio_to_weight[task->prio];
+
+        list_append(&migrate_list, &task->general_node);
+
+        moved++;
+        moved_weight += task_prio_to_weight[task->prio];
+        if (moved_weight >= target_weight)
+        {
+            break;
+        }
     }
-    adjust_vrun_time(idle, task);
-    cpu_task_list_insert_lock(idle, task);
+
+    if (moved == 0)
+    {
+        return;
+    }
+
+    /* 2. vrun_time换算到idle基准,并更新cpu_id */
+    node = list_next(list_head(&migrate_list));
+    while (node != list_tail(&migrate_list))
+    {
+        task = CONTAINER_OF(struct task, general_node, node);
+        node = list_next(node);
+        adjust_vrun_time(idle, task);
+        task->cpu_id = idle_id;
+    }
+
+    /* 3. 归并插入idle队列。
+     *    迁移列表保持vrun_time升序,ins_node只前进,整体一次归并。 */
+    struct list_node *ins_node = list_next(list_head(&idle->task_queue));
+    node                       = list_next(list_head(&migrate_list));
+    while (node != list_tail(&migrate_list))
+    {
+        task = CONTAINER_OF(struct task, general_node, node);
+        node = list_next(node);
+
+        while (ins_node != list_tail(&idle->task_queue))
+        {
+            struct task *tmp =
+                CONTAINER_OF(struct task, general_node, ins_node);
+            if ((int64_t)(task->vrun_time - tmp->vrun_time) < 0)
+            {
+                break;
+            }
+            ins_node = list_next(ins_node);
+        }
+        list_insert(&task->general_node, ins_node);
+        idle->running_tasks++;
+        idle->total_weight += task_prio_to_weight[task->prio];
+    }
     return;
 }
 
-static void task_balance_lock(struct cpu *busy, struct cpu *idle)
+static void task_balance_lock(uint8_t busy_id, uint8_t idle_id)
 {
-    int max_running = busy->running_tasks;
-    int min_running = idle->running_tasks;
+    struct cpu *busy = get_cpu_struct(busy_id);
+    struct cpu *idle = get_cpu_struct(idle_id);
 
-    if (max_running <= 2)
+    uint64_t busy_weight = busy->total_weight;
+    uint64_t idle_weight = idle->total_weight;
+
+    /* 队列中至少保留 main_task + 1 个任务,避免过度迁移 */
+    if (busy->running_tasks <= 2)
     {
         return;
     }
-    if (max_running - min_running <= 1)
+    /* 数量差异太小,没有迁移的必要 */
+    if (busy->running_tasks - idle->running_tasks <= 1)
     {
         return;
     }
-    int task_should_be_move = (max_running - min_running) / 2;
-    int i;
-    for (i = 0; i < task_should_be_move; i++)
+    /* 权重差异小于阈值(busy不超过idle的2倍)则不迁移 */
+    if (busy_weight <= idle_weight * 2)
     {
-        do_task_balance_lock(busy, idle);
+        return;
     }
+
+    /* 目标:把多出的权重的一半迁移过去 */
+    uint64_t target_weight = (busy_weight - idle_weight) / 2;
+    int      max_move      = (busy->running_tasks - idle->running_tasks) / 2;
+
+    migrate_tasks_lock(busy_id, idle_id, max_move, target_weight);
     return;
 }
 
 void task_balance(void)
 {
-    ASSERT(intr_get_status() == INTR_OFF);
     struct task_mgr *task_mgr = get_task_mgr();
 
-    int         min_running = task_mgr->max_tasks + 1;
-    int         max_running = -1;
-    int         cur_running = 0;
-    struct cpu *cpu         = NULL;
+    uint64_t    max_weight = 0;
+    uint64_t    min_weight = ~0ULL;
+    struct cpu *cpu        = NULL;
 
     int busy_id = 0, idle_id = 0;
     int i = 0;
@@ -225,18 +307,18 @@ void task_balance(void)
         }
 
         spin_lock(&cpu->lock);
-        cur_running = cpu->running_tasks;
+        uint64_t weight = cpu->total_weight;
         spin_unlock(&cpu->lock);
 
-        if (cur_running > max_running)
+        if (weight > max_weight)
         {
-            max_running = cur_running;
-            busy_id     = i;
+            max_weight = weight;
+            busy_id    = i;
         }
-        if (cur_running < min_running)
+        if (weight < min_weight)
         {
-            min_running = cur_running;
-            idle_id     = i;
+            min_weight = weight;
+            idle_id    = i;
         }
     }
 
@@ -245,11 +327,7 @@ void task_balance(void)
         return;
     }
     cpu_lock_double(busy_id, idle_id);
-
-    struct cpu *busy = get_cpu_struct(busy_id);
-    struct cpu *idle = get_cpu_struct(idle_id);
-    task_balance_lock(busy, idle);
-
+    task_balance_lock(busy_id, idle_id);
     cpu_unlock_double(busy_id, idle_id);
     return;
 }
