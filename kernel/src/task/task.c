@@ -272,9 +272,7 @@ struct task *task_start(
 
     atomic_inc(&get_current_task()->childs);
 
-    struct cpu *cpu = get_cpu_struct(task->cpu_id);
-
-    cpu_task_list_insert(cpu, task);
+    cpu_task_enqueue(task);
     return task;
 
 fail:

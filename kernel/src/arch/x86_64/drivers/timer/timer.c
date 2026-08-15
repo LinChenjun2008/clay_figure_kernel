@@ -24,13 +24,6 @@ static void timer()
 static void apic_timer(void)
 {
     send_eoi();
-    static uint64_t tick = 0;
-    tick++;
-    if (tick >= 1000)
-    {
-        tick = 0;
-        task_balance();
-    }
     task_update();
     return;
 }
