@@ -11,6 +11,7 @@
 #include <asm/x86.h>
 
 #include <print.h>
+#include <task.h>
 
 static int has_error_code[256] = {
 #define INTR_HANDLER(ENTRY, NR, ERROR_CODE) !ERROR_CODE,
@@ -110,6 +111,9 @@ static void print_registers(struct pt_regs *regs)
     printk("CR2: " MSG_HIGHLIGHT("%016lx "), get_cr2());
     printk("CR3: " MSG_HIGHLIGHT("%016lx "), get_cr3());
     printk("CR4: " MSG_HIGHLIGHT("%016lx\n"), get_cr4());
+
+    printk("current: %s.\n", get_current_task()->name);
+    printk(MSG_ERR "CPU ID: %d.\n", get_current_cpu_id());
     return;
 }
 
@@ -129,7 +133,6 @@ void general_handler(struct pt_regs *regs)
     printk(MSG_ERR "Unexpected interrupt: " MSG_HIGHLIGHT("%#04x\n"), vector);
     printk(MSG_ERR "Time: " MSG_HIGHLIGHT("%u.%06u\n"), second, usecond);
     print_registers(regs);
-
     if (has_error_code[vector])
     {
         printk(MSG_ERR "Error code: " MSG_HIGHLIGHT("%08x\n"), error_code);

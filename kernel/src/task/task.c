@@ -20,12 +20,15 @@ static struct task_mgr *static_task_mgr = NULL;
 static void cpu_task_init(struct cpu *cpu)
 {
     memset(cpu, 0, sizeof(*cpu));
+    cpu->curr_task = NULL;
+    cpu->main_task = NULL;
+    cpu->dead_task = NULL;
     init_spinlock(&cpu->lock);
     init_list(&cpu->task_queue);
     cpu->running_tasks = 0;
+
     cpu->min_vrun_time = 0;
     cpu->total_weight  = 0;
-    cpu->main_task     = NULL;
     return;
 }
 

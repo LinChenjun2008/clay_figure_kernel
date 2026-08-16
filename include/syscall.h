@@ -6,6 +6,8 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
+#include <task/struct.h>
+
 #define NR_EXIT 0
 #define NR_FORK 1
 #define NR_EXEC 2
@@ -17,6 +19,11 @@
 #define NR_UMAP 8
 
 #define NR_CONT 9
+
+struct message
+{
+    pid_t source;
+};
 
 void syscall_init(void);
 void syscall_enable(void);

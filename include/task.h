@@ -53,6 +53,7 @@ struct cpu
 {
     struct task *curr_task;
     struct task *main_task;
+    struct task *dead_task;
 
     struct spinlock lock;
     struct list     task_queue;

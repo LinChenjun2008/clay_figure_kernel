@@ -213,6 +213,24 @@ static void inform_exit(struct task *task)
     return;
 }
 
+static void check_dead_task(struct cpu *cpu)
+{
+    struct task *dead_task = cpu->dead_task;
+    cpu->dead_task         = NULL;
+    if (dead_task != NULL)
+    {
+        inform_exit(dead_task);
+    }
+    return;
+}
+
+static void set_dead_task(struct cpu *cpu, struct task *task)
+{
+    ASSERT(cpu->dead_task == NULL);
+    cpu->dead_task = task;
+    return;
+}
+
 static void switch_to(struct task *curr, struct task *next)
 {
     task_active(next);
@@ -232,13 +250,14 @@ void schedule(void)
         return;
     }
 
+    check_dead_task(curr_cpu);
     switch (curr_task->status)
     {
         case TASK_RUNNING:
             cpu_task_list_insert(curr_cpu, curr_task);
             break;
         case TASK_DIED:
-            inform_exit(curr_task);
+            set_dead_task(curr_cpu, curr_task);
             break;
         default:
             break;
