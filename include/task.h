@@ -15,7 +15,14 @@
 // PID的最大值
 #define MAX_PID (MAX_TASKS - 1)
 
-#define PID_NO_TASK -1
+#define PID_INDEX_SHIFT 8
+#define PID_INDEX_MASK  0xffffff
+#define PID_COUNT_SHIFT 0
+#define PID_COUNT_MASK  0xff
+
+#define PID_ANY   -1
+#define PID_CHILD -2
+#define PID_NULL  -3
 
 #define MAX_NICE 20
 #define MIN_NICE -19
@@ -43,6 +50,7 @@ struct task_mgr
 {
     struct spinlock lock;
     struct task   **task_table;
+    uint8_t        *pid_table;
     int             max_tasks;
     struct cpu     *cpus;
     int             max_cpus;
@@ -125,6 +133,7 @@ void     task_active(struct task *task);
 void     schedule(void);
 
 void task_block(enum task_status status);
+void task_block_wait(enum task_status status, pid_t wait_for);
 void task_unblock(pid_t pid);
 void task_yield(void);
 

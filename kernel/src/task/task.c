@@ -11,6 +11,7 @@
 
 #include <mem.h>
 #include <print.h>
+#include <std/stdio.h>
 #include <std/string.h>
 #include <task.h>
 #include <task/struct.h>
@@ -57,6 +58,12 @@ void task_init(struct boot_info *boot_info, int max_tasks)
     ASSERT(task_table != NULL);
     memset(task_table, 0, task_table_size);
 
+    void  *pid_table      = NULL;
+    size_t pid_table_size = sizeof(pid_t) * max_tasks;
+    pid_table             = kmalloc(pid_table_size, 0, 0);
+    ASSERT(pid_table != NULL);
+    memset(pid_table, 0, pid_table_size);
+
     struct cpu *cpus      = NULL;
     int         max_cpus  = apic_max_lapic_id() + 1;
     size_t      cpus_size = sizeof(task_mgr->cpus[0]) * max_cpus;
@@ -66,6 +73,7 @@ void task_init(struct boot_info *boot_info, int max_tasks)
 
     init_spinlock(&task_mgr->lock);
     task_mgr->task_table            = task_table;
+    task_mgr->pid_table             = pid_table;
     task_mgr->max_tasks             = max_tasks;
     task_mgr->cpus                  = cpus;
     task_mgr->max_cpus              = max_cpus;
@@ -91,7 +99,9 @@ void make_main_task(uintptr_t stack_base, size_t stack_pages)
     ASSERT(task != NULL);
 
     set_current_task(task);
-    init_task_struct(task, "Main", DEFAULT_PRIO, stack_base, stack_pages, 0);
+    char name[32];
+    sprintf(name, "main[%d]", get_current_cpu_id());
+    init_task_struct(task, name, DEFAULT_PRIO, stack_base, stack_pages, 0);
 
     task->cpu_id = get_current_cpu_id();
     task->status = TASK_RUNNING;
@@ -137,11 +147,31 @@ struct task *pid_to_task(pid_t pid)
 {
     struct task_mgr *task_mgr = get_task_mgr();
 
-    if (pid < 0 || pid >= task_mgr->max_tasks)
+    pid_t   task_index = GET_FIELD(pid, PID_INDEX);
+    uint8_t count      = GET_FIELD(pid, PID_COUNT);
+
+    if (task_index < 0 || task_index >= task_mgr->max_tasks)
     {
+        printk(MSG_WARN "invaild task index.\n");
         return NULL;
     }
-    return task_mgr->task_table[pid];
+    if (task_mgr->pid_table[task_index] != count)
+    {
+        printk(MSG_WARN "invaild pid count.\n");
+        return NULL;
+    }
+    return task_mgr->task_table[task_index];
+}
+
+static pid_t allocate_pid(pid_t task_index)
+{
+    struct task_mgr *task_mgr = get_task_mgr();
+
+    pid_t count = task_mgr->pid_table[task_index];
+    pid_t ret   = 0;
+    ret += SET_FIELD(0, PID_INDEX, task_index);
+    ret += SET_FIELD(0, PID_COUNT, count);
+    return ret;
 }
 
 static pid_t allocate_task_lock(void)
@@ -170,22 +200,21 @@ static pid_t allocate_task_lock(void)
 
 struct task *allocate_task(void)
 {
-    pid_t ret;
-
     struct task_mgr *task_mgr = get_task_mgr();
 
     spin_lock(&task_mgr->lock);
-    ret = allocate_task_lock();
+    pid_t index = allocate_task_lock();
+    pid_t pid   = allocate_pid(index);
     spin_unlock(&task_mgr->lock);
 
-    if (ret == -1)
+    if (index == -1)
     {
         return NULL;
     }
     struct task *task = NULL;
-    task              = pid_to_task(ret);
+    task              = pid_to_task(pid);
     memset(task, 0, sizeof(*task));
-    task->pid = ret;
+    task->pid = pid;
     return task;
 }
 
@@ -197,16 +226,24 @@ void free_task(struct task *task)
     }
     struct task_mgr *task_mgr = get_task_mgr();
 
-    pid_t pid = task->pid;
+    pid_t   pid        = task->pid;
+    pid_t   task_index = GET_FIELD(pid, PID_INDEX);
+    uint8_t count      = GET_FIELD(pid, PID_COUNT);
 
-    if (pid < 0 || pid >= task_mgr->max_tasks)
+    if (task_index < 0 || task_index >= task_mgr->max_tasks)
+    {
+        return;
+    }
+    if (task_mgr->pid_table[task_index] != count)
     {
         return;
     }
     spin_lock(&task_mgr->lock);
     kfree(task);
+    task_mgr->pid_table[task_index]++;
     task_mgr->task_table[pid] = NULL;
     spin_unlock(&task_mgr->lock);
+    return;
 }
 
 void init_task_struct(

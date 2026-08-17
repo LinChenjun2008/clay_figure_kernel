@@ -22,7 +22,13 @@
 
 struct message
 {
-    pid_t source;
+    pid_t    source;
+    uint32_t type;
+    union
+    {
+        uint32_t m32[14];
+        uint32_t m64[7];
+    };
 };
 
 void syscall_init(void);
