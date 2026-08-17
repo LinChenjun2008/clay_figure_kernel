@@ -314,15 +314,38 @@ void task_block(enum task_status status)
         intr_set_status(intr_status);
         return;
     }
-    atomic_inc(&task->block_count);
 
     struct cpu *cpu = get_cpu_struct(task->cpu_id);
+
     spin_lock(&cpu->lock);
+    atomic_inc(&task->block_count);
     list_append(&cpu->blocked_queue, &task->general_node);
     spin_unlock(&cpu->lock);
 
     schedule();
     intr_set_status(intr_status);
+    return;
+}
+
+static void task_unblock_lock(struct task *task)
+{
+    struct cpu *cpu = get_cpu_struct(task->cpu_id);
+
+    atomic_dec(&task->block_count);
+    int64_t val = atomic_read(&task->block_count);
+    if (val < 0)
+    {
+        printk(MSG_WARN "task unblock before block: %s.\n", task->name);
+    }
+    if (val != 0)
+    {
+        return;
+    }
+    if (list_find(&cpu->blocked_queue, &task->general_node))
+    {
+        list_remove(&task->general_node);
+        cpu_task_list_insert_lock(cpu, task);
+    }
     return;
 }
 
@@ -332,12 +355,11 @@ void task_unblock(pid_t pid)
 
     struct task *task = pid_to_task(pid);
     ASSERT(task != NULL);
-    uint64_t val = atomic_read(&task->block_count);
-    if (val <= 0)
-    {
-        printk(MSG_WARN "task unblock before block: %s.\n", task->name);
-    }
-    atomic_dec(&task->block_count);
+
+    struct cpu *cpu = get_cpu_struct(task->cpu_id);
+    spin_lock(&cpu->lock);
+    task_unblock_lock(task);
+    spin_unlock(&cpu->lock);
 
     intr_set_status(intr_status);
     return;

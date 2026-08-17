@@ -23,6 +23,8 @@ void syscall_init(void)
     }
     register_syscall(NR_EXIT, process_exit);
     register_syscall(NR_WAIT, task_waitpid);
+    register_syscall(NR_SEND, msg_send);
+    register_syscall(NR_RECV, msg_recv);
     return;
 }
 

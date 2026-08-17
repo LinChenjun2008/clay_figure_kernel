@@ -349,11 +349,11 @@ static size_t exited_childs(struct task *task)
     return exited_childs;
 }
 
-static int find_child(struct list_node *node, uint64_t arg)
+static int find_child(struct list_node *node, void *arg)
 {
     struct task *task = NULL;
     task              = CONTAINER_OF(struct task, general_node, node);
-    return task->pid == (pid_t)arg;
+    return task->pid == *(pid_t *)arg;
 }
 
 int task_release_resources(struct task *task)
@@ -403,7 +403,7 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
     else
     {
         spin_lock(&task->exited_lock);
-        node = list_traversal_remove(&task->exited_childs, find_child, pid);
+        node = list_traversal_remove(&task->exited_childs, find_child, &pid);
         spin_unlock(&task->exited_lock);
 
         if (node == NULL)

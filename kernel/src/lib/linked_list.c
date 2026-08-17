@@ -71,24 +71,11 @@ struct list_node *list_pop(struct list *list)
 
 int list_find(struct list *list, struct list_node *node)
 {
-    struct list_node *temp_node = list->head.next;
-
-    int    ret = 0;
-    size_t i;
-    for (i = 0; i < list->len; i++)
-    {
-        if (temp_node == node)
-        {
-            ret = 1;
-            break;
-        }
-        temp_node = temp_node->next;
-    }
-    return ret;
+    return node->list == list;
 }
 
 struct list_node *
-list_traversal(struct list *list, list_traversal_func_t func, uint64_t arg)
+list_traversal(struct list *list, list_traversal_func_t func, void *arg)
 {
     struct list_node *temp_node = list->head.next;
     struct list_node *temp_next = temp_node->next;
@@ -107,11 +94,8 @@ list_traversal(struct list *list, list_traversal_func_t func, uint64_t arg)
     return ret;
 }
 
-struct list_node *list_traversal_remove(
-    struct list          *list,
-    list_traversal_func_t func,
-    uint64_t              arg
-)
+struct list_node *
+list_traversal_remove(struct list *list, list_traversal_func_t func, void *arg)
 {
     struct list_node *ret = list_traversal(list, func, arg);
     if (ret != NULL)

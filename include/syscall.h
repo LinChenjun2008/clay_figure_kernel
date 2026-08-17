@@ -6,6 +6,8 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
+#include <task/struct.h>
+
 #define NR_EXIT 0
 #define NR_FORK 1
 #define NR_EXEC 2
@@ -21,6 +23,10 @@
 void syscall_init(void);
 void syscall_enable(void);
 void register_syscall(uint64_t num, void *func);
+
+// ipc.c
+int msg_send(pid_t dst, struct message *msg);
+int msg_recv(pid_t from, struct message *msg);
 
 void syscall_0(uint64_t);
 void syscall_1(uint64_t, uint64_t);
