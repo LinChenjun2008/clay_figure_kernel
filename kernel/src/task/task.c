@@ -283,6 +283,12 @@ void init_task_struct(
     task->return_status = 0;
     init_list(&task->exited_childs);
     init_spinlock(&task->exited_lock);
+
+    memset(&task->msg, 0, sizeof(task->msg));
+    task->send_to   = PID_NULL;
+    task->recv_from = PID_NULL;
+    init_list(&task->send_list);
+    init_spinlock(&task->send_lock);
     return;
 }
 

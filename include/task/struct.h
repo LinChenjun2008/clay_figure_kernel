@@ -22,8 +22,21 @@ enum task_status
     TASK_READY = 1, // 任务就绪,随时进入运行状态
     TASK_RUNNING,   // 任务正在运行
     TASK_BLOCKED,   // 任务阻塞
-    TASK_WAITING,   // 等待子任务结束
-    TASK_DIED       // 任务结束
+    TASK_SEND,
+    TASK_RECEIVE,
+    TASK_WAITING, // 等待子任务结束
+    TASK_DIED     // 任务结束
+};
+
+struct message
+{
+    int32_t  source;
+    uint32_t type;
+    union
+    {
+        uint32_t m32[14];
+        uint32_t m64[7];
+    };
 };
 
 struct task
@@ -58,6 +71,13 @@ struct task
     int             return_status;
     struct list     exited_childs;
     struct spinlock exited_lock;
+
+    struct message   msg;
+    pid_t            send_to;
+    pid_t            recv_from;
+    struct list      send_list;
+    struct list_node send_node;
+    struct spinlock  send_lock;
 };
 
 #endif /* __ASSEMBLER__ */
