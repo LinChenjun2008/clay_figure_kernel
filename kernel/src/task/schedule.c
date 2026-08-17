@@ -135,7 +135,10 @@ static uint8_t select_idle_cpu(struct task *task)
 {
     struct task_mgr *task_mgr = get_task_mgr();
     uint8_t          curr_cpu = get_current_cpu_id();
-
+    if (get_cpu_struct(task->cpu_id)->main_task == task)
+    {
+        return task->cpu_id;
+    }
     struct cpu *cur = get_cpu_struct(curr_cpu);
     spin_lock(&cur->lock);
     uint64_t min_after = cur->total_weight + task_prio_to_weight[task->prio];
@@ -210,6 +213,7 @@ static void inform_exit(struct task *task)
     list_append(&parent_task->exited_childs, &task->general_node);
     spin_unlock(&parent_task->exited_lock);
 
+    task_unblock(parent_task->pid);
     return;
 }
 
@@ -221,6 +225,33 @@ static void check_dead_task(struct cpu *cpu)
     {
         inform_exit(dead_task);
     }
+    return;
+}
+
+static void check_blocked_queue_lock(struct cpu *cpu)
+{
+    if (list_len(&cpu->blocked_queue) == 0)
+    {
+        return;
+    }
+    struct list_node *node = list_next(list_head(&cpu->blocked_queue));
+    while (node != list_tail(&cpu->blocked_queue))
+    {
+        struct list_node *next = list_next(node);
+        struct task      *task = CONTAINER_OF(struct task, general_node, node);
+        if ((int64_t)atomic_read(&task->block_count) <= 0)
+        {
+            list_remove(node);
+            cpu_task_list_insert_lock(cpu, task);
+        }
+        node = next;
+    }
+}
+static void check_blocked_queue(struct cpu *cpu)
+{
+    spin_lock(&cpu->lock);
+    check_blocked_queue_lock(cpu);
+    spin_unlock(&cpu->lock);
     return;
 }
 
@@ -251,6 +282,7 @@ void schedule(void)
     }
 
     check_dead_task(curr_cpu);
+    check_blocked_queue(curr_cpu);
     switch (curr_task->status)
     {
         case TASK_RUNNING:
@@ -264,6 +296,7 @@ void schedule(void)
     }
     struct task *next_task = cpu_get_next_task(curr_cpu);
     ASSERT(next_task != NULL);
+
     switch_to(curr_task, next_task);
     return;
 }
@@ -275,6 +308,19 @@ void task_block(enum task_status status)
     ASSERT(task->preempt_count == 0);
 
     task->status = status;
+    if (task->status == TASK_DIED)
+    {
+        schedule();
+        intr_set_status(intr_status);
+        return;
+    }
+    atomic_inc(&task->block_count);
+
+    struct cpu *cpu = get_cpu_struct(task->cpu_id);
+    spin_lock(&cpu->lock);
+    list_append(&cpu->blocked_queue, &task->general_node);
+    spin_unlock(&cpu->lock);
+
     schedule();
     intr_set_status(intr_status);
     return;
@@ -285,7 +331,13 @@ void task_unblock(pid_t pid)
     enum intr_status intr_status = intr_disable();
 
     struct task *task = pid_to_task(pid);
-    cpu_task_enqueue(task);
+    ASSERT(task != NULL);
+    uint64_t val = atomic_read(&task->block_count);
+    if (val <= 0)
+    {
+        printk(MSG_WARN "task unblock before block: %s.\n", task->name);
+    }
+    atomic_dec(&task->block_count);
 
     intr_set_status(intr_status);
     return;

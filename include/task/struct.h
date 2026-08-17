@@ -45,6 +45,7 @@ struct task
     char name[32];
 
     volatile enum task_status status;
+    struct atomic             block_count;
     uint64_t                  preempt_count;
     uint64_t                 *pg_dir;
     struct list_node          general_node;

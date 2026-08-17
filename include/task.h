@@ -56,8 +56,9 @@ struct cpu
     struct task *dead_task;
 
     struct spinlock lock;
-    struct list     task_queue;
     size_t          running_tasks;
+    struct list     task_queue;
+    struct list     blocked_queue;
 
     uint64_t min_vrun_time;
     uint64_t total_weight;

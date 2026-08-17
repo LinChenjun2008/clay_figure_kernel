@@ -24,8 +24,9 @@ static void cpu_task_init(struct cpu *cpu)
     cpu->main_task = NULL;
     cpu->dead_task = NULL;
     init_spinlock(&cpu->lock);
-    init_list(&cpu->task_queue);
     cpu->running_tasks = 0;
+    init_list(&cpu->task_queue);
+    init_list(&cpu->blocked_queue);
 
     cpu->min_vrun_time = 0;
     cpu->total_weight  = 0;
@@ -232,7 +233,8 @@ void init_task_struct(
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
 
-    task->status        = TASK_READY;
+    task->status = TASK_READY;
+    atomic_set(&task->block_count, 0);
     task->preempt_count = 0;
     task->pg_dir        = NULL;
 
