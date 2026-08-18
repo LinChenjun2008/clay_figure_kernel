@@ -143,12 +143,8 @@ struct task *get_current_task(void)
     return cpu->curr_task;
 }
 
-struct task *pid_to_task(pid_t pid)
+int check_pid_avaiability(pid_t pid)
 {
-    if (pid < 0)
-    {
-        return NULL;
-    }
     struct task_mgr *task_mgr = get_task_mgr();
 
     pid_t   task_index = GET_FIELD(pid, PID_INDEX);
@@ -156,14 +152,24 @@ struct task *pid_to_task(pid_t pid)
 
     if (task_index < 0 || task_index >= task_mgr->max_tasks)
     {
-        printk(MSG_WARN "invaild task index.\n");
-        return NULL;
+        return 0;
     }
     if (task_mgr->pid_table[task_index] != count)
     {
-        printk(MSG_WARN "invaild pid count.\n");
+        return 0;
+    }
+    return 1;
+}
+
+struct task *pid_to_task(pid_t pid)
+{
+    if (!check_pid_avaiability(pid))
+    {
         return NULL;
     }
+    pid_t task_index = GET_FIELD(pid, PID_INDEX);
+
+    struct task_mgr *task_mgr = get_task_mgr();
     return task_mgr->task_table[task_index];
 }
 
@@ -230,15 +236,10 @@ void free_task(struct task *task)
     }
     struct task_mgr *task_mgr = get_task_mgr();
 
-    pid_t   pid        = task->pid;
-    pid_t   task_index = GET_FIELD(pid, PID_INDEX);
-    uint8_t count      = GET_FIELD(pid, PID_COUNT);
+    pid_t pid        = task->pid;
+    pid_t task_index = GET_FIELD(pid, PID_INDEX);
 
-    if (task_index < 0 || task_index >= task_mgr->max_tasks)
-    {
-        return;
-    }
-    if (task_mgr->pid_table[task_index] != count)
+    if (!check_pid_avaiability(pid))
     {
         return;
     }
@@ -416,7 +417,11 @@ int task_release_resources(struct task *task)
 pid_t task_waitpid(pid_t pid, int *status, int options)
 {
     // unsupport
-    if (pid == 0 || pid < -1)
+    if (pid < -1)
+    {
+        return -1;
+    }
+    if (pid != PID_ANY && !check_pid_avaiability(pid))
     {
         return -1;
     }
@@ -439,7 +444,7 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
     struct list_node *node;
 
     // any task
-    if (pid == -1)
+    if (pid == PID_ANY)
     {
         spin_lock(&task->exited_lock);
         node = list_pop(&task->exited_childs);

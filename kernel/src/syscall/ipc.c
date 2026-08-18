@@ -51,15 +51,12 @@ int msg_send(pid_t dst, struct message *msg)
     struct task *dest      = NULL;
     int          need_wake = 0;
 
-    if (dst < 0 || dst == curr->pid)
+    if (!check_pid_avaiability(dst) || dst == curr->pid)
     {
         return -1;
     }
     dest = pid_to_task(dst);
-    if (dest == NULL || dest->status == TASK_DIED)
-    {
-        return -1;
-    }
+    ASSERT(dest != NULL && dest->status != TASK_DIED);
 
     memcpy(&curr->msg, msg, sizeof(*msg));
     curr->msg.source = curr->pid;
