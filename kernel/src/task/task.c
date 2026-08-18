@@ -334,13 +334,53 @@ fail:
     return NULL;
 }
 
+static void main_adopt_childs(struct task *task)
+{
+    struct task *main_task = get_cpu_struct(task->cpu_id)->main_task;
+    if (main_task == NULL || main_task == task)
+    {
+        return;
+    }
+    struct task_mgr *task_mgr = get_task_mgr();
+
+    spin_lock(&task_mgr->lock);
+    int i;
+    for (i = 0; i < task_mgr->max_tasks; i++)
+    {
+        struct task *child = task_mgr->task_table[i];
+        if (child == NULL || child->ppid != task->pid)
+        {
+            continue;
+        }
+        child->ppid = main_task->pid;
+    }
+    spin_unlock(&task_mgr->lock);
+
+    spin_lock(&task->exited_lock);
+    while (!list_empty(&task->exited_childs))
+    {
+        struct list_node *node  = list_pop(&task->exited_childs);
+        struct task      *child = CONTAINER_OF(struct task, general_node, node);
+        child->ppid             = main_task->pid;
+
+        spin_lock(&main_task->exited_lock);
+        list_append(&main_task->exited_childs, node);
+        spin_unlock(&main_task->exited_lock);
+    }
+    spin_unlock(&task->exited_lock);
+
+    atomic_add(&main_task->childs, atomic_read(&task->childs));
+    atomic_set(&task->childs, 0);
+    return;
+}
+
 void task_exit(int return_value)
 {
     struct task *task = get_current_task();
 
     task->return_status = return_value;
 
-    /// TODO: 将子任务由Main task接管
+    main_adopt_childs(task);
 
     task_block(TASK_DIED);
     return;
