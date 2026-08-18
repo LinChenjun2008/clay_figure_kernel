@@ -145,6 +145,10 @@ struct task *get_current_task(void)
 
 struct task *pid_to_task(pid_t pid)
 {
+    if (pid < 0)
+    {
+        return NULL;
+    }
     struct task_mgr *task_mgr = get_task_mgr();
 
     pid_t   task_index = GET_FIELD(pid, PID_INDEX);
@@ -285,6 +289,7 @@ void init_task_struct(
     init_spinlock(&task->exited_lock);
 
     memset(&task->msg, 0, sizeof(task->msg));
+    memset(&task->evt_msg, 0, sizeof(task->evt_msg));
     task->send_to   = PID_NULL;
     task->recv_from = PID_NULL;
     init_list(&task->send_list);

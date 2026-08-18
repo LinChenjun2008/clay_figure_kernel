@@ -28,6 +28,8 @@ enum task_status
     TASK_DIED     // 任务结束
 };
 
+#    define EVT_NR 8
+
 struct message
 {
     int32_t  source;
@@ -35,7 +37,7 @@ struct message
     union
     {
         uint32_t m32[14];
-        uint32_t m64[7];
+        uint64_t m64[7];
     };
 };
 
@@ -73,6 +75,7 @@ struct task
     struct spinlock exited_lock;
 
     struct message   msg;
+    uint8_t          evt_msg[EVT_NR];
     pid_t            send_to;
     pid_t            recv_from;
     struct list      send_list;

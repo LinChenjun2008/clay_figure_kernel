@@ -25,8 +25,9 @@ void syscall_enable(void);
 void register_syscall(uint64_t num, void *func);
 
 // ipc.c
-int msg_send(pid_t dst, struct message *msg);
-int msg_recv(pid_t from, struct message *msg);
+int  msg_send(pid_t dst, struct message *msg);
+int  msg_recv(pid_t from, struct message *msg);
+void inform_event(pid_t pid, uint32_t evt_type);
 
 void syscall_0(uint64_t);
 void syscall_1(uint64_t, uint64_t);

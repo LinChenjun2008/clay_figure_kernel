@@ -333,10 +333,7 @@ static void task_unblock_lock(struct task *task)
 
     atomic_dec(&task->block_count);
     int64_t val = atomic_read(&task->block_count);
-    if (val < 0)
-    {
-        printk(MSG_WARN "task unblock before block: %s.\n", task->name);
-    }
+
     if (val != 0)
     {
         return;
