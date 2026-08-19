@@ -56,7 +56,10 @@ int msg_send(pid_t dst, struct message *msg)
         return -1;
     }
     dest = pid_to_task(dst);
-    ASSERT(dest != NULL && dest->status != TASK_DIED);
+    if (dest != NULL && dest->status != TASK_DIED)
+    {
+        return -1;
+    }
 
     memcpy(&curr->msg, msg, sizeof(*msg));
     curr->msg.source = curr->pid;
