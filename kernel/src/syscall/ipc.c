@@ -41,6 +41,40 @@ static int msg_match(pid_t from, pid_t dst_pid, pid_t src_pid)
     return from >= 0 && src_task->pid == from;
 }
 
+static int inform_event_lock(struct mailbox *dst, uint32_t evt_type)
+{
+    if (dst->evt_msg[evt_type] != 0xff)
+    {
+        dst->evt_msg[evt_type]++;
+    }
+    return msg_match(dst->recv_from, PID_NULL, PID_EVENT);
+}
+
+void inform_event(pid_t dst_pid, uint32_t evt_type)
+{
+    if (evt_type >= EVT_NR)
+    {
+        return;
+    }
+    struct task *dest_task = pid_to_task(dst_pid);
+    if (dest_task == NULL || dest_task->status == TASK_DIED)
+    {
+        return;
+    }
+    int need_wake = 0;
+
+    struct mailbox *dst = &dest_task->mailbox;
+    spin_lock(&dst->send_lock);
+    need_wake = inform_event_lock(dst, evt_type);
+    spin_unlock(&dst->send_lock);
+
+    if (need_wake)
+    {
+        task_unblock(dst_pid);
+    }
+    return;
+}
+
 static struct mailbox *send_node_to_mailbox(struct list_node *node)
 {
     if (node == NULL)
@@ -108,40 +142,6 @@ int msg_send(pid_t dst_pid, struct message *msg)
 
     task_block(TASK_SEND);
     return 0;
-}
-
-static int inform_event_lock(struct mailbox *dst, uint32_t evt_type)
-{
-    if (dst->evt_msg[evt_type] != 0xff)
-    {
-        dst->evt_msg[evt_type]++;
-    }
-    return msg_match(dst->recv_from, PID_NULL, PID_EVENT);
-}
-
-void inform_event(pid_t dst_pid, uint32_t evt_type)
-{
-    if (evt_type >= EVT_NR)
-    {
-        return;
-    }
-    struct task *dest_task = pid_to_task(dst_pid);
-    if (dest_task == NULL || dest_task->status == TASK_DIED)
-    {
-        return;
-    }
-    int need_wake = 0;
-
-    struct mailbox *dst = &dest_task->mailbox;
-    spin_lock(&dst->send_lock);
-    need_wake = inform_event_lock(dst, evt_type);
-    spin_unlock(&dst->send_lock);
-
-    if (need_wake)
-    {
-        task_unblock(dst_pid);
-    }
-    return;
 }
 
 static int msg_event_lock(struct mailbox *dst, pid_t from)
@@ -242,15 +242,31 @@ int msg_recv(pid_t from, struct message *msg)
         if (has_event_msg)
         {
             memcpy(msg, &dst->msg, sizeof(*msg));
-            return PID_EVENT;
+            return 0;
         }
         if (src_task != NULL)
         {
             memcpy(msg, &dst->msg, sizeof(*msg));
             task_unblock(src_task->pid);
-            return src_task->pid;
+            return 0;
         }
         task_block(TASK_RECEIVE);
     }
-    return PID_NULL;
+    return -1;
+}
+
+int msg_both(pid_t src_dst, struct message *msg)
+{
+    int ret = 0;
+    ret     = msg_send(src_dst, msg);
+    if (ret < 0)
+    {
+        return -1;
+    }
+    ret = msg_recv(src_dst, msg);
+    if (ret < 0)
+    {
+        return -2;
+    }
+    return 0;
 }
