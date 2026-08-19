@@ -13,6 +13,7 @@
 #include <print.h>
 #include <std/stdio.h>
 #include <std/string.h>
+#include <syscall.h>
 #include <task.h>
 #include <task/struct.h>
 
@@ -289,12 +290,8 @@ void init_task_struct(
     init_list(&task->exited_childs);
     init_spinlock(&task->exited_lock);
 
-    memset(&task->msg, 0, sizeof(task->msg));
-    memset(&task->evt_msg, 0, sizeof(task->evt_msg));
-    task->send_to   = PID_NULL;
-    task->recv_from = PID_NULL;
-    init_list(&task->send_list);
-    init_spinlock(&task->send_lock);
+    init_mailbox(&task->mailbox);
+
     return;
 }
 

@@ -41,6 +41,17 @@ struct message
     };
 };
 
+struct mailbox
+{
+    struct message   msg;
+    uint8_t          evt_msg[EVT_NR];
+    pid_t            send_to;
+    pid_t            recv_from;
+    struct list      send_list;
+    struct list_node send_node;
+    struct spinlock  send_lock;
+};
+
 struct task
 {
     struct task_context *context;
@@ -74,13 +85,7 @@ struct task
     struct list     exited_childs;
     struct spinlock exited_lock;
 
-    struct message   msg;
-    uint8_t          evt_msg[EVT_NR];
-    pid_t            send_to;
-    pid_t            recv_from;
-    struct list      send_list;
-    struct list_node send_node;
-    struct spinlock  send_lock;
+    struct mailbox mailbox;
 };
 
 #endif /* __ASSEMBLER__ */

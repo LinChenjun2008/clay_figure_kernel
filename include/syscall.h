@@ -25,6 +25,7 @@ void syscall_enable(void);
 void register_syscall(uint64_t num, void *func);
 
 // ipc.c
+void init_mailbox(struct mailbox *mailbox);
 int  msg_send(pid_t dst, struct message *msg);
 int  msg_recv(pid_t from, struct message *msg);
 void inform_event(pid_t pid, uint32_t evt_type);
