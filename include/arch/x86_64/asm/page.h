@@ -50,16 +50,20 @@
 
 #ifndef __ASSEMBLER__
 
-void pg_allocator_init(struct boot_info *boot_info);
-
-void  free_pages(void *addr, size_t pages);
-void *allocate_pages(size_t pages);
+// arch/page.c
 
 void set_pg_table(void *pg_table);
 
 void  page_map(uint64_t *pg_dir, void *paddr, void *vaddr, uint64_t count);
 void *to_physical_address(void *pg_dir, void *vaddr);
 void  free_pg_table(uint64_t *pg_dir);
+
+// page.c
+
+void pg_allocator_init(struct boot_info *boot_info);
+
+void  free_pages(void *addr, size_t pages);
+void *allocate_pages(size_t pages);
 
 #endif /* __ASSEMBLER__ */
 
