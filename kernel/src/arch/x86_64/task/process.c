@@ -17,10 +17,13 @@
 
 void ASMLINKAGE asm_switch_to_user(struct pt_regs *regs);
 
+void ASMLINKAGE asm_exit(int status);
+
 static void kernel_process(void *func)
 {
     int ret = ((int (*)(void))func)();
-    syscall_1(NR_EXIT, ret);
+    asm_exit(ret);
+    return;
 }
 
 void switch_to_user(void *func)
