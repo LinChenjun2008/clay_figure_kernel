@@ -1,9 +1,10 @@
-TARGET = $(PROJECT_ROOT)/build/esp/kernel/system
+TARGET = $(PROJECT_ROOT)/build/esp/lib/libsys.a
 
+AR      = ar
 AS      = as
 CC      = gcc
-LD      = ld
-OBJCOPY   = objcopy
+
+ARFLAGS = rcs
 
 CFLAGS += -Wall -Wextra -Werror
 CFLAGS += -Wredundant-decls -Wnested-externs
@@ -28,9 +29,3 @@ CFLAGS += -mno-red-zone -m64 -mcmodel=large -march=x86-64
 CFLAGS += -mstackrealign
 CFLAGS += -Wa,--noexecstack
 CFLAGS += -mno-sse -mno-mmx -mno-80387
-
-LD_SCRIPT = $(SRC_DIR)/arch/$(TARGET_ARCH)/kernel.lds
-LDFLAGS = -T $(LD_SCRIPT) -pie
-
-OBJFLAGS  = -I elf64-x86-64
-OBJFLAGS += --strip-debug -S -R ".eh_frame" -R ".comment" -O binary

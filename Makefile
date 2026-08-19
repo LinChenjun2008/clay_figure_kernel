@@ -10,6 +10,7 @@ all:
 	@$(ECHO) ---[ Build ]---
 	@$(MAKE) -C bootloader/$(TARGET_ARCH) all
 	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) all
+	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) all
 	@$(ECHO) ---[ Done  ]---
 
 .PHONY: clean
@@ -17,6 +18,7 @@ clean:
 	@$(ECHO) ---[ Clean ]---
 	@$(MAKE) -C bootloader/$(TARGET_ARCH) clean
 	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) clean
+	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) clean
 	@$(ECHO) ---[ Done  ]---
 
 .PHONY: init
@@ -27,6 +29,7 @@ init:
 	-@$(MKDIR) "$(ESP_DIR)/efi"
 	-@$(MKDIR) "$(ESP_DIR)/efi/boot"
 	-@$(MKDIR) "$(ESP_DIR)/kernel"
+	-@$(MKDIR) "$(ESP_DIR)/lib"
 	@$(ECHO) ---[ Done  ]---
 
 .PHONY: run
