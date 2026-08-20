@@ -13,11 +13,12 @@
 #include <mem.h>
 #include <print.h>
 #include <std/string.h>
+#include <sync/atomic.h>
 
 struct page_allocator
 {
     struct free_table pg_map;
-    // struct spinlock   lock;
+    struct atomic    *pg_ref_count;
 };
 
 static struct page_allocator *pg_allocator;
@@ -148,6 +149,43 @@ static size_t calculate_free_pages(struct memory_map *memmap)
     return pages;
 }
 
+// 计算可用内存的最大pfn
+static size_t calculate_max_pfn(struct memory_map *memmap)
+{
+    enum mm_type curr_type = MAX_MM_TYPE;
+
+    uintptr_t curr_start = 0;
+    uintptr_t curr_end   = 0;
+    size_t    curr_size  = 0;
+    uint64_t  curr_pages = 0;
+
+    struct efi_memory_descriptor *mem_desc = NULL;
+
+    int desc_count = efi_mem_desc_count(memmap);
+
+    size_t max_pfn = 0;
+    int    i;
+
+    for (i = 0; i < desc_count; i++)
+    {
+        mem_desc  = read_efi_mem_desc(memmap, i);
+        curr_type = get_page_type(mem_desc->type);
+
+        curr_start = mem_desc->physical_start;
+        curr_pages = mem_desc->number_of_pages;
+        curr_size  = (curr_pages << 12);
+        curr_end   = curr_start + curr_size;
+
+        if (curr_type != MM_TYPE_FREE)
+        {
+            continue;
+        }
+        size_t end_pfn = (curr_end) >> PAGE_SIZE_SHIFT;
+        if (end_pfn > max_pfn) max_pfn = end_pfn;
+    }
+    return max_pfn;
+}
+
 // 利用memmap分配内存
 // 分配的内存不会释放
 static void *memmap_alloc_pages(struct memory_map *memmap, uint64_t pages)
@@ -210,13 +248,21 @@ static void free_all_pages(struct memory_map *memmap)
 void pg_allocator_init(struct boot_info *boot_info)
 {
     efi_mem_desc_preprocess(&boot_info->memory_map);
-    size_t total_pages    = calculate_free_pages(&boot_info->memory_map);
-    size_t allocator_size = sizeof(struct page_allocator);
-    int    total_blocks   = (total_pages / 2) + 1;
-    size_t table_size     = total_blocks * sizeof(struct free_block);
 
-    size_t total_size = allocator_size + table_size;
-    size_t pages      = (total_size + PG_SIZE - 1) >> PAGE_SIZE_SHIFT;
+    // free_table
+    size_t total_pages  = calculate_free_pages(&boot_info->memory_map);
+    int    total_blocks = (total_pages / 2) + 1;
+    size_t table_size   = total_blocks * sizeof(struct free_block);
+
+    // pg_ref_count
+    size_t max_pfn           = calculate_max_pfn(&boot_info->memory_map);
+    size_t pg_ref_count_size = sizeof(pg_allocator->pg_ref_count[0]);
+    size_t pg_ref_size       = pg_ref_count_size * (max_pfn + 1);
+
+    // pg_allocator
+    size_t allocator_size = sizeof(struct page_allocator);
+    size_t total_size     = allocator_size + table_size + pg_ref_size;
+    size_t pages          = (total_size + PG_SIZE - 1) >> PAGE_SIZE_SHIFT;
     struct page_allocator *allocator;
     allocator = memmap_alloc_pages(&boot_info->memory_map, pages);
     if (allocator == NULL)
@@ -226,8 +272,19 @@ void pg_allocator_init(struct boot_info *boot_info)
     }
     memset(allocator, 0, allocator_size);
 
-    pg_allocator = allocator;
-    init_free_table(&pg_allocator->pg_map, pg_allocator + 1, total_blocks);
+    pg_allocator             = allocator;
+    uintptr_t allocator_base = (uintptr_t)allocator;
+    uintptr_t table_base     = allocator_base + allocator_size;
+    uintptr_t pg_ref_base    = table_base + table_size;
+
+    init_free_table(&pg_allocator->pg_map, (void *)table_base, total_blocks);
+
+    allocator->pg_ref_count = (void *)pg_ref_base;
+    size_t i;
+    for (i = 0; i <= max_pfn; i++)
+    {
+        atomic_set(&allocator->pg_ref_count[i], 0);
+    }
 
     free_all_pages(&boot_info->memory_map);
     printk("pg_allocator_init: total memory: %d MiB.\n", total_pages >> 10);
