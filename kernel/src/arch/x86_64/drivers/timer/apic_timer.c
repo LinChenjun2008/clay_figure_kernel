@@ -7,7 +7,6 @@
 
 #include <asm/drivers/apic.h>
 #include <asm/drivers/timer.h>
-#include <asm/utils.h>
 
 void apic_timer_init()
 {

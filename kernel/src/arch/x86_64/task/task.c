@@ -6,10 +6,8 @@
 #include <base.h>
 
 #include <asm/desc.h>
-#include <asm/drivers/apic.h>
+#include <asm/interrupt.h>
 #include <asm/task.h>
-#include <asm/utils.h>
-#include <asm/x86.h>
 
 #include <print.h>
 #include <task.h>

@@ -45,7 +45,7 @@ int compare_guid(struct efi_guid *guid1, struct efi_guid *guid2);
 #include <asm/page.h>
 
 void        *efi_malloc(size_t size);
-efi_status_t get_memory_map(struct memory_map *mmap);
+efi_status_t get_memory_map(struct memory_map *memmap);
 efi_status_t create_page_table(void *pg_dir);
 efi_status_t init_page_mgr(struct system_info *system_info);
 

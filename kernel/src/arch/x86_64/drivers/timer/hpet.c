@@ -7,7 +7,6 @@
 
 #include <asm/drivers/timer.h>
 #include <asm/page.h> // PHYS_TO_VIRT
-#include <asm/utils.h>
 
 #include <drivers/acpi.h>
 #include <print.h>

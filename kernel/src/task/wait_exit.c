@@ -7,7 +7,6 @@
 
 #include <asm/page.h>
 
-#include <mem.h>
 #include <print.h>
 #include <sysinfo.h>
 #include <task.h>

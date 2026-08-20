@@ -7,7 +7,6 @@
 
 #include <asm/interrupt.h>
 #include <asm/page.h>
-#include <asm/ptrace.h>
 #include <asm/task.h>
 
 #include <print.h>

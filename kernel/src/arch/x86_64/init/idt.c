@@ -7,7 +7,6 @@
 
 #include <asm/desc.h>
 #include <asm/utils.h>
-#include <asm/x86.h>
 
 static struct gate_desc idt[256];
 

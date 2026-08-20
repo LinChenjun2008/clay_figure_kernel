@@ -6,7 +6,6 @@
 #include <base.h>
 
 #include <asm/desc.h>
-#include <asm/drivers/apic.h>
 #include <asm/page.h> // PG_SIZE
 #include <asm/utils.h>
 

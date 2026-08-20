@@ -7,7 +7,6 @@
 
 #include <asm/init.h>
 
-#include <mem.h>
 #include <task.h>
 
 int main(struct system_info *system_info)

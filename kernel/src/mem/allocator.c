@@ -10,9 +10,7 @@
 #include <mem.h>
 #include <mem/struct.h>
 #include <print.h>
-#include <std/string.h>
 #include <sysinfo.h>
-#include <task.h>
 
 void mem_allocator_init(void)
 {

@@ -12,7 +12,6 @@
 
 #include <print.h>
 #include <std/string.h>
-#include <syscall.h>
 #include <task.h>
 
 void ASMLINKAGE asm_switch_to_user(struct pt_regs *regs);

@@ -52,7 +52,7 @@ struct textbox
     uint32_t bg_color;
 };
 
-void basic_put_char(struct textbox *textbox, int x, int y, uint8_t c);
+void basic_put_char(struct textbox *tb, int x, int y, uint8_t c);
 
 void init_print(struct graphic_info *graphic_info);
 

@@ -9,14 +9,10 @@
 #include <asm/sync/spinlock.h>
 
 #include <efi.h>
-#include <lib/free_table.h>
-#include <mem.h>
 #include <mem/struct.h>
 #include <print.h>
-#include <std/string.h>
 #include <sync/atomic.h>
 #include <sysinfo.h>
-#include <task.h>
 
 static enum mm_type get_page_type(enum efi_memory_type efi_type)
 {

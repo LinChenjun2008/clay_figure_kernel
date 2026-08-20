@@ -6,11 +6,8 @@
 #include <base.h>
 
 #include <asm/drivers/apic.h>
-#include <asm/drivers/timer.h>
 #include <asm/mp.h>
 #include <asm/page.h> // PHYS_TO_VIRT
-#include <asm/utils.h>
-#include <asm/x86.h>
 
 #include <drivers/timer.h>
 #include <print.h>
