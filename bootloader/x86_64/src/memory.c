@@ -13,6 +13,7 @@ void *efi_malloc(size_t size)
     status = boot_services->allocate_pool(EFI_LOADER_DATA, size, (void **)&ret);
     if (EFI_ERROR(status))
     {
+        printf(L"efi_malloc: allocate failed: %d.\n", size);
         return NULL;
     }
     return ret;
@@ -187,4 +188,106 @@ efi_status_t create_page_table(void *pg_dir)
 
     *(uint64_t **)pg_dir = page_table_pos;
     return status;
+}
+
+// 计算efi_memory_descriptor的个数
+static int efi_mem_desc_count(struct memory_map *memmap)
+{
+    size_t map_size  = memmap->map_size;
+    size_t desc_size = memmap->descriptor_size;
+    return map_size / desc_size;
+}
+
+// 读取efi_memory_descriptor[i]
+static struct efi_memory_descriptor *
+read_efi_mem_desc(struct memory_map *memmap, int i)
+{
+    void *ret;
+    ret = ((char *)memmap->buffer + memmap->descriptor_size * i);
+    return (struct efi_memory_descriptor *)ret;
+}
+
+static enum mm_type get_page_type(enum efi_memory_type efi_type)
+{
+    switch (efi_type)
+    {
+        case EFI_CONVENTIONAL_MEMORY:
+        case EFI_BOOT_SERVICES_CODE:
+        case EFI_BOOT_SERVICES_DATA:
+        case EFI_LOADER_CODE:
+            return MM_TYPE_FREE;
+
+        case EFI_LOADER_DATA:
+        case EFI_RUNTIME_SERVICES_CODE:
+        case EFI_RUNTIME_SERVICES_DATA:
+        case EFI_MEMORY_MAPPED_IO:
+        case EFI_MEMORY_MAPPED_IO_PORT_SPACE:
+        case EFI_PAL_CODE:
+        case EFI_RESERVED_TYPE:
+        case EFI_ACPI_RECLAIM_MEMORY:
+        case EFI_ACPI_MEMORY_NVS:
+            return MM_TYPE_RESERVED;
+
+        case EFI_UNUSABLE_MEMORY:
+        case EFI_MAX_MEMORY_TYPE:
+            return MAX_MM_TYPE;
+    }
+    return MAX_MM_TYPE;
+}
+
+// 计算可用内存的最大pfn
+static size_t calculate_max_pfn(struct memory_map *memmap)
+{
+    enum mm_type curr_type = MAX_MM_TYPE;
+
+    uintptr_t curr_start = 0;
+    uintptr_t curr_end   = 0;
+    size_t    curr_size  = 0;
+    uint64_t  curr_pages = 0;
+
+    struct efi_memory_descriptor *mem_desc = NULL;
+
+    int desc_count = efi_mem_desc_count(memmap);
+
+    size_t max_pfn = 0;
+    int    i;
+
+    for (i = 0; i < desc_count; i++)
+    {
+        mem_desc  = read_efi_mem_desc(memmap, i);
+        curr_type = get_page_type(mem_desc->type);
+
+        curr_start = mem_desc->physical_start;
+        curr_pages = mem_desc->number_of_pages;
+        curr_size  = (curr_pages << 12);
+        curr_end   = curr_start + curr_size;
+
+        if (curr_type != MM_TYPE_FREE)
+        {
+            continue;
+        }
+        size_t end_pfn = (curr_end) >> PAGE_SIZE_SHIFT;
+        if (end_pfn > max_pfn) max_pfn = end_pfn;
+    }
+    return max_pfn;
+}
+
+// 为内核初始化page_mgr
+efi_status_t init_page_mgr(struct system_info *system_info)
+{
+    struct memory_map *memmap = &system_info->boot_info->memory_map;
+
+    size_t max_pfn  = calculate_max_pfn(memmap);
+    size_t map_size = (max_pfn >> 3) + 1;
+    void  *map      = efi_malloc(map_size);
+
+    size_t pages_size = sizeof(system_info->page_mgr->pages[0]) * (max_pfn + 1);
+    void  *pages      = efi_malloc(pages_size);
+
+    system_info->page_mgr->bitmap.map_size = map_size;
+    system_info->page_mgr->bitmap.map      = PHYS_TO_VIRT(map);
+
+    system_info->page_mgr->pages   = PHYS_TO_VIRT(pages);
+    system_info->page_mgr->max_pfn = max_pfn;
+    return EFI_SUCCESS;
 }

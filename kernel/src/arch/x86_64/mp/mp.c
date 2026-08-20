@@ -61,8 +61,9 @@ static int wait_mp_get_stack(void *arg)
     return *(volatile uint64_t *)PHYS_TO_VIRT(AP_STACK) == stack_top;
 }
 
-void mp_init(struct boot_info *boot_info)
+void mp_init(struct system_info *system_info)
 {
+    struct boot_info *boot_info = system_info->boot_info;
     size_t ap_boot_size = (uintptr_t)AP_BOOT_END - (uintptr_t)AP_BOOT_START;
     printk("mp_init: copy AP_BOOT to %p, size=%d.\n", AP_START, ap_boot_size);
     memcpy(PHYS_TO_VIRT(AP_START), AP_BOOT_START, ap_boot_size);
@@ -70,7 +71,7 @@ void mp_init(struct boot_info *boot_info)
     *(uint64_t *)PHYS_TO_VIRT(AP_BOOT_FLAG)   = 0;
     *(volatile void **)PHYS_TO_VIRT(AP_STACK) = NULL;
     *(void **)PHYS_TO_VIRT(AP_ENTRY)          = NULL;
-
+    *(void **)PHYS_TO_VIRT(AP_SYS_INFO)       = system_info;
     printk("mp_init: send init ipi to secondary cpu(s).\n");
     // init IPI
     uint64_t icr = make_icr(

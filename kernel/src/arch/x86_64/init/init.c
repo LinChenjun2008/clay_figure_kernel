@@ -18,8 +18,11 @@
 #include <syscall.h>
 #include <task.h>
 
-void init_all(struct boot_info *boot_info)
+void init_all(struct system_info *system_info)
 {
+    init_set_cpu_struct(system_info->cpu);
+
+    struct boot_info *boot_info = system_info->boot_info;
     intr_disable();
     init_print(&boot_info->graphic_info);
     printk("Kernel initializing...\n");
@@ -40,14 +43,14 @@ void init_all(struct boot_info *boot_info)
     mem_init(boot_info);
 
     printk(MSG_INFO MSG_HIGHLIGHT("Task management") " initializing...\n");
-    task_init(boot_info, MAX_TASKS);
+    task_init(system_info, MAX_TASKS);
 
     printk(MSG_INFO MSG_HIGHLIGHT("System call") " initializing...\n");
     syscall_init();
     syscall_enable();
 
     printk(MSG_INFO MSG_HIGHLIGHT("MP") " initializing...\n");
-    mp_init(boot_info);
+    mp_init(system_info);
 
     mp_start(ap_main);
 
@@ -58,12 +61,15 @@ void init_all(struct boot_info *boot_info)
     return;
 }
 
-void ap_init_all(uintptr_t stack)
+void ap_init_all(struct system_info *system_info, uintptr_t stack)
 {
     intr_disable();
     ap_init_desc();
 
-    set_cpu_struct();
+    init_set_cpu_struct(system_info->cpu);
+    uint8_t     cpu_id = get_current_cpu_id();
+    struct cpu *cpu    = get_cpu_struct(cpu_id);
+    set_cpu_struct(cpu);
     make_main_task(stack - PG_SIZE, 1);
 
     local_apic_init();

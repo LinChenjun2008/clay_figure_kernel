@@ -109,7 +109,22 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     boot_info->page_table_pos = page_table_pos;
     printf(L"Page table: %p.\r\n", boot_info->page_table_pos);
 
-    // Memory map.
+    // Init page_mgr
+    boot_info->memory_map.map_size           = 4096 * 4;
+    boot_info->memory_map.buffer             = NULL;
+    boot_info->memory_map.map_key            = 0;
+    boot_info->memory_map.descriptor_size    = 0;
+    boot_info->memory_map.descriptor_version = 0;
+
+    status = get_memory_map(&boot_info->memory_map);
+    if (EFI_ERROR(status))
+    {
+        printf(L"get_memory_map: ERROR(%d).\n\r");
+        return status;
+    };
+    init_page_mgr(system_info);
+
+    // Get memory map (final).
     printf(L"Get memory map & exit boot service.\r\n");
     boot_info->memory_map.map_size           = 4096 * 4;
     boot_info->memory_map.buffer             = NULL;
@@ -133,6 +148,7 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
         return status;
     }
 
+    preprocess_system_info(system_info);
     int(SYSV_ABI * kernel)(struct system_info *) = (void *)(entry);
 
     status = kernel(system_info);
@@ -163,12 +179,16 @@ struct system_info *prepare_system_info(void)
     boot_services->set_mem(sys_info->boot_info, boot_info_size, 0);
 
     // pg_allocator
-    sys_info->pg_mgr = efi_malloc(sizeof(*sys_info->pg_mgr));
-    if (sys_info->pg_mgr == NULL)
+    sys_info->page_mgr = efi_malloc(sizeof(*sys_info->page_mgr));
+    if (sys_info->page_mgr == NULL)
     {
         printf(L"cannot alloc memory for pg_mgr.\n\r");
         return NULL;
     }
+
+    // cpus
+    struct cpu *cpu = efi_malloc(sizeof(sys_info->cpu[0]));
+    sys_info->cpu   = cpu;
 
     // task_mgr
     sys_info->task_mgr = efi_malloc(sizeof(*sys_info->task_mgr));
@@ -178,4 +198,19 @@ struct system_info *prepare_system_info(void)
         return NULL;
     }
     return sys_info;
+}
+
+void preprocess_system_info(struct system_info *system_info)
+{
+    struct page_mgr *page_mgr = system_info->page_mgr;
+    struct cpu      *cpu      = system_info->cpu;
+    struct task_mgr *task_mgr = system_info->task_mgr;
+
+    system_info->page_mgr = PHYS_TO_VIRT(page_mgr);
+    system_info->cpu      = PHYS_TO_VIRT(cpu);
+    system_info->task_mgr = PHYS_TO_VIRT(task_mgr);
+
+    task_mgr->system_info = PHYS_TO_VIRT(system_info);
+    cpu->task_mgr         = PHYS_TO_VIRT(task_mgr);
+    return;
 }

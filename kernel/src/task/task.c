@@ -17,14 +17,15 @@
 #include <task.h>
 #include <task/struct.h>
 
-static struct task_mgr *static_task_mgr = NULL;
-
-static void cpu_task_init(struct cpu *cpu)
+static void cpu_task_init(struct cpu *cpu, struct task_mgr *task_mgr)
 {
     memset(cpu, 0, sizeof(*cpu));
     cpu->curr_task = NULL;
     cpu->main_task = NULL;
     cpu->dead_task = NULL;
+
+    cpu->task_mgr = task_mgr;
+
     init_spinlock(&cpu->lock);
     cpu->running_tasks = 0;
     init_list(&cpu->task_queue);
@@ -35,23 +36,14 @@ static void cpu_task_init(struct cpu *cpu)
     return;
 }
 
-void set_task_mgr(struct task_mgr *task_mgr)
-{
-    static_task_mgr = task_mgr;
-    return;
-}
-
 struct task_mgr *get_task_mgr(void)
 {
-    return static_task_mgr;
+    return arch_get_task_mgr();
 }
 
-void task_init(struct boot_info *boot_info, int max_tasks)
+void task_init(struct system_info *system_info, int max_tasks)
 {
-    struct task_mgr *task_mgr = kmalloc(sizeof(*task_mgr), 0, 0);
-    ASSERT(task_mgr != NULL);
-    memset(task_mgr, 0, sizeof(*task_mgr));
-    set_task_mgr(task_mgr);
+    struct task_mgr *task_mgr = system_info->task_mgr;
 
     void  *task_table      = NULL;
     size_t task_table_size = sizeof(task_mgr->task_table[0]) * max_tasks;
@@ -72,6 +64,8 @@ void task_init(struct boot_info *boot_info, int max_tasks)
     ASSERT(cpus != NULL);
     memset(cpus, 0, cpus_size);
 
+    struct boot_info *boot_info = system_info->boot_info;
+
     init_spinlock(&task_mgr->lock);
     task_mgr->task_table            = task_table;
     task_mgr->pid_table             = pid_table;
@@ -83,12 +77,14 @@ void task_init(struct boot_info *boot_info, int max_tasks)
     int i;
     for (i = 0; i < task_mgr->max_cpus; i++)
     {
-        cpu_task_init(&task_mgr->cpus[i]);
+        cpu_task_init(&task_mgr->cpus[i], task_mgr);
     }
     printk("task_init: max_tasks=%d,max_cpu_id=%d.\n", max_tasks, max_cpus);
     uintptr_t kstack_base = (uintptr_t)PHYS_TO_VIRT(boot_info->stack_base);
 
-    set_cpu_struct();
+    uint8_t     cpu_id = get_current_cpu_id();
+    struct cpu *cpu    = get_cpu_struct(cpu_id);
+    set_cpu_struct(cpu);
     make_main_task(kstack_base, boot_info->stack_pages);
     return;
 }
@@ -123,9 +119,15 @@ struct cpu *get_cpu_struct(uint8_t cpu_id)
     return &task_mgr->cpus[cpu_id];
 }
 
-void set_cpu_struct(void)
+void init_set_cpu_struct(struct cpu *cpu)
 {
-    arch_set_cpu_struct();
+    arch_set_cpu_struct(cpu);
+    return;
+}
+
+void set_cpu_struct(struct cpu *cpu)
+{
+    arch_set_cpu_struct(cpu);
     return;
 }
 

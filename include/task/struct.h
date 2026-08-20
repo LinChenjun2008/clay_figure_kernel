@@ -18,13 +18,14 @@ typedef int32_t pid_t;
 
 struct task_mgr
 {
-    struct spinlock lock;
-    struct task   **task_table;
-    uint8_t        *pid_table;
-    int             max_tasks;
-    struct cpu     *cpus;
-    int             max_cpus;
-    void           *kernel_page_table_pos;
+    struct system_info *system_info;
+    struct spinlock     lock;
+    struct task       **task_table;
+    uint8_t            *pid_table;
+    int                 max_tasks;
+    struct cpu         *cpus;
+    int                 max_cpus;
+    void               *kernel_page_table_pos;
 };
 
 struct cpu
@@ -32,6 +33,8 @@ struct cpu
     struct task *curr_task;
     struct task *main_task;
     struct task *dead_task;
+
+    struct task_mgr *task_mgr;
 
     struct spinlock lock;
     size_t          running_tasks;
@@ -115,6 +118,11 @@ struct task
 };
 
 #endif /* __ASSEMBLER__ */
+
+#define CPU_CURRENT_TASK 0x00
+#define CPU_MAIN_TASK    0x08
+#define CPU_DEAD_TASK    0x10
+#define CPU_TASK_MGR     0x18
 
 #define TASK_STRUCT_KSTACK_BASE  0x08
 #define TASK_STRUCT_KSTACK_PAGES 0x10

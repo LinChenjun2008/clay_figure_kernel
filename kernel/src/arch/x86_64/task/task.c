@@ -22,15 +22,20 @@ static void kernel_task(int (*func)(uint64_t), uint64_t arg)
     return;
 }
 
+struct task_mgr *ASMLINKAGE asm_get_task_mgr(void);
+
+struct task_mgr *arch_get_task_mgr(void)
+{
+    return asm_get_task_mgr();
+}
+
 uint8_t arch_get_current_cpu_id(void)
 {
     return apic_id();
 }
 
-void arch_set_cpu_struct()
+void arch_set_cpu_struct(struct cpu *cpu)
 {
-    uint8_t     cpu_id = get_current_cpu_id();
-    struct cpu *cpu    = get_cpu_struct(cpu_id);
     wrmsr(IA32_KERNEL_GS_BASE, (uint64_t)cpu);
     return;
 }

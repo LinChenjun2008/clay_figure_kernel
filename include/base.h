@@ -90,13 +90,14 @@ struct boot_info
 
 struct system_info
 {
-    struct boot_info      *boot_info;
-    struct page_allocator *pg_mgr;
-    struct task_mgr       *task_mgr;
+    struct boot_info *boot_info;
+    struct page_mgr  *page_mgr;
+    struct cpu       *cpu;
+    struct task_mgr  *task_mgr;
 };
 
 int main(struct system_info *system_info);
-int ap_main(uintptr_t stack);
+int ap_main(struct system_info *system_info, uintptr_t stack);
 
 #endif /* __ASSEMBLER__ */
 

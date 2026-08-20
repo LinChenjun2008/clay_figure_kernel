@@ -8,7 +8,7 @@
 
 #include <base.h>
 
-void init_all(struct boot_info *boot_info);
-void ap_init_all(uintptr_t stack);
+void init_all(struct system_info *system_info);
+void ap_init_all(struct system_info *system_info, uintptr_t stack);
 
 #endif /* __ASM_INIT_H__ */

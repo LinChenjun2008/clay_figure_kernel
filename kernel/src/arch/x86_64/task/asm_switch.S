@@ -3,16 +3,26 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
+#include <task/struct.h>
+
 .text
 
 .extern intr_exit
 
+.global asm_get_task_mgr
+.type asm_get_task_mgr,@function
+asm_get_task_mgr:
+    swapgs
+    movq %gs:CPU_TASK_MGR, %rax
+    swapgs
+    retq
+
 .global asm_switch_to
 .type asm_switch_to,@function
 asm_switch_to:
-    subq  $16, %rsp
-    movq %rsi, 8(%rsp)
-    movq %rdi, (%rsp)
+    subq                      $16, %rsp
+    movq                     %rsi, 8(%rsp)
+    movq                     %rdi, (%rsp)
     leaq asm_switch_context(%rip), %rax
     callq *%rax
     addq $16, %rsp

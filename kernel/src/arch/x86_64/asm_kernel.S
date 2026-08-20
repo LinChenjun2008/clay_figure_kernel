@@ -24,6 +24,8 @@ kernel_entry:
     addq                 %rcx, %rax
     movq                 %rax, %rsp
 
+    movq       $KERNEL_VMA_BASE, %rcx
+    addq                   %rcx, %rdi
     leaq             main(%rip), %rax
     addq BI_RELOCATE_BASE(%rsi), %rax
     jmpq *%rax

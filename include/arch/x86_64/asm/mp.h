@@ -12,10 +12,11 @@
 #define AP_BOOT_FLAG      0x1008
 #define AP_STACK          0x1010
 #define AP_ENTRY          0x1018
+#define AP_SYS_INFO       0x1020
 
 #ifndef __ASSEMBLER__
 
-void mp_init(struct boot_info *boot_info);
+void mp_init(struct system_info *system_info);
 void mp_start(void *mp_entry);
 
 #endif /* __ASSEMBLER__ */

@@ -11,10 +11,14 @@
 #include <lib/linked_list.h>
 #include <sync/atomic.h>
 
-struct page_allocator
+struct page_mgr
 {
-    struct free_table pg_map;
-    struct atomic    *pg_ref_count;
+    struct free_table pg_map;       // 废弃
+    struct atomic    *pg_ref_count; // 废弃
+
+    struct bitmap bitmap;  // 用于分配页的位图
+    struct page  *pages;   // pages数组,用pfn为索引,负责页管理
+    size_t        max_pfn; // 最大pfn
 };
 
 enum mm_type

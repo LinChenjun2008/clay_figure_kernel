@@ -93,11 +93,14 @@ AP_CODE64_BASE:
     lock incq AP_BOOT_FLAG
 
 .ap_stack_loop:
-    movq $0, %rdi
+    movq             $0, %rdi
     lock xchgq AP_STACK, %rdi
-    cmpq $0, %rdi
+    cmpq             $0, %rdi
     jz .ap_stack_loop
     movq %rdi, %rsp
+
+    movq %rdi,%rsi
+    movq AP_SYS_INFO, %rdi
 
 .ap_loop:
     movq AP_ENTRY, %rax

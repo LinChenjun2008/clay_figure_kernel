@@ -17,7 +17,7 @@
 #include <sync/atomic.h>
 
 
-static struct page_allocator *pg_allocator;
+static struct page_mgr *pg_allocator;
 
 static enum mm_type get_page_type(enum efi_memory_type efi_type)
 {
@@ -256,10 +256,10 @@ void pg_allocator_init(struct boot_info *boot_info)
     size_t pg_ref_size       = pg_ref_count_size * (max_pfn + 1);
 
     // pg_allocator
-    size_t allocator_size = sizeof(struct page_allocator);
-    size_t total_size     = allocator_size + table_size + pg_ref_size;
-    size_t pages          = (total_size + PG_SIZE - 1) >> PAGE_SIZE_SHIFT;
-    struct page_allocator *allocator;
+    size_t           allocator_size = sizeof(struct page_mgr);
+    size_t           total_size     = allocator_size + table_size + pg_ref_size;
+    size_t           pages = (total_size + PG_SIZE - 1) >> PAGE_SIZE_SHIFT;
+    struct page_mgr *allocator;
     allocator = memmap_alloc_pages(&boot_info->memory_map, pages);
     if (allocator == NULL)
     {

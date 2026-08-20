@@ -7,11 +7,12 @@
 
 #include <asm/init.h>
 
+#include <mem.h>
 #include <task.h>
 
 int main(struct system_info *system_info)
 {
-    init_all(system_info->boot_info);
+    init_all(system_info);
 
     while (1)
     {
@@ -20,9 +21,9 @@ int main(struct system_info *system_info)
     return 0;
 }
 
-int ap_main(uintptr_t stack)
+int ap_main(struct system_info *system_info, uintptr_t stack)
 {
-    ap_init_all(stack);
+    ap_init_all(system_info, stack);
 
     while (1)
     {
