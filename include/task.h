@@ -47,16 +47,9 @@
 #    include <lib/linked_list.h>
 #    include <task/struct.h>
 
-void             set_task_mgr(struct task_mgr *task_mgr);
-struct task_mgr *get_task_mgr(void);
-
 void task_init(struct system_info *system_info, int max_tasks);
 void make_main_task(uintptr_t stack_base, size_t stack_pages);
 
-uint8_t      get_current_cpu_id(void);
-void         init_set_cpu_struct(struct cpu *cpu);
-struct cpu  *get_cpu_struct(uint8_t cpu_id);
-void         set_cpu_struct(struct cpu *cpu);
 void         set_current_task(struct task *task);
 struct task *get_current_task(void);
 

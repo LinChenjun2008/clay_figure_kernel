@@ -8,10 +8,6 @@
 
 #include <task/struct.h>
 
-struct task_mgr *arch_get_task_mgr(void);
-uint8_t          arch_get_current_cpu_id(void);
-void             arch_set_cpu_struct(struct cpu *cpu);
-
 void create_task_context(struct task *task, void *func, void *arg);
 
 void arch_switch_to(struct task *curr, struct task *next);

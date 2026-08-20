@@ -15,6 +15,7 @@
 #include <print.h>
 #include <std/string.h>
 #include <sync/atomic.h>
+#include <sysinfo.h>
 #include <task.h>
 
 static enum mm_type get_page_type(enum efi_memory_type efi_type)

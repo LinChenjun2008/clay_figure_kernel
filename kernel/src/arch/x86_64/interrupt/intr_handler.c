@@ -11,6 +11,7 @@
 #include <asm/x86.h>
 
 #include <print.h>
+#include <sysinfo.h>
 #include <task.h>
 
 static int has_error_code[256] = {

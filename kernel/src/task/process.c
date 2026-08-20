@@ -13,6 +13,7 @@
 #include <print.h>
 #include <std/string.h>
 #include <sync/atomic.h>
+#include <sysinfo.h>
 #include <task.h>
 #include <task/struct.h>
 

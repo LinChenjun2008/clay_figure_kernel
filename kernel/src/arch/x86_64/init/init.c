@@ -16,6 +16,7 @@
 #include <mem.h>
 #include <print.h>
 #include <syscall.h>
+#include <sysinfo.h>
 #include <task.h>
 
 void init_all(struct system_info *system_info)
@@ -67,8 +68,7 @@ void ap_init_all(struct system_info *system_info, uintptr_t stack)
     ap_init_desc();
 
     init_set_cpu_struct(system_info->cpu);
-    uint8_t     cpu_id = get_current_cpu_id();
-    struct cpu *cpu    = get_cpu_struct(cpu_id);
+    struct cpu *cpu = get_curr_cpu_struct();
     set_cpu_struct(cpu);
     make_main_task(stack - PG_SIZE, 1);
 

@@ -10,6 +10,7 @@
 #include <asm/drivers/timer.h>
 #include <asm/interrupt.h>
 
+#include <sysinfo.h>
 #include <task.h>
 
 static uint64_t ticks = 0;

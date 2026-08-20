@@ -11,6 +11,7 @@
 #include <asm/utils.h>
 
 #include <std/string.h> // memset,memcpy
+#include <sysinfo.h>
 
 extern struct segmdesc gdt_table[8192];
 static struct tss64    tss_table[256];

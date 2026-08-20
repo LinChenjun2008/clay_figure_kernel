@@ -10,6 +10,7 @@
 #include <asm/task.h>
 
 #include <print.h>
+#include <sysinfo.h>
 #include <task.h>
 
 static const uint64_t task_prio_to_weight[40] = {
