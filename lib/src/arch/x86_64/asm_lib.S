@@ -23,12 +23,6 @@ syscall_2:
 syscall_3:
 syscall_4:
 syscall_5:
-    pushq %rcx
-    pushq %r10
-    pushq %r11
     movq %rcx,%r10
     syscall
-    popq %r11
-    popq %r10
-    popq %rcx
     retq

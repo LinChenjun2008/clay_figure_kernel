@@ -331,10 +331,9 @@ static void task_unblock_lock(struct task *task)
 {
     struct cpu *cpu = get_cpu_struct(task->cpu_id);
 
-    atomic_dec(&task->block_count);
-    int64_t val = atomic_read(&task->block_count);
+    int64_t val = atomic_dec(&task->block_count);
 
-    if (val != 0)
+    if (val - 1 != 0)
     {
         return;
     }

@@ -20,40 +20,31 @@ uint64_t atomic_read(struct atomic *atom)
     return atom->value;
 }
 
-extern void ASMLINKAGE asm_atomic_add(volatile uint64_t *atom, uint64_t value);
-extern void ASMLINKAGE asm_atomic_sub(volatile uint64_t *atom, uint64_t value);
-extern void ASMLINKAGE asm_atomic_inc(volatile uint64_t *atom);
-extern void ASMLINKAGE asm_atomic_dec(volatile uint64_t *atom);
-extern void ASMLINKAGE asm_atomic_mask(volatile uint64_t *atom, uint64_t mask);
+extern uint64_t ASMLINKAGE
+asm_atomic_add(volatile uint64_t *atom, uint64_t value);
+extern uint64_t ASMLINKAGE
+asm_atomic_sub(volatile uint64_t *atom, uint64_t value);
+extern uint64_t ASMLINKAGE asm_atomic_inc(volatile uint64_t *atom);
+extern uint64_t ASMLINKAGE asm_atomic_dec(volatile uint64_t *atom);
 
-void atomic_add(struct atomic *atom, uint64_t value)
+uint64_t atomic_add(struct atomic *atom, uint64_t value)
 {
-    asm_atomic_add(&atom->value, value);
-    return;
+    return asm_atomic_add(&atom->value, value);
 }
 
-void atomic_sub(struct atomic *atom, uint64_t value)
+uint64_t atomic_sub(struct atomic *atom, uint64_t value)
 {
-    asm_atomic_sub(&atom->value, value);
-    return;
+    return asm_atomic_sub(&atom->value, value);
 }
 
-void atomic_inc(struct atomic *atom)
+uint64_t atomic_inc(struct atomic *atom)
 {
-    asm_atomic_inc(&atom->value);
-    return;
+    return asm_atomic_inc(&atom->value);
 }
 
-void atomic_dec(struct atomic *atom)
+uint64_t atomic_dec(struct atomic *atom)
 {
-    asm_atomic_dec(&atom->value);
-    return;
-}
-
-void atomic_mask(struct atomic *atom, uint64_t mask)
-{
-    asm_atomic_mask(&atom->value, mask);
-    return;
+    return asm_atomic_dec(&atom->value);
 }
 
 extern uint64_t ASMLINKAGE

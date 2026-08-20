@@ -225,31 +225,32 @@ asm_atomic_xchg:
 .global asm_atomic_add
 .type asm_atomic_add,@function
 asm_atomic_add:
-    lock addq %rsi, (%rdi)
+    lock xaddq %rsi, (%rdi)
+    movq       %rsi, %rax
     retq
 
 .global asm_atomic_sub
 .type asm_atomic_sub,@function
 asm_atomic_sub:
-    lock subq %rsi, (%rdi)
+    negq %rsi
+    lock xaddq %rsi, (%rdi)
+    movq       %rsi, %rax
     retq
 
 .global asm_atomic_inc
 .type asm_atomic_inc,@function
 asm_atomic_inc:
-    lock incq (%rdi)
+    movq         $1, %rsi
+    lock xaddq %rsi, (%rdi)
+    movq %rsi, %rax
     retq
 
 .global asm_atomic_dec
 .type asm_atomic_dec,@function
 asm_atomic_dec:
-    lock decq (%rdi)
-    retq
-
-.global asm_atomic_mask
-.type asm_atomic_mask,@function
-asm_atomic_mask:
-    lock andq %rsi, (%rdi)
+    movq        $-1, %rsi
+    lock xaddq %rsi, (%rdi)
+    movq %rsi, %rax
     retq
 
 .global asm_atomic_bts
