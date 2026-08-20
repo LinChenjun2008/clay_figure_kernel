@@ -11,15 +11,11 @@
 #include <efi.h>
 #include <lib/free_table.h>
 #include <mem.h>
+#include <mem/struct.h>
 #include <print.h>
 #include <std/string.h>
 #include <sync/atomic.h>
 
-struct page_allocator
-{
-    struct free_table pg_map;
-    struct atomic    *pg_ref_count;
-};
 
 static struct page_allocator *pg_allocator;
 

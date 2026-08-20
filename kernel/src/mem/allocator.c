@@ -8,6 +8,7 @@
 #include <asm/page.h>
 
 #include <mem.h>
+#include <mem/struct.h>
 #include <print.h>
 #include <std/string.h>
 

@@ -16,6 +16,32 @@
 
 typedef int32_t pid_t;
 
+struct task_mgr
+{
+    struct spinlock lock;
+    struct task   **task_table;
+    uint8_t        *pid_table;
+    int             max_tasks;
+    struct cpu     *cpus;
+    int             max_cpus;
+    void           *kernel_page_table_pos;
+};
+
+struct cpu
+{
+    struct task *curr_task;
+    struct task *main_task;
+    struct task *dead_task;
+
+    struct spinlock lock;
+    size_t          running_tasks;
+    struct list     task_queue;
+    struct list     blocked_queue;
+
+    uint64_t min_vrun_time;
+    uint64_t total_weight;
+};
+
 // 任务状态标志
 enum task_status
 {

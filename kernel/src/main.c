@@ -9,9 +9,9 @@
 
 #include <task.h>
 
-int main(struct boot_info *boot_info)
+int main(struct system_info *system_info)
 {
-    init_all(boot_info);
+    init_all(system_info->boot_info);
 
     while (1)
     {

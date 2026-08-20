@@ -39,24 +39,9 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
 
     printf(L"Starting...\r\n");
 
-    // Prepare boot info
-    struct boot_info *boot_info = NULL;
-
-    status = boot_services->allocate_pages(
-        EFI_ALLOCATE_ANY_PAGES,
-        EFI_LOADER_DATA,
-        (sizeof(*boot_info) + 0xfff) >> 12,
-        (efi_physical_address_t *)&boot_info
-    );
-    if (EFI_ERROR(status))
-    {
-        printf(
-            L"boot_services->allocate_pages: cannot alloc memory for "
-            L"boot_info.\n\r"
-        );
-        return status;
-    }
-    boot_services->set_mem(boot_info, sizeof(*boot_info), 0);
+    // Prepare system info
+    struct system_info *system_info = prepare_system_info();
+    struct boot_info   *boot_info   = system_info->boot_info;
 
     // Read kernel.
     efi_physical_address_t sys_addr;
@@ -124,7 +109,6 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     boot_info->page_table_pos = page_table_pos;
     printf(L"Page table: %p.\r\n", boot_info->page_table_pos);
 
-
     // Memory map.
     printf(L"Get memory map & exit boot service.\r\n");
     boot_info->memory_map.map_size           = 4096 * 4;
@@ -149,10 +133,49 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
         return status;
     }
 
-    int(SYSV_ABI * kernel)(struct boot_info *) = (void *)(entry);
+    int(SYSV_ABI * kernel)(struct system_info *) = (void *)(entry);
 
-    status = kernel(boot_info);
+    status = kernel(system_info);
 
     while (1);
     return status;
+}
+
+struct system_info *prepare_system_info(void)
+{
+    // Prepare system info
+    struct system_info *sys_info = efi_malloc(sizeof(*sys_info));
+    if (sys_info == NULL)
+    {
+        printf(L"cannot alloc memory for system_info.\n\r");
+        return NULL;
+    }
+    boot_services->set_mem(sys_info, sizeof(*sys_info), 0);
+
+    // Prepare boot info
+    size_t boot_info_size = sizeof(*sys_info->boot_info);
+    sys_info->boot_info   = efi_malloc(boot_info_size);
+    if (sys_info->boot_info == NULL)
+    {
+        printf(L"cannot alloc memory for boot_info.\n\r");
+        return NULL;
+    }
+    boot_services->set_mem(sys_info->boot_info, boot_info_size, 0);
+
+    // pg_allocator
+    sys_info->pg_mgr = efi_malloc(sizeof(*sys_info->pg_mgr));
+    if (sys_info->pg_mgr == NULL)
+    {
+        printf(L"cannot alloc memory for pg_mgr.\n\r");
+        return NULL;
+    }
+
+    // task_mgr
+    sys_info->task_mgr = efi_malloc(sizeof(*sys_info->task_mgr));
+    if (sys_info->task_mgr == NULL)
+    {
+        printf(L"cannot alloc memory for task_mgr.\n\r");
+        return NULL;
+    }
+    return sys_info;
 }

@@ -5,6 +5,19 @@
 
 #include <bootloader.h>
 
+void *efi_malloc(size_t size)
+{
+    efi_status_t status = EFI_SUCCESS;
+
+    void *ret = NULL;
+    status = boot_services->allocate_pool(EFI_LOADER_DATA, size, (void **)&ret);
+    if (EFI_ERROR(status))
+    {
+        return NULL;
+    }
+    return ret;
+}
+
 efi_status_t get_memory_map(struct memory_map *memmap)
 {
     efi_status_t status = EFI_SUCCESS;

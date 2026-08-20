@@ -16,6 +16,7 @@ efi_status_t EFIAPI efi_main(
     efi_handle_t             in_image_handle,
     struct efi_system_table *in_system_table
 );
+struct system_info *prepare_system_info(void);
 
 // acpi.c
 efi_status_t read_acpi_tables(struct boot_info *boot_info);
@@ -41,6 +42,7 @@ int compare_guid(struct efi_guid *guid1, struct efi_guid *guid2);
 // memory.c
 #include <asm/page.h>
 
+void        *efi_malloc(size_t size);
 efi_status_t get_memory_map(struct memory_map *mmap);
 efi_status_t create_page_table(void *pg_dir);
 

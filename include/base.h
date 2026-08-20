@@ -42,8 +42,13 @@
 
 #ifndef __ASSEMBLER__
 
+// std
 #    include <std/stddef.h>
 #    include <std/stdint.h>
+
+// structures
+#    include <mem/struct.h>
+#    include <task/struct.h>
 
 typedef unsigned char char8_t;
 typedef unsigned short char16_t;
@@ -83,7 +88,14 @@ struct boot_info
     uint32_t    sdt_entries;
 };
 
-int main(struct boot_info *boot_info);
+struct system_info
+{
+    struct boot_info      *boot_info;
+    struct page_allocator *pg_mgr;
+    struct task_mgr       *task_mgr;
+};
+
+int main(struct system_info *system_info);
 int ap_main(uintptr_t stack);
 
 #endif /* __ASSEMBLER__ */
