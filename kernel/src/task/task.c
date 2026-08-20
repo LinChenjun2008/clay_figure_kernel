@@ -249,7 +249,7 @@ void free_task(struct task *task)
     spin_lock(&task_mgr->lock);
     kfree(task);
     task_mgr->pid_table[task_index]++;
-    task_mgr->task_table[pid] = NULL;
+    task_mgr->task_table[task_index] = NULL;
     spin_unlock(&task_mgr->lock);
     return;
 }
@@ -348,7 +348,11 @@ static void main_adopt_childs(struct task *task)
     for (i = 0; i < task_mgr->max_tasks; i++)
     {
         struct task *child = task_mgr->task_table[i];
-        if (child == NULL || child->ppid != task->pid)
+        if (child == NULL)
+        {
+            continue;
+        }
+        if (child->ppid != task->pid)
         {
             continue;
         }

@@ -6,11 +6,7 @@
 #ifndef __MEM_H__
 #define __MEM_H__
 
-#define MIN_BLOCK_SIZE  64   //  64 Byte
-#define MAX_BLOCK_SIZE  1024 //   1 KiB
-#define MAX_BLOCK_TYPES 5
-
-void mem_init(struct boot_info *boot_info);
+void mem_init(struct system_info *system_info);
 
 // allocator.c
 void mem_allocator_init(void);

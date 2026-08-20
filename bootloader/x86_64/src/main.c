@@ -100,13 +100,13 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     printf(L"Video: frame buffer: %p.\r\n", graphic_info->frame_buffer_base);
 
     // Create page table
-    uintptr_t *page_table_pos;
+    uintptr_t page_table_pos;
     status = create_page_table(&page_table_pos);
     if (EFI_ERROR(status))
     {
         printf(L"create_page_table: ERROR(%d).\n\r", status);
     }
-    boot_info->page_table_pos = page_table_pos;
+    boot_info->page_table_pos = (void *)page_table_pos;
     printf(L"Page table: %p.\r\n", boot_info->page_table_pos);
 
     // Init page_mgr
@@ -149,9 +149,9 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     }
 
     preprocess_system_info(system_info);
-    int(SYSV_ABI * kernel)(struct system_info *) = (void *)(entry);
+    int(SYSV_ABI * kernel)(struct system_info *, uintptr_t) = (void *)(entry);
 
-    status = kernel(system_info);
+    status = kernel(system_info, page_table_pos);
 
     while (1);
     return status;
@@ -202,13 +202,15 @@ struct system_info *prepare_system_info(void)
 
 void preprocess_system_info(struct system_info *system_info)
 {
-    struct page_mgr *page_mgr = system_info->page_mgr;
-    struct cpu      *cpu      = system_info->cpu;
-    struct task_mgr *task_mgr = system_info->task_mgr;
+    struct boot_info *boot_info = system_info->boot_info;
+    struct page_mgr  *page_mgr  = system_info->page_mgr;
+    struct cpu       *cpu       = system_info->cpu;
+    struct task_mgr  *task_mgr  = system_info->task_mgr;
 
-    system_info->page_mgr = PHYS_TO_VIRT(page_mgr);
-    system_info->cpu      = PHYS_TO_VIRT(cpu);
-    system_info->task_mgr = PHYS_TO_VIRT(task_mgr);
+    system_info->boot_info = PHYS_TO_VIRT(boot_info);
+    system_info->page_mgr  = PHYS_TO_VIRT(page_mgr);
+    system_info->cpu       = PHYS_TO_VIRT(cpu);
+    system_info->task_mgr  = PHYS_TO_VIRT(task_mgr);
 
     task_mgr->system_info = PHYS_TO_VIRT(system_info);
     cpu->task_mgr         = PHYS_TO_VIRT(task_mgr);

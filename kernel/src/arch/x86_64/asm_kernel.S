@@ -8,13 +8,12 @@
 
 .global kernel_entry
 kernel_entry:
+    // page table
+    movq %rsi, %cr3
+
     // rdi -> system_info
     // rsi -> boot_info
     movq (%rdi), %rsi
-
-    // page table
-    movq BI_PAGE_TABLE_POS(%rsi), %rax
-    movq                    %rax, %cr3
 
     // kernel stack
     movq BI_STACK_PAGES(%rsi), %rax

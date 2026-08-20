@@ -10,10 +10,10 @@
 #include <mem.h>
 #include <print.h>
 
-void mem_init(struct boot_info *boot_info)
+void mem_init(struct system_info *system_info)
 {
     printk("mem_init: page management initializing...\n");
-    pg_allocator_init(boot_info);
+    page_mgr_init(system_info);
     printk("mem_init: memory management initializing...\n");
     mem_allocator_init();
     return;

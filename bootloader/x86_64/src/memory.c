@@ -275,19 +275,25 @@ static size_t calculate_max_pfn(struct memory_map *memmap)
 // 为内核初始化page_mgr
 efi_status_t init_page_mgr(struct system_info *system_info)
 {
-    struct memory_map *memmap = &system_info->boot_info->memory_map;
+    struct page_mgr   *page_mgr = system_info->page_mgr;
+    struct memory_map *memmap   = &system_info->boot_info->memory_map;
 
     size_t max_pfn  = calculate_max_pfn(memmap);
     size_t map_size = (max_pfn >> 3) + 1;
     void  *map      = efi_malloc(map_size);
 
-    size_t pages_size = sizeof(system_info->page_mgr->pages[0]) * (max_pfn + 1);
+    size_t pages_size = sizeof(page_mgr->pages[0]) * (max_pfn + 1);
     void  *pages      = efi_malloc(pages_size);
 
-    system_info->page_mgr->bitmap.map_size = map_size;
-    system_info->page_mgr->bitmap.map      = PHYS_TO_VIRT(map);
+    page_mgr->bitmap.map_size = map_size;
+    page_mgr->bitmap.map      = PHYS_TO_VIRT(map);
 
-    system_info->page_mgr->pages   = PHYS_TO_VIRT(pages);
-    system_info->page_mgr->max_pfn = max_pfn;
+    page_mgr->pages   = PHYS_TO_VIRT(pages);
+    page_mgr->max_pfn = max_pfn;
+
+    struct mem_group *mem_group = NULL;
+    size_t group_size    = sizeof(*page_mgr->mem_groups) * MAX_BLOCK_TYPES;
+    mem_group            = efi_malloc(group_size);
+    page_mgr->mem_groups = PHYS_TO_VIRT(mem_group);
     return EFI_SUCCESS;
 }

@@ -11,15 +11,9 @@
 #include <lib/linked_list.h>
 #include <sync/atomic.h>
 
-struct page_mgr
-{
-    struct free_table pg_map;       // 废弃
-    struct atomic    *pg_ref_count; // 废弃
-
-    struct bitmap bitmap;  // 用于分配页的位图
-    struct page  *pages;   // pages数组,用pfn为索引,负责页管理
-    size_t        max_pfn; // 最大pfn
-};
+#define MIN_BLOCK_SIZE  64   //  64 Byte
+#define MAX_BLOCK_SIZE  1024 //   1 KiB
+#define MAX_BLOCK_TYPES 5
 
 enum mm_type
 {
@@ -50,9 +44,10 @@ struct mem_block
     struct list_node node;
 };
 
+#define PAGE_HEAD 1
+
 struct page
 {
-    uint64_t      pfn;
     struct atomic reference_count;
     uint64_t      flags;
     uint64_t      count;
@@ -62,6 +57,15 @@ struct mm
 {
     struct free_table vmemmap;
     struct free_table pmemmap;
+};
+
+struct page_mgr
+{
+    struct spinlock   lock;
+    struct bitmap     bitmap;  // 用于分配页的位图(1: free / 0: reserved)
+    struct page      *pages;   // pages数组,用pfn为索引,负责页管理
+    size_t            max_pfn; // 最大pfn
+    struct mem_group *mem_groups;
 };
 
 #endif /* __MEM_STRUCT_H__ */

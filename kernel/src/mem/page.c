@@ -15,9 +15,7 @@
 #include <print.h>
 #include <std/string.h>
 #include <sync/atomic.h>
-
-
-static struct page_mgr *pg_allocator;
+#include <task.h>
 
 static enum mm_type get_page_type(enum efi_memory_type efi_type)
 {
@@ -63,104 +61,20 @@ read_efi_mem_desc(struct memory_map *memmap, int i)
     return (struct efi_memory_descriptor *)ret;
 }
 
-// 进行预处理(剔除低于1MiB的内存块)
-static void efi_mem_desc_preprocess(struct memory_map *memmap)
+static void
+find_free_pages(struct page_mgr *page_mgr, struct memory_map *memmap)
 {
     enum mm_type curr_type = MAX_MM_TYPE;
 
     uintptr_t curr_start = 0;
-    uintptr_t curr_end   = 0;
-    size_t    curr_size  = 0;
     uint64_t  curr_pages = 0;
+    size_t    curr_pfn   = 0;
 
     struct efi_memory_descriptor *mem_desc = NULL;
 
     int desc_count = efi_mem_desc_count(memmap);
+
     int i;
-    for (i = 0; i < desc_count; i++)
-    {
-        mem_desc  = read_efi_mem_desc(memmap, i);
-        curr_type = get_page_type(mem_desc->type);
-
-        curr_start = mem_desc->physical_start;
-        curr_pages = mem_desc->number_of_pages;
-        curr_size  = (curr_pages << 12);
-        curr_end   = curr_start + curr_size;
-
-        // 只有类型为MM_TYPE_FREE的需要处理
-        if (curr_type != MM_TYPE_FREE)
-        {
-            continue;
-        }
-
-        // 全部位于可用范围内
-        if (curr_start >= 0x100000)
-        {
-            continue;
-        }
-
-        // 全部位于保留范围内
-        if (curr_end <= 0x100000)
-        {
-            // 标记为不可用
-            mem_desc->type = EFI_MAX_MEMORY_TYPE;
-            continue;
-        }
-
-        // curr_start < 0x100000 && curr_end > 0x100000
-
-        curr_start = 0x100000;
-        curr_size  = curr_end - curr_start;
-        curr_pages = curr_size >> PAGE_SIZE_SHIFT;
-
-        mem_desc->physical_start  = curr_start;
-        mem_desc->number_of_pages = curr_pages;
-    }
-    return;
-}
-
-// 获取空闲页个数
-static size_t calculate_free_pages(struct memory_map *memmap)
-{
-    enum mm_type curr_type = MAX_MM_TYPE;
-
-    size_t pages = 0;
-
-    struct efi_memory_descriptor *mem_desc = NULL;
-
-    int desc_count = efi_mem_desc_count(memmap);
-    int i;
-    for (i = 0; i < desc_count; i++)
-    {
-        mem_desc  = read_efi_mem_desc(memmap, i);
-        curr_type = get_page_type(mem_desc->type);
-
-        if (curr_type != MM_TYPE_FREE)
-        {
-            continue;
-        }
-
-        pages += mem_desc->number_of_pages;
-    }
-    return pages;
-}
-
-// 计算可用内存的最大pfn
-static size_t calculate_max_pfn(struct memory_map *memmap)
-{
-    enum mm_type curr_type = MAX_MM_TYPE;
-
-    uintptr_t curr_start = 0;
-    uintptr_t curr_end   = 0;
-    size_t    curr_size  = 0;
-    uint64_t  curr_pages = 0;
-
-    struct efi_memory_descriptor *mem_desc = NULL;
-
-    int desc_count = efi_mem_desc_count(memmap);
-
-    size_t max_pfn = 0;
-    int    i;
 
     for (i = 0; i < desc_count; i++)
     {
@@ -169,125 +83,115 @@ static size_t calculate_max_pfn(struct memory_map *memmap)
 
         curr_start = mem_desc->physical_start;
         curr_pages = mem_desc->number_of_pages;
-        curr_size  = (curr_pages << 12);
-        curr_end   = curr_start + curr_size;
-
+        curr_pfn   = curr_start >> PAGE_SIZE_SHIFT;
         if (curr_type != MM_TYPE_FREE)
         {
             continue;
         }
-        size_t end_pfn = (curr_end) >> PAGE_SIZE_SHIFT;
-        if (end_pfn > max_pfn) max_pfn = end_pfn;
+        bitmap_set(&page_mgr->bitmap, curr_pfn, 1, curr_pages);
     }
-    return max_pfn;
+    // 1MiB
+    bitmap_set(&page_mgr->bitmap, 0, 0, 256);
+    return;
 }
 
-// 利用memmap分配内存
-// 分配的内存不会释放
-static void *memmap_alloc_pages(struct memory_map *memmap, uint64_t pages)
+void page_mgr_init(struct system_info *system_info)
 {
-    enum mm_type curr_type = MAX_MM_TYPE;
+    struct page_mgr   *page_mgr = system_info->page_mgr;
+    struct memory_map *memmap   = &system_info->boot_info->memory_map;
 
-    void *ret = NULL;
+    init_spinlock(&page_mgr->lock);
+    struct bitmap *bitmap = &page_mgr->bitmap;
+    init_bitmap(bitmap, bitmap->map_size, bitmap->map);
+    find_free_pages(system_info->page_mgr, memmap);
 
-    struct efi_memory_descriptor *mem_desc = NULL;
-
-    int desc_count = efi_mem_desc_count(memmap);
-    int i;
-    for (i = 0; i < desc_count; i++)
+    size_t i;
+    for (i = 0; i <= page_mgr->max_pfn; i++)
     {
-        mem_desc  = read_efi_mem_desc(memmap, i);
-        curr_type = get_page_type(mem_desc->type);
-
-        if (curr_type != MM_TYPE_FREE)
-        {
-            continue;
-        }
-        if (mem_desc->number_of_pages < pages)
-        {
-            continue;
-        }
-        // mem_desc->number_of_pages >= pages
-        ret = (void *)mem_desc->physical_start;
-
-        mem_desc->physical_start += (pages << PAGE_SIZE_SHIFT);
-        mem_desc->number_of_pages -= pages;
-        return PHYS_TO_VIRT(ret);
-    }
-    return NULL;
-}
-
-static void free_all_pages(struct memory_map *memmap)
-{
-    enum mm_type                  curr_type = MAX_MM_TYPE;
-    struct efi_memory_descriptor *mem_desc  = NULL;
-
-    void  *addr;
-    size_t pages;
-    int    i;
-    for (i = 0; i < efi_mem_desc_count(memmap); i++)
-    {
-        mem_desc  = read_efi_mem_desc(memmap, i);
-        curr_type = get_page_type(mem_desc->type);
-
-        if (curr_type != MM_TYPE_FREE)
-        {
-            continue;
-        }
-        addr  = PHYS_TO_VIRT(mem_desc->physical_start);
-        pages = mem_desc->number_of_pages;
-        free_pages(addr, pages);
+        atomic_set(&page_mgr->pages[i].reference_count, 0);
+        page_mgr->pages[i].flags = 0;
+        page_mgr->pages[i].count = 0;
     }
     return;
 }
 
-void pg_allocator_init(struct boot_info *boot_info)
+static void page_reference_inc_lock(size_t pfn)
 {
-    efi_mem_desc_preprocess(&boot_info->memory_map);
-
-    // free_table
-    size_t total_pages  = calculate_free_pages(&boot_info->memory_map);
-    int    total_blocks = (total_pages / 2) + 1;
-    size_t table_size   = total_blocks * sizeof(struct free_block);
-
-    // pg_ref_count
-    size_t max_pfn           = calculate_max_pfn(&boot_info->memory_map);
-    size_t pg_ref_count_size = sizeof(pg_allocator->pg_ref_count[0]);
-    size_t pg_ref_size       = pg_ref_count_size * (max_pfn + 1);
-
-    // pg_allocator
-    size_t           allocator_size = sizeof(struct page_mgr);
-    size_t           total_size     = allocator_size + table_size + pg_ref_size;
-    size_t           pages = (total_size + PG_SIZE - 1) >> PAGE_SIZE_SHIFT;
-    struct page_mgr *allocator;
-    allocator = memmap_alloc_pages(&boot_info->memory_map, pages);
-    if (allocator == NULL)
+    struct system_info *system_info = get_task_mgr()->system_info;
+    struct page_mgr    *page_mgr    = system_info->page_mgr;
+    if (pfn > page_mgr->max_pfn)
     {
-        printk(MSG_ERR "page_allocator_init: failed to allocate table.\n");
         return;
     }
-    memset(allocator, 0, allocator_size);
-
-    pg_allocator             = allocator;
-    uintptr_t allocator_base = (uintptr_t)allocator;
-    uintptr_t table_base     = allocator_base + allocator_size;
-    uintptr_t pg_ref_base    = table_base + table_size;
-
-    init_free_table(&pg_allocator->pg_map, (void *)table_base, total_blocks);
-
-    allocator->pg_ref_count = (void *)pg_ref_base;
-    size_t i;
-    for (i = 0; i <= max_pfn; i++)
-    {
-        atomic_set(&allocator->pg_ref_count[i], 0);
-    }
-
-    free_all_pages(&boot_info->memory_map);
-    printk("pg_allocator_init: total memory: %d MiB.\n", total_pages >> 10);
+    atomic_inc(&page_mgr->pages[pfn].reference_count);
     return;
 }
 
-void free_pages(void *addr, size_t pages)
+void page_reference_inc(size_t pfn)
+{
+    struct system_info *system_info = get_task_mgr()->system_info;
+    struct page_mgr    *page_mgr    = system_info->page_mgr;
+
+    spin_lock(&page_mgr->lock);
+    page_reference_inc_lock(pfn);
+    spin_unlock(&page_mgr->lock);
+    return;
+}
+
+static uint64_t page_reference_dec_lock(size_t pfn)
+{
+
+    struct system_info *system_info = get_task_mgr()->system_info;
+    struct page_mgr    *page_mgr    = system_info->page_mgr;
+    if (pfn > page_mgr->max_pfn)
+    {
+        return -1;
+    }
+    return atomic_dec(&page_mgr->pages[pfn].reference_count);
+}
+
+uint64_t page_reference_dec(size_t pfn)
+{
+    struct system_info *system_info = get_task_mgr()->system_info;
+    struct page_mgr    *page_mgr    = system_info->page_mgr;
+
+    spin_lock(&page_mgr->lock);
+    uint64_t ret = page_reference_dec_lock(pfn);
+    spin_unlock(&page_mgr->lock);
+    return ret;
+}
+
+static void *allocate_pages_lock(size_t pages)
+{
+    struct system_info *system_info = get_task_mgr()->system_info;
+    struct page_mgr    *page_mgr    = system_info->page_mgr;
+    size_t              pfn         = bitmap_find(&page_mgr->bitmap, 1, pages);
+    if (pfn == -1UL)
+    {
+        return NULL;
+    }
+    bitmap_set(&page_mgr->bitmap, pfn, 0, pages);
+    page_reference_inc_lock(pfn);
+    page_mgr->pages[pfn].flags = PAGE_HEAD;
+    page_mgr->pages[pfn].count = pages;
+
+    uintptr_t ret = pfn << PAGE_SIZE_SHIFT;
+    return PHYS_TO_VIRT(ret);
+}
+
+void *allocate_pages(size_t pages)
+{
+    struct system_info *system_info = get_task_mgr()->system_info;
+    struct page_mgr    *page_mgr    = system_info->page_mgr;
+
+    spin_lock(&page_mgr->lock);
+    void *ret = allocate_pages_lock(pages);
+    spin_unlock(&page_mgr->lock);
+
+    return ret;
+}
+
+static void free_pages_lock(void *addr, size_t pages)
 {
     if (addr == NULL)
     {
@@ -296,25 +200,33 @@ void free_pages(void *addr, size_t pages)
     }
     ASSERT(((uintptr_t)addr & (PG_SIZE - 1)) == 0);
 
-    int    status = 0;
-    size_t size   = pages << PAGE_SIZE_SHIFT;
+    struct system_info *system_info = get_task_mgr()->system_info;
+    struct page_mgr    *page_mgr    = system_info->page_mgr;
 
-    status = free_table_add(&pg_allocator->pg_map, (uint64_t)addr, size);
-    if (status < 0)
+    size_t pfn = (uintptr_t)VIRT_TO_PHYS(addr) >> PAGE_SIZE_SHIFT;
+
+    ASSERT(page_mgr->pages[pfn].flags == PAGE_HEAD);
+    ASSERT(page_mgr->pages[pfn].count == pages);
+
+    uint64_t ref_count;
+    ref_count = page_reference_dec_lock(pfn);
+    if (ref_count == 1)
     {
-        printk(MSG_ERR "free_pages: free page failed (%p, %d).\n", addr, pages);
+        bitmap_set(&page_mgr->bitmap, pfn, 1, pages);
+        page_mgr->pages[pfn].flags = 0;
+        page_mgr->pages[pfn].count = 0;
     }
     return;
 }
 
-void *allocate_pages(size_t pages)
+void free_pages(void *addr, size_t pages)
 {
-    uint64_t ret  = 0;
-    size_t   size = pages << PAGE_SIZE_SHIFT;
-    ret           = free_table_allocate(&pg_allocator->pg_map, size);
-    if (ret == -1UL)
-    {
-        return NULL;
-    }
-    return (void *)ret;
+    struct system_info *system_info = get_task_mgr()->system_info;
+    struct page_mgr    *page_mgr    = system_info->page_mgr;
+
+    spin_lock(&page_mgr->lock);
+    free_pages_lock(addr, pages);
+    spin_unlock(&page_mgr->lock);
+
+    return;
 }

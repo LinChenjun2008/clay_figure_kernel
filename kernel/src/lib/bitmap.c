@@ -27,7 +27,7 @@ int bitmap_scan_test(struct bitmap *bitmap, size_t bit_index)
     return bitmap->map[byte_index] & (1 << bit_odd) ? 1 : 0;
 }
 
-size_t bitmap_allocate(struct bitmap *bitmap, int value, size_t count)
+size_t bitmap_find(struct bitmap *bitmap, int value, size_t count)
 {
     if (value != 0 && value != 1)
     {

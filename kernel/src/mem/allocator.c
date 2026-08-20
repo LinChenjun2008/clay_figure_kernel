@@ -11,12 +11,15 @@
 #include <mem/struct.h>
 #include <print.h>
 #include <std/string.h>
-
-static struct mem_group mem_groups[MAX_BLOCK_TYPES];
+#include <task.h>
 
 void mem_allocator_init(void)
 {
     size_t block_size = MIN_BLOCK_SIZE;
+
+    struct task_mgr  *task_mgr   = get_task_mgr();
+    struct page_mgr  *page_mgr   = task_mgr->system_info->page_mgr;
+    struct mem_group *mem_groups = page_mgr->mem_groups;
 
     int i;
     for (i = 0; i < MAX_BLOCK_TYPES; i++)
@@ -103,6 +106,10 @@ find_block(struct mem_group *g, size_t alignment, size_t boundary)
 
 static struct mem_group *size_to_group(size_t size)
 {
+    struct task_mgr  *task_mgr   = get_task_mgr();
+    struct page_mgr  *page_mgr   = task_mgr->system_info->page_mgr;
+    struct mem_group *mem_groups = page_mgr->mem_groups;
+
     int i;
     for (i = 0; i < MAX_BLOCK_TYPES; i++)
     {
