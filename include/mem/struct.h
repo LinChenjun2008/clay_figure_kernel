@@ -14,8 +14,8 @@
 #include <sync/atomic.h>
 
 #define MIN_BLOCK_SIZE  64   //  64 Byte
-#define MAX_BLOCK_SIZE  1024 //   1 KiB
-#define MAX_BLOCK_TYPES 5
+#define MAX_BLOCK_SIZE  2048 //   2 KiB
+#define MAX_BLOCK_TYPES 6
 
 enum mm_type
 {

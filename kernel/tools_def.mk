@@ -1,8 +1,8 @@
 TARGET = $(PROJECT_ROOT)/build/esp/kernel/system
 
-AS      = as
-CC      = gcc
-LD      = ld
+AS        = as
+CC        = gcc
+LD        = ld
 OBJCOPY   = objcopy
 
 CFLAGS += -Wall -Wextra -Werror

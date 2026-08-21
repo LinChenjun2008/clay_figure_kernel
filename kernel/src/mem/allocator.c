@@ -172,7 +172,8 @@ void *kmalloc(size_t size, size_t alignment, size_t boundary)
     struct mem_group *g = NULL;
     if (size > MAX_BLOCK_SIZE)
     {
-        size_t pages = DIV_ROUND_UP(sizeof(*c) + alignment + size, PG_SIZE);
+        size_t allocate_size = MIN_BLOCK_SIZE + alignment + size;
+        size_t pages         = DIV_ROUND_UP(allocate_size, PG_SIZE);
 
         c = allocate_pages(pages);
         if (c == NULL)
@@ -182,7 +183,7 @@ void *kmalloc(size_t size, size_t alignment, size_t boundary)
         c->group            = NULL;
         c->count            = pages;
         c->number_of_blocks = 0;
-        uintptr_t ptr       = (uintptr_t)c + sizeof(*c);
+        uintptr_t ptr       = (uintptr_t)c + MIN_BLOCK_SIZE;
         if (alignment != 0)
         {
             ptr = (ptr + alignment - 1) & ~(alignment - 1);
@@ -204,7 +205,6 @@ void kfree(void *addr)
 {
     if (addr == NULL)
     {
-        printk(MSG_ERR "kfree: free nullptr.\n");
         return;
     }
     struct mem_cache *c = NULL;
