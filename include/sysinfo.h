@@ -15,7 +15,6 @@ struct cpu         *get_cpu_struct(uint8_t cpu_id);
 struct cpu         *get_curr_cpu_struct(void);
 struct page_mgr    *get_page_mgr(void);
 struct system_info *get_system_info(void);
-void                init_set_cpu_struct(struct cpu *cpu);
 void                set_cpu_struct(struct cpu *cpu);
 
 #endif /* __SYSINFO_H__ */

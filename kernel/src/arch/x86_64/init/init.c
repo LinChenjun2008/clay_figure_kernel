@@ -21,7 +21,7 @@
 
 void init_all(struct system_info *system_info)
 {
-    init_set_cpu_struct(system_info->cpu);
+    set_cpu_struct(system_info->cpu);
 
     struct boot_info *boot_info = system_info->boot_info;
     intr_disable();
@@ -64,10 +64,11 @@ void init_all(struct system_info *system_info)
 
 void ap_init_all(struct system_info *system_info, uintptr_t stack)
 {
+    set_cpu_struct(system_info->cpu);
+
     intr_disable();
     ap_init_desc();
 
-    init_set_cpu_struct(system_info->cpu);
     struct cpu *cpu = get_curr_cpu_struct();
     set_cpu_struct(cpu);
     make_main_task(stack - PG_SIZE, 1);

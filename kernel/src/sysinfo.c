@@ -5,13 +5,17 @@
 
 #include <base.h>
 
+#include <asm/interrupt.h>
 #include <asm/sysinfo.h>
 
 #include <sysinfo.h>
 
 struct task_mgr *get_task_mgr(void)
 {
-    return arch_get_task_mgr();
+    enum intr_status intr_status = intr_disable();
+    struct task_mgr *task_mgr    = arch_get_task_mgr();
+    intr_set_status(intr_status);
+    return task_mgr;
 }
 
 uint8_t get_current_cpu_id(void)
@@ -41,12 +45,6 @@ struct system_info *get_system_info(void)
 {
     struct task_mgr *task_mgr = get_task_mgr();
     return task_mgr->system_info;
-}
-
-void init_set_cpu_struct(struct cpu *cpu)
-{
-    arch_set_cpu_struct(cpu);
-    return;
 }
 
 void set_cpu_struct(struct cpu *cpu)
