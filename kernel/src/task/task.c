@@ -148,10 +148,8 @@ struct task *pid_to_task(pid_t pid)
     return task_mgr->task_table[task_index];
 }
 
-static pid_t allocate_pid(pid_t task_index)
+static pid_t allocate_pid(struct task_mgr *task_mgr, pid_t task_index)
 {
-    struct task_mgr *task_mgr = get_task_mgr();
-
     pid_t count = task_mgr->pid_table[task_index];
     pid_t ret   = 0;
     ret += SET_FIELD(0, PID_INDEX, task_index);
@@ -159,10 +157,8 @@ static pid_t allocate_pid(pid_t task_index)
     return ret;
 }
 
-static pid_t allocate_task_lock(void)
+static pid_t allocate_task_lock(struct task_mgr *task_mgr)
 {
-    struct task_mgr *task_mgr = get_task_mgr();
-
     pid_t i;
     for (i = 0; i < task_mgr->max_tasks; i++)
     {
@@ -188,8 +184,8 @@ struct task *allocate_task(void)
     struct task_mgr *task_mgr = get_task_mgr();
 
     spin_lock(&task_mgr->lock);
-    pid_t index = allocate_task_lock();
-    pid_t pid   = allocate_pid(index);
+    pid_t index = allocate_task_lock(task_mgr);
+    pid_t pid   = allocate_pid(task_mgr, index);
     spin_unlock(&task_mgr->lock);
 
     if (index == -1)

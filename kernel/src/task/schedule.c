@@ -248,6 +248,7 @@ static void check_blocked_queue_lock(struct cpu *cpu)
         node = next;
     }
 }
+
 static void check_blocked_queue(struct cpu *cpu)
 {
     spin_lock(&cpu->lock);
