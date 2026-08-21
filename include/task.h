@@ -55,8 +55,8 @@ struct task *get_current_task(void);
 
 int          check_pid_avaiability(pid_t pid);
 struct task *pid_to_task(pid_t pid);
-struct task *allocate_task(void);
-void         free_task(struct task *task);
+struct task *allocate_task_struct(void);
+void         destory_task_struct(struct task *task);
 
 void init_task_struct(
     struct task *task,

@@ -87,7 +87,7 @@ void task_init(struct system_info *system_info, int max_tasks)
 void make_main_task(uintptr_t stack_base, size_t stack_pages)
 {
     printk("make_main_task: stack %p, %d page(s).\n", stack_base, stack_pages);
-    struct task *task = allocate_task();
+    struct task *task = allocate_task_struct();
     ASSERT(task != NULL);
 
     set_current_task(task);
@@ -179,7 +179,7 @@ static pid_t allocate_task_lock(struct task_mgr *task_mgr)
     return i;
 }
 
-struct task *allocate_task(void)
+struct task *allocate_task_struct(void)
 {
     struct task_mgr *task_mgr = get_task_mgr();
 
@@ -199,7 +199,7 @@ struct task *allocate_task(void)
     return task;
 }
 
-void free_task(struct task *task)
+void destory_task_struct(struct task *task)
 {
     if (task == NULL)
     {
@@ -277,7 +277,7 @@ struct task *task_start(
     ASSERT(kstack_pages != 0);
     ASSERT(func != 0);
 
-    struct task *task = allocate_task();
+    struct task *task = allocate_task_struct();
     if (task == NULL)
     {
         goto fail;
@@ -298,6 +298,6 @@ struct task *task_start(
 
 fail:
     free_pages((void *)kstack_base, kstack_pages);
-    free_task(task);
+    destory_task_struct(task);
     return NULL;
 }

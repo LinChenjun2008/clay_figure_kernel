@@ -60,14 +60,15 @@ struct page
 
 struct vm_struct
 {
-    struct free_table map;
+    struct free_table vm_table;
+    struct free_table mapped;
+    struct free_table unmapped;
 };
 
 struct page_struct
 {
     struct list_node node;
     size_t           pfn;
-    size_t           pages;
 };
 
 struct pg_struct

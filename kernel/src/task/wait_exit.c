@@ -90,7 +90,7 @@ int task_release_resources(struct task *task)
     free_pages((void *)task->kstack_base, task->kstack_pages);
     int ret = task->return_status;
     atomic_dec(&parent_task->childs);
-    free_task(task);
+    destory_task_struct(task);
     return ret;
 }
 

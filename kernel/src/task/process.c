@@ -71,7 +71,7 @@ struct task *process_execute(
     ASSERT(ustack_pages != 0);
     ASSERT(func != 0);
 
-    struct task *task = allocate_task();
+    struct task *task = allocate_task_struct();
     if (task == NULL)
     {
         return NULL;
@@ -99,7 +99,7 @@ struct task *process_execute(
 fail:
     free_pg_table(task->pg_dir);
     free_pages((void *)kstack_base, kstack_pages);
-    free_task(task);
+    destory_task_struct(task);
     return NULL;
 }
 
