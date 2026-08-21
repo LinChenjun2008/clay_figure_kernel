@@ -6,6 +6,8 @@
 #ifndef __MEM_STRUCT_H__
 #define __MEM_STRUCT_H__
 
+#include <asm/sync/spinlock.h>
+
 #include <lib/bitmap.h>
 #include <lib/free_table.h>
 #include <lib/linked_list.h>
@@ -56,9 +58,27 @@ struct page
     uint32_t      count;
 };
 
+struct vm_struct
+{
+    struct free_table map;
+};
+
+struct page_struct
+{
+    struct list_node node;
+    size_t           pfn;
+    size_t           pages;
+};
+
+struct pg_struct
+{
+    struct list list;
+};
+
 struct mm_struct
 {
-    struct free_table vm_map;
+    struct vm_struct vm_map;
+    struct pg_struct pg_map;
 };
 
 struct page_mgr

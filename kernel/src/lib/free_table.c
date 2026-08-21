@@ -6,13 +6,84 @@
 #include <base.h>
 
 #include <lib/free_table.h>
+#include <mem.h>
 
-void init_free_table(struct free_table *free_table, void *table, int total)
+void init_free_table(struct free_table *free_table, int step)
 {
-    init_spinlock(&free_table->lock);
-    free_table->table = table;
-    free_table->total = total;
-    free_table->free  = 0;
+    if (step <= 0)
+    {
+        step = 1;
+    }
+    free_table->table    = NULL;
+    free_table->capacity = 0;
+    free_table->step     = step;
+    free_table->free     = 0;
+    return;
+}
+
+void destroy_free_table(struct free_table *free_table)
+{
+    kfree(free_table->table);
+    free_table->table    = NULL;
+    free_table->capacity = 0;
+    free_table->step     = 0;
+    free_table->free     = 0;
+    return;
+}
+
+// 扩大table容量,每次以step为单位动态分配
+static int grow(struct free_table *free_table)
+{
+    int new_capacity = free_table->capacity + free_table->step;
+
+    struct free_block *new_table =
+        kmalloc(new_capacity * sizeof(struct free_block), 0, 0);
+    if (new_table == NULL)
+    {
+        return -1;
+    }
+
+    int i;
+    for (i = 0; i < free_table->free; i++)
+    {
+        new_table[i] = free_table->table[i];
+    }
+    kfree(free_table->table);
+
+    free_table->table    = new_table;
+    free_table->capacity = new_capacity;
+    return 0;
+}
+
+// 当空闲的块(未使用容量)达到step * 2时,扣除step个块的空间
+static void shrink(struct free_table *free_table)
+{
+    if (free_table->capacity <= free_table->step)
+    {
+        return;
+    }
+    if (free_table->capacity - free_table->free < free_table->step * 2)
+    {
+        return;
+    }
+    struct free_block *new_table    = NULL;
+    int                new_capacity = free_table->capacity - free_table->step;
+
+    new_table = kmalloc(new_capacity * sizeof(struct free_block), 0, 0);
+    if (new_table == NULL)
+    {
+        return;
+    }
+
+    int i;
+    for (i = 0; i < free_table->free; i++)
+    {
+        new_table[i] = free_table->table[i];
+    }
+    kfree(free_table->table);
+
+    free_table->table    = new_table;
+    free_table->capacity = new_capacity;
     return;
 }
 
@@ -37,7 +108,7 @@ static void move_forward(struct free_table *free_table, int index)
 // 将index开始的块向后移动,free++
 static void move_backward(struct free_table *free_table, int index)
 {
-    if (free_table->free >= free_table->total)
+    if (free_table->free >= free_table->capacity)
     {
         return;
     }
@@ -102,29 +173,22 @@ static int find_insert_position(struct free_table *free_table, uintptr_t start)
     return left;
 }
 
-static int
-free_table_add_lock(struct free_table *free_table, uintptr_t start, size_t size)
+int free_table_add(struct free_table *free_table, uintptr_t start, size_t size)
 {
-    if (free_table->free >= free_table->total)
+    if (free_table->free >= free_table->capacity)
     {
-        return -1;
+        if (grow(free_table) != 0 || free_table->free >= free_table->capacity)
+        {
+            return -1;
+        }
     }
     int i = find_insert_position(free_table, start);
     move_backward(free_table, i);
     free_table->table[i].start = start;
     free_table->table[i].size  = size;
     combine(free_table, i);
+    shrink(free_table);
     return 0;
-}
-
-int free_table_add(struct free_table *free_table, uintptr_t start, size_t size)
-{
-    int ret = 0;
-
-    spin_lock(&free_table->lock);
-    ret = free_table_add_lock(free_table, start, size);
-    spin_unlock(&free_table->lock);
-    return ret;
 }
 
 static int
@@ -160,7 +224,7 @@ find_contain_block(struct free_table *free_table, uintptr_t start, size_t size)
     return -1;
 }
 
-static int free_table_remove_lock(
+int free_table_remove(
     struct free_table *free_table,
     uintptr_t          start,
     size_t             size
@@ -179,6 +243,7 @@ static int free_table_remove_lock(
     if (start == block_start && end == block_end)
     {
         move_forward(free_table, i + 1);
+        shrink(free_table);
         return 0;
     }
 
@@ -186,14 +251,19 @@ static int free_table_remove_lock(
     {
         free_table->table[i].start = end;
         free_table->table[i].size -= size;
+        shrink(free_table);
         return 0;
     }
 
     if (start > block_start && end < block_end)
     {
-        if (free_table->free >= free_table->total)
+        if (free_table->free >= free_table->capacity)
         {
-            return -2;
+            if (grow(free_table) != 0 ||
+                free_table->free >= free_table->capacity)
+            {
+                return -2;
+            }
         }
         free_table->table[i].size = start - block_start;
 
@@ -205,27 +275,13 @@ static int free_table_remove_lock(
     if (end == block_end)
     {
         free_table->table[i].size -= size;
+        shrink(free_table);
         return 0;
     }
     return -3;
 }
 
-int free_table_remove(
-    struct free_table *free_table,
-    uintptr_t          start,
-    size_t             size
-)
-{
-    int ret = 0;
-    spin_lock(&free_table->lock);
-    ret = free_table_remove_lock(free_table, start, size);
-    spin_unlock(&free_table->lock);
-
-    return ret;
-}
-
-static uintptr_t
-free_table_allocate_lock(struct free_table *free_table, size_t size)
+uintptr_t free_table_allocate(struct free_table *free_table, size_t size)
 {
     uintptr_t ret = -1UL;
     uintptr_t start;
@@ -238,23 +294,12 @@ free_table_allocate_lock(struct free_table *free_table, size_t size)
             continue;
         }
         start  = free_table->table[i].start;
-        status = free_table_remove_lock(free_table, start, size);
+        status = free_table_remove(free_table, start, size);
         if (status == 0)
         {
             ret = start;
             break;
         }
     }
-    return ret;
-}
-
-uintptr_t free_table_allocate(struct free_table *free_table, size_t size)
-{
-    uintptr_t ret;
-
-    spin_lock(&free_table->lock);
-    ret = free_table_allocate_lock(free_table, size);
-    spin_unlock(&free_table->lock);
-
     return ret;
 }
