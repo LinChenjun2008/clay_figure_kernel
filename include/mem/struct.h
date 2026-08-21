@@ -44,19 +44,21 @@ struct mem_block
     struct list_node node;
 };
 
-#define PAGE_HEAD 1
+#define MAX_ALLOCATE_PAGES 2048
+
+#define PAGE_HEAD (1 << 0)
+#define PAGE_TAIL (1 << 1)
 
 struct page
 {
     struct atomic reference_count;
-    uint64_t      flags;
-    uint64_t      count;
+    uint32_t      flags;
+    uint32_t      count;
 };
 
-struct mm
+struct mm_struct
 {
-    struct free_table vmemmap;
-    struct free_table pmemmap;
+    struct free_table vm_map;
 };
 
 struct page_mgr

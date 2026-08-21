@@ -112,10 +112,11 @@ void page_mgr_init(struct system_info *system_info)
     return;
 }
 
-static void page_reference_inc_lock(size_t pfn)
+void page_reference_inc(size_t pfn)
 {
     struct system_info *system_info = get_task_mgr()->system_info;
     struct page_mgr    *page_mgr    = system_info->page_mgr;
+
     if (pfn > page_mgr->max_pfn)
     {
         return;
@@ -124,22 +125,11 @@ static void page_reference_inc_lock(size_t pfn)
     return;
 }
 
-void page_reference_inc(size_t pfn)
+uint64_t page_reference_dec(size_t pfn)
 {
     struct system_info *system_info = get_task_mgr()->system_info;
     struct page_mgr    *page_mgr    = system_info->page_mgr;
 
-    spin_lock(&page_mgr->lock);
-    page_reference_inc_lock(pfn);
-    spin_unlock(&page_mgr->lock);
-    return;
-}
-
-static uint64_t page_reference_dec_lock(size_t pfn)
-{
-
-    struct system_info *system_info = get_task_mgr()->system_info;
-    struct page_mgr    *page_mgr    = system_info->page_mgr;
     if (pfn > page_mgr->max_pfn)
     {
         return -1;
@@ -147,30 +137,21 @@ static uint64_t page_reference_dec_lock(size_t pfn)
     return atomic_dec(&page_mgr->pages[pfn].reference_count);
 }
 
-uint64_t page_reference_dec(size_t pfn)
+static void *allocate_pages_lock(struct page_mgr *page_mgr, size_t pages)
 {
-    struct system_info *system_info = get_task_mgr()->system_info;
-    struct page_mgr    *page_mgr    = system_info->page_mgr;
-
-    spin_lock(&page_mgr->lock);
-    uint64_t ret = page_reference_dec_lock(pfn);
-    spin_unlock(&page_mgr->lock);
-    return ret;
-}
-
-static void *allocate_pages_lock(size_t pages)
-{
-    struct system_info *system_info = get_task_mgr()->system_info;
-    struct page_mgr    *page_mgr    = system_info->page_mgr;
-    size_t              pfn         = bitmap_find(&page_mgr->bitmap, 1, pages);
+    size_t pfn = bitmap_find(&page_mgr->bitmap, 1, pages);
     if (pfn == -1UL)
     {
         return NULL;
     }
     bitmap_set(&page_mgr->bitmap, pfn, 0, pages);
-    page_reference_inc_lock(pfn);
-    page_mgr->pages[pfn].flags = PAGE_HEAD;
+
+    page_reference_inc(pfn);
+    page_mgr->pages[pfn].flags |= PAGE_HEAD;
     page_mgr->pages[pfn].count = pages;
+
+    page_mgr->pages[pfn + pages - 1].flags |= PAGE_TAIL;
+    page_mgr->pages[pfn + pages - 1].count = pages;
 
     uintptr_t ret = pfn << PAGE_SIZE_SHIFT;
     return PHYS_TO_VIRT(ret);
@@ -178,18 +159,28 @@ static void *allocate_pages_lock(size_t pages)
 
 void *allocate_pages(size_t pages)
 {
+    if (pages > MAX_ALLOCATE_PAGES)
+    {
+        return NULL;
+    }
+
     struct system_info *system_info = get_task_mgr()->system_info;
     struct page_mgr    *page_mgr    = system_info->page_mgr;
 
     spin_lock(&page_mgr->lock);
-    void *ret = allocate_pages_lock(pages);
+    void *ret = allocate_pages_lock(page_mgr, pages);
     spin_unlock(&page_mgr->lock);
 
     return ret;
 }
 
-static void free_pages_lock(void *addr, size_t pages)
+static void free_pages_lock(struct page_mgr *page_mgr, void *addr, size_t pages)
 {
+    if (pages > MAX_ALLOCATE_PAGES)
+    {
+        return;
+    }
+
     if (addr == NULL)
     {
         printk(MSG_WARN "free_pages: Free null point.\n");
@@ -197,21 +188,24 @@ static void free_pages_lock(void *addr, size_t pages)
     }
     ASSERT(((uintptr_t)addr & (PG_SIZE - 1)) == 0);
 
-    struct system_info *system_info = get_task_mgr()->system_info;
-    struct page_mgr    *page_mgr    = system_info->page_mgr;
-
     size_t pfn = (uintptr_t)VIRT_TO_PHYS(addr) >> PAGE_SIZE_SHIFT;
 
-    ASSERT(page_mgr->pages[pfn].flags == PAGE_HEAD);
+    ASSERT(page_mgr->pages[pfn].flags & PAGE_HEAD);
     ASSERT(page_mgr->pages[pfn].count == pages);
 
+    ASSERT(page_mgr->pages[pfn + pages - 1].flags & PAGE_TAIL);
+    ASSERT(page_mgr->pages[pfn + pages - 1].count == pages);
+
     uint64_t ref_count;
-    ref_count = page_reference_dec_lock(pfn);
+    ref_count = page_reference_dec(pfn);
     if (ref_count == 1)
     {
         bitmap_set(&page_mgr->bitmap, pfn, 1, pages);
-        page_mgr->pages[pfn].flags = 0;
+        page_mgr->pages[pfn].flags &= ~PAGE_HEAD;
         page_mgr->pages[pfn].count = 0;
+
+        page_mgr->pages[pfn + pages - 1].flags &= ~PAGE_TAIL;
+        page_mgr->pages[pfn + pages - 1].count = 0;
     }
     return;
 }
@@ -222,7 +216,7 @@ void free_pages(void *addr, size_t pages)
     struct page_mgr    *page_mgr    = system_info->page_mgr;
 
     spin_lock(&page_mgr->lock);
-    free_pages_lock(addr, pages);
+    free_pages_lock(page_mgr, addr, pages);
     spin_unlock(&page_mgr->lock);
 
     return;
