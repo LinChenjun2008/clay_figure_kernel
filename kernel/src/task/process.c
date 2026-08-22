@@ -9,6 +9,7 @@
 #include <asm/page.h>
 #include <asm/task.h>
 
+#include <mem.h>
 #include <print.h>
 #include <std/string.h>
 #include <sync/atomic.h>
@@ -91,12 +92,19 @@ struct task *process_execute(
         goto fail;
     }
 
+    task->mm = allocate_mm_struct();
+    if (task->mm == NULL)
+    {
+        goto fail;
+    }
+
     atomic_inc(&get_current_task()->childs);
 
     cpu_task_enqueue(task);
     return task;
 
 fail:
+    destory_mm_struct(task->mm);
     free_pg_table(task->pg_dir);
     free_pages((void *)kstack_base, kstack_pages);
     destory_task_struct(task);
@@ -106,6 +114,9 @@ fail:
 void process_exit(int status)
 {
     struct task *task = get_current_task();
+
+    /// TODO: release allcated memory
+    destory_mm_struct(task->mm);
 
     void *pg_dir = task->pg_dir;
     task->pg_dir = NULL;

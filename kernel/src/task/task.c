@@ -255,6 +255,8 @@ void init_task_struct(
     task->run_time  = 0;
     task->vrun_time = 0;
 
+    task->mm = NULL;
+
     atomic_set(&task->childs, 0);
     task->return_status = 0;
     init_list(&task->exited_childs);

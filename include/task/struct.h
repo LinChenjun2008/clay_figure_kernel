@@ -109,6 +109,8 @@ struct task
     uint64_t run_time;
     uint64_t vrun_time;
 
+    struct mm_struct *mm;
+
     struct atomic   childs;
     int             return_status;
     struct list     exited_childs;

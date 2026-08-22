@@ -10,6 +10,7 @@
 #include <syscall.h>
 
 // syscall functions
+#include <mem.h>
 #include <task.h>
 
 void *syscall_table[NR_CONT];
@@ -26,6 +27,7 @@ void syscall_init(void)
     register_syscall(NR_SEND, msg_send);
     register_syscall(NR_RECV, msg_recv);
     register_syscall(NR_BOTH, msg_both);
+    register_syscall(NR_MMAP, sys_mmap);
     return;
 }
 
