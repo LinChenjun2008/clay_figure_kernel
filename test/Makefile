@@ -10,9 +10,9 @@ include src_list.mk
 .PHONY: all
 all: $(TARGET)
 
-$(TARGET): $(C_SRC:.c=.o) $(A_SRC:.S=.o) $(LD_SCRIPT)
-	@$(ECHO) "LD      $@"
-	@"$(LD)" $(LDFLAGS) -o $@ $(C_SRC:.c=.o) $(A_SRC:.S=.o)
+$(TARGET): $(C_SRC:.c=.o) $(A_SRC:.S=.o)
+	@$(ECHO) "CC      $@"
+	@"$(CC)" $(CFLAGS) -o $@ $(C_SRC:.c=.o) $(A_SRC:.S=.o) -L build/esp/lib/libsys.a
 
 .PHONY: clean
 clean:

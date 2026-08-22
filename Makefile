@@ -1,7 +1,9 @@
 PROJECT_ROOT = .
-SCRIPTS_DIR = $(PROJECT_ROOT)/scripts
-BUILD_DIR   = $(PROJECT_ROOT)/build
-ESP_DIR     = $(BUILD_DIR)/esp
+SCRIPTS_DIR  = $(PROJECT_ROOT)/scripts
+BUILD_DIR    = $(PROJECT_ROOT)/build
+TOOLS_DIR    = $(PROJECT_ROOT)/tools
+ESP_DIR      = $(BUILD_DIR)/esp
+RAMFS_DIR    = $(BUILD_DIR)/ramfs
 
 include $(SCRIPTS_DIR)/tools_def.mk
 
@@ -11,6 +13,7 @@ all:
 	@$(MAKE) -C bootloader/$(TARGET_ARCH) all
 	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) all
 	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) all
+	@$(MAKE) -r initramfs
 	@$(ECHO) ---[ Done  ]---
 
 .PHONY: clean
@@ -19,6 +22,7 @@ clean:
 	@$(MAKE) -C bootloader/$(TARGET_ARCH) clean
 	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) clean
 	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) clean
+	@$(RM) $(INTIRAMFS)
 	@$(ECHO) ---[ Done  ]---
 
 .PHONY: init
@@ -26,11 +30,17 @@ init:
 	@$(ECHO) ---[ Init  ]---
 	-@$(MKDIR) "$(BUILD_DIR)"
 	-@$(MKDIR) "$(ESP_DIR)"
+	-@$(MKDIR) "$(RAMFS_DIR)"
+	-@$(MKDIR) "$(RAMFS_DIR)/kernel"
 	-@$(MKDIR) "$(ESP_DIR)/efi"
 	-@$(MKDIR) "$(ESP_DIR)/efi/boot"
-	-@$(MKDIR) "$(ESP_DIR)/kernel"
 	-@$(MKDIR) "$(ESP_DIR)/lib"
+	@$(MAKE) -C "$(TOOLS_DIR)" all
 	@$(ECHO) ---[ Done  ]---
+
+.PHONY: initramfs
+initramfs:
+	@$(FIND) $(RAMFS_DIR) -type f | $(IMGCOPY) $(RAMFS_DIR)/ > $(INTIRAMFS)
 
 .PHONY: run
 run: all
