@@ -43,13 +43,22 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     struct system_info *system_info = prepare_system_info();
     struct boot_info   *boot_info   = system_info->boot_info;
 
-    // Read kernel.
-    efi_physical_address_t sys_addr;
-    efi_uint_t             sys_size;
-    read_file(L"kernel\\system", &sys_addr, &sys_size);
-    printf(L"Read kernel/system: address %p,size=%d.\r\n", sys_addr, sys_size);
+    // Read initramfs.img
+    void      *img_addr;
+    efi_uint_t img_size;
+    read_file(L"initramfs.img", &img_addr, &img_size);
+    printf(L"Read initramfs.img: address %p,size=%d.\r\n", img_addr, img_size);
+    boot_info->initramfs      = PHYS_TO_VIRT(img_addr);
+    boot_info->initramfs_size = img_size;
+
+    // Load kernel/system
+    void *sys_addr = ramfs_open(img_addr, "kernel/system");
+    if (sys_addr == NULL)
+    {
+        printf(L"Failed to read kernel/system\n");
+    }
     uintptr_t physical_base = 0x100000;
-    uintptr_t relocate_base = 0xffffffff80000000;
+    uintptr_t relocate_base = KERNEL_TEXT_BASE;
     uintptr_t entry;
     load_segment(sys_addr, &physical_base, &relocate_base, &entry);
     printf(

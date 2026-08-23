@@ -6,11 +6,7 @@
 #include <bootloader.h>
 #include <elf.h>
 
-static int load_exec(
-    efi_physical_address_t file,
-    uintptr_t              relocate_base,
-    uintptr_t             *entry
-)
+static int load_exec(void *file, uintptr_t relocate_base, uintptr_t *entry)
 {
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)file;
     Elf64_Phdr *phdr = (Elf64_Phdr *)((uintptr_t)ehdr + ehdr->e_phoff);
@@ -62,7 +58,7 @@ static int load_exec(
             continue;
         }
         uintptr_t destination = phdr[i].p_vaddr + offset;
-        uintptr_t source      = file + phdr[i].p_offset;
+        uintptr_t source      = (uintptr_t)file + phdr[i].p_offset;
         size_t    mem_size    = phdr[i].p_memsz;
         size_t    file_size   = phdr[i].p_filesz;
 
@@ -75,10 +71,10 @@ static int load_exec(
 
 
 static int load_dyn(
-    efi_physical_address_t file,
-    uintptr_t             *physical_base,
-    uintptr_t             *relocate_base,
-    uintptr_t             *entry
+    void      *file,
+    uintptr_t *physical_base,
+    uintptr_t *relocate_base,
+    uintptr_t *entry
 )
 {
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)file;
@@ -143,7 +139,7 @@ static int load_dyn(
             continue;
         }
         uintptr_t destination = phdr[i].p_vaddr + offset;
-        uintptr_t source      = file + phdr[i].p_offset;
+        uintptr_t source      = (uintptr_t)file + phdr[i].p_offset;
         size_t    mem_size    = phdr[i].p_memsz;
         size_t    file_size   = phdr[i].p_filesz;
 
@@ -219,10 +215,10 @@ static int load_dyn(
 }
 
 int load_segment(
-    efi_physical_address_t file,
-    uintptr_t             *physical_base,
-    uintptr_t             *relocate_base,
-    uintptr_t             *entry
+    void      *file,
+    uintptr_t *physical_base,
+    uintptr_t *relocate_base,
+    uintptr_t *entry
 )
 {
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)file;

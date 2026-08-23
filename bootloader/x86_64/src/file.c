@@ -4,12 +4,12 @@
  */
 
 #include <bootloader.h>
+#include <ramfs.h>
 
-efi_status_t read_file(
-    char16_t               *file_name,
-    efi_physical_address_t *file_buffer_base,
-    efi_uint_t             *file_size
-)
+#define ALIGN_PAD(X, ALIGN) (((ALIGN) - ((X) & ((ALIGN) - 1))) & ((ALIGN) - 1))
+
+efi_status_t
+read_file(char16_t *file_name, void **file_buffer_base, efi_uint_t *file_size)
 {
     efi_status_t              status = EFI_SUCCESS;
     struct efi_file_protocol *file_handle;
@@ -130,13 +130,38 @@ efi_status_t read_file(
     else
     {
         *file_size        = file_info->file_size;
-        *file_buffer_base = file_buffer_address;
-        (void)file_size;
-        (void)file_buffer_base;
+        *file_buffer_base = (void *)file_buffer_address;
     }
 
     boot_services->free_pool(file_info);
     file_handle->close(file_handle);
     root->close(root);
     return status;
+}
+
+void *ramfs_open(void *fs, const char *filename)
+{
+    struct file_header *header = fs;
+
+    char    *name = NULL;
+    uint8_t *file = NULL;
+
+    while (1)
+    {
+        name = (char *)(header + 1);
+        file = (uint8_t *)name + header->name_len;
+        file += ALIGN_PAD(header->name_len, 4);
+        if (strncmp(name, "TRAILER!!!", header->name_len) == 0)
+        {
+            return NULL;
+        }
+        if (strncmp(name, filename, header->name_len) == 0)
+        {
+            return file;
+        }
+        file += header->file_size;
+        file += ALIGN_PAD(header->file_size, 4);
+        header = (void *)file;
+    }
+    return NULL;
 }

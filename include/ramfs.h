@@ -11,7 +11,7 @@
 struct file_header
 {
     uint32_t magic;
-    uint32_t name_size;
+    uint32_t name_len;
     uint32_t file_size;
 };
 

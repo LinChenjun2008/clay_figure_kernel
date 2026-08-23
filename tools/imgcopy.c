@@ -11,6 +11,8 @@
 //
 #include <ramfs.h>
 
+#define ALIGN_PAD(X, ALIGN) (((ALIGN) - ((X) & ((ALIGN) - 1))) & ((ALIGN) - 1))
+
 static void print_help(char *name)
 {
     printf("%s useage:\n", name);
@@ -44,11 +46,11 @@ static void write_file(char *file, char *name)
     }
 
     // name
-    for (i = 0; i < header.name_size; i++)
+    for (i = 0; i < header.name_len; i++)
     {
         putchar(name[i]);
     }
-    for (i = 0; i < (4 - (header.name_size % 4)) % 4; i++)
+    for (i = 0; i < ALIGN_PAD(header.name_len, 4); i++)
     {
         putchar(0);
     }
@@ -58,7 +60,7 @@ static void write_file(char *file, char *name)
     {
         putchar(i);
     }
-    for (i = 0; i < (4 - (header.file_size % 4)) % 4; i++)
+    for (i = 0; i < ALIGN_PAD(header.file_size, 4); i++)
     {
         putchar(0);
     }
@@ -112,11 +114,11 @@ int main(int argc, char *argv[])
     {
         putchar(((uint8_t *)&header)[i]);
     }
-    for (i = 0; i < header.name_size; i++)
+    for (i = 0; i < header.name_len; i++)
     {
         putchar(name[i]);
     }
-    for (i = 0; i < (4 - (header.name_size % 4)) % 4; i++)
+    for (i = 0; i < ALIGN_PAD(header.name_len, 4); i++)
     {
         putchar(0);
     }

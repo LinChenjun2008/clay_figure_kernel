@@ -25,18 +25,16 @@ efi_status_t read_acpi_tables(struct boot_info *boot_info);
 
 // elf.c
 int load_segment(
-    efi_physical_address_t file,
-    uintptr_t             *physical_base,
-    uintptr_t             *relocate_base,
-    uintptr_t             *entry
+    void      *file,
+    uintptr_t *physical_base,
+    uintptr_t *relocate_base,
+    uintptr_t *entry
 );
 
 // file.c
-efi_status_t read_file(
-    char16_t               *file_name,
-    efi_physical_address_t *file_buffer_base,
-    efi_uint_t             *file_size
-);
+efi_status_t
+read_file(char16_t *file_name, void **file_buffer_base, efi_uint_t *file_size);
+void *ramfs_open(void *fs, const char *filename);
 
 // guid.c
 int compare_guid(struct efi_guid *guid1, struct efi_guid *guid2);
@@ -49,10 +47,11 @@ efi_status_t get_memory_map(struct memory_map *memmap);
 efi_status_t create_page_table(void *pg_dir);
 efi_status_t init_page_mgr(struct system_info *system_info);
 
-// stdio.c
+// std.c
 int       vsprintf(char16_t *buf, const char16_t *fmt, va_list ap);
 int       sprintf(char16_t *buf, const char16_t *fmt, ...);
 int       printf(const char16_t *fmt, ...);
 char16_t *char_to_char16(char *ch, char16_t *in_ch16);
+int       strncmp(const char *str1, const char *str2, size_t n);
 
 #endif /* __BOOTLOADER_H__ */
