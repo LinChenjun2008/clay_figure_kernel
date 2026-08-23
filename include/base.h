@@ -40,6 +40,8 @@
 
 #define UNUSED(X) ((void)(X))
 
+#define ALIGN_PAD(X, ALIGN) (((ALIGN) - ((X) & ((ALIGN) - 1))) & ((ALIGN) - 1))
+
 #ifndef __ASSEMBLER__
 
 // std

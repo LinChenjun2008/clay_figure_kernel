@@ -9,15 +9,14 @@
 #include <string.h>
 
 //
-#include <ramfs.h>
+#include <ramfs/struct.h>
 
 #define ALIGN_PAD(X, ALIGN) (((ALIGN) - ((X) & ((ALIGN) - 1))) & ((ALIGN) - 1))
 
 static void print_help(char *name)
 {
-    printf("%s useage:\n", name);
-    printf("\t-w [file] [name]\n");
-    printf("\t-r [file] [name]\n");
+    printf("Useage:\n");
+    printf("\t%s [Path]\n", name);
     return;
 }
 

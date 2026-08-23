@@ -6,13 +6,6 @@
 #ifndef __RAMFS_H__
 #define __RAMFS_H__
 
-// header1 | name | file | header2 | name | file | ...
-
-struct file_header
-{
-    uint32_t magic;
-    uint32_t name_len;
-    uint32_t file_size;
-};
+void *ramfs_read(void *fs, const char *filename);
 
 #endif /* __RAMFS_H__ */

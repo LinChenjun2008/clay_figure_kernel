@@ -4,7 +4,7 @@
  */
 
 #include <bootloader.h>
-#include <ramfs.h>
+#include <ramfs/struct.h>
 
 #define ALIGN_PAD(X, ALIGN) (((ALIGN) - ((X) & ((ALIGN) - 1))) & ((ALIGN) - 1))
 
