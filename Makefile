@@ -29,17 +29,18 @@ clean:
 init:
 	@$(ECHO) ---[ Init  ]---
 	-@$(MKDIR) "$(BUILD_DIR)"
+	-@$(MKDIR) "$(BUILD_DIR)/lib"
 	-@$(MKDIR) "$(ESP_DIR)"
 	-@$(MKDIR) "$(RAMFS_DIR)"
 	-@$(MKDIR) "$(RAMFS_DIR)/kernel"
 	-@$(MKDIR) "$(ESP_DIR)/efi"
 	-@$(MKDIR) "$(ESP_DIR)/efi/boot"
-	-@$(MKDIR) "$(ESP_DIR)/lib"
 	@$(MAKE) -C "$(TOOLS_DIR)" all
 	@$(ECHO) ---[ Done  ]---
 
 .PHONY: initramfs
 initramfs:
+	@$(ECHO) update initramfs
 	@$(FIND) $(RAMFS_DIR) -type f | $(IMGCOPY) $(RAMFS_DIR)/ > $(INTIRAMFS)
 
 .PHONY: run

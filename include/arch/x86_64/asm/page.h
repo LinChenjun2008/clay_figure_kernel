@@ -27,7 +27,7 @@
 // Page Chace Disable
 #define PG_PCD           (1 << 4)
 #define PG_SIZE_2M       (1 << 7)
-#define PG_DEFAULT_FLAGS (PG_US_U | PG_RW_W | PG_P)
+#define PG_DEFAULT_FLAGS (PG_US_S | PG_RW_W | PG_P)
 
 #define ADDR_PML4T_INDEX_SHIFT 39
 #define ADDR_PML4T_INDEX_MASK  0x1ff

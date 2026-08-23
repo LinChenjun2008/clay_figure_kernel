@@ -1,4 +1,4 @@
-TARGET = $(PROJECT_ROOT)/build/esp/lib/libsys.a
+TARGET = $(PROJECT_ROOT)/build/lib/libsys.a
 
 AR      = ar
 AS      = as
