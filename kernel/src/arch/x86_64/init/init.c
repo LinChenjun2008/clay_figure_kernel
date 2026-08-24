@@ -18,6 +18,7 @@
 #include <syscall.h>
 #include <sysinfo.h>
 #include <task.h>
+#include <task/process.h>
 
 void init_all(struct system_info *system_info)
 {

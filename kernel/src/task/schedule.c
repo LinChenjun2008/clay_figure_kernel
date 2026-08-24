@@ -12,6 +12,7 @@
 #include <print.h>
 #include <sysinfo.h>
 #include <task.h>
+#include <task/schedule.h>
 
 static const uint64_t task_prio_to_weight[40] = {
     /* -20 */ 88761, 71755, 56483, 46273, 36291,

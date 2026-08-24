@@ -6,13 +6,31 @@
 #include <base.h>
 
 #include <asm/desc.h>
+#include <asm/page.h>
 #include <asm/ptrace.h>
-#include <asm/task.h>
+#include <asm/task/process.h>
 #include <asm/x86.h>
 
 #include <print.h>
 #include <std/string.h>
+#include <sysinfo.h>
 #include <task.h>
+
+void *create_pg_dir(void)
+{
+    uint64_t *pg_dir = NULL;
+    pg_dir           = allocate_pages(1);
+    if (pg_dir == 0)
+    {
+        return NULL;
+    }
+    struct task_mgr *task_mgr = get_task_mgr();
+
+    uint64_t *kernel_pg_dir = PHYS_TO_VIRT(task_mgr->kernel_page_table_pos);
+    memset(pg_dir, 0, PT_SIZE);
+    memcpy(pg_dir + 0x100, kernel_pg_dir + 0x100, PT_SIZE / 2);
+    return VIRT_TO_PHYS(pg_dir);
+}
 
 void ASMLINKAGE asm_switch_to_user(struct pt_regs *regs);
 

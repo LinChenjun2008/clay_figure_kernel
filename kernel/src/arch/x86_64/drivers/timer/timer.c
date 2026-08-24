@@ -11,7 +11,7 @@
 #include <asm/intr/handler.h>
 
 #include <sysinfo.h>
-#include <task.h>
+#include <task/schedule.h>
 
 static uint64_t ticks = 0;
 

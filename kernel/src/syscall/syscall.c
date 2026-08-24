@@ -11,7 +11,8 @@
 
 // syscall functions
 #include <mem.h>
-#include <task.h>
+#include <task/process.h>
+#include <task/wait.h>
 
 void *syscall_table[NR_CONT];
 

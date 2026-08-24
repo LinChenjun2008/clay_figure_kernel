@@ -9,10 +9,13 @@
 #include <asm/interrupt.h>
 #include <asm/page.h>
 #include <asm/task.h>
+#include <asm/task/process.h>
 
 #include <mem.h>
 #include <print.h>
 #include <task.h>
+#include <task/process.h>
+#include <task/schedule.h>
 
 static void kernel_task(int (*func)(uint64_t), uint64_t arg)
 {

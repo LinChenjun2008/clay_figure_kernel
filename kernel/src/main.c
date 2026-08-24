@@ -7,7 +7,7 @@
 
 #include <asm/init.h>
 
-#include <task.h>
+#include <task/wait.h>
 
 int main(struct system_info *system_info)
 {

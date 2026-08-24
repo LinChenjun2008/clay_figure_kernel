@@ -8,6 +8,7 @@
 #include <std/string.h>
 #include <syscall.h>
 #include <task.h>
+#include <task/schedule.h>
 
 void init_mailbox(struct mailbox *mailbox)
 {

@@ -6,7 +6,6 @@ SUB_DIR += arch/$(TARGET_ARCH)/init
 SUB_DIR += arch/$(TARGET_ARCH)/interrupt
 SUB_DIR += arch/$(TARGET_ARCH)/mem
 SUB_DIR += arch/$(TARGET_ARCH)/mp
-SUB_DIR += arch/$(TARGET_ARCH)/sync
 SUB_DIR += arch/$(TARGET_ARCH)/syscall
 SUB_DIR += arch/$(TARGET_ARCH)/task
 SUB_DIR += drivers

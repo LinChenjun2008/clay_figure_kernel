@@ -10,6 +10,8 @@
 #include <print.h>
 #include <sysinfo.h>
 #include <task.h>
+#include <task/schedule.h>
+#include <task/wait.h>
 
 static void main_adopt_childs(struct task *task)
 {

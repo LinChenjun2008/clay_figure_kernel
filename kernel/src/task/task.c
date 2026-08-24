@@ -16,6 +16,7 @@
 #include <syscall.h>
 #include <sysinfo.h>
 #include <task.h>
+#include <task/schedule.h>
 #include <task/struct.h>
 
 static void cpu_task_init(struct cpu *cpu, struct task_mgr *task_mgr)

@@ -13,10 +13,8 @@
 #include <ramfs.h>
 #include <std/string.h>
 #include <task.h>
+#include <task/process.h>
 #include <task/struct.h>
-
-// TEST
-#include <print.h>
 
 void *load_segment(void *file)
 {

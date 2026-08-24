@@ -13,6 +13,7 @@
 #include <mem.h>
 #include <std/string.h>
 #include <task.h>
+#include <task/schedule.h>
 
 void set_pg_table(void *pg_table)
 {
