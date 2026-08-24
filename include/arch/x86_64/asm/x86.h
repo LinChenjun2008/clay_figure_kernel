@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __X86_H__
-#define __X86_H__
+#ifndef __ASM_X86_H__
+#define __ASM_X86_H__
 
 #define IA32_APIC_BASE        0x0000001b
 #define IA32_APIC_BASE_BSP    (1 << 8)
@@ -27,4 +27,4 @@
 #define EFLAGS_IOPL_0 (0 << 12)
 #define EFLAGS_IOPL_3 (3 << 12)
 
-#endif /* __X86_H__ */
+#endif /* __ASM_X86_H__ */

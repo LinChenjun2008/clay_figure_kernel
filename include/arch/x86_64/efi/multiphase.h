@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __EFI_MULTI_PHASE_H__
-#define __EFI_MULTI_PHASE_H__
+#ifndef __EFI_MULTIPHASE_H__
+#define __EFI_MULTIPHASE_H__
 
 enum efi_memory_type
 {
@@ -33,4 +33,4 @@ enum efi_reset_type
     EFI_RESET_PLATFORM_SPECIFIC
 };
 
-#endif /* __EFI_MULTI_PHASE_H__ */
+#endif /* __EFI_MULTIPHASE_H__ */

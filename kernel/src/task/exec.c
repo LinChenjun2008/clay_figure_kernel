@@ -9,8 +9,6 @@
 
 #include <elf.h>
 #include <mem.h>
-#include <print.h>
-#include <ramfs.h>
 #include <std/string.h>
 #include <task.h>
 #include <task/process.h>

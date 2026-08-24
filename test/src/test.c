@@ -3,8 +3,6 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <lib.h>
-
 int main(void);
 int main(void)
 {

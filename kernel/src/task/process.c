@@ -5,7 +5,6 @@
 
 #include <base.h>
 
-#include <asm/interrupt.h>
 #include <asm/task.h>
 #include <asm/task/process.h>
 
@@ -13,7 +12,6 @@
 #include <mem/page.h>
 #include <print.h>
 #include <ramfs.h>
-#include <std/string.h>
 #include <sync/atomic.h>
 #include <sysinfo.h>
 #include <task.h>

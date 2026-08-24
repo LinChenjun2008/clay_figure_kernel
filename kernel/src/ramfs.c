@@ -5,7 +5,6 @@
 
 #include <base.h>
 
-#include <print.h>
 #include <ramfs.h>
 #include <ramfs/struct.h>
 #include <std/string.h>

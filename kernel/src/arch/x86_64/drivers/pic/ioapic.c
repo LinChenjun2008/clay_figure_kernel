@@ -5,7 +5,6 @@
 
 #include <base.h>
 
-#include <asm/drivers/apic.h>
 #include <asm/drivers/apic/ioapic.h>
 #include <asm/drivers/apic/struct.h>
 #include <asm/page.h> // PHYS_TO_VIRT

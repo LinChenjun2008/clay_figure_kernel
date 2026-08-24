@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __INTR_HANDLER_H__
-#define __INTR_HANDLER_H__
+#ifndef __ASM_INTR_HANDLER_H__
+#define __ASM_INTR_HANDLER_H__
 
 #ifndef __ASSEMBLER__
 
@@ -15,7 +15,7 @@ void            intr_handler_init(void);
 void            register_handler(uint8_t vector, void *handler);
 
 #endif /* __ASSEMBLER__ */
-#endif /* __INTR_HANDLER_H__ */
+#endif /* __ASM_INTR_HANDLER_H__ */
 
 #ifdef INTR_HANDLER
 #define CODE 0

@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __MEM_PAGE_MGR_H__
-#define __MEM_PAGE_MGR_H__
+#ifndef __MEM_PAGE_H__
+#define __MEM_PAGE_H__
 
 #include <asm/page.h>
 
