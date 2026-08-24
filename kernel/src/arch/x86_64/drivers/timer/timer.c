@@ -5,8 +5,8 @@
 
 #include <base.h>
 
-#include <asm/drivers/apic.h> // ioapic_irq_enable
-#include <asm/drivers/pic.h>  // send_eoi
+#include <asm/drivers/apic/ioapic.h>
+#include <asm/drivers/pic.h> // send_eoi
 #include <asm/drivers/timer.h>
 #include <asm/intr/handler.h>
 

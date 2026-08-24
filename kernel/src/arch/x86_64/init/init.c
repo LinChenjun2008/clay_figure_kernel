@@ -7,6 +7,7 @@
 
 #include <asm/desc.h>
 #include <asm/drivers/apic.h>
+#include <asm/drivers/apic/lapic.h>
 #include <asm/drivers/timer.h>
 #include <asm/init.h>
 #include <asm/interrupt.h>

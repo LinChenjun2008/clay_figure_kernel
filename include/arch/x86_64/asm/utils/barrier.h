@@ -10,4 +10,6 @@ void ASMLINKAGE io_lfence(void);
 void ASMLINKAGE io_sfence(void);
 void ASMLINKAGE io_mfence(void);
 
+#define BARRIER() asm volatile("" ::: "memory");
+
 #endif /* __ASM_UTILS_BARRIER_H__ */

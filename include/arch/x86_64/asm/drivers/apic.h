@@ -55,17 +55,10 @@
 #define ICR_ALL_INCLUDE_SELF 2
 #define ICR_ALL_EXCLUDE_SELF 3
 
-uint32_t local_apic_read(uint16_t index);
-void     local_apic_write(uint16_t index, uint32_t value);
-void     local_apic_init(void);
-
-uint64_t ioapic_rte_read(uint8_t ioapic_id, uint8_t index);
-void     ioapic_rte_write(uint8_t ioapic_id, uint8_t index, uint64_t value);
-int      ioapic_irq_enable(uint8_t irq, uint8_t vector, uint8_t destination);
-void     apic_init(struct boot_info *boot_info);
-uint8_t  apic_cpu_count(void);
-uint8_t  apic_max_lapic_id(void);
-void     apic_send_eoi(void);
-uint8_t  apic_id(void);
+void    apic_init(struct boot_info *boot_info);
+uint8_t apic_cpu_count(void);
+uint8_t apic_max_lapic_id(void);
+void    apic_send_eoi(void);
+uint8_t apic_id(void);
 
 #endif /* __ASM_DRIVERS_APIC_H__ */

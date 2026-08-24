@@ -27,6 +27,4 @@
 #define EFLAGS_IOPL_0 (0 << 12)
 #define EFLAGS_IOPL_3 (3 << 12)
 
-#define BARRIER() asm volatile("" ::: "memory");
-
 #endif /* __X86_H__ */
