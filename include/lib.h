@@ -6,7 +6,9 @@
 #ifndef __LIB_H__
 #define __LIB_H__
 
-#include <task/struct.h> // pid_t
+#include <std/stdint.h>
+
+typedef int32_t pid_t;
 
 // syscall
 uint64_t syscall_0(uint64_t);

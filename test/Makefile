@@ -12,7 +12,7 @@ all: $(TARGET)
 
 $(TARGET): $(C_SRC:.c=.o) $(A_SRC:.S=.o)
 	@$(ECHO) "CC      $@"
-	@"$(CC)" $(CFLAGS) -o $@ $(C_SRC:.c=.o) $(A_SRC:.S=.o) -L build/esp/lib/libsys.a
+	@"$(CC)" $(CFLAGS) -o $@ $^ -L$(PROJECT_ROOT)/build/lib/ -lsys
 
 .PHONY: clean
 clean:

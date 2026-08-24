@@ -17,6 +17,8 @@ void mem_init(struct system_info *system_info);
 struct mm_struct *allocate_mm_struct(void);
 void              destory_mm_struct(struct mm_struct *mm);
 void             *sys_mmap(void *addr, size_t pages, uint64_t flags);
+void             *mm_allocate_pages(size_t pages);
+void              mm_free_pages(void *addr, size_t pages);
 
 // allocator.c
 void mem_allocator_init(void);

@@ -72,24 +72,78 @@ void destory_mm_struct(struct mm_struct *mm)
 void *sys_mmap(void *addr, size_t pages, uint64_t flags)
 {
     struct task *task = get_current_task();
+    ASSERT(task->mm != NULL);
+
+    struct vm_struct *vm = &task->mm->vm_map;
 
     uintptr_t start = (uintptr_t)addr;
     size_t    size  = pages << PAGE_SIZE_SHIFT;
     if (addr != NULL && flags & MAP_FIXED)
     {
-        if (free_table_remove(&task->mm->vm_map.vm_table, start, size) < 0)
+        if (free_table_remove(&vm->vm_table, start, size) < 0)
         {
             return NULL;
         }
-        free_table_add(&task->mm->vm_map.unmapped, start, size);
+        free_table_add(&vm->unmapped, start, size);
         return addr;
     }
 
-    start = free_table_allocate(&task->mm->vm_map.vm_table, size);
+    start = free_table_allocate(&vm->vm_table, size);
     if (start == -1UL)
     {
         return NULL;
     }
-    free_table_add(&task->mm->vm_map.unmapped, start, size);
+    free_table_add(&vm->unmapped, start, size);
     return (void *)start;
+}
+
+void *mm_allocate_pages(size_t pages)
+{
+    struct task *task = get_current_task();
+    ASSERT(task->mm != NULL);
+
+    struct pg_struct *pg = &task->mm->pg_map;
+
+    void *addr = allocate_pages(pages);
+    if (addr == NULL)
+    {
+        return NULL;
+    }
+
+    struct page_struct *page_struct = kmalloc(sizeof(*page_struct), 0, 0);
+    if (page_struct == NULL)
+    {
+        free_pages(addr, pages);
+        return NULL;
+    }
+    page_struct->pfn = (uintptr_t)VIRT_TO_PHYS(addr) >> PAGE_SIZE_SHIFT;
+    list_append(&pg->list, &page_struct->node);
+    return addr;
+}
+
+static int find_page_struct(struct list_node *node, void *arg)
+{
+    size_t pfn = (uintptr_t)VIRT_TO_PHYS(arg) >> PAGE_SIZE_SHIFT;
+
+    struct page_struct *page_struct = NULL;
+    page_struct = CONTAINER_OF(struct page_struct, node, node);
+    return page_struct->pfn == pfn;
+}
+
+void mm_free_pages(void *addr, size_t pages)
+{
+    struct task *task = get_current_task();
+    ASSERT(task->mm != NULL);
+
+    struct pg_struct *pg = &task->mm->pg_map;
+
+    struct list_node *node;
+    node = list_traversal_remove(&pg->list, find_page_struct, addr);
+    ASSERT(node != NULL);
+
+    struct page_struct *page_struct = NULL;
+    page_struct = CONTAINER_OF(struct page_struct, node, node);
+    free_pages(addr, pages);
+    kfree(page_struct);
+    return;
 }
