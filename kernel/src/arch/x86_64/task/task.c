@@ -7,8 +7,10 @@
 
 #include <asm/desc.h>
 #include <asm/interrupt.h>
+#include <asm/page.h>
 #include <asm/task.h>
 
+#include <mem.h>
 #include <print.h>
 #include <task.h>
 
@@ -18,6 +20,36 @@ static void kernel_task(int (*func)(uint64_t), uint64_t arg)
     int ret = func(arg);
     task_exit(ret);
     return;
+}
+
+static void kernel_process(void *file, void *arg)
+{
+    intr_disable();
+
+    struct task *task = get_current_task();
+
+    task->ustack_base = (uintptr_t)allocate_pages(task->ustack_pages);
+    ASSERT(task->ustack_base != 0);
+    if (task->ustack_base == 0)
+    {
+        process_exit(-1);
+    }
+
+    ASSERT(task->pg_dir != NULL);
+    size_t    ustack_size  = task->ustack_pages * PG_SIZE;
+    uint64_t *pg_dir       = task->pg_dir;
+    void     *ustack       = VIRT_TO_PHYS(task->ustack_base);
+    void     *ustack_vaddr = (void *)(USER_STACK_VADDR_TOP - ustack_size);
+    page_map(pg_dir, ustack, ustack_vaddr, task->ustack_pages);
+    set_page_flags(pg_dir, ustack_vaddr, PG_USER_FLAGS);
+    task_pg_active(task);
+
+    void *entry = load_segment(file);
+
+    task_pg_active(task);
+    switch_to_user(entry, arg);
+
+    while (1);
 }
 
 void create_task_context(struct task *task, void *func, void *arg)
@@ -33,7 +65,14 @@ void create_task_context(struct task *task, void *func, void *arg)
 
     // switch_to使用的返回地址
     kstack -= sizeof(void *);
-    *(void **)kstack = kernel_task;
+    if (task->pg_dir == NULL && task->mm == NULL)
+    {
+        *(void **)kstack = kernel_task;
+    }
+    else
+    {
+        *(void **)kstack = kernel_process;
+    }
 
     // 保存上下文所用的空间
     kstack -= sizeof(*task->context);

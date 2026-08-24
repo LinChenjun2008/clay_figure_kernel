@@ -2,6 +2,7 @@ RAMFS_DIR = $(PROJECT_ROOT)/build/ramfs
 TARGET    = $(RAMFS_DIR)/test
 
 CC      = gcc
+LD      = ld
 
 CFLAGS += -Wall -Wextra -Werror
 CFLAGS += -Wredundant-decls -Wnested-externs
@@ -26,3 +27,5 @@ CFLAGS += -mno-red-zone -m64 -mcmodel=large -march=x86-64
 CFLAGS += -mstackrealign
 CFLAGS += -Wa,--noexecstack
 CFLAGS += -mno-sse -mno-mmx -mno-80387
+
+LDFLAGS += -pie -static --no-dynamic-linker

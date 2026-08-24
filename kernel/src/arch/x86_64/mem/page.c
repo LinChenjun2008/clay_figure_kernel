@@ -6,9 +6,12 @@
 #include <base.h>
 
 #include <asm/page.h>
+#include <asm/ptrace.h>
 #include <asm/utils.h>
 
+#include <mem.h>
 #include <std/string.h>
+#include <task.h>
 
 void set_pg_table(void *pg_table)
 {
@@ -50,7 +53,7 @@ static void page_map_sub(uint64_t *page_table, uintptr_t paddr, uintptr_t vaddr)
     }
     pt   = PHYS_TO_VIRT(*pde & (~0xfff));
     pte  = pt + GET_FIELD(vaddr, ADDR_PT_INDEX);
-    *pte = paddr | PG_DEFAULT_FLAGS;
+    *pte = paddr | PG_KERNEL_FLAGS;
     return;
 }
 
@@ -64,6 +67,49 @@ void page_map(uint64_t *pg_dir, void *paddr, void *vaddr, uint64_t count)
         p = (uintptr_t)paddr + i * PG_SIZE;
         page_map_sub(pg_dir, p, v);
     }
+    return;
+}
+
+void set_page_flags(uint64_t *pg_dir, void *vaddr, uint64_t flags)
+{
+    vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
+    uint64_t *v_pml4t, *v_pml4e;
+    uint64_t *pdpt, *v_pdpte, *pdpte;
+    uint64_t *pdt, *v_pde, *pde;
+    uint64_t *pt, *v_pte, *pte;
+
+    v_pml4t = PHYS_TO_VIRT(pg_dir);
+    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
+    if (!(*v_pml4e & PG_P))
+    {
+        return;
+    }
+
+    pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
+    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
+    v_pdpte = PHYS_TO_VIRT(pdpte);
+    if (!(*v_pdpte & PG_P))
+    {
+        return;
+    }
+
+    pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
+    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
+    v_pde = PHYS_TO_VIRT(pde);
+    if (!(*v_pde & PG_P))
+    {
+        return;
+    }
+
+    pt    = (uint64_t *)(*v_pde & (~0xfff));
+    pte   = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
+    v_pte = PHYS_TO_VIRT(pte);
+    if (!(*v_pte & PG_P))
+    {
+        return;
+    }
+
+    *v_pte = (*v_pte & ~0xfff) | flags;
     return;
 }
 
@@ -157,5 +203,38 @@ void free_pg_table(uint64_t *pg_dir)
         }
     }
     free_pages(v_pml4t, 1);
+    return;
+}
+
+void page_faule(struct pt_regs *regs)
+{
+    struct task      *task = get_current_task();
+    struct mm_struct *mm   = task->mm;
+
+    // 内核态缺页
+    if (mm == NULL)
+    {
+        general_handler(regs);
+    }
+
+    if (regs->error_code & PG_P)
+    {
+        general_handler(regs);
+    }
+    uintptr_t fault_address = get_cr2() & ~(PG_SIZE - 1);
+    if (!free_table_find(&mm->vm_map.unmapped, fault_address))
+    {
+        general_handler(regs);
+    }
+    void *phy_page = mm_allocate_pages(1);
+    if (phy_page == NULL)
+    {
+        general_handler(regs);
+    }
+    page_map(task->pg_dir, phy_page, (void *)fault_address, 1);
+    set_page_flags(task->pg_dir, (void *)fault_address, PG_USER_FLAGS);
+    task_pg_active(task);
+    free_table_remove(&mm->vm_map.unmapped, fault_address, PG_SIZE);
+    free_table_add(&mm->vm_map.mapped, fault_address, PG_SIZE);
     return;
 }

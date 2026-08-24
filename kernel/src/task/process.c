@@ -11,37 +11,12 @@
 
 #include <mem.h>
 #include <print.h>
+#include <ramfs.h>
 #include <std/string.h>
 #include <sync/atomic.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/struct.h>
-
-static void kernel_process(void *func)
-{
-    intr_disable();
-
-    struct task *task = get_current_task();
-
-    task->ustack_base = (uintptr_t)allocate_pages(task->ustack_pages);
-    ASSERT(task->ustack_base != 0);
-    if (task->ustack_base == 0)
-    {
-        process_exit(-1);
-    }
-
-    ASSERT(task->pg_dir != NULL);
-    size_t    ustack_size  = task->ustack_pages * PG_SIZE;
-    uint64_t *pg_dir       = task->pg_dir;
-    void     *ustack       = VIRT_TO_PHYS(task->ustack_base);
-    void     *ustack_vaddr = (void *)(USER_STACK_VADDR_TOP - ustack_size);
-    page_map(pg_dir, ustack, ustack_vaddr, task->ustack_pages);
-    task_pg_active(task);
-
-    switch_to_user(func);
-
-    while (1);
-}
 
 static void *create_pg_dir(void)
 {
@@ -60,17 +35,16 @@ static void *create_pg_dir(void)
 }
 
 struct task *process_execute(
-    const char *name,
+    const char *file,
     uint64_t    prio,
     size_t      kstack_pages,
     size_t      ustack_pages,
-    void       *func
+    void       *arg
 )
 {
-    ASSERT(name != NULL);
+    ASSERT(file != NULL);
     ASSERT(kstack_pages != 0);
     ASSERT(ustack_pages != 0);
-    ASSERT(func != 0);
 
     struct task *task = allocate_task_struct();
     if (task == NULL)
@@ -83,8 +57,7 @@ struct task *process_execute(
     {
         goto fail;
     }
-    init_task_struct(task, name, prio, kstack_base, kstack_pages, ustack_pages);
-    create_task_context(task, kernel_process, func);
+    init_task_struct(task, file, prio, kstack_base, kstack_pages, ustack_pages);
 
     task->pg_dir = create_pg_dir();
     if (task->pg_dir == NULL)
@@ -97,7 +70,20 @@ struct task *process_execute(
     {
         goto fail;
     }
+    struct vm_struct *vm = &task->mm->vm_map;
+    uintptr_t         user_space_size;
+    user_space_size = USER_STACK_VADDR_TOP - (ustack_pages + 1) * PG_SIZE;
+    free_table_add(&vm->vm_table, USER_VADDR_START, user_space_size);
 
+    // read executable file
+    struct system_info *sys_info = get_system_info();
+    void               *fp = ramfs_read(sys_info->boot_info->initramfs, file);
+    if (fp == NULL)
+    {
+        goto fail;
+    }
+
+    create_task_context(task, fp, arg);
     atomic_inc(&get_current_task()->childs);
 
     cpu_task_enqueue(task);

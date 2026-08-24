@@ -76,6 +76,9 @@ struct task *task_start(
 void task_exit(int return_value);
 int  task_release_resources(struct task *task);
 
+// exec.c
+void *load_segment(void *file);
+
 // waitpid
 #    define WNOHANG 1
 
@@ -83,11 +86,11 @@ pid_t task_waitpid(pid_t pid, int *status, int options);
 
 // process.c
 struct task *process_execute(
-    const char *name,
+    const char *file,
     uint64_t    prio,
     size_t      kstack_pages,
     size_t      ustack_pages,
-    void       *func
+    void       *arg
 );
 void process_exit(int status);
 

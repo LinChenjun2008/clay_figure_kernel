@@ -27,7 +27,7 @@ void syscall_init(void)
     register_syscall(NR_SEND, msg_send);
     register_syscall(NR_RECV, msg_recv);
     register_syscall(NR_BOTH, msg_both);
-    register_syscall(NR_MMAP, sys_mmap);
+    register_syscall(NR_MMAP, mm_allocate_address);
     return;
 }
 

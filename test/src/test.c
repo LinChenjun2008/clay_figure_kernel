@@ -5,9 +5,8 @@
 
 #include <lib.h>
 
-int _start(void);
-int _start(void)
+int main(void);
+int main(void)
 {
-    exit(0);
     return 0;
 }

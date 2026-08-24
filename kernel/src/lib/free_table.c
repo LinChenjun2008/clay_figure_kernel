@@ -303,3 +303,21 @@ uintptr_t free_table_allocate(struct free_table *free_table, size_t size)
     }
     return ret;
 }
+
+int free_table_find(struct free_table *free_table, uintptr_t start)
+{
+    uintptr_t block_start;
+    uintptr_t block_end;
+
+    int i;
+    for (i = 0; i < free_table->free; i++)
+    {
+        block_start = free_table->table[i].start;
+        block_end   = block_start + free_table->table[i].size;
+        if (block_start <= start && start < block_end)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}

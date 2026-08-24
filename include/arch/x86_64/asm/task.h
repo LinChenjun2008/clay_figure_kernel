@@ -15,6 +15,6 @@ void arch_task_active(struct task *task);
 
 // process.c
 
-void switch_to_user(void *func);
+void switch_to_user(void *func, void *arg);
 
 #endif /* __ASM_TASK_H__ */

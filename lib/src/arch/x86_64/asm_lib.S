@@ -3,6 +3,17 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
+#include <syscall.h>
+
+.global _start
+.type _start,@function
+_start:
+    leaq main(%rip),%rax
+    callq *%rax
+    movq $NR_EXIT, %rdi
+    movq     %rax, %rsi
+    syscall
+
 .global syscall_0
 .global syscall_1
 .global syscall_2

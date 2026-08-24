@@ -59,6 +59,8 @@ void init_all(struct system_info *system_info)
     printk("\nWelcome to Clay Figure Neo!\n");
     intr_enable();
 
+    process_execute("test", DEFAULT_PRIO, 1, 1, NULL);
+
     return;
 }
 
