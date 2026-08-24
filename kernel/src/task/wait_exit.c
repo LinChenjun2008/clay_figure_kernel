@@ -5,7 +5,7 @@
 
 #include <base.h>
 
-#include <asm/page.h>
+#include <asm/page_mgr.h>
 
 #include <print.h>
 #include <sysinfo.h>

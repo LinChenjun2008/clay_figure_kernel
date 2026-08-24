@@ -8,7 +8,9 @@
 #include <asm/drivers/apic.h>
 #include <asm/drivers/pic.h>
 #include <asm/page.h> // PHYS_TO_VIRT
-#include <asm/utils.h>
+#include <asm/utils/barrier.h>
+#include <asm/utils/io.h>
+#include <asm/utils/regs.h>
 #include <asm/x86.h> // IA32_APIC_BASE
 
 #include <drivers/acpi.h>

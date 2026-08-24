@@ -8,6 +8,7 @@
 #include <asm/syscall.h>
 
 #include <syscall.h>
+#include <syscall/ipc.h>
 
 // syscall functions
 #include <mem.h>

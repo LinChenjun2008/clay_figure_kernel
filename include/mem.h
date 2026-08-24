@@ -20,10 +20,4 @@ void *mm_allocate_address(struct vm_struct *vm, void *addr, size_t pages);
 void *mm_allocate_pages(size_t pages);
 void  mm_free_pages(void *addr, size_t pages);
 
-// allocator.c
-void mem_allocator_init(void);
-
-void *kmalloc(size_t size, size_t alignment, size_t boundary);
-void  kfree(void *addr);
-
 #endif

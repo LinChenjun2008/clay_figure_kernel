@@ -5,9 +5,9 @@
 
 #include <base.h>
 
-#include <asm/page.h>
+#include <asm/page_mgr.h>
 
-#include <mem.h>
+#include <mem/allocator.h>
 #include <mem/struct.h>
 #include <print.h>
 #include <sysinfo.h>

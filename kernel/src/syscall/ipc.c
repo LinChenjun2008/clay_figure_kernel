@@ -6,7 +6,7 @@
 #include <base.h>
 
 #include <std/string.h>
-#include <syscall.h>
+#include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
 

@@ -6,14 +6,14 @@
 #include <base.h>
 
 #include <asm/drivers/apic.h>
-#include <asm/page.h>
+#include <asm/page_mgr.h>
 #include <asm/task.h>
 
-#include <mem.h>
+#include <mem/allocator.h>
 #include <print.h>
 #include <std/stdio.h>
 #include <std/string.h>
-#include <syscall.h>
+#include <syscall/ipc.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/schedule.h>

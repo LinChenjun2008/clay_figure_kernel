@@ -7,7 +7,7 @@
 
 #include <asm/drivers/apic.h>
 #include <asm/mp.h>
-#include <asm/page.h> // PHYS_TO_VIRT
+#include <asm/page_mgr.h>
 
 #include <drivers/timer.h>
 #include <print.h>

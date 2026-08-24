@@ -7,7 +7,7 @@
 
 #include <asm/drivers/apic.h>
 #include <asm/sysinfo.h>
-#include <asm/utils.h>
+#include <asm/utils/regs.h>
 #include <asm/x86.h>
 
 #include <task/struct.h>

@@ -6,7 +6,7 @@
 #include <base.h>
 
 #include <lib/free_table.h>
-#include <mem.h>
+#include <mem/allocator.h>
 
 void init_free_table(struct free_table *free_table, int step)
 {

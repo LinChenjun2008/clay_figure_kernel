@@ -7,7 +7,8 @@
 
 #include <asm/interrupt.h>
 #include <asm/intr/handler.h>
-#include <asm/utils.h>
+#include <asm/utils/intr_ctrl.h>
+#include <asm/utils/regs.h>
 
 enum intr_status intr_get_status(void)
 {

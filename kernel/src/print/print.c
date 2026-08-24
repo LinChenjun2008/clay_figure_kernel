@@ -8,7 +8,8 @@
 #include <asm/interrupt.h>
 #include <asm/page.h>
 #include <asm/sync/spinlock.h>
-#include <asm/utils.h>
+#include <asm/utils/io.h>
+#include <asm/utils/panic.h>
 
 #include <print.h>
 #include <std/stdarg.h>

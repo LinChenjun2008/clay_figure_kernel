@@ -6,9 +6,9 @@
 #include <base.h>
 
 #include <asm/intr/handler.h>
-#include <asm/page.h>
+#include <asm/page_mgr.h>
 #include <asm/ptrace.h>
-#include <asm/utils.h>
+#include <asm/utils/regs.h>
 
 #include <mem.h>
 #include <std/string.h>

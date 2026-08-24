@@ -8,7 +8,7 @@
 #include <asm/desc.h>
 #include <asm/ptrace.h>
 #include <asm/syscall.h>
-#include <asm/utils.h>
+#include <asm/utils/regs.h>
 #include <asm/x86.h>
 
 #include <print.h>

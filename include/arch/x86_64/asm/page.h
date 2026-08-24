@@ -52,8 +52,6 @@
 
 #ifndef __ASSEMBLER__
 
-// arch/page.c
-
 void set_pg_table(void *pg_table);
 
 void  page_map(uint64_t *pg_dir, void *paddr, void *vaddr, uint64_t count);
@@ -61,15 +59,6 @@ void  set_page_flags(uint64_t *pg_dir, void *vaddr, uint64_t flags);
 void *to_physical_address(void *pg_dir, void *vaddr);
 void  free_pg_table(uint64_t *pg_dir);
 void  page_faule(struct pt_regs *regs);
-
-// page.c
-
-void page_mgr_init(struct system_info *system_info);
-
-void     page_reference_inc(size_t pfn);
-uint64_t page_reference_dec(size_t pfn);
-void    *allocate_pages(size_t pages);
-void     free_pages(void *addr, size_t pages);
 
 #endif /* __ASSEMBLER__ */
 

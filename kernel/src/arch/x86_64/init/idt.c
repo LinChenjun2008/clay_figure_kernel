@@ -6,7 +6,7 @@
 #include <base.h>
 
 #include <asm/desc.h>
-#include <asm/utils.h>
+#include <asm/utils/desc_load.h>
 
 static struct gate_desc idt[256];
 

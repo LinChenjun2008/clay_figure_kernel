@@ -7,7 +7,7 @@
 
 #include <asm/desc.h>
 #include <asm/interrupt.h>
-#include <asm/page.h>
+#include <asm/page_mgr.h>
 #include <asm/task.h>
 #include <asm/task/process.h>
 

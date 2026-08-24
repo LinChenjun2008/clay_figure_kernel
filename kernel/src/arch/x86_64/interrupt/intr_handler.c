@@ -7,7 +7,8 @@
 
 #include <asm/drivers/timer.h>
 #include <asm/intr/handler.h>
-#include <asm/utils.h>
+#include <asm/utils/intr_ctrl.h>
+#include <asm/utils/regs.h>
 #include <asm/x86.h>
 
 #include <print.h>
