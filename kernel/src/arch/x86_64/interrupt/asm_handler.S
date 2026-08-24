@@ -15,7 +15,7 @@ ENTRY:; \
 
 .text
 
-#include <asm/interrupt.h>
+#include <asm/intr/handler.h>
 
 save_all:
     popq  %rax

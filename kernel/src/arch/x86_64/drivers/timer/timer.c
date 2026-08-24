@@ -8,7 +8,7 @@
 #include <asm/drivers/apic.h> // ioapic_irq_enable
 #include <asm/drivers/pic.h>  // send_eoi
 #include <asm/drivers/timer.h>
-#include <asm/interrupt.h>
+#include <asm/intr/handler.h>
 
 #include <sysinfo.h>
 #include <task.h>

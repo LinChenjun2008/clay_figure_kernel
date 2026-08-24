@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <asm/interrupt.h>
+#include <asm/intr/handler.h>
 #include <asm/utils.h>
 
 enum intr_status intr_get_status(void)

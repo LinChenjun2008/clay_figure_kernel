@@ -5,6 +5,7 @@
 
 #include <base.h>
 
+#include <asm/intr/handler.h>
 #include <asm/page.h>
 #include <asm/ptrace.h>
 #include <asm/utils.h>

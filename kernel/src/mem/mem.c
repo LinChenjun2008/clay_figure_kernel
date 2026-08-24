@@ -5,7 +5,7 @@
 
 #include <base.h>
 
-#include <asm/interrupt.h>
+#include <asm/intr/handler.h>
 #include <asm/page.h>
 
 #include <lib/free_table.h>

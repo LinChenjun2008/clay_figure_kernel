@@ -23,14 +23,14 @@ static void set_gatedesc(struct gate_desc *gd, void *func, int selector, int ar)
 
 #define INTR_HANDLER(ENTRY, NR, ERROR_CODE) \
     void ASMLINKAGE ENTRY(struct pt_regs *);
-#include <asm/interrupt.h>
+#include <asm/intr/handler.h>
 #undef INTR_HANDLER
 
 static void idt_desc_init(void)
 {
 #define INTR_HANDLER(ENTRY, NR, ERROR_CODE) \
     set_gatedesc(&idt[NR], ENTRY, SELECTOR_KERNEL_CODE64, AR_IDT_DESC_DPL0);
-#include <asm/interrupt.h>
+#include <asm/intr/handler.h>
 #undef INTR_HANDLER
     return;
 }
