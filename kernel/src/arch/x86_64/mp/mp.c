@@ -7,9 +7,9 @@
 
 #include <asm/drivers/apic.h>
 #include <asm/mp.h>
-#include <asm/page_mgr.h>
 
 #include <drivers/timer.h>
+#include <mem/page.h>
 #include <print.h>
 #include <std/string.h>
 

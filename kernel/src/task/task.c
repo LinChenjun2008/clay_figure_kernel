@@ -6,10 +6,10 @@
 #include <base.h>
 
 #include <asm/drivers/apic.h>
-#include <asm/page_mgr.h>
 #include <asm/task.h>
 
 #include <mem/allocator.h>
+#include <mem/page.h>
 #include <print.h>
 #include <std/stdio.h>
 #include <std/string.h>

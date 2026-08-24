@@ -6,11 +6,11 @@
 #include <base.h>
 
 #include <asm/intr/handler.h>
-#include <asm/page_mgr.h>
 #include <asm/ptrace.h>
 #include <asm/utils/regs.h>
 
 #include <mem.h>
+#include <mem/page.h>
 #include <std/string.h>
 #include <task.h>
 #include <task/schedule.h>

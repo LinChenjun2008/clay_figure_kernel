@@ -5,10 +5,10 @@
 
 #include <base.h>
 
-#include <asm/page_mgr.h>
 #include <asm/sync/spinlock.h>
 
 #include <efi.h>
+#include <mem/page.h>
 #include <mem/struct.h>
 #include <print.h>
 #include <sync/atomic.h>

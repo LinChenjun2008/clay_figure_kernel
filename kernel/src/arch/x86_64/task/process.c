@@ -6,11 +6,11 @@
 #include <base.h>
 
 #include <asm/desc.h>
-#include <asm/page_mgr.h>
 #include <asm/ptrace.h>
 #include <asm/task/process.h>
 #include <asm/x86.h>
 
+#include <mem/page.h>
 #include <print.h>
 #include <std/string.h>
 #include <sysinfo.h>

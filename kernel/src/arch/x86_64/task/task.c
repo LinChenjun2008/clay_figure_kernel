@@ -7,11 +7,11 @@
 
 #include <asm/desc.h>
 #include <asm/interrupt.h>
-#include <asm/page_mgr.h>
 #include <asm/task.h>
 #include <asm/task/process.h>
 
 #include <mem.h>
+#include <mem/page.h>
 #include <print.h>
 #include <task.h>
 #include <task/process.h>

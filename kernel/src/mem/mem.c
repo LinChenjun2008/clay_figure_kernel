@@ -6,11 +6,11 @@
 #include <base.h>
 
 #include <asm/intr/handler.h>
-#include <asm/page_mgr.h>
 
 #include <lib/free_table.h>
 #include <mem.h>
 #include <mem/allocator.h>
+#include <mem/page.h>
 #include <print.h>
 #include <task.h>
 
