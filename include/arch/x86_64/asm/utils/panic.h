@@ -6,6 +6,6 @@
 #ifndef __ASM_UTILS_PANIC_H__
 #define __ASM_UTILS_PANIC_H__
 
-void ASMLINKAGE asm_panic(void);
+void ASMLINKAGE arch_panic(void);
 
 #endif /* __ASM_UTILS_PANIC_H__ */

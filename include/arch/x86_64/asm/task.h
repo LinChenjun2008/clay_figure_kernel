@@ -8,7 +8,8 @@
 
 void create_task_context(struct task *task, void *func, void *arg);
 
-void arch_switch_to(struct task *curr, struct task *next);
+void ASMLINKAGE
+arch_switch_to(struct task_context **curr, struct task_context **next);
 void arch_task_active(struct task *task);
 
 #endif /* __ASM_TASK_H__ */

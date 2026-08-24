@@ -320,7 +320,7 @@ void panic_spin(const char *function, int line, const char *message)
     spin_lock(&panic_lock);
     printk(MSG_ERR MSG_HIGHLIGHT("%s:%d: "), function, line);
     printk(message);
-    asm_panic();
+    arch_panic();
     while (1);
 
     return;

@@ -5,9 +5,9 @@
 
 .text
 
-.global asm_load_gdt
-.type asm_load_gdt,@function
-asm_load_gdt:
+.global arch_load_gdt
+.type arch_load_gdt,@function
+arch_load_gdt:
     lgdt (%rdi)
     movw %dx, %ax
     movw %ax, %ds
@@ -23,15 +23,15 @@ asm_load_gdt:
 next:
     retq
 
-.global asm_lidt
-.type asm_lidt,@function
-asm_lidt:
+.global arch_lidt
+.type arch_lidt,@function
+arch_lidt:
     lidt (%rdi)
     retq
 
-.global asm_ltr
-.type asm_ltr,@function
-asm_ltr:
+.global arch_ltr
+.type arch_ltr,@function
+arch_ltr:
     ltr %di
     retq
 
@@ -189,9 +189,9 @@ wrmsr:
     popq %rcx
     retq
 
-.global asm_cpuid
-.type asm_cpuid,@function
-asm_cpuid:
+.global arch_cpuid
+.type arch_cpuid,@function
+arch_cpuid:
     pushq %rbx
     subq  $16, %rsp
     movq %rdx, (%rsp)
@@ -215,47 +215,47 @@ asm_cpuid:
     popq %rbx
     retq
 
-.global asm_atomic_xchg
-.type asm_atomic_xchg,@function
-asm_atomic_xchg:
+.global arch_atomic_xchg
+.type arch_atomic_xchg,@function
+arch_atomic_xchg:
     lock xchgq %rsi, (%rdi)
     movq       %rsi, %rax
     retq
 
-.global asm_atomic_add
-.type asm_atomic_add,@function
-asm_atomic_add:
+.global arch_atomic_add
+.type arch_atomic_add,@function
+arch_atomic_add:
     lock xaddq %rsi, (%rdi)
     movq       %rsi, %rax
     retq
 
-.global asm_atomic_sub
-.type asm_atomic_sub,@function
-asm_atomic_sub:
+.global arch_atomic_sub
+.type arch_atomic_sub,@function
+arch_atomic_sub:
     negq %rsi
     lock xaddq %rsi, (%rdi)
     movq       %rsi, %rax
     retq
 
-.global asm_atomic_inc
-.type asm_atomic_inc,@function
-asm_atomic_inc:
+.global arch_atomic_inc
+.type arch_atomic_inc,@function
+arch_atomic_inc:
     movq         $1, %rsi
     lock xaddq %rsi, (%rdi)
     movq %rsi, %rax
     retq
 
-.global asm_atomic_dec
-.type asm_atomic_dec,@function
-asm_atomic_dec:
+.global arch_atomic_dec
+.type arch_atomic_dec,@function
+arch_atomic_dec:
     movq        $-1, %rsi
     lock xaddq %rsi, (%rdi)
     movq %rsi, %rax
     retq
 
-.global asm_atomic_bts
-.type asm_atomic_bts,@function
-asm_atomic_bts:
+.global arch_atomic_bts
+.type arch_atomic_bts,@function
+arch_atomic_bts:
     lock btsq %rsi, (%rdi)
     jnc bts_zero
     movq $1, %rax
@@ -264,9 +264,9 @@ asm_atomic_bts:
     movq $0, %rax
     retq
 
-.global asm_atomic_btr
-.type asm_atomic_btr,@function
-asm_atomic_btr:
+.global arch_atomic_btr
+.type arch_atomic_btr,@function
+arch_atomic_btr:
     lock btrq %rsi, (%rdi)
     jnc btr_zero
     movq $1, %rax
@@ -275,9 +275,9 @@ asm_atomic_btr:
     movq $0, %rax
     retq
 
-.global asm_atomic_btc
-.type asm_atomic_btc,@function
-asm_atomic_btc:
+.global arch_atomic_btc
+.type arch_atomic_btc,@function
+arch_atomic_btc:
     lock btcq %rsi, (%rdi)
     jnc btc_zero
     movq $1, %rax
@@ -286,14 +286,14 @@ asm_atomic_btc:
     movq $0, %rax
     retq
 
-.global asm_pause
-.type asm_pause,@function
-asm_pause:
+.global arch_pause
+.type arch_pause,@function
+arch_pause:
     pause
     retq
 
-.global asm_panic
-.type asm_panic,@function
-asm_panic:
+.global arch_panic
+.type arch_panic,@function
+arch_panic:
     int $0xff
     retq

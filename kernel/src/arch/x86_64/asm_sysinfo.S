@@ -7,9 +7,9 @@
 
 .text
 
-.global asm_get_task_mgr
-.type asm_get_task_mgr,@function
-asm_get_task_mgr:
+.global arch_get_task_mgr
+.type arch_get_task_mgr,@function
+arch_get_task_mgr:
     swapgs
     movq %gs:CPU_TASK_MGR, %rax
     swapgs

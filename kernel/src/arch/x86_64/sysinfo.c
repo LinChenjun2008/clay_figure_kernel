@@ -12,13 +12,6 @@
 
 #include <task/struct.h>
 
-struct task_mgr *ASMLINKAGE asm_get_task_mgr(void);
-
-struct task_mgr *arch_get_task_mgr(void)
-{
-    return asm_get_task_mgr();
-}
-
 uint8_t arch_get_current_cpu_id(void)
 {
     return apic_id();

@@ -32,7 +32,7 @@ void *create_pg_dir(void)
     return VIRT_TO_PHYS(pg_dir);
 }
 
-void ASMLINKAGE asm_switch_to_user(struct pt_regs *regs);
+void ASMLINKAGE arch_switch_to_user(struct pt_regs *regs);
 
 void switch_to_user(void *func, void *arg)
 {
@@ -60,6 +60,6 @@ void switch_to_user(void *func, void *arg)
     regs->rsp    = USER_STACK_VADDR_TOP;
     regs->ss     = SELECTOR_USER_DATA64;
 
-    asm_switch_to_user(regs);
+    arch_switch_to_user(regs);
     return;
 }

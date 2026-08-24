@@ -7,18 +7,18 @@
 
 .extern intr_exit
 
-.global asm_switch_to
-.type asm_switch_to,@function
-asm_switch_to:
+.global arch_switch_to
+.type arch_switch_to,@function
+arch_switch_to:
     subq                      $16, %rsp
     movq                     %rsi, 8(%rsp)
     movq                     %rdi, (%rsp)
-    leaq asm_switch_context(%rip), %rax
+    leaq arch_switch_context(%rip), %rax
     callq *%rax
     addq $16, %rsp
     retq
 
-asm_switch_context:
+arch_switch_context:
     pushq %rdi
     pushq %rsi
     pushq %rbx
@@ -47,9 +47,9 @@ asm_switch_context:
 
     retq
 
-.global asm_switch_to_user
-.type asm_switch_to_user,@function
-asm_switch_to_user:
+.global arch_switch_to_user
+.type arch_switch_to_user,@function
+arch_switch_to_user:
     movq            %rdi, %rsp
     leaq intr_exit(%rip), %rax
     jmpq *%rax

@@ -80,7 +80,7 @@ static void x2apic_init()
 void local_apic_init()
 {
     uint32_t a, b, c, d;
-    asm_cpuid(1, 0, &a, &b, &c, &d);
+    arch_cpuid(1, 0, &a, &b, &c, &d);
     uint64_t ia32_apic_base = rdmsr(IA32_APIC_BASE);
     if ((c & (1 << 21)) && (ia32_apic_base & 0x400))
     {

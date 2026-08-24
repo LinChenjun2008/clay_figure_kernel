@@ -12,17 +12,17 @@
 
 .text
 
-.global asm_exit
-.type asm_exit,@function
-asm_exit:
+.global arch_exit
+.type arch_exit,@function
+arch_exit:
     movq     %rdi, %rsi
     movq $NR_EXIT, %rdi
     syscall
     retq
 
-.global asm_syscall_entry
-.type asm_syscall_entry,@function
-asm_syscall_entry:
+.global arch_syscall_entry
+.type arch_syscall_entry,@function
+arch_syscall_entry:
 
     swapgs
     movq %gs:CPU_CURRENT_TASK, %rax

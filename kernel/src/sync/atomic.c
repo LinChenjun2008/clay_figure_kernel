@@ -8,11 +8,11 @@
 #include <sync/atomic.h>
 
 extern uint64_t ASMLINKAGE
-asm_atomic_xchg(volatile uint64_t *atom, uint64_t value);
+arch_atomic_xchg(volatile uint64_t *atom, uint64_t value);
 
 uint64_t atomic_set(struct atomic *atom, uint64_t value)
 {
-    return asm_atomic_xchg(&atom->value, value);
+    return arch_atomic_xchg(&atom->value, value);
 }
 
 uint64_t atomic_read(struct atomic *atom)
@@ -21,50 +21,50 @@ uint64_t atomic_read(struct atomic *atom)
 }
 
 extern uint64_t ASMLINKAGE
-asm_atomic_add(volatile uint64_t *atom, uint64_t value);
+arch_atomic_add(volatile uint64_t *atom, uint64_t value);
 extern uint64_t ASMLINKAGE
-asm_atomic_sub(volatile uint64_t *atom, uint64_t value);
-extern uint64_t ASMLINKAGE asm_atomic_inc(volatile uint64_t *atom);
-extern uint64_t ASMLINKAGE asm_atomic_dec(volatile uint64_t *atom);
+arch_atomic_sub(volatile uint64_t *atom, uint64_t value);
+extern uint64_t ASMLINKAGE arch_atomic_inc(volatile uint64_t *atom);
+extern uint64_t ASMLINKAGE arch_atomic_dec(volatile uint64_t *atom);
 
 uint64_t atomic_add(struct atomic *atom, uint64_t value)
 {
-    return asm_atomic_add(&atom->value, value);
+    return arch_atomic_add(&atom->value, value);
 }
 
 uint64_t atomic_sub(struct atomic *atom, uint64_t value)
 {
-    return asm_atomic_sub(&atom->value, value);
+    return arch_atomic_sub(&atom->value, value);
 }
 
 uint64_t atomic_inc(struct atomic *atom)
 {
-    return asm_atomic_inc(&atom->value);
+    return arch_atomic_inc(&atom->value);
 }
 
 uint64_t atomic_dec(struct atomic *atom)
 {
-    return asm_atomic_dec(&atom->value);
+    return arch_atomic_dec(&atom->value);
 }
 
 extern uint64_t ASMLINKAGE
-asm_atomic_bts(volatile uint64_t *atom, uint64_t bit);
+arch_atomic_bts(volatile uint64_t *atom, uint64_t bit);
 extern uint64_t ASMLINKAGE
-asm_atomic_btr(volatile uint64_t *atom, uint64_t bit);
+arch_atomic_btr(volatile uint64_t *atom, uint64_t bit);
 extern uint64_t ASMLINKAGE
-asm_atomic_btc(volatile uint64_t *atom, uint64_t bit);
+arch_atomic_btc(volatile uint64_t *atom, uint64_t bit);
 
 uint64_t atomic_bts(struct atomic *atom, uint64_t bit)
 {
-    return asm_atomic_bts(&atom->value, bit);
+    return arch_atomic_bts(&atom->value, bit);
 }
 
 uint64_t atomic_btr(struct atomic *atom, uint64_t bit)
 {
-    return asm_atomic_btr(&atom->value, bit);
+    return arch_atomic_btr(&atom->value, bit);
 }
 
 uint64_t atomic_btc(struct atomic *atom, uint64_t bit)
 {
-    return asm_atomic_btc(&atom->value, bit);
+    return arch_atomic_btc(&atom->value, bit);
 }

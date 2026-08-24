@@ -17,7 +17,7 @@ uint64_t ASMLINKAGE get_cr4(void);
 uint64_t ASMLINKAGE rdmsr(uint64_t address);
 void ASMLINKAGE     wrmsr(uint64_t address, uint64_t value);
 
-void ASMLINKAGE asm_cpuid(
+void ASMLINKAGE arch_cpuid(
     uint32_t  mop,
     uint32_t  sop,
     uint32_t *a,

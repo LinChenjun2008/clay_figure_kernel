@@ -14,7 +14,7 @@
 #include <print.h>
 #include <syscall.h>
 
-extern ASMLINKAGE void asm_syscall_entry(void);
+extern ASMLINKAGE void arch_syscall_entry(void);
 
 extern void *syscall_table[NR_CONT];
 
@@ -26,7 +26,7 @@ void arch_syscall_enable(void)
     msr |= IA32_EFER_SCE;
     wrmsr(IA32_EFER, msr);
 
-    wrmsr(IA32_LSTAR, (uint64_t)asm_syscall_entry);
+    wrmsr(IA32_LSTAR, (uint64_t)arch_syscall_entry);
 
     // IA32_STAR[63:48] + 16 = user CS,IA32_STAR[63:48] + 8 = user SS
     msr = ((uint64_t)SELECTOR_KERNEL_CODE64 << 32);

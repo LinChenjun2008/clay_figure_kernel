@@ -268,7 +268,7 @@ static void set_dead_task(struct cpu *cpu, struct task *task)
 static void switch_to(struct task *curr, struct task *next)
 {
     task_active(next);
-    arch_switch_to(curr, next);
+    arch_switch_to(&curr->context, &next->context);
     return;
 }
 

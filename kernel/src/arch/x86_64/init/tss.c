@@ -33,7 +33,7 @@ static void init_tss(uint8_t cpu_id)
 
 static void load_tss(uint8_t cpu_id)
 {
-    asm_ltr(SELECTOR_TSS(cpu_id));
+    arch_ltr(SELECTOR_TSS(cpu_id));
     return;
 }
 

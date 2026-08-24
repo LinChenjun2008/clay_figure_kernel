@@ -45,6 +45,6 @@ void load_gdt(void)
     uint64_t gdt_ptr[2];
     gdt_ptr[0] = (((uint64_t)gdt_table) << 16) | (sizeof(gdt_table) - 1);
     gdt_ptr[1] = (((uint64_t)gdt_table) >> 48) & 0xffff;
-    asm_load_gdt(&gdt_ptr, SELECTOR_KERNEL_CODE64, SELECTOR_KERNEL_DATA64);
+    arch_load_gdt(&gdt_ptr, SELECTOR_KERNEL_CODE64, SELECTOR_KERNEL_DATA64);
     return;
 }

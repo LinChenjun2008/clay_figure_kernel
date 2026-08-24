@@ -47,6 +47,6 @@ void load_idt(void)
     uint64_t idt_ptr[2];
     idt_ptr[0] = ((((uint64_t)idt)) << 16) | (sizeof(idt) - 1);
     idt_ptr[1] = ((((uint64_t)idt)) >> 48) & 0xffff;
-    asm_lidt(&idt_ptr);
+    arch_lidt(&idt_ptr);
     return;
 }
