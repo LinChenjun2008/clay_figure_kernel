@@ -1,8 +1,10 @@
 RAMFS_DIR = $(PROJECT_ROOT)/build/ramfs
 TARGET    = $(RAMFS_DIR)/test
 
-CC      = gcc
-LD      = ld
+CC   = gcc
+ECHO = echo
+LD   = ld
+RM   = rm
 
 CFLAGS += -Wall -Wextra -Werror
 CFLAGS += -Wredundant-decls -Wnested-externs

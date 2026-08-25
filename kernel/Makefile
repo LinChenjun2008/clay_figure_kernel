@@ -2,7 +2,6 @@ PROJECT_ROOT = ..
 SRC_DIR      = ./src
 
 include ./tools_def.mk
-include $(PROJECT_ROOT)/scripts/tools_def.mk
 include $(PROJECT_ROOT)/scripts/rules.mk
 
 include src_list.mk

@@ -1,10 +1,12 @@
 RAMFS_DIR = $(PROJECT_ROOT)/build/ramfs
 TARGET    = $(RAMFS_DIR)/kernel/system
 
-AS        = as
-CC        = gcc
-LD        = ld
-OBJCOPY   = objcopy
+AS      = as
+CC      = gcc
+ECHO    = echo
+LD      = ld
+OBJCOPY = objcopy
+RM      = rm
 
 CFLAGS += -Wall -Wextra -Werror
 CFLAGS += -Wredundant-decls -Wnested-externs

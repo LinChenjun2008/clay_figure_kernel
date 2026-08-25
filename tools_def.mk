@@ -9,7 +9,6 @@ IMGCOPY   = $(TOOLS_DIR)/imgcopy
 INTIRAMFS = $(ESP_DIR)/initramfs.img
 MKDIR     = mkdir
 RM        = rm
-NM        = nm
 OVMF      = OVMF.fd
 
 QEMU_FLAGS = -m $(MEMORY) -bios $(OVMF) \

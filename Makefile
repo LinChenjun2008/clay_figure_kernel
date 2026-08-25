@@ -5,12 +5,12 @@ TOOLS_DIR    = $(PROJECT_ROOT)/tools
 ESP_DIR      = $(BUILD_DIR)/esp
 RAMFS_DIR    = $(BUILD_DIR)/ramfs
 
-include $(SCRIPTS_DIR)/tools_def.mk
+include $(PROJECT_ROOT)/tools_def.mk
 
 .PHONY: all
 all:
 	@$(ECHO) ---[ Build ]---
-	@$(MAKE) -C bootloader/$(TARGET_ARCH) all
+	@$(MAKE) -C bootloader/$(TARGET_ARCH) TARGET_ARCH=$(TARGET_ARCH) all
 	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) all
 	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) all
 	@$(MAKE) -C test TARGET_ARCH=$(TARGET_ARCH) all
@@ -20,7 +20,7 @@ all:
 .PHONY: clean
 clean:
 	@$(ECHO) ---[ Clean ]---
-	@$(MAKE) -C bootloader/$(TARGET_ARCH) clean
+	@$(MAKE) -C bootloader/$(TARGET_ARCH) TARGET_ARCH=$(TARGET_ARCH) clean
 	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) clean
 	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) clean
 	@$(MAKE) -C test TARGET_ARCH=$(TARGET_ARCH) clean
