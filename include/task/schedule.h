@@ -12,7 +12,6 @@ void cpu_task_enqueue(struct task *task);
 uint64_t get_min_vrun_time(struct cpu *cpu);
 void     task_update(void);
 void     task_pg_active(struct task *task);
-void     task_active(struct task *task);
 void     schedule(void);
 
 void task_block(enum task_status status);

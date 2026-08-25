@@ -196,14 +196,12 @@ void task_pg_active(struct task *task)
     return;
 }
 
-void task_active(struct task *task)
+static void task_active(struct task *curr, struct task *next)
 {
-    task->cpu_id = get_current_task()->cpu_id;
-    task_pg_active(task);
-    arch_task_active(task);
-
-    set_current_task(task);
-    task->status = TASK_RUNNING;
+    next->cpu_id = curr->cpu_id;
+    task_pg_active(next);
+    arch_task_active(next);
+    set_current_task(next);
     return;
 }
 
@@ -267,7 +265,12 @@ static void set_dead_task(struct cpu *cpu, struct task *task)
 
 static void switch_to(struct task *curr, struct task *next)
 {
-    task_active(next);
+    next->status = TASK_RUNNING;
+    if (next == curr)
+    {
+        return;
+    }
+    task_active(curr, next);
     arch_switch_to(&curr->context, &next->context);
     return;
 }
