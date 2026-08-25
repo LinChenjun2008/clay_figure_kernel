@@ -285,6 +285,7 @@ struct task *task_start(
     {
         goto fail;
     }
+    ASSERT(task->kstack_base == 0 && task->kstack_pages == 0);
 
     uintptr_t kstack_base = (uintptr_t)allocate_pages(kstack_pages);
     if (kstack_base == 0)
@@ -300,7 +301,7 @@ struct task *task_start(
     return task;
 
 fail:
-    free_pages((void *)kstack_base, kstack_pages);
+    free_pages((void *)task->kstack_base, task->kstack_pages);
     destory_task_struct(task);
     return NULL;
 }

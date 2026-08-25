@@ -31,7 +31,6 @@ static void kernel_process(void *file, void *arg)
     struct task *task = get_current_task();
 
     task->ustack_base = (uintptr_t)allocate_pages(task->ustack_pages);
-    ASSERT(task->ustack_base != 0);
     if (task->ustack_base == 0)
     {
         process_exit(-1);
@@ -47,11 +46,14 @@ static void kernel_process(void *file, void *arg)
     task_pg_active(task);
 
     void *entry = load_segment(file);
+    if (entry == NULL)
+    {
+        process_exit(-1);
+    }
 
-    task_pg_active(task);
     switch_to_user(entry, arg);
-
     while (1);
+    return;
 }
 
 void create_task_context(struct task *task, void *func, void *arg)

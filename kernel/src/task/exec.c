@@ -16,9 +16,6 @@
 
 void *load_segment(void *file)
 {
-    struct task      *task = get_current_task();
-    struct vm_struct *vm   = &task->mm->vm_map;
-
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)file;
     Elf64_Phdr *phdr = (Elf64_Phdr *)((uintptr_t)ehdr + ehdr->e_phoff);
 
@@ -60,7 +57,7 @@ void *load_segment(void *file)
     size_t pages = (addr_hi - addr_lo + (PG_SIZE - 1)) & ~PG_SIZE;
 
     uintptr_t base_address;
-    base_address = (uintptr_t)mm_allocate_address(vm, NULL, pages);
+    base_address = (uintptr_t)mm_allocate_address(NULL, pages);
 
     uintptr_t offset = base_address - addr_lo;
 

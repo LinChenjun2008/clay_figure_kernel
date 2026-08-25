@@ -36,6 +36,7 @@ struct task *process_execute(
     {
         return NULL;
     }
+    ASSERT(task->kstack_base == 0 && task->kstack_pages == 0);
 
     uintptr_t kstack_base = (uintptr_t)allocate_pages(kstack_pages);
     if (kstack_base == 0)
@@ -77,7 +78,7 @@ struct task *process_execute(
 fail:
     destory_mm_struct(task->mm);
     free_pg_table(task->pg_dir);
-    free_pages((void *)kstack_base, kstack_pages);
+    free_pages((void *)task->kstack_base, task->kstack_pages);
     destory_task_struct(task);
     return NULL;
 }
@@ -86,7 +87,6 @@ void process_exit(int status)
 {
     struct task *task = get_current_task();
 
-    /// TODO: release allcated memory
     destory_mm_struct(task->mm);
 
     void *pg_dir = task->pg_dir;

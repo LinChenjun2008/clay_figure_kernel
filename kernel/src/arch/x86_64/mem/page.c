@@ -194,6 +194,10 @@ static void free_pdpt(uintptr_t pdpt)
 
 void free_pg_table(uint64_t *pg_dir)
 {
+    if (pg_dir == NULL)
+    {
+        return;
+    }
     uint64_t *v_pml4t = PHYS_TO_VIRT(pg_dir);
 
     int i;
@@ -236,7 +240,6 @@ void page_faule(struct pt_regs *regs)
     page_map(task->pg_dir, phy_page, (void *)fault_address, 1);
     set_page_flags(task->pg_dir, (void *)fault_address, PG_USER_FLAGS);
     task_pg_active(task);
-    free_table_remove(&mm->vm_map.unmapped, fault_address, PG_SIZE);
-    free_table_add(&mm->vm_map.mapped, fault_address, PG_SIZE);
+    mm_map(task, (void *)fault_address);
     return;
 }
