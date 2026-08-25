@@ -156,7 +156,6 @@ void arch_mm_map(struct task *task, void *phys, void *virt)
 {
     page_map(task->pg_dir, phys, virt, 1);
     set_page_flags(task->pg_dir, virt, PG_USER_FLAGS);
-    task_pg_active(task);
     return;
 }
 
@@ -220,6 +219,8 @@ void free_pg_table(uint64_t *pg_dir)
     return;
 }
 
+void ASMLINKAGE arch_flush_tlb(void *addr);
+
 void page_faule(struct pt_regs *regs)
 {
     struct task      *task = get_current_task();
@@ -251,5 +252,6 @@ void page_faule(struct pt_regs *regs)
         general_handler(regs);
     }
     mm_map(task, phy_page, (void *)fault_address);
+    arch_flush_tlb((void *)fault_address);
     return;
 }
