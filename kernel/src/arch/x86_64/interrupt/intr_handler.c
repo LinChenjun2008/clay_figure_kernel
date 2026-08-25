@@ -14,6 +14,7 @@
 #include <print.h>
 #include <sysinfo.h>
 #include <task.h>
+#include <task/process.h>
 
 static int has_error_code[256] = {
 #define INTR_HANDLER(ENTRY, NR, ERROR_CODE) !ERROR_CODE,
@@ -145,7 +146,11 @@ void general_handler(struct pt_regs *regs)
         printk(MSG_ERR MSG_HIGHLIGHT("%s") ".\n", intr_name[vector]);
     }
 
-    while (1) io_hlt();
+    if (get_current_task()->pg_dir == NULL)
+    {
+        while (1) io_hlt();
+    }
+    process_exit(-1);
     return;
 }
 
