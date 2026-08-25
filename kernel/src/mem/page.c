@@ -174,17 +174,23 @@ void *allocate_pages(size_t pages)
     return ret;
 }
 
-static void free_pages_lock(struct page_mgr *page_mgr, void *addr, size_t pages)
+void *allocate_a_page(void)
+{
+    return allocate_pages(1);
+}
+
+static size_t
+free_pages_lock(struct page_mgr *page_mgr, void *addr, size_t pages)
 {
     if (pages > MAX_ALLOCATE_PAGES)
     {
-        return;
+        return 0;
     }
 
     if (addr == NULL)
     {
         printk(MSG_WARN "free_pages: Free null point.\n");
-        return;
+        return 0;
     }
     ASSERT(((uintptr_t)addr & (PG_SIZE - 1)) == 0);
 
@@ -207,17 +213,22 @@ static void free_pages_lock(struct page_mgr *page_mgr, void *addr, size_t pages)
         page_mgr->pages[pfn + pages - 1].flags &= ~PAGE_TAIL;
         page_mgr->pages[pfn + pages - 1].count = 0;
     }
-    return;
+    return pages;
 }
 
-void free_pages(void *addr, size_t pages)
+size_t free_pages(void *addr, size_t pages)
 {
     struct system_info *system_info = get_task_mgr()->system_info;
     struct page_mgr    *page_mgr    = system_info->page_mgr;
 
     spin_lock(&page_mgr->lock);
-    free_pages_lock(page_mgr, addr, pages);
+    size_t ret = free_pages_lock(page_mgr, addr, pages);
     spin_unlock(&page_mgr->lock);
 
-    return;
+    return ret;
+}
+
+size_t free_a_page(void *addr)
+{
+    return free_pages(addr, 1);
 }

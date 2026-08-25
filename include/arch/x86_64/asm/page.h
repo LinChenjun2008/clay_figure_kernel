@@ -57,6 +57,7 @@ void set_pg_table(void *pg_table);
 void  page_map(uint64_t *pg_dir, void *paddr, void *vaddr, uint64_t count);
 void  set_page_flags(uint64_t *pg_dir, void *vaddr, uint64_t flags);
 void *to_physical_address(void *pg_dir, void *vaddr);
+void  arch_mm_map(struct task *task, void *phys, void *virt);
 void  free_pg_table(uint64_t *pg_dir);
 void  page_faule(struct pt_regs *regs);
 

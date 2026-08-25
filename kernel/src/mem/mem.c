@@ -63,7 +63,7 @@ static void destory_pg_struct(struct pg_struct *pg)
 
         struct page_struct *page = CONTAINER_OF(struct page_struct, node, node);
         void               *addr = PHYS_TO_VIRT(page->pfn << PAGE_SIZE_SHIFT);
-        free_pages(addr, 1);
+        free_a_page(addr);
         kfree(page);
     }
 
@@ -117,14 +117,123 @@ void *mm_allocate_address(void *addr, size_t pages)
     return (void *)start;
 }
 
-void *mm_allocate_pages(size_t pages)
+static int traversal_by_phys(struct list_node *node, void *phys)
+{
+    size_t pfn = (uintptr_t)phys >> PAGE_SIZE_SHIFT;
+
+    struct page_struct *page_struct = NULL;
+    page_struct = CONTAINER_OF(struct page_struct, node, node);
+    return page_struct->pfn == pfn;
+}
+
+static int traversal_by_virt(struct list_node *node, void *virt)
+{
+    struct page_struct *page_struct = NULL;
+    page_struct = CONTAINER_OF(struct page_struct, node, node);
+    return page_struct->virt == virt;
+}
+
+static struct page_struct *get_page_by_virt(struct pg_struct *pg, void *virt)
+{
+    struct list_node *node;
+    node = list_traversal_remove(&pg->list, traversal_by_virt, virt);
+    if (node == NULL)
+    {
+        return NULL;
+    }
+    return CONTAINER_OF(struct page_struct, node, node);
+}
+
+void mm_map(struct task *task, void *phys, void *virt)
+{
+    ASSERT(task->mm != NULL && phys != NULL && virt != NULL);
+
+    struct vm_struct *vm = &task->mm->vm_map;
+    struct pg_struct *pg = &task->mm->pg_map;
+
+    free_table_remove(&vm->unmapped, (uintptr_t)virt, PG_SIZE);
+    free_table_add(&vm->mapped, (uintptr_t)virt, PG_SIZE);
+
+    struct list_node *node;
+    node = list_traversal(&pg->list, traversal_by_phys, phys);
+    ASSERT(node != NULL);
+
+    struct page_struct *page_struct = NULL;
+    page_struct       = CONTAINER_OF(struct page_struct, node, node);
+    page_struct->virt = virt;
+
+    arch_mm_map(task, phys, virt);
+    return;
+}
+
+void mm_free_address(void *addr, size_t pages)
+{
+    if (addr == NULL)
+    {
+        return;
+    }
+    struct task      *task = get_current_task();
+    struct vm_struct *vm   = &task->mm->vm_map;
+    struct pg_struct *pg   = &task->mm->pg_map;
+
+    uintptr_t start = (uintptr_t)addr;
+
+    struct free_table *table = NULL;
+
+    size_t mapped_pages = 0;
+    size_t remain_pages;
+    for (remain_pages = pages; remain_pages > 0; remain_pages--)
+    {
+        table = NULL;
+        if (free_table_find(&vm->mapped, start))
+        {
+            table = &vm->mapped;
+            mapped_pages++;
+        }
+        if (free_table_find(&vm->unmapped, start))
+        {
+            table = &vm->unmapped;
+        }
+        if (table == NULL)
+        {
+            start += PG_SIZE;
+            continue;
+        }
+
+        free_table_remove(table, start, PG_SIZE);
+        free_table_add(&vm->vm_table, start, PG_SIZE);
+        start += PG_SIZE;
+    }
+
+    // 释放物理页
+    start = (uintptr_t)addr;
+    while (mapped_pages > 0)
+    {
+        struct page_struct *page_struct = get_page_by_virt(pg, (void *)start);
+
+        // 未分配
+        if (page_struct == NULL)
+        {
+            start += PG_SIZE;
+            continue;
+        }
+        start += PG_SIZE;
+        mapped_pages--;
+        uintptr_t page_address = page_struct->pfn << PAGE_SIZE_SHIFT;
+        free_a_page(PHYS_TO_VIRT(page_address));
+        kfree(page_struct);
+    }
+    return;
+}
+
+void *mm_allocate_a_page(void)
 {
     struct task *task = get_current_task();
     ASSERT(task->mm != NULL);
 
     struct pg_struct *pg = &task->mm->pg_map;
 
-    void *addr = allocate_pages(pages);
+    void *addr = allocate_a_page();
     if (addr == NULL)
     {
         return NULL;
@@ -133,47 +242,11 @@ void *mm_allocate_pages(size_t pages)
     struct page_struct *page_struct = kmalloc(sizeof(*page_struct), 0, 0);
     if (page_struct == NULL)
     {
-        free_pages(addr, pages);
+        free_a_page(addr);
         return NULL;
     }
-    page_struct->pfn = (uintptr_t)VIRT_TO_PHYS(addr) >> PAGE_SIZE_SHIFT;
+    page_struct->pfn  = (uintptr_t)VIRT_TO_PHYS(addr) >> PAGE_SIZE_SHIFT;
+    page_struct->virt = NULL;
     list_append(&pg->list, &page_struct->node);
     return VIRT_TO_PHYS(addr);
-}
-
-void mm_map(struct task *task, void *addr)
-{
-    ASSERT(task->mm != NULL);
-
-    struct vm_struct *vm = &task->mm->vm_map;
-    free_table_remove(&vm->unmapped, (uintptr_t)addr, PG_SIZE);
-    free_table_add(&vm->mapped, (uintptr_t)addr, PG_SIZE);
-    return;
-}
-
-static int find_page_struct(struct list_node *node, void *arg)
-{
-    size_t pfn = (uintptr_t)VIRT_TO_PHYS(arg) >> PAGE_SIZE_SHIFT;
-
-    struct page_struct *page_struct = NULL;
-    page_struct = CONTAINER_OF(struct page_struct, node, node);
-    return page_struct->pfn == pfn;
-}
-
-void mm_free_pages(void *addr, size_t pages)
-{
-    struct task *task = get_current_task();
-    ASSERT(task->mm != NULL);
-
-    struct pg_struct *pg = &task->mm->pg_map;
-
-    struct list_node *node;
-    node = list_traversal_remove(&pg->list, find_page_struct, addr);
-    ASSERT(node != NULL);
-
-    struct page_struct *page_struct = NULL;
-    page_struct = CONTAINER_OF(struct page_struct, node, node);
-    free_pages(addr, pages);
-    kfree(page_struct);
-    return;
 }

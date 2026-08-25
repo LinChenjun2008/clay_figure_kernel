@@ -33,7 +33,7 @@ static void page_map_sub(uint64_t *page_table, uintptr_t paddr, uintptr_t vaddr)
     pml4e  = pg_dir + GET_FIELD(vaddr, ADDR_PML4T_INDEX);
     if (!(*pml4e & PG_P))
     {
-        pdpt = allocate_pages(1);
+        pdpt = allocate_a_page();
         memset(pdpt, 0, PT_SIZE);
         *pml4e = (uintptr_t)VIRT_TO_PHYS(pdpt) | PG_DEFAULT_FLAGS;
     }
@@ -41,7 +41,7 @@ static void page_map_sub(uint64_t *page_table, uintptr_t paddr, uintptr_t vaddr)
     pdpte = pdpt + GET_FIELD(vaddr, ADDR_PDPT_INDEX);
     if (!(*pdpte & PG_P))
     {
-        pdt = allocate_pages(1);
+        pdt = allocate_a_page();
         memset(pdt, 0, PT_SIZE);
         *pdpte = (uintptr_t)VIRT_TO_PHYS(pdt) | PG_DEFAULT_FLAGS;
     }
@@ -49,7 +49,7 @@ static void page_map_sub(uint64_t *page_table, uintptr_t paddr, uintptr_t vaddr)
     pde = pdt + GET_FIELD(vaddr, ADDR_PDT_INDEX);
     if (!(*pde & PG_P))
     {
-        pt = allocate_pages(1);
+        pt = allocate_a_page();
         memset(pt, 0, PT_SIZE);
         *pde = (uintptr_t)VIRT_TO_PHYS(pt) | PG_DEFAULT_FLAGS;
     }
@@ -152,11 +152,19 @@ void *to_physical_address(void *pg_dir, void *vaddr)
                     GET_FIELD((uintptr_t)vaddr, ADDR_OFFSET));
 }
 
+void arch_mm_map(struct task *task, void *phys, void *virt)
+{
+    page_map(task->pg_dir, phys, virt, 1);
+    set_page_flags(task->pg_dir, virt, PG_USER_FLAGS);
+    task_pg_active(task);
+    return;
+}
+
 static void free_pt(uintptr_t pt)
 {
     uint64_t *v_pt = PHYS_TO_VIRT(pt);
 
-    free_pages(v_pt, 1);
+    free_a_page(v_pt);
     return;
 }
 
@@ -172,7 +180,7 @@ static void free_pdt(uintptr_t pdt)
             free_pt(v_pdt[i] & (~0xfff));
         }
     }
-    free_pages(v_pdt, 1);
+    free_a_page(v_pdt);
     return;
 }
 
@@ -188,7 +196,7 @@ static void free_pdpt(uintptr_t pdpt)
             free_pdt(v_pdpt[i] & (~0xfff));
         }
     }
-    free_pages(v_pdpt, 1);
+    free_a_page(v_pdpt);
     return;
 }
 
@@ -208,7 +216,7 @@ void free_pg_table(uint64_t *pg_dir)
             free_pdpt(v_pml4t[i] & (~0xfff));
         }
     }
-    free_pages(v_pml4t, 1);
+    free_a_page(v_pml4t);
     return;
 }
 
@@ -223,23 +231,25 @@ void page_faule(struct pt_regs *regs)
         general_handler(regs);
     }
 
+    // 已存在的页触发的异常
+    // COW暂不支持
     if (regs->error_code & PG_P)
     {
         general_handler(regs);
     }
+
     uintptr_t fault_address = get_cr2() & ~(PG_SIZE - 1);
+
+    // 访问非法地址触发异常
     if (!free_table_find(&mm->vm_map.unmapped, fault_address))
     {
         general_handler(regs);
     }
-    void *phy_page = mm_allocate_pages(1);
+    void *phy_page = mm_allocate_a_page();
     if (phy_page == NULL)
     {
         general_handler(regs);
     }
-    page_map(task->pg_dir, phy_page, (void *)fault_address, 1);
-    set_page_flags(task->pg_dir, (void *)fault_address, PG_USER_FLAGS);
-    task_pg_active(task);
-    mm_map(task, (void *)fault_address);
+    mm_map(task, phy_page, (void *)fault_address);
     return;
 }

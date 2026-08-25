@@ -19,7 +19,7 @@
 void *create_pg_dir(void)
 {
     uint64_t *pg_dir = NULL;
-    pg_dir           = allocate_pages(1);
+    pg_dir           = allocate_a_page();
     if (pg_dir == 0)
     {
         return NULL;

@@ -126,7 +126,7 @@ kmalloc_find(struct mem_group *g, size_t alignment, size_t boundary)
     struct mem_block *b = NULL;
     if (list_empty(&g->free_block_list))
     {
-        c = allocate_pages(1);
+        c = allocate_a_page();
         if (c == NULL)
         {
             printk(MSG_ERR "kmalloc: allocate page failed.\n");
@@ -248,7 +248,7 @@ void kfree(void *addr)
             list_remove(&b->node);
         }
         g->total_free -= c->number_of_blocks;
-        free_pages(c, 1);
+        free_a_page(c);
     }
     spin_unlock(&g->lock);
     return;
