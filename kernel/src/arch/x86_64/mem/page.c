@@ -159,6 +159,13 @@ void arch_mm_map(struct task *task, void *phys, void *virt)
     return;
 }
 
+void arch_mm_copy_on_write(struct task *task, void *phys, void *virt)
+{
+    page_map(task->pg_dir, phys, virt, 1);
+    set_page_flags(task->pg_dir, virt, PG_USER_COW_FLAGS);
+    return;
+}
+
 static void free_pt(uintptr_t pt)
 {
     uint64_t *v_pt = PHYS_TO_VIRT(pt);
@@ -232,26 +239,67 @@ void page_faule(struct pt_regs *regs)
         general_handler(regs);
     }
 
-    // 已存在的页触发的异常
-    // COW暂不支持
-    if (regs->error_code & PG_P)
-    {
-        general_handler(regs);
-    }
-
     uintptr_t fault_address = get_cr2() & ~(PG_SIZE - 1);
 
+    int unmapped = free_table_find(&mm->vm_map.unmapped, fault_address);
+    int cow      = free_table_find(&mm->vm_map.copy_on_write, fault_address);
     // 访问非法地址触发异常
-    if (!free_table_find(&mm->vm_map.unmapped, fault_address))
+    if (!unmapped && !cow)
     {
         general_handler(regs);
     }
-    void *phy_page = mm_allocate_a_page();
-    if (phy_page == NULL)
+
+    if (unmapped)
+    {
+        // 已分配地址,未分配页
+        void *phy_page = mm_allocate_a_page();
+        if (phy_page == NULL)
+        {
+            general_handler(regs);
+        }
+        mm_map(task, phy_page, (void *)fault_address);
+        arch_flush_tlb((void *)fault_address);
+        return;
+    }
+
+    // copy-on-write
+    if (!(regs->error_code & PG_RW_W))
     {
         general_handler(regs);
     }
-    mm_map(task, phy_page, (void *)fault_address);
+
+    void *cow_page = to_physical_address(task->pg_dir, (void *)fault_address);
+    if (cow_page == NULL)
+    {
+        general_handler(regs);
+    }
+    size_t cow_pfn = (uintptr_t)cow_page >> PAGE_SIZE_SHIFT;
+
+    // 只有一个进程引用: 不复制
+    if (page_reference_read(cow_pfn) == 1)
+    {
+        free_table_remove(&mm->vm_map.copy_on_write, fault_address, PG_SIZE);
+        free_table_add(&mm->vm_map.mapped, fault_address, PG_SIZE);
+        set_page_flags(task->pg_dir, (void *)fault_address, PG_USER_FLAGS);
+        arch_flush_tlb((void *)fault_address);
+        return;
+    }
+
+    // 多个进程引用: 复制新页
+    void *new_page = mm_allocate_a_page();
+    if (new_page == NULL)
+    {
+        general_handler(regs);
+    }
+    memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);
+    free_table_remove(&mm->vm_map.copy_on_write, fault_address, PG_SIZE);
+    mm_map(task, new_page, (void *)fault_address);
+
+    // 直接free,会自动减少引用计数
+    if (mm_free_a_page(cow_page) == 0)
+    {
+        general_handler(regs);
+    }
     arch_flush_tlb((void *)fault_address);
     return;
 }

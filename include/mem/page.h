@@ -13,6 +13,7 @@ void page_mgr_init(struct system_info *system_info);
 
 void     page_reference_inc(size_t pfn);
 uint64_t page_reference_dec(size_t pfn);
+uint64_t page_reference_read(size_t pfn);
 void    *allocate_pages(size_t pages);
 void    *allocate_a_page(void);
 size_t   free_pages(void *addr, size_t pages);

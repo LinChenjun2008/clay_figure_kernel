@@ -321,3 +321,26 @@ int free_table_find(struct free_table *free_table, uintptr_t start)
     }
     return 0;
 }
+
+// 复制free_table,dst必须是空表
+int copy_free_table(struct free_table *dst, struct free_table *src)
+{
+    if (dst->free != 0)
+    {
+        return -1;
+    }
+    uintptr_t block_start;
+    size_t    block_size;
+
+    int i;
+    for (i = 0; i < src->free; i++)
+    {
+        block_start = src->table[i].start;
+        block_size  = src->table[i].size;
+        if (free_table_add(dst, block_start, block_size) < 0)
+        {
+            return -1;
+        }
+    }
+    return 0;
+}

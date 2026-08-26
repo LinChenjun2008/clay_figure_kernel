@@ -14,6 +14,12 @@ void exit(int status)
     return;
 }
 
+pid_t fork(void)
+{
+    pid_t ret = (pid_t)syscall_0(NR_FORK);
+    return ret;
+}
+
 pid_t waitpid(pid_t pid, int *status, int options)
 {
     pid_t ret = (pid_t)syscall_3(NR_WAIT, pid, (uint64_t)status, options);

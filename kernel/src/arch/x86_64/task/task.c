@@ -10,6 +10,7 @@
 #include <asm/task.h>
 #include <asm/task/process.h>
 
+#include <mem.h>
 #include <mem/page.h>
 #include <print.h>
 #include <task.h>
@@ -30,19 +31,15 @@ static void kernel_process(void *file, void *arg)
 
     struct task *task = get_current_task();
 
-    task->ustack_base = (uintptr_t)allocate_pages(task->ustack_pages);
-    if (task->ustack_base == 0)
+    ASSERT(task->pg_dir != NULL);
+
+    size_t ustack_size  = task->ustack_pages << PAGE_SIZE_SHIFT;
+    void  *ustack_vaddr = (void *)(USER_STACK_VADDR_TOP - ustack_size);
+    if (mm_allocate_address(ustack_vaddr, task->ustack_pages) == NULL)
     {
         process_exit(-1);
     }
 
-    ASSERT(task->pg_dir != NULL);
-    size_t    ustack_size  = task->ustack_pages * PG_SIZE;
-    uint64_t *pg_dir       = task->pg_dir;
-    void     *ustack       = VIRT_TO_PHYS(task->ustack_base);
-    void     *ustack_vaddr = (void *)(USER_STACK_VADDR_TOP - ustack_size);
-    page_map(pg_dir, ustack, ustack_vaddr, task->ustack_pages);
-    set_page_flags(pg_dir, ustack_vaddr, PG_USER_FLAGS);
     task_pg_active(task);
 
     void *entry = load_segment(file);

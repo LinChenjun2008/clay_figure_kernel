@@ -88,9 +88,8 @@ struct task
     uintptr_t kstack_base;
     size_t    kstack_pages;
 
-    uintptr_t ustack_base;
-    size_t    ustack_pages;
-    void     *ustack_sp;
+    size_t ustack_pages;
+    void  *ustack_sp;
 
     uint8_t cpu_id;
 
@@ -128,6 +127,6 @@ struct task
 
 #define TASK_STRUCT_KSTACK_BASE  0x08
 #define TASK_STRUCT_KSTACK_PAGES 0x10
-#define TASK_STRUCT_USTACK_SP    0x28
+#define TASK_STRUCT_USTACK_SP    0x20
 
 #endif /* __TASK_STRUCT_H__ */

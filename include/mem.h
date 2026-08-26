@@ -15,10 +15,13 @@
 void mem_init(struct system_info *system_info);
 
 struct mm_struct *allocate_mm_struct(void);
+int               copy_mm_struct(struct task *dst, struct task *src);
 void              destory_mm_struct(struct mm_struct *mm);
 void             *mm_allocate_address(void *addr, size_t pages);
 void              mm_free_address(void *addr, size_t pages);
 void              mm_map(struct task *task, void *phys, void *virt);
-void             *mm_allocate_a_page(void);
+void   mm_map_copy_on_write(struct task *task, void *phys, void *virt);
+void  *mm_allocate_a_page(void);
+size_t mm_free_a_page(void *addr);
 
 #endif

@@ -13,8 +13,8 @@
 #define NR_SEND 4
 #define NR_RECV 5
 #define NR_BOTH 6
-#define NR_MMAP 7
-#define NR_UMAP 8
+#define NR_ADDR 7
+#define NR_FREE 8
 
 #define NR_CONT 9
 

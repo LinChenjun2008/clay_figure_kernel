@@ -236,7 +236,6 @@ void init_task_struct(
     task->kstack_base  = kstack_base;
     task->kstack_pages = kstack_pages;
 
-    task->ustack_base  = 0;
     task->ustack_pages = ustack_pages;
     task->ustack_sp    = NULL;
 
@@ -283,7 +282,7 @@ struct task *task_start(
     struct task *task = allocate_task_struct();
     if (task == NULL)
     {
-        goto fail;
+        return NULL;
     }
     ASSERT(task->kstack_base == 0 && task->kstack_pages == 0);
 

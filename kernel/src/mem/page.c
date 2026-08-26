@@ -137,6 +137,18 @@ uint64_t page_reference_dec(size_t pfn)
     return atomic_dec(&page_mgr->pages[pfn].reference_count);
 }
 
+uint64_t page_reference_read(size_t pfn)
+{
+    struct system_info *system_info = get_task_mgr()->system_info;
+    struct page_mgr    *page_mgr    = system_info->page_mgr;
+
+    if (pfn > page_mgr->max_pfn)
+    {
+        return -1;
+    }
+    return atomic_read(&page_mgr->pages[pfn].reference_count);
+}
+
 static void *allocate_pages_lock(struct page_mgr *page_mgr, size_t pages)
 {
     size_t pfn = bitmap_find(&page_mgr->bitmap, 1, pages);

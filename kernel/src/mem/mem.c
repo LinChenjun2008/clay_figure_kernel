@@ -29,7 +29,17 @@ static void init_vm_struct(struct vm_struct *vm)
     init_free_table(&vm->vm_table, 8);
     init_free_table(&vm->mapped, 8);
     init_free_table(&vm->unmapped, 8);
+    init_free_table(&vm->copy_on_write, 8);
     return;
+}
+
+static int copy_vm_struct(struct vm_struct *dst, struct vm_struct *src)
+{
+    int ret = 0;
+    // mapped 在copy_pg_struct时已加入copy_on_write
+    ret += copy_free_table(&dst->vm_table, &src->vm_table);
+    ret += copy_free_table(&dst->unmapped, &src->unmapped);
+    return ret;
 }
 
 static void destory_vm_struct(struct vm_struct *vm)
@@ -41,6 +51,7 @@ static void destory_vm_struct(struct vm_struct *vm)
     destroy_free_table(&vm->vm_table);
     destroy_free_table(&vm->mapped);
     destroy_free_table(&vm->unmapped);
+    destroy_free_table(&vm->copy_on_write);
     return;
 }
 
@@ -48,6 +59,49 @@ static void init_pg_struct(struct pg_struct *pg)
 {
     init_list(&pg->list);
     return;
+}
+
+struct copy_pg_pack
+{
+    struct task *dst;
+    struct task *src;
+};
+
+static int traversal_copy_pg(struct list_node *node, void *arg)
+{
+    struct copy_pg_pack *pack = arg;
+    struct task         *dst  = pack->dst;
+    struct task         *src  = pack->src;
+    struct list         *list = &dst->mm->pg_map.list;
+
+    struct page_struct *src_pg = CONTAINER_OF(struct page_struct, node, node);
+
+    struct page_struct *new_pg = kmalloc(sizeof(*new_pg), 0, 0);
+    if (new_pg == NULL)
+    {
+        return 1;
+    }
+    new_pg->pfn  = src_pg->pfn;
+    new_pg->virt = src_pg->virt;
+    list_append(list, &new_pg->node);
+    page_reference_inc(new_pg->pfn);
+
+    void *new_page = (void *)(new_pg->pfn << PAGE_SIZE_SHIFT);
+    void *src_page = (void *)(src_pg->pfn << PAGE_SIZE_SHIFT);
+    // 加入cow表
+    mm_map_copy_on_write(dst, new_page, new_pg->virt);
+    mm_map_copy_on_write(src, src_page, src_pg->virt);
+    return 0; // 返回0使list_traversal继续遍历
+}
+
+static int copy_pg_struct(struct task *dst, struct task *src)
+{
+    struct list *src_list = &src->mm->pg_map.list;
+
+    struct copy_pg_pack pack = { dst, src };
+    // 遍历src->list,将其中的page_struct复制到dst->list中
+    // 若list_traversal返回非NULL值则代表复制出错.
+    return list_traversal(src_list, traversal_copy_pg, &pack) == NULL;
 }
 
 static void destory_pg_struct(struct pg_struct *pg)
@@ -81,6 +135,22 @@ struct mm_struct *allocate_mm_struct(void)
     init_vm_struct(&mm->vm_map);
     init_pg_struct(&mm->pg_map);
     return mm;
+}
+
+int copy_mm_struct(struct task *dst, struct task *src)
+{
+    // copy pg_struct
+    if (!copy_pg_struct(dst, src))
+    {
+        return -1;
+    }
+
+    // copy vm_struct
+    if (copy_vm_struct(&dst->mm->vm_map, &src->mm->vm_map) < 0)
+    {
+        return -1;
+    }
+    return 0;
 }
 
 void destory_mm_struct(struct mm_struct *mm)
@@ -126,6 +196,17 @@ static int traversal_by_phys(struct list_node *node, void *phys)
     return page_struct->pfn == pfn;
 }
 
+static struct page_struct *get_page_by_phys(struct pg_struct *pg, void *phys)
+{
+    struct list_node *node;
+    node = list_traversal(&pg->list, traversal_by_phys, phys);
+    if (node == NULL)
+    {
+        return NULL;
+    }
+    return CONTAINER_OF(struct page_struct, node, node);
+}
+
 static int traversal_by_virt(struct list_node *node, void *virt)
 {
     struct page_struct *page_struct = NULL;
@@ -136,7 +217,7 @@ static int traversal_by_virt(struct list_node *node, void *virt)
 static struct page_struct *get_page_by_virt(struct pg_struct *pg, void *virt)
 {
     struct list_node *node;
-    node = list_traversal_remove(&pg->list, traversal_by_virt, virt);
+    node = list_traversal(&pg->list, traversal_by_virt, virt);
     if (node == NULL)
     {
         return NULL;
@@ -163,6 +244,30 @@ void mm_map(struct task *task, void *phys, void *virt)
     page_struct->virt = virt;
 
     arch_mm_map(task, phys, virt);
+    return;
+}
+
+// 将页设为cow,fork时使用
+void mm_map_copy_on_write(struct task *task, void *phys, void *virt)
+{
+    ASSERT(task->mm != NULL && phys != NULL && virt != NULL);
+
+    struct vm_struct *vm = &task->mm->vm_map;
+
+    // 移除旧表中的页(如果有)
+    if (free_table_find(&vm->mapped, (uintptr_t)virt))
+    {
+        free_table_remove(&vm->mapped, (uintptr_t)virt, PG_SIZE);
+    }
+    if (free_table_find(&vm->unmapped, (uintptr_t)virt))
+    {
+        free_table_remove(&vm->unmapped, (uintptr_t)virt, PG_SIZE);
+    }
+    // 加入写时复制表
+    free_table_add(&vm->copy_on_write, (uintptr_t)virt, PG_SIZE);
+
+    // 设置页表中的标志
+    arch_mm_copy_on_write(task, phys, virt);
     return;
 }
 
@@ -210,13 +315,13 @@ void mm_free_address(void *addr, size_t pages)
     while (mapped_pages > 0)
     {
         struct page_struct *page_struct = get_page_by_virt(pg, (void *)start);
-
-        // 未分配
         if (page_struct == NULL)
         {
             start += PG_SIZE;
             continue;
         }
+        list_remove(&page_struct->node);
+
         start += PG_SIZE;
         mapped_pages--;
         uintptr_t page_address = page_struct->pfn << PAGE_SIZE_SHIFT;
@@ -249,4 +354,24 @@ void *mm_allocate_a_page(void)
     page_struct->virt = NULL;
     list_append(&pg->list, &page_struct->node);
     return VIRT_TO_PHYS(addr);
+}
+
+size_t mm_free_a_page(void *addr)
+{
+    struct task *task = get_current_task();
+    ASSERT(task->mm != NULL);
+
+    struct pg_struct *pg = &task->mm->pg_map;
+
+    struct page_struct *page_struct = get_page_by_phys(pg, addr);
+    if (page_struct == NULL)
+    {
+        return 0;
+    }
+
+    list_remove(&page_struct->node);
+
+    int ret = free_a_page(PHYS_TO_VIRT(addr));
+    kfree(page_struct);
+    return ret;
 }

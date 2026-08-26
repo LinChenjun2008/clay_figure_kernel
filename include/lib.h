@@ -19,6 +19,7 @@ uint64_t syscall_4(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 uint64_t syscall_5(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
 void  exit(int status);
+pid_t fork(void);
 pid_t waitpid(pid_t pid, int *status, int options);
 pid_t wait(pid_t pid, int *status);
 
