@@ -5,3 +5,4 @@
 build/*
 tools/*
 !tools/*.c
+!tools/Makefile
