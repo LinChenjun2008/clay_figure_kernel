@@ -24,6 +24,7 @@
 #define PID_CHILD -2
 #define PID_EVENT -3
 #define PID_NULL  -4
+#define PID_ERROR -5
 
 #define MAX_NICE 20
 #define MIN_NICE -19

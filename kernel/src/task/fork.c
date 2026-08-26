@@ -5,6 +5,7 @@
 
 #include <base.h>
 
+#include <asm/interrupt.h>
 #include <asm/task/fork.h>
 #include <asm/task/process.h>
 
@@ -18,6 +19,8 @@
 
 pid_t sys_fork(void)
 {
+    ASSERT(intr_get_status() == INTR_OFF);
+
     struct task *curr = get_current_task();
     struct task *fork = allocate_task_struct();
 

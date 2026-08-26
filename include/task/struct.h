@@ -61,7 +61,7 @@ enum task_status
 
 struct message
 {
-    int32_t  source;
+    pid_t    source;
     uint32_t type;
     union
     {
@@ -76,6 +76,7 @@ struct mailbox
     uint8_t          evt_msg[EVT_NR];
     pid_t            send_to;
     pid_t            recv_from;
+    uint8_t          closed;
     struct list      send_list;
     struct list_node send_node;
     struct spinlock  send_lock;

@@ -7,6 +7,7 @@
 
 #include <mem/page.h>
 #include <print.h>
+#include <syscall/ipc.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/schedule.h>
@@ -63,6 +64,8 @@ void task_exit(int return_value)
     task->return_status = return_value;
 
     main_adopt_childs(task);
+
+    mailbox_cleanup(task);
 
     task_block(TASK_DIED);
     return;

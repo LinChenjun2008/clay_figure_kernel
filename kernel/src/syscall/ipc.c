@@ -5,10 +5,30 @@
 
 #include <base.h>
 
+#include <asm/page.h>
+
 #include <std/string.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
+
+static void *copy_from_user(void *dst, const void *src, size_t size)
+{
+    if ((uintptr_t)src >= KERNEL_VMA_BASE)
+    {
+        return NULL;
+    }
+    return memcpy(dst, src, size);
+}
+
+static void *copy_to_user(void *dst, const void *src, size_t size)
+{
+    if ((uintptr_t)dst >= KERNEL_VMA_BASE)
+    {
+        return NULL;
+    }
+    return memcpy(dst, src, size);
+}
 
 void init_mailbox(struct mailbox *mailbox)
 {
@@ -16,8 +36,50 @@ void init_mailbox(struct mailbox *mailbox)
     memset(&mailbox->evt_msg, 0, sizeof(mailbox->evt_msg));
     mailbox->send_to   = PID_NULL;
     mailbox->recv_from = PID_NULL;
+    mailbox->closed    = 0;
     init_list(&mailbox->send_list);
     init_spinlock(&mailbox->send_lock);
+    return;
+}
+
+static struct mailbox *send_node_to_mailbox(struct list_node *node)
+{
+    if (node == NULL)
+    {
+        return NULL;
+    }
+    return CONTAINER_OF(struct mailbox, send_node, node);
+}
+
+static struct task *mailbox_to_task(struct mailbox *mailbox)
+{
+    return CONTAINER_OF(struct task, mailbox, mailbox);
+}
+
+void mailbox_cleanup(struct task *task)
+{
+    struct mailbox *dst = &task->mailbox;
+    struct list     wake_list;
+    init_list(&wake_list);
+
+    spin_lock(&dst->send_lock);
+    dst->closed = 1;
+
+    while (!list_empty(&dst->send_list))
+    {
+        struct list_node *node    = list_pop(&dst->send_list);
+        struct task *src_task     = mailbox_to_task(send_node_to_mailbox(node));
+        src_task->mailbox.send_to = PID_ERROR;
+        list_append(&wake_list, node);
+    }
+    spin_unlock(&dst->send_lock);
+
+    while (!list_empty(&wake_list))
+    {
+        struct list_node *node = list_pop(&wake_list);
+        struct task *src_task  = mailbox_to_task(send_node_to_mailbox(node));
+        task_unblock(src_task->pid);
+    }
     return;
 }
 
@@ -44,6 +106,10 @@ static int msg_match(pid_t from, pid_t dst_pid, pid_t src_pid)
 
 static int inform_event_lock(struct mailbox *dst, uint32_t evt_type)
 {
+    if (dst->closed)
+    {
+        return 0;
+    }
     if (dst->evt_msg[evt_type] != 0xff)
     {
         dst->evt_msg[evt_type]++;
@@ -76,25 +142,16 @@ void inform_event(pid_t dst_pid, uint32_t evt_type)
     return;
 }
 
-static struct mailbox *send_node_to_mailbox(struct list_node *node)
-{
-    if (node == NULL)
-    {
-        return NULL;
-    }
-    return CONTAINER_OF(struct mailbox, send_node, node);
-}
-
-static struct task *mailbox_to_task(struct mailbox *mailbox)
-{
-    return CONTAINER_OF(struct task, mailbox, mailbox);
-}
-
 static int msg_send_lock(struct mailbox *dst, struct mailbox *src)
 {
     struct task *dest_task = mailbox_to_task(dst);
     struct task *src_task  = mailbox_to_task(src);
     int          need_wake = 1;
+
+    if (dst->closed)
+    {
+        return -1;
+    }
 
     src->send_to = dest_task->pid;
     list_append(&dst->send_list, &src->send_node);
@@ -129,19 +186,27 @@ int msg_send(pid_t dst_pid, struct message *msg)
     struct mailbox *src = &src_task->mailbox;
     struct mailbox *dst = &dest_task->mailbox;
 
-    memcpy(&src->msg, msg, sizeof(*msg));
+    copy_from_user(&src->msg, msg, sizeof(*msg));
     src->msg.source = src_task->pid;
 
     spin_lock(&dst->send_lock);
     need_wake = msg_send_lock(dst, src);
     spin_unlock(&dst->send_lock);
 
+    if (need_wake < 0)
+    {
+        return -1;
+    }
     if (need_wake)
     {
         task_unblock(dest_task->pid);
     }
 
     task_block(TASK_SEND);
+    if (src->send_to != PID_NULL)
+    {
+        return -1;
+    }
     return 0;
 }
 
@@ -242,12 +307,12 @@ int msg_recv(pid_t from, struct message *msg)
 
         if (has_event_msg)
         {
-            memcpy(msg, &dst->msg, sizeof(*msg));
+            copy_to_user(msg, &dst->msg, sizeof(*msg));
             return 0;
         }
         if (src_task != NULL)
         {
-            memcpy(msg, &dst->msg, sizeof(*msg));
+            copy_to_user(msg, &dst->msg, sizeof(*msg));
             task_unblock(src_task->pid);
             return 0;
         }
