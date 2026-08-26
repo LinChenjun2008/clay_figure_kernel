@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2026 Lin Chenjun
+ */
+
+#include <base.h>
+
+#include <asm/desc.h>
+#include <asm/page.h> // PG_SIZE
+#include <asm/utils/desc_load.h>
+
+#include <std/string.h> // memset,memcpy
+#include <sysinfo.h>
+
+extern struct segmdesc gdt_table[8192];
+static struct tss64    tss_table[256];
+
+static void init_tss(uint8_t cpu_id)
+{
+    uint32_t tss_size = sizeof(tss_table[0]);
+    memset(&tss_table[cpu_id], 0, tss_size);
+    tss_table[cpu_id].io_map = tss_size << 16;
+    uint64_t tss_base_lo     = ((uint64_t)&tss_table[cpu_id]) & 0xffffffff;
+    uint64_t tss_base_hi = (((uint64_t)&tss_table[cpu_id]) >> 32) & 0xffffffff;
+
+    struct segmdesc *gdt_entry = &gdt_table[5 + cpu_id * 2];
+
+    *gdt_entry = make_segmdesc(tss_base_lo, tss_size - 1, AR_TSS64);
+    memcpy(gdt_entry + 1, &tss_base_hi, 8);
+
+    return;
+}
+
+static void load_tss(uint8_t cpu_id)
+{
+    arch_ltr(SELECTOR_TSS(cpu_id));
+    return;
+}
+
+void update_tss_rsp0(struct task *task)
+{
+    uint64_t kstack_base = task->kstack_base + task->kstack_pages * PG_SIZE;
+    tss_table[task->cpu_id].rsp0 = kstack_base;
+    return;
+}
+
+void tss_init(void)
+{
+    init_tss(get_current_cpu_id());
+    load_tss(get_current_cpu_id());
+    return;
+}

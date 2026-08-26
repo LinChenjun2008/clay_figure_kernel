@@ -1,60 +1,50 @@
-PROJECT_DIR = .
-SCRIPTS_DIR = $(PROJECT_DIR)/scripts
-SRC_DIR = $(PROJECT_DIR)/src
+PROJECT_ROOT = .
+SCRIPTS_DIR  = $(PROJECT_ROOT)/scripts
+BUILD_DIR    = $(PROJECT_ROOT)/build
+TOOLS_DIR    = $(PROJECT_ROOT)/tools
+ESP_DIR      = $(BUILD_DIR)/esp
+RAMFS_DIR    = $(BUILD_DIR)/ramfs
 
-include $(SCRIPTS_DIR)/tools_def.mk
-include $(SCRIPTS_DIR)/target.mk
-
-include $(SRC_DIR)/arch/src_list.mk
-include $(SRC_DIR)/src_list.mk
-
-ASM_SRC = $(filter %.S,$(SRC))
-C_SRC   = $(filter %.c,$(SRC))
+include $(PROJECT_ROOT)/tools_def.mk
 
 .PHONY: all
 all:
-	@$(ECHO) compiling...
-	@$(MAKE) -C $(SRC_DIR)/arch/ bootloader
-	@$(MAKE) -C $(SRC_DIR)/arch/ kernel
-	@$(MAKE) -C $(SRC_DIR) kernel
-	@$(MAKE) $(TARGET_KERNEL) update-initramfs
-	@$(ECHO) done.
-
-.PHONY: update-initramfs
-update-initramfs:
-	@$(MAKE) $(TARGET_INITRAMFS)
-
-.PHONY: run
-run: all
-	-@"$(QEMU)" $(QEMU_FLAGS)
-
-.PHONY: debug
-debug: all
-	-@"$(QEMU)" -S -s $(QEMU_FLAGS)
+	@$(ECHO) ---[ Build ]---
+	@$(MAKE) -C bootloader/$(TARGET_ARCH) TARGET_ARCH=$(TARGET_ARCH) all
+	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) all
+	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) all
+	@$(MAKE) -C test TARGET_ARCH=$(TARGET_ARCH) all
+	@$(MAKE) -r initramfs
+	@$(ECHO) ---[ Done  ]---
 
 .PHONY: clean
 clean:
-	@$(MAKE) -C $(SRC_DIR)/arch clean
-	@$(MAKE) -C $(SRC_DIR) clean
-	-@$(RM) $(TARGET_KERNEL)
+	@$(ECHO) ---[ Clean ]---
+	@$(MAKE) -C bootloader/$(TARGET_ARCH) TARGET_ARCH=$(TARGET_ARCH) clean
+	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) clean
+	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) clean
+	@$(MAKE) -C test TARGET_ARCH=$(TARGET_ARCH) clean
+	@$(RM) $(INTIRAMFS)
+	@$(ECHO) ---[ Done  ]---
 
 .PHONY: init
 init:
-	-$(MKDIR) "$(RUNNING_DIR)"
-	-$(MKDIR) "$(ESP_DIR)"
-	-$(MKDIR) "$(ESP_DIR)/EFI"
-	-$(MKDIR) "$(ESP_DIR)/EFI/Boot"
-	-$(MKDIR) "$(ESP_DIR)/Kernel"
+	@$(ECHO) ---[ Init  ]---
+	-@$(MKDIR) "$(BUILD_DIR)"
+	-@$(MKDIR) "$(BUILD_DIR)/lib"
+	-@$(MKDIR) "$(ESP_DIR)"
+	-@$(MKDIR) "$(RAMFS_DIR)"
+	-@$(MKDIR) "$(RAMFS_DIR)/kernel"
+	-@$(MKDIR) "$(ESP_DIR)/efi"
+	-@$(MKDIR) "$(ESP_DIR)/efi/boot"
+	@$(MAKE) -C "$(TOOLS_DIR)" all
+	@$(ECHO) ---[ Done  ]---
 
-$(TARGET_INITRAMFS): $(SRC_DIR)/config.txt
-	@$(ECHO) make initramfs
-	@"$(IMGCOPY)" $(IMGCOPY_FLAGS) > $(ESP_DIR)/Kernel/initramfs.img
+.PHONY: initramfs
+initramfs:
+	@$(ECHO) update initramfs
+	@$(FIND) $(RAMFS_DIR) -type f | $(IMGCOPY) $(RAMFS_DIR)/ > $(INTIRAMFS)
 
-$(TARGET_KERNEL): $(ASM_SRC:S=o) $(C_SRC:c=o) $(KERNEL_LINKER_SCRIPT)
-	@$(ECHO) linking [1/2]
-	@"$(LD)" $(LDFLAGS) -o $@ $(ASM_SRC:S=o) $(C_SRC:c=o)
-	@"$(NM)" -W -n $@ | "$(KALLSYMS)" > $@_sym.c
-	@"$(CC)" $(KERNEL_FLAGS) -c -o $@_sym.o $@_sym.c
-	@$(ECHO) linking [2/2]
-	@"$(LD)" $(LDFLAGS) -o $@ $(ASM_SRC:S=o) $(C_SRC:c=o) $@_sym.o
-	@"$(RM)" $@_sym.c $@_sym.o
+.PHONY: run
+run: all
+	-@$(QEMU) $(QEMU_FLAGS)

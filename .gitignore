@@ -1,4 +1,7 @@
 *.o
 *.dep
-build/
-.vscode
+*.json
+
+build/*
+tools/*
+!tools/*.c

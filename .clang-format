@@ -282,17 +282,17 @@ SortIncludes: true
 #   Regroup - 重新分组
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex:           'kernel/global.h'
+  - Regex:           'base.h'
+    Priority:        0
+    SortPriority:    0
+
+  - Regex:           'asm/*'
     Priority:        1
     SortPriority:    0
 
-  - Regex:           'log.h'
+  - Regex:           '*.h'
     Priority:        2
     SortPriority:    0
-
-  - Regex:           '*.h'
-    Priority:        3
-    SortPriority:    1
 
 # 控制是否排序 using 声明
 # 可选值: true - 排序, false - 不排序

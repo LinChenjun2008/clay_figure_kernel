@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * Copyright (C) 2026 Lin Chenjun
+ */
+
+#ifndef __ASM_DRIVERS_PIC_H__
+#define __ASM_DRIVERS_PIC_H__
+
+void pic_init(struct boot_info *boot_info);
+void send_eoi(void);
+
+#endif /* __ASM_DRIVERS_PIC_H__ */
