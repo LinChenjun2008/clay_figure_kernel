@@ -3,8 +3,6 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <base.h>
-
 #include <lib.h>
 #include <syscall.h>
 
@@ -30,4 +28,19 @@ pid_t wait(pid_t pid, int *status)
 {
     pid_t ret = waitpid(pid, status, 0);
     return ret;
+}
+
+pid_t send(pid_t dst, struct message *msg)
+{
+    return (pid_t)syscall_2(NR_SEND, dst, (uint64_t)msg);
+}
+
+pid_t recv(pid_t src, struct message *msg)
+{
+    return (pid_t)syscall_2(NR_RECV, src, (uint64_t)msg);
+}
+
+pid_t both(pid_t src_dst, struct message *msg)
+{
+    return (pid_t)syscall_2(NR_BOTH, src_dst, (uint64_t)msg);
 }

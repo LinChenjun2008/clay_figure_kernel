@@ -15,7 +15,6 @@ void     task_pg_active(struct task *task);
 void     schedule(void);
 
 void task_block(enum task_status status);
-void task_block_wait(enum task_status status, pid_t wait_for);
 void task_unblock(pid_t pid);
 void task_yield(void);
 

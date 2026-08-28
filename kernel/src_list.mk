@@ -16,6 +16,7 @@ SUB_DIR += print
 SUB_DIR += std
 SUB_DIR += sync
 SUB_DIR += syscall
+SUB_DIR += syscall/ipc
 SUB_DIR += task
 
 C_SRC = $(foreach DIR,$(SUB_DIR),$(wildcard $(SRC_DIR)/$(DIR)/*.c))

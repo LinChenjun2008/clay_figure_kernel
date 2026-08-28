@@ -61,7 +61,7 @@ enum task_status
 
 struct message
 {
-    int32_t  source;
+    pid_t    source;
     uint32_t type;
     union
     {
@@ -72,21 +72,28 @@ struct message
 
 struct mailbox
 {
-    struct message   msg;
-    uint8_t          evt_msg[EVT_NR];
-    pid_t            send_to;
-    pid_t            recv_from;
-    struct list      send_list;
-    struct list_node send_node;
-    struct spinlock  send_lock;
+    struct message msg;             // 临时存储发送/接收的消息
+    uint8_t        evt_msg[EVT_NR]; // evt_msg[i]表示时间i发生的次数
+    pid_t          send_to;         // 向send_to对应的任务发送消息
+    pid_t          recv_from;       // 从recv_from匹配的消息源接收消息
+    uint8_t        closed;          // 邮箱关闭标记,置位后拒绝发送/接收消息
+    uint8_t        recv_err;        // 接收消息出现错误的标记
+
+    struct list      send_list; // 向当前邮箱发送消息的队列
+    struct list_node send_node; // 发送消息时加入目标邮箱的send_list
+    struct spinlock  send_lock; // 操作邮箱时获取的锁
+
+    struct list      recv_list; // 从当前邮箱接收消息的队列
+    struct list_node recv_node; // 接收消息时加入来源邮箱的send_list
+    struct spinlock  recv_lock; // 操作邮箱时获取的锁
 };
 
 struct task
 {
-    struct task_context *context;
+    struct task_context *context; // task + 0 上下文
 
-    uintptr_t kstack_base;
-    size_t    kstack_pages;
+    uintptr_t kstack_base;  // task + 8 内核栈基地址
+    size_t    kstack_pages; // task + 16 内核栈页数
 
     size_t ustack_pages;
     void  *ustack_sp;
