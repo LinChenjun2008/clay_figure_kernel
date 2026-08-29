@@ -6,12 +6,11 @@
 #ifndef __MEM_STRUCT_H__
 #define __MEM_STRUCT_H__
 
-#include <asm/sync/spinlock.h>
-
 #include <lib/bitmap.h>
 #include <lib/free_table.h>
 #include <lib/linked_list.h>
 #include <sync/atomic.h>
+#include <sync/spinlock.h>
 
 #define MIN_BLOCK_SIZE  64   //  64 Byte
 #define MAX_BLOCK_SIZE  2048 //   2 KiB

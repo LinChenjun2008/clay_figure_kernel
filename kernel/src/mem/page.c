@@ -5,13 +5,12 @@
 
 #include <base.h>
 
-#include <asm/sync/spinlock.h>
-
 #include <efi.h>
 #include <mem/page.h>
 #include <mem/struct.h>
 #include <print.h>
 #include <sync/atomic.h>
+#include <sync/spinlock.h>
 #include <sysinfo.h>
 
 static enum mm_type get_page_type(enum efi_memory_type efi_type)

@@ -9,10 +9,10 @@
 #ifndef __ASSEMBLER__
 
 #    include <asm/ptrace.h>
-#    include <asm/sync/spinlock.h>
 
 #    include <lib/linked_list.h>
 #    include <sync/atomic.h>
+#    include <sync/spinlock.h>
 
 typedef int32_t pid_t;
 

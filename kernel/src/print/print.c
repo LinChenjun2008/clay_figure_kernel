@@ -7,13 +7,13 @@
 
 #include <asm/interrupt.h>
 #include <asm/page.h>
-#include <asm/sync/spinlock.h>
 #include <asm/utils/io.h>
 #include <asm/utils/panic.h>
 
 #include <print.h>
 #include <std/stdarg.h>
 #include <std/stdio.h>
+#include <sync/spinlock.h>
 
 #define IS_TRANSMIT_EMPTY(port) (io_in8(port + 5) & 0x20)
 #define SERIAL_PORT             0x3f8
