@@ -22,6 +22,8 @@ void              mm_free_address(void *addr, size_t pages);
 void              mm_map(struct task *task, void *phys, void *virt);
 void   mm_map_copy_on_write(struct task *task, void *phys, void *virt);
 void  *mm_allocate_a_page(void);
+void  *mm_allocate_a_page_lock(void);
 size_t mm_free_a_page(void *addr);
+size_t mm_free_a_page_lock(void *addr, size_t pfn);
 
 #endif

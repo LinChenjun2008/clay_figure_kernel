@@ -33,7 +33,7 @@ static void kernel_process(void *file, void *arg)
 
     ASSERT(task->pg_dir != NULL);
 
-    size_t ustack_size  = task->ustack_pages << PAGE_SIZE_SHIFT;
+    size_t ustack_size  = task->ustack_pages << PG_SIZE_SHIFT;
     void  *ustack_vaddr = (void *)(USER_STACK_VADDR_TOP - ustack_size);
     if (mm_allocate_address(ustack_vaddr, task->ustack_pages) == NULL)
     {

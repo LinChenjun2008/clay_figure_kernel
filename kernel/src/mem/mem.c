@@ -12,6 +12,7 @@
 #include <mem/allocator.h>
 #include <mem/page.h>
 #include <print.h>
+#include <sysinfo.h>
 #include <task.h>
 
 void mem_init(struct system_info *system_info)
@@ -86,8 +87,8 @@ static int traversal_copy_pg(struct list_node *node, void *arg)
     list_append(list, &new_pg->node);
     page_reference_inc(new_pg->pfn);
 
-    void *new_page = (void *)(new_pg->pfn << PAGE_SIZE_SHIFT);
-    void *src_page = (void *)(src_pg->pfn << PAGE_SIZE_SHIFT);
+    void *new_page = (void *)PFN_TO_ADDR(new_pg->pfn);
+    void *src_page = (void *)PFN_TO_ADDR(src_pg->pfn);
     // 加入cow表
     mm_map_copy_on_write(dst, new_page, new_pg->virt);
     mm_map_copy_on_write(src, src_page, src_pg->virt);
@@ -116,7 +117,7 @@ static void destory_pg_struct(struct pg_struct *pg)
         ASSERT(node != NULL);
 
         struct page_struct *page = CONTAINER_OF(struct page_struct, node, node);
-        void               *addr = PHYS_TO_VIRT(page->pfn << PAGE_SIZE_SHIFT);
+        void               *addr = PHYS_TO_VIRT(PFN_TO_ADDR(page->pfn));
         free_a_page(addr);
         kfree(page);
     }
@@ -167,7 +168,7 @@ void *mm_allocate_address(void *addr, size_t pages)
     struct vm_struct *vm   = &task->mm->vm_map;
 
     uintptr_t start = (uintptr_t)addr;
-    size_t    size  = pages << PAGE_SIZE_SHIFT;
+    size_t    size  = pages << PG_SIZE_SHIFT;
     if (addr != NULL)
     {
         if (free_table_remove(&vm->vm_table, start, size) < 0)
@@ -189,7 +190,7 @@ void *mm_allocate_address(void *addr, size_t pages)
 
 static int traversal_by_phys(struct list_node *node, void *phys)
 {
-    size_t pfn = (uintptr_t)phys >> PAGE_SIZE_SHIFT;
+    size_t pfn = ADDR_TO_PFN((uintptr_t)phys);
 
     struct page_struct *page_struct = NULL;
     page_struct = CONTAINER_OF(struct page_struct, node, node);
@@ -324,39 +325,47 @@ void mm_free_address(void *addr, size_t pages)
 
         start += PG_SIZE;
         mapped_pages--;
-        uintptr_t page_address = page_struct->pfn << PAGE_SIZE_SHIFT;
+        uintptr_t page_address = PFN_TO_ADDR(page_struct->pfn);
         free_a_page(PHYS_TO_VIRT(page_address));
         kfree(page_struct);
     }
     return;
 }
 
-void *mm_allocate_a_page(void)
+void *mm_allocate_a_page_lock(void)
 {
     struct task *task = get_current_task();
     ASSERT(task->mm != NULL);
 
     struct pg_struct *pg = &task->mm->pg_map;
 
-    void *addr = allocate_a_page();
-    if (addr == NULL)
+    struct page_struct *page_struct = kmalloc(sizeof(*page_struct), 0, 0);
+    if (page_struct == NULL)
     {
         return NULL;
     }
 
-    struct page_struct *page_struct = kmalloc(sizeof(*page_struct), 0, 0);
-    if (page_struct == NULL)
+    void *addr = allocate_a_page_lock();
+    if (addr == NULL)
     {
-        free_a_page(addr);
+        kfree(page_struct);
         return NULL;
     }
-    page_struct->pfn  = (uintptr_t)VIRT_TO_PHYS(addr) >> PAGE_SIZE_SHIFT;
+    page_struct->pfn  = ADDR_TO_PFN((uintptr_t)VIRT_TO_PHYS(addr));
     page_struct->virt = NULL;
     list_append(&pg->list, &page_struct->node);
     return VIRT_TO_PHYS(addr);
 }
 
-size_t mm_free_a_page(void *addr)
+void *mm_allocate_a_page(void)
+{
+    page_mgr_lock();
+    void *ret = mm_allocate_a_page_lock();
+    page_mgr_unlock();
+    return ret;
+}
+
+size_t mm_free_a_page_lock(void *addr, size_t pfn)
 {
     struct task *task = get_current_task();
     ASSERT(task->mm != NULL);
@@ -370,8 +379,19 @@ size_t mm_free_a_page(void *addr)
     }
 
     list_remove(&page_struct->node);
-
-    int ret = free_a_page(PHYS_TO_VIRT(addr));
     kfree(page_struct);
+
+    return free_a_page_lock(pfn);
+}
+
+size_t mm_free_a_page(void *addr)
+{
+    size_t pfn = ADDR_TO_PFN((uintptr_t)VIRT_TO_PHYS(addr));
+
+    page_mgr_lock();
+    page_struct_lock(pfn);
+    size_t ret = mm_free_a_page_lock(addr, pfn);
+    page_struct_unlock(pfn);
+    page_mgr_unlock();
     return ret;
 }
