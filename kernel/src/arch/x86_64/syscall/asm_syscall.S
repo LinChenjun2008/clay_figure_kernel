@@ -33,7 +33,7 @@ arch_syscall_entry:
 
     // switch to kernel stack
     movq TASK_STRUCT_KSTACK_PAGES(%rax), %rsp
-    shlq               $PAGE_SIZE_SHIFT, %rsp
+    shlq                 $PG_SIZE_SHIFT, %rsp
     addq  TASK_STRUCT_KSTACK_BASE(%rax), %rsp
 
     movq TASK_STRUCT_USTACK_SP(%rax), %rax

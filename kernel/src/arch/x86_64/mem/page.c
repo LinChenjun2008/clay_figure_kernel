@@ -12,6 +12,7 @@
 #include <mem.h>
 #include <mem/page.h>
 #include <std/string.h>
+#include <sysinfo.h>
 #include <task.h>
 #include <task/schedule.h>
 
@@ -228,6 +229,41 @@ void free_pg_table(uint64_t *pg_dir)
 
 void ASMLINKAGE arch_flush_tlb(void *addr);
 
+static int page_cow_lock(struct task *task, void *addr, size_t cow_pfn)
+{
+    struct mm_struct *mm = task->mm;
+
+    void *cow_page = (void *)PFN_TO_ADDR(cow_pfn);
+
+    // 只有一个进程引用: 不复制
+    if (page_reference_read_lock(cow_pfn) == 1)
+    {
+        free_table_remove(&mm->vm_map.copy_on_write, (uintptr_t)addr, PG_SIZE);
+        free_table_add(&mm->vm_map.mapped, (uintptr_t)addr, PG_SIZE);
+        set_page_flags(task->pg_dir, addr, PG_USER_FLAGS);
+        arch_flush_tlb(addr);
+        return 0;
+    }
+
+    // 多个进程引用: 复制新页
+    void *new_page = mm_allocate_a_page_lock();
+    if (new_page == NULL)
+    {
+        return -1;
+    }
+    memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);
+    free_table_remove(&mm->vm_map.copy_on_write, (uintptr_t)addr, PG_SIZE);
+    mm_map(task, new_page, addr);
+
+    // 通过free解除对旧页的引用
+    if (mm_free_a_page_lock(cow_page, cow_pfn) == 0)
+    {
+        return -1;
+    }
+    arch_flush_tlb(addr);
+    return 0;
+}
+
 void page_faule(struct pt_regs *regs)
 {
     struct task      *task = get_current_task();
@@ -273,33 +309,16 @@ void page_faule(struct pt_regs *regs)
     {
         general_handler(regs);
     }
-    size_t cow_pfn = (uintptr_t)cow_page >> PAGE_SIZE_SHIFT;
+    size_t cow_pfn = ADDR_TO_PFN((uintptr_t)cow_page);
 
-    // 只有一个进程引用: 不复制
-    if (page_reference_read(cow_pfn) == 1)
-    {
-        free_table_remove(&mm->vm_map.copy_on_write, fault_address, PG_SIZE);
-        free_table_add(&mm->vm_map.mapped, fault_address, PG_SIZE);
-        set_page_flags(task->pg_dir, (void *)fault_address, PG_USER_FLAGS);
-        arch_flush_tlb((void *)fault_address);
-        return;
-    }
-
-    // 多个进程引用: 复制新页
-    void *new_page = mm_allocate_a_page();
-    if (new_page == NULL)
+    page_mgr_lock();
+    page_struct_lock(cow_pfn);
+    int ret = page_cow_lock(task, (void *)fault_address, cow_pfn);
+    page_struct_unlock(cow_pfn);
+    page_mgr_unlock();
+    if (ret < 0)
     {
         general_handler(regs);
     }
-    memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);
-    free_table_remove(&mm->vm_map.copy_on_write, fault_address, PG_SIZE);
-    mm_map(task, new_page, (void *)fault_address);
-
-    // 直接free,会自动减少引用计数
-    if (mm_free_a_page(cow_page) == 0)
-    {
-        general_handler(regs);
-    }
-    arch_flush_tlb((void *)fault_address);
     return;
 }

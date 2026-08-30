@@ -266,7 +266,7 @@ static size_t calculate_max_pfn(struct memory_map *memmap)
         {
             continue;
         }
-        size_t end_pfn = (curr_end) >> PAGE_SIZE_SHIFT;
+        size_t end_pfn = ADDR_TO_PFN(curr_end);
         if (end_pfn > max_pfn) max_pfn = end_pfn;
     }
     return max_pfn;

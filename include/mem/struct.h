@@ -6,12 +6,10 @@
 #ifndef __MEM_STRUCT_H__
 #define __MEM_STRUCT_H__
 
-#include <asm/sync/spinlock.h>
-
 #include <lib/bitmap.h>
 #include <lib/free_table.h>
 #include <lib/linked_list.h>
-#include <sync/atomic.h>
+#include <sync/spinlock.h>
 
 #define MIN_BLOCK_SIZE  64   //  64 Byte
 #define MAX_BLOCK_SIZE  2048 //   2 KiB
@@ -53,9 +51,10 @@ struct mem_block
 
 struct page
 {
-    struct atomic reference_count;
-    uint32_t      flags;
-    uint32_t      count;
+    uint32_t        reference_count;
+    uint16_t        flags;
+    uint16_t        count;
+    struct spinlock lock;
 };
 
 struct vm_struct

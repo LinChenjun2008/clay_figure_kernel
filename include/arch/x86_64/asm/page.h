@@ -43,7 +43,13 @@
 #define ADDR_OFFSET_SHIFT      0
 #define ADDR_OFFSET_MASK       0x0fff
 
-#define PAGE_SIZE_SHIFT 12
+#define PG_SIZE_SHIFT 12
+
+#define PAGE_PFN_SHIFT 12
+#define PAGE_PFN_MASK  0x000fffffffffffff
+
+#define PFN_TO_ADDR(PFN)  SET_FIELD(0, PAGE_PFN, PFN)
+#define ADDR_TO_PFN(ADDR) GET_FIELD(ADDR, PAGE_PFN)
 
 #define KERNEL_VMA_BASE  0xffff800000000000
 #define KERNEL_TEXT_BASE 0xffffffff80000000

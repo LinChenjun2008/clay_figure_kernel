@@ -27,8 +27,8 @@ int copy_process(struct task *dst, struct task *src)
 
     uintptr_t src_kstack, dst_kstack;
 
-    src_kstack = src->kstack_base + (src->kstack_pages << PAGE_SIZE_SHIFT);
-    dst_kstack = dst->kstack_base + (dst->kstack_pages << PAGE_SIZE_SHIFT);
+    src_kstack = src->kstack_base + (src->kstack_pages << PG_SIZE_SHIFT);
+    dst_kstack = dst->kstack_base + (dst->kstack_pages << PG_SIZE_SHIFT);
 
     dst_kstack -= sizeof(struct pt_regs);
     src_kstack -= sizeof(struct pt_regs);

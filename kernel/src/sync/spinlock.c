@@ -6,10 +6,10 @@
 #include <base.h>
 
 #include <asm/interrupt.h>
-#include <asm/sync/spinlock.h>
 #include <asm/utils/atomic_ops.h>
 
 #include <print.h>
+#include <sync/spinlock.h>
 
 void init_spinlock(struct spinlock *lk)
 {
