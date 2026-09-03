@@ -30,4 +30,22 @@ cap_lookup(struct cap_node *cnode, cap_handle_t handle, uint32_t rights);
 int cap_revoke(struct cap_node *cnode, cap_handle_t handle);
 int cap_delete(struct cap_node *cnode, cap_handle_t handle);
 
+cap_handle_t cap_derive(
+    struct cap_node *src_cnode,
+    cap_handle_t     parent_handle,
+    struct cap_node *dst_cnode,
+    uint32_t         rights
+);
+cap_handle_t cap_copy(
+    struct cap_node *src_cnode,
+    cap_handle_t     src_handle,
+    struct cap_node *dst_cnode,
+    uint32_t         rights
+);
+cap_handle_t cap_move(
+    struct cap_node *src_cnode,
+    cap_handle_t     src_handle,
+    struct cap_node *dst_cnode
+);
+
 #endif /* __SYSCALL_CAP_H__ */
