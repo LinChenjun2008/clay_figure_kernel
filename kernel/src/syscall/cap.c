@@ -96,8 +96,8 @@ cap_insert(struct cap_node *cnode, struct cap_head *head, uint32_t rights)
     return handle;
 }
 
-// 解析 handle: 校验 slot 存在 + key 匹配 + 权限满足, 返回 entry(或 NULL)
-struct cap_slot_entry *
+// 解析 handle: 校验 slot 存在 + key 匹配 + 权限满足, 返回对象 head(或 NULL)
+struct cap_head *
 cap_lookup(struct cap_node *cnode, cap_handle_t handle, uint32_t rights)
 {
     if (cnode->head.type != CAP_NODE)
@@ -111,7 +111,7 @@ cap_lookup(struct cap_node *cnode, cap_handle_t handle, uint32_t rights)
     {
         return NULL;
     }
-    struct cap_slot_entry *ret = NULL;
+    struct cap_head *ret = NULL;
     spin_lock(&cnode->head.lock);
     struct cap_slot       *slot       = &cnode->slots[slot_id - 1];
     struct cap_slot_entry *slot_entry = slot->entry;
@@ -127,7 +127,11 @@ cap_lookup(struct cap_node *cnode, cap_handle_t handle, uint32_t rights)
     {
         goto fail;
     }
-    ret = slot_entry;
+    if (slot_entry->head == NULL)
+    {
+        goto fail;
+    }
+    ret = slot_entry->head;
 fail:
     spin_unlock(&cnode->head.lock);
     return ret;
@@ -330,47 +334,6 @@ fail:
 
 // ============ 派生 / 复制 / 移动 ============
 
-// 按地址升序获取两个 cnode 的锁(统一锁序, 避免 AB-BA 死锁)
-static void cap_lock_double(struct cap_node *a, struct cap_node *b)
-{
-    if (a == b)
-    {
-        spin_lock(&a->head.lock);
-        return;
-    }
-    if ((uintptr_t)a < (uintptr_t)b)
-    {
-        spin_lock(&a->head.lock);
-        spin_lock(&b->head.lock);
-    }
-    else
-    {
-        spin_lock(&b->head.lock);
-        spin_lock(&a->head.lock);
-    }
-    return;
-}
-
-static void cap_unlock_double(struct cap_node *a, struct cap_node *b)
-{
-    if (a == b)
-    {
-        spin_unlock(&a->head.lock);
-        return;
-    }
-    if ((uintptr_t)a < (uintptr_t)b)
-    {
-        spin_unlock(&b->head.lock);
-        spin_unlock(&a->head.lock);
-    }
-    else
-    {
-        spin_unlock(&a->head.lock);
-        spin_unlock(&b->head.lock);
-    }
-    return;
-}
-
 // 假设已持 dst_cnode 锁(held_a/held_b 为已持锁的 cnode):
 // 在 dst_cnode 创建指向 parent 对象的 cap; derive=1 建派生树, derive=0 独立副本
 static cap_handle_t cap_derive_lock(
@@ -434,13 +397,18 @@ cap_handle_t cap_derive(
     {
         return 0;
     }
-    cap_lock_double(src_cnode, dst_cnode);
+    spin_lock_double(&src_cnode->head.lock, &dst_cnode->head.lock);
     struct cap_slot_entry *parent = src_cnode->slots[slot_id - 1].entry;
     if (parent == NULL || key != parent->key || parent->head == NULL)
     {
         goto fail;
     }
-    // 权限裁剪: 派生权限必须 ⊆ 父权限
+    // 需持有父的 CTRL(控制权)才能派生
+    if (!(parent->rights & CAP_CTRL))
+    {
+        goto fail;
+    }
+    // 权限裁剪: 派生权限必须小于父权限
     if (rights & ~parent->rights)
     {
         goto fail;
@@ -448,7 +416,7 @@ cap_handle_t cap_derive(
     handle =
         cap_derive_lock(dst_cnode, parent, rights, 1, src_cnode, dst_cnode);
 fail:
-    cap_unlock_double(src_cnode, dst_cnode);
+    spin_unlock_double(&src_cnode->head.lock, &dst_cnode->head.lock);
     return handle;
 }
 
@@ -471,20 +439,25 @@ cap_handle_t cap_copy(
     {
         return 0;
     }
-    cap_lock_double(src_cnode, dst_cnode);
+    spin_lock_double(&src_cnode->head.lock, &dst_cnode->head.lock);
     struct cap_slot_entry *src = src_cnode->slots[slot_id - 1].entry;
     if (src == NULL || key != src->key || src->head == NULL)
     {
         goto fail;
     }
-    // 复制权限必须 ⊆ 源权限
+    // 需持有源的 CTRL(控制权)才能复制
+    if (!(src->rights & CAP_CTRL))
+    {
+        goto fail;
+    }
+    // 复制权限必须小于源权限
     if (rights & ~src->rights)
     {
         goto fail;
     }
     handle = cap_derive_lock(dst_cnode, src, rights, 0, src_cnode, dst_cnode);
 fail:
-    cap_unlock_double(src_cnode, dst_cnode);
+    spin_unlock_double(&src_cnode->head.lock, &dst_cnode->head.lock);
     return handle;
 }
 
@@ -506,11 +479,16 @@ cap_handle_t cap_move(
     {
         return 0;
     }
-    cap_lock_double(src_cnode, dst_cnode);
+    spin_lock_double(&src_cnode->head.lock, &dst_cnode->head.lock);
 
     struct cap_slot       *src_slot = &src_cnode->slots[slot_id - 1];
     struct cap_slot_entry *src      = src_slot->entry;
     if (src == NULL || key != src->key)
+    {
+        goto fail;
+    }
+    // 需持有源的 CTRL(控制权)才能移动
+    if (!(src->rights & CAP_CTRL))
     {
         goto fail;
     }
@@ -532,23 +510,6 @@ cap_handle_t cap_move(
     src_slot->entry = NULL;
     src_slot->key_seed++;
 
-    // 从父链摘除(父 owner 须已持锁或为 NULL)
-    struct cap_slot_entry *parent = src->parent;
-    if (parent != NULL)
-    {
-        struct cap_node *powner = parent->owner;
-        if (powner == src_cnode || powner == dst_cnode)
-        {
-            cap_unlink_lock(src); // 已持该 cnode 锁
-        }
-        else
-        {
-            spin_lock(&powner->head.lock);
-            cap_unlink_lock(src);
-            spin_unlock(&powner->head.lock);
-        }
-    }
-
     // 挂到目标槽, 分配新 key
     uint32_t new_key          = dst_cnode->slots[j].key_seed++;
     src->owner                = dst_cnode;
@@ -557,6 +518,6 @@ cap_handle_t cap_move(
     dst_cnode->slots[j].entry = src;
     handle                    = CAP_HANDLE(j + 1, new_key);
 fail:
-    cap_unlock_double(src_cnode, dst_cnode);
+    spin_unlock_double(&src_cnode->head.lock, &dst_cnode->head.lock);
     return handle;
 }

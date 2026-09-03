@@ -25,7 +25,7 @@ typedef uint32_t cap_handle_t;
 struct cap_node *create_root_cap_node(void);
 cap_handle_t
 cap_insert(struct cap_node *cnode, struct cap_head *head, uint32_t rights);
-struct cap_slot_entry *
+struct cap_head *
 cap_lookup(struct cap_node *cnode, cap_handle_t handle, uint32_t rights);
 int cap_revoke(struct cap_node *cnode, cap_handle_t handle);
 int cap_delete(struct cap_node *cnode, cap_handle_t handle);
