@@ -23,6 +23,7 @@ typedef uint32_t cap_handle_t;
 #define CAP_HANDLE_GET_KEY(HANDLE)     GET_FIELD(HANDLE, CAP_HANDLE_KEY)
 
 struct cap_node *create_root_cap_node(void);
+cap_handle_t     cap_allocate_slot_lock(struct cap_node *cnode);
 cap_handle_t
 cap_insert(struct cap_node *cnode, struct cap_head *head, uint32_t rights);
 struct cap_head *
