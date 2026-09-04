@@ -71,7 +71,7 @@ cap_insert(struct cap_node *cnode, struct cap_head *head, uint32_t rights)
     }
     cap_handle_t handle = 0;
 
-    spin_lock(&cnode->head.lock);
+    spin_lock_double(&cnode->head.lock, &head->lock);
     handle = cap_allocate_slot_lock(cnode);
     if (handle != 0)
     {
@@ -81,19 +81,9 @@ cap_insert(struct cap_node *cnode, struct cap_head *head, uint32_t rights)
         slot_entry->head                  = head;
         slot_entry->rights                = rights;
 
-        // 对象引用 +1(若对象即当前 cnode 已在锁内, 避免重锁)
-        if (head == &cnode->head)
-        {
-            head->reference_count++;
-        }
-        else
-        {
-            spin_lock(&head->lock);
-            head->reference_count++;
-            spin_unlock(&head->lock);
-        }
+        head->reference_count++;
     }
-    spin_unlock(&cnode->head.lock);
+    spin_unlock_double(&cnode->head.lock, &head->lock);
     return handle;
 }
 

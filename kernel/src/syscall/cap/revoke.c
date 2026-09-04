@@ -175,30 +175,40 @@ int cap_delete(struct cap_node *cnode, cap_handle_t handle)
     {
         return -1;
     }
+    struct cap_head *head = NULL;
+
+    // 阶段一: 单锁解析对象 head(槽位可能并发变化, 阶段二会复核)
     spin_lock(&cnode->head.lock);
-    struct cap_slot       *slot       = &cnode->slots[slot_id - 1];
-    struct cap_slot_entry *slot_entry = slot->entry;
-    if (slot_entry == NULL || key != slot_entry->key)
+    struct cap_slot_entry *slot_entry = cnode->slots[slot_id - 1].entry;
+    if (slot_entry != NULL && key == slot_entry->key)
     {
-        goto fail;
+        head = slot_entry->head;
     }
-    struct cap_head *head = slot_entry->head;
+    spin_unlock(&cnode->head.lock);
     if (head == NULL)
     {
-        goto fail;
+        return -1;
     }
 
-    slot->entry = NULL;
-    slot->key_seed++;
-    kfree(slot_entry);
+    // 阶段二: 双锁原子执行删除(head 可能即当前 cnode, spin_lock_double 已防自锁)
+    spin_lock_double(&cnode->head.lock, &head->lock);
+    struct cap_slot *slot = &cnode->slots[slot_id - 1];
+    slot_entry            = slot->entry;
+    if (slot_entry == NULL || key != slot_entry->key ||
+        slot_entry->head != head)
+    {
+        ret = -1;
+    }
+    else
+    {
+        slot->entry = NULL;
+        slot->key_seed++;
+        kfree(slot_entry);
 
-    // 返回值: 0=正常删除, 1=对象引用计数归零(需销毁对象)
-    spin_lock(&head->lock);
-    head->reference_count--;
-    ret = (head->reference_count == 0) ? 1 : 0;
-    spin_unlock(&head->lock);
-
-fail:
-    spin_unlock(&cnode->head.lock);
+        // 返回值: 0=正常删除, 1=对象引用计数归零(需销毁对象)
+        head->reference_count--;
+        ret = (head->reference_count == 0) ? 1 : 0;
+    }
+    spin_unlock_double(&cnode->head.lock, &head->lock);
     return ret;
 }
