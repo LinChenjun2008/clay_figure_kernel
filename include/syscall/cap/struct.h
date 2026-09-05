@@ -37,13 +37,6 @@ struct cap_slot_entry
     struct cap_head *head;
     uint32_t         key;    // 访问cap的key
     uint32_t         rights; // 权限
-
-    struct cap_node *owner;   // 所属 cnode(反向指针, 跨 cnode 撤销定位)
-    uint32_t         slot_id; // 所在槽位(id >= 1)
-
-    struct cap_slot_entry *parent;
-    struct cap_slot_entry *child;
-    struct cap_slot_entry *next;
 };
 
 struct cap_slot
