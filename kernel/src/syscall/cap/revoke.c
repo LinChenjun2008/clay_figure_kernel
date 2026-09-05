@@ -40,7 +40,9 @@ static int cap_count(struct cap_slot_entry *entry)
     {
         return 0;
     }
-    int                    n       = 1;
+
+    int n = 1;
+
     struct cap_slot_entry *derived = entry->child;
     while (derived != NULL)
     {
@@ -51,7 +53,7 @@ static int cap_count(struct cap_slot_entry *entry)
     return n;
 }
 
-// 收集 entry 的派生子树(含自身)到数组, 深度优先(假设已持根 cnode 锁)
+// 收集 entry 的派生子树(含自身)到数组, 深度优先
 static void cap_collect(
     struct cap_slot_entry  *entry,
     struct cap_slot_entry **list,
@@ -73,24 +75,25 @@ static void cap_collect(
     return;
 }
 
-// 删除单个 entry: 经反向指针定位槽位(支持跨 cnode)
+// 删除单个 entry: 经反向指针定位slot
 static void cap_destroy_entry(struct cap_slot_entry *entry)
 {
     struct cap_node       *owner  = entry->owner;
     struct cap_slot_entry *parent = entry->parent;
 
-    // 同一 cnode: unlink + 清槽位在同一把锁内
     spin_lock(&owner->head.lock);
+    // 父子在同一 cnode: unlink
     if (parent != NULL && parent->owner == owner)
     {
         cap_unlink_lock(entry);
     }
+    // 清除slot
     struct cap_slot *slot = &owner->slots[entry->slot_id - 1];
     slot->entry           = NULL;
     slot->key_seed++;
     spin_unlock(&owner->head.lock);
 
-    // 父跨 cnode: 单独锁父 owner 摘链(父仍存活)
+    // 父子跨 cnode: 单独锁父 owner 摘链
     if (parent != NULL && parent->owner != owner)
     {
         struct cap_node *powner = parent->owner;

@@ -27,7 +27,7 @@ struct cap_node *create_root_cap_node(void)
     return cnode;
 }
 
-// 假设已持 cnode->head.lock: 分配槽位并初始化 entry(跨文件共享给 derive)
+// 分配槽位并初始化 entry
 cap_handle_t cap_allocate_slot_lock(struct cap_node *cnode)
 {
     int i;
@@ -62,6 +62,7 @@ cap_handle_t cap_allocate_slot_lock(struct cap_node *cnode)
     return handle;
 }
 
+// 把head插入cnode的一个slot中,返回handle
 cap_handle_t
 cap_insert(struct cap_node *cnode, struct cap_head *head, uint32_t rights)
 {
@@ -87,7 +88,7 @@ cap_insert(struct cap_node *cnode, struct cap_head *head, uint32_t rights)
     return handle;
 }
 
-// 解析 handle: 校验 slot 存在 + key 匹配 + 权限满足, 返回对象 head(或 NULL)
+// 解析 handle,返回对象 head(或 NULL)
 struct cap_head *
 cap_lookup(struct cap_node *cnode, cap_handle_t handle, uint32_t rights)
 {
