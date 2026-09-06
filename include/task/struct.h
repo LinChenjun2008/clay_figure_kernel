@@ -110,6 +110,7 @@ struct task
     uint64_t                  preempt_count;
     uint64_t                 *pg_dir;
     struct list_node          general_node;
+    struct list_node          sema_node;
 
     uint64_t prio;
     uint64_t run_time;

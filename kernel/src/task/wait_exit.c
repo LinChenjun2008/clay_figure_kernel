@@ -59,6 +59,8 @@ void task_exit(int return_value)
 {
     struct task *task = get_current_task();
 
+    ASSERT(task->preempt_count == 0);
+
     task->return_status = return_value;
 
     main_adopt_childs(task);
