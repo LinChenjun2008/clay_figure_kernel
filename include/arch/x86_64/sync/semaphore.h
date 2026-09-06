@@ -12,11 +12,11 @@
 struct semaphore
 {
     struct spinlock lock;
-    uint64_t        value;
+    long            value;
     struct list     wait_list;
 };
 
-void init_semaphore(struct semaphore *sema, uint64_t value);
+void init_semaphore(struct semaphore *sema, long value);
 void sema_down(struct semaphore *sema);
 void sema_up(struct semaphore *sema);
 
