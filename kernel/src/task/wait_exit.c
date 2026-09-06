@@ -39,18 +39,16 @@ static void main_adopt_childs(struct task *task)
     }
     spin_unlock(&task_mgr->lock);
 
-    spin_lock(&task->exited_lock);
+    spin_lock_double(&task->exited_lock, &main_task->exited_lock);
     while (!list_empty(&task->exited_childs))
     {
         struct list_node *node  = list_pop(&task->exited_childs);
         struct task      *child = CONTAINER_OF(struct task, general_node, node);
         child->ppid             = main_task->pid;
 
-        spin_lock(&main_task->exited_lock);
         list_append(&main_task->exited_childs, node);
-        spin_unlock(&main_task->exited_lock);
     }
-    spin_unlock(&task->exited_lock);
+    spin_unlock_double(&task->exited_lock, &main_task->exited_lock);
 
     atomic_add(&main_task->childs, atomic_read(&task->childs));
     atomic_set(&task->childs, 0);

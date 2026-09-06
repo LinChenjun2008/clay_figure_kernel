@@ -17,5 +17,7 @@ struct spinlock
 void init_spinlock(struct spinlock *lk);
 void spin_lock(struct spinlock *lk);
 void spin_unlock(struct spinlock *lk);
+void spin_lock_double(struct spinlock *a, struct spinlock *b);
+void spin_unlock_double(struct spinlock *a, struct spinlock *b);
 
 #endif /* __ASM_SYNC_SPINLOCK_H__ */
