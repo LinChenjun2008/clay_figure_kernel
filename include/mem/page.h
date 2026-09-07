@@ -11,8 +11,6 @@
 // page.c
 void page_mgr_init(struct system_info *system_info);
 
-void     page_mgr_lock(void);
-void     page_mgr_unlock(void);
 void     page_struct_lock(size_t pfn);
 void     page_struct_unlock(size_t pfn);
 void     page_reference_inc_lock(size_t pfn);
@@ -23,9 +21,7 @@ uint32_t page_reference_dec(size_t pfn);
 uint32_t page_reference_read(size_t pfn);
 void    *allocate_pages(size_t pages);
 void    *allocate_a_page(void);
-void    *allocate_a_page_lock(void);
 size_t   free_pages(void *addr, size_t pages);
 size_t   free_a_page(void *addr);
-size_t   free_a_page_lock(size_t pfn);
 
 #endif /* __MEM_PAGE_H__ */

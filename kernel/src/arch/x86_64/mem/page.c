@@ -160,7 +160,13 @@ void arch_mm_map(struct task *task, void *phys, void *virt)
     return;
 }
 
-void arch_mm_copy_on_write(struct task *task, void *phys, void *virt)
+void arch_mm_unmap(struct task *task, void *virt)
+{
+    set_page_flags(task->pg_dir, virt, PG_UNMAPPED);
+    return;
+}
+
+void arch_mm_map_cow(struct task *task, void *phys, void *virt)
 {
     page_map(task->pg_dir, phys, virt, 1);
     set_page_flags(task->pg_dir, virt, PG_USER_COW_FLAGS);
@@ -229,39 +235,68 @@ void free_pg_table(uint64_t *pg_dir)
 
 void ASMLINKAGE arch_flush_tlb(void *addr);
 
-static int page_cow_lock(struct task *task, void *addr, size_t cow_pfn)
+static int page_lazy_allocate(struct task *task, void *fault_address)
+{
+    void *phy_page = mm_allocate_a_page();
+    if (phy_page == NULL)
+    {
+        return -1;
+    }
+    mm_map(task, phy_page, fault_address);
+    arch_flush_tlb(fault_address);
+    return 0;
+}
+
+static int page_copy_on_write(struct task *task, uintptr_t fault_address)
 {
     struct mm_struct *mm = task->mm;
 
-    void *cow_page = (void *)PFN_TO_ADDR(cow_pfn);
-
-    // 只有一个进程引用: 不复制
-    if (page_reference_read_lock(cow_pfn) == 1)
-    {
-        free_table_remove(&mm->vm_map.copy_on_write, (uintptr_t)addr, PG_SIZE);
-        free_table_add(&mm->vm_map.mapped, (uintptr_t)addr, PG_SIZE);
-        set_page_flags(task->pg_dir, addr, PG_USER_FLAGS);
-        arch_flush_tlb(addr);
-        return 0;
-    }
-
-    // 多个进程引用: 复制新页
-    void *new_page = mm_allocate_a_page_lock();
-    if (new_page == NULL)
+    void *cow_page = to_physical_address(task->pg_dir, (void *)fault_address);
+    // cow页已经映射,不可能为NULL
+    if (cow_page == NULL)
     {
         return -1;
     }
-    memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);
-    free_table_remove(&mm->vm_map.copy_on_write, (uintptr_t)addr, PG_SIZE);
-    mm_map(task, new_page, addr);
+    size_t cow_pfn = ADDR_TO_PFN((uintptr_t)cow_page);
 
-    // 通过free解除对旧页的引用
-    if (mm_free_a_page_lock(cow_page, cow_pfn) == 0)
+    int ret = 0;
+
+
+    // 进入cow页临界区,对cow->lock加锁
+    // 临界区内执行写时复制
+    page_struct_lock(cow_pfn);
+    uint32_t ref_count = page_reference_read_lock(cow_pfn);
+
+    if (ref_count == 1)
     {
-        return -1;
+        free_table_remove(&mm->vm_map.copy_on_write, fault_address, PG_SIZE);
+        free_table_add(&mm->vm_map.mapped, fault_address, PG_SIZE);
+        set_page_flags(task->pg_dir, (void *)fault_address, PG_USER_FLAGS);
+        arch_flush_tlb((void *)fault_address);
     }
-    arch_flush_tlb(addr);
-    return 0;
+    else
+    {
+        void *new_page = mm_allocate_a_page();
+        if (new_page == NULL)
+        {
+            ret = -1;
+            goto fail;
+        }
+        memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);
+        // 从cow中移除,转入unmapped表,由mm_map重新映射
+        free_table_remove(&mm->vm_map.copy_on_write, fault_address, PG_SIZE);
+        free_table_add(&mm->vm_map.unmapped, fault_address, PG_SIZE);
+        mm_map(task, new_page, (void *)fault_address);
+
+        // 减少引用,并从pg_struct链表中移除
+        // 因为此时cow_page已经不属于当前任务了.
+        page_reference_dec_lock(cow_pfn);
+        mm_remove_a_page(cow_page);
+        arch_flush_tlb((void *)fault_address);
+    }
+fail:
+    page_struct_unlock(cow_pfn);
+    return ret;
 }
 
 void page_faule(struct pt_regs *regs)
@@ -279,6 +314,7 @@ void page_faule(struct pt_regs *regs)
 
     int unmapped = free_table_find(&mm->vm_map.unmapped, fault_address);
     int cow      = free_table_find(&mm->vm_map.copy_on_write, fault_address);
+
     // 访问非法地址触发异常
     if (!unmapped && !cow)
     {
@@ -287,38 +323,26 @@ void page_faule(struct pt_regs *regs)
 
     if (unmapped)
     {
-        // 已分配地址,未分配页
-        void *phy_page = mm_allocate_a_page();
-        if (phy_page == NULL)
+        if (page_lazy_allocate(task, (void *)fault_address) < 0)
         {
             general_handler(regs);
         }
-        mm_map(task, phy_page, (void *)fault_address);
-        arch_flush_tlb((void *)fault_address);
+        return;
+    }
+    if (cow)
+    {
+        if (!(regs->error_code & PG_RW_W))
+        {
+            general_handler(regs);
+        }
+        if (page_copy_on_write(task, fault_address) < 0)
+        {
+            general_handler(regs);
+        }
         return;
     }
 
-    // copy-on-write
-    if (!(regs->error_code & PG_RW_W))
-    {
-        general_handler(regs);
-    }
+    general_handler(regs);
 
-    void *cow_page = to_physical_address(task->pg_dir, (void *)fault_address);
-    if (cow_page == NULL)
-    {
-        general_handler(regs);
-    }
-    size_t cow_pfn = ADDR_TO_PFN((uintptr_t)cow_page);
-
-    page_mgr_lock();
-    page_struct_lock(cow_pfn);
-    int ret = page_cow_lock(task, (void *)fault_address, cow_pfn);
-    page_struct_unlock(cow_pfn);
-    page_mgr_unlock();
-    if (ret < 0)
-    {
-        general_handler(regs);
-    }
     return;
 }
