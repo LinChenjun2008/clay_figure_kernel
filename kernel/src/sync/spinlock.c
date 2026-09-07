@@ -43,3 +43,43 @@ void spin_unlock(struct spinlock *lk)
     intr_set_status(intr_status);
     return;
 }
+
+void spin_lock_double(struct spinlock *a, struct spinlock *b)
+{
+    if (a == b)
+    {
+        spin_lock(a);
+        return;
+    }
+    if ((uintptr_t)a < (uintptr_t)b)
+    {
+        spin_lock(a);
+        spin_lock(b);
+    }
+    else
+    {
+        spin_lock(b);
+        spin_lock(a);
+    }
+    return;
+}
+
+void spin_unlock_double(struct spinlock *a, struct spinlock *b)
+{
+    if (a == b)
+    {
+        spin_unlock(a);
+        return;
+    }
+    if ((uintptr_t)a < (uintptr_t)b)
+    {
+        spin_unlock(b);
+        spin_unlock(a);
+    }
+    else
+    {
+        spin_unlock(a);
+        spin_unlock(b);
+    }
+    return;
+}
