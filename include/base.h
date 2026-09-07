@@ -6,6 +6,8 @@
 #ifndef __BASE_H__
 #define __BASE_H__
 
+#define NULL ((void *)0)
+
 #define TRUE  (1 == 1)
 #define FALSE (1 == 0)
 
@@ -29,10 +31,6 @@
 
 #define ASMLINKAGE SYSV_ABI
 
-#ifndef STATIC_ASSERT
-#    define STATIC_ASSERT(CONDITION, MESSAGE) _Static_assert(CONDITION, MESSAGE)
-#endif
-
 #define DIV_ROUND_UP(X, STEP) (((X) + (STEP - 1)) / STEP)
 
 #define MAX(A, B) ((A) > (B) ? (A) : (B))
@@ -44,9 +42,7 @@
 
 #ifndef __ASSEMBLER__
 
-// std
-#    include <std/stddef.h>
-#    include <std/stdint.h>
+#    include <types.h>
 
 // structures
 #    include <mem/struct.h>

@@ -6,13 +6,11 @@
 #ifndef __LIB_H__
 #define __LIB_H__
 
-#include <std/stdint.h>
-
-typedef int32_t pid_t;
+#include <types.h>
 
 struct message
 {
-    int32_t  source;
+    pid_t    source;
     uint32_t type;
     union
     {
