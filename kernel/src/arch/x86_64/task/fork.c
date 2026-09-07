@@ -21,8 +21,7 @@ int copy_process(struct task *dst, struct task *src)
         return -1;
     }
     // 刷新页表(cow)
-    task_pg_active(dst);
-
+    task_pg_active(src);
     dst->ustack_sp = src->ustack_sp;
 
     uintptr_t src_kstack, dst_kstack;

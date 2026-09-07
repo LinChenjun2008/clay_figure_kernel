@@ -47,7 +47,6 @@ struct mem_block
 #define MAX_ALLOCATE_PAGES 2048
 
 #define PAGE_HEAD (1 << 0)
-#define PAGE_TAIL (1 << 1)
 
 struct page
 {
