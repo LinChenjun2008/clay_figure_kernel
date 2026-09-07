@@ -46,7 +46,7 @@ struct task *process_execute(
     init_task_struct(task, file, prio, kstack_base, kstack_pages, ustack_pages);
 
     task->pg_dir = create_pg_dir();
-    if (task->pg_dir == NULL)
+    if (task->pg_dir == 0)
     {
         goto fail;
     }
@@ -93,8 +93,8 @@ void process_exit(int status)
 
     destory_mm_struct(task->mm);
 
-    void *pg_dir = task->pg_dir;
-    task->pg_dir = NULL;
+    phys_addr_t pg_dir = task->pg_dir;
+    task->pg_dir       = 0;
     task_pg_active(task);
 
     free_pg_table(pg_dir);

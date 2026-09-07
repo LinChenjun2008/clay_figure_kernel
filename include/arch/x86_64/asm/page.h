@@ -49,27 +49,28 @@
 #define PAGE_PFN_SHIFT 12
 #define PAGE_PFN_MASK  0x000fffffffffffff
 
-#define PFN_TO_ADDR(PFN)  SET_FIELD(0, PAGE_PFN, PFN)
-#define ADDR_TO_PFN(ADDR) GET_FIELD(ADDR, PAGE_PFN)
+#define PFN_TO_ADDR(PFN)  ((phys_addr_t)SET_FIELD(0, PAGE_PFN, PFN))
+#define ADDR_TO_PFN(ADDR) ((size_t)GET_FIELD(ADDR, PAGE_PFN))
 
 #define KERNEL_VMA_BASE  0xffff800000000000
 #define KERNEL_TEXT_BASE 0xffffffff80000000
 
-#define PHYS_TO_VIRT(ADDR) ((void *)((uintptr_t)(ADDR) + KERNEL_VMA_BASE))
-#define VIRT_TO_PHYS(ADDR) ((void *)((uintptr_t)(ADDR) - KERNEL_VMA_BASE))
+#define PHYS_TO_VIRT(PHYS) ((void *)((uintptr_t)(PHYS) + KERNEL_VMA_BASE))
+#define VIRT_TO_PHYS(VIRT) ((phys_addr_t)((uintptr_t)(VIRT) - KERNEL_VMA_BASE))
 
 #ifndef __ASSEMBLER__
 
-void set_pg_table(void *pg_table);
+void set_pg_table(phys_addr_t pg_table);
 
-void  page_map(uint64_t *pg_dir, void *paddr, void *vaddr, uint64_t count);
-void  set_page_flags(uint64_t *pg_dir, void *vaddr, uint64_t flags);
-void *to_physical_address(void *pg_dir, void *vaddr);
-void  arch_mm_map(struct task *task, void *phys, void *virt);
-void  arch_mm_unmap(struct task *task, void *virt);
-void  arch_mm_map_cow(struct task *task, void *phys, void *virt);
-void  free_pg_table(uint64_t *pg_dir);
-void  page_faule(struct pt_regs *regs);
+void page_map(phys_addr_t pg_dir, phys_addr_t phys, uintptr_t virt, int count);
+void set_page_flags(phys_addr_t pg_dir, uintptr_t virt, uint64_t flags);
+
+phys_addr_t to_physical_address(phys_addr_t pg_dir, uintptr_t virt);
+void        arch_mm_map(struct task *task, phys_addr_t phys, uintptr_t virt);
+void        arch_mm_unmap(struct task *task, uintptr_t virt);
+void arch_mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt);
+void free_pg_table(phys_addr_t pg_dir);
+void page_faule(struct pt_regs *regs);
 
 #endif /* __ASSEMBLER__ */
 

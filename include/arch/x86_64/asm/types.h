@@ -27,6 +27,8 @@ typedef int64_t  intptr_t;
 typedef uint64_t size_t;
 typedef int64_t  ssize_t;
 
+typedef int64_t off_t;
+
 _Static_assert(sizeof(int8_t) == 1, "int8_t size mismatch");
 _Static_assert(sizeof(int16_t) == 2, "int16_t size mismatch");
 _Static_assert(sizeof(int32_t) == 4, "int32_t size mismatch");

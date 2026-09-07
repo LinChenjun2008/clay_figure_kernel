@@ -187,8 +187,8 @@ void task_pg_active(struct task *task)
 {
     struct task_mgr *task_mgr = get_task_mgr();
 
-    void *pg_table = task_mgr->kernel_page_table_pos;
-    if (task->pg_dir != NULL)
+    phys_addr_t pg_table = task_mgr->kernel_page_table_pos;
+    if (task->pg_dir != 0)
     {
         pg_table = task->pg_dir;
     }

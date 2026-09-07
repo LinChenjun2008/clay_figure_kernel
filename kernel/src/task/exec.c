@@ -56,8 +56,7 @@ void *load_segment(void *file)
     }
     size_t pages = (addr_hi - addr_lo + (PG_SIZE - 1)) & ~PG_SIZE;
 
-    uintptr_t base_address;
-    base_address = (uintptr_t)mm_allocate_address(NULL, pages);
+    uintptr_t base_address = (uintptr_t)mm_allocate_address(NULL, pages);
 
     uintptr_t offset = base_address - addr_lo;
 

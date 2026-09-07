@@ -16,172 +16,160 @@
 #include <task.h>
 #include <task/schedule.h>
 
-void set_pg_table(void *pg_table)
+void set_pg_table(phys_addr_t pg_table)
 {
-    set_cr3((uint64_t)pg_table);
+    set_cr3(pg_table);
     return;
 }
 
-static void page_map_sub(uint64_t *page_table, uintptr_t paddr, uintptr_t vaddr)
+static void page_map_sub(phys_addr_t pg_dir, phys_addr_t phys, uintptr_t virt)
 {
-    paddr &= ~(PG_SIZE - 1);
-    vaddr &= ~(PG_SIZE - 1);
+    phys &= ~(phys_addr_t)(PG_SIZE - 1);
+    virt &= ~(uintptr_t)(PG_SIZE - 1);
 
-    uint64_t *pg_dir, *pdpt, *pdt, *pt;
+    uint64_t *pml4t, *pdpt, *pdt, *pt;
     uint64_t *pml4e, *pdpte, *pde, *pte;
 
-    pg_dir = PHYS_TO_VIRT(page_table);
-    pml4e  = pg_dir + GET_FIELD(vaddr, ADDR_PML4T_INDEX);
+    pml4t = PHYS_TO_VIRT(pg_dir);
+    pml4e = pml4t + GET_FIELD(virt, ADDR_PML4T_INDEX);
     if (!(*pml4e & PG_P))
     {
         pdpt = allocate_a_page();
         memset(pdpt, 0, PT_SIZE);
-        *pml4e = (uintptr_t)VIRT_TO_PHYS(pdpt) | PG_DEFAULT_FLAGS;
+        *pml4e = VIRT_TO_PHYS(pdpt) | PG_DEFAULT_FLAGS;
     }
-    pdpt  = PHYS_TO_VIRT(*pml4e & (~0xfff));
-    pdpte = pdpt + GET_FIELD(vaddr, ADDR_PDPT_INDEX);
+    pdpt  = PHYS_TO_VIRT(*pml4e & (~0xfffUL));
+    pdpte = pdpt + GET_FIELD(virt, ADDR_PDPT_INDEX);
     if (!(*pdpte & PG_P))
     {
         pdt = allocate_a_page();
         memset(pdt, 0, PT_SIZE);
-        *pdpte = (uintptr_t)VIRT_TO_PHYS(pdt) | PG_DEFAULT_FLAGS;
+        *pdpte = VIRT_TO_PHYS(pdt) | PG_DEFAULT_FLAGS;
     }
-    pdt = PHYS_TO_VIRT(*pdpte & (~0xfff));
-    pde = pdt + GET_FIELD(vaddr, ADDR_PDT_INDEX);
+    pdt = PHYS_TO_VIRT(*pdpte & (~0xfffUL));
+    pde = pdt + GET_FIELD(virt, ADDR_PDT_INDEX);
     if (!(*pde & PG_P))
     {
         pt = allocate_a_page();
         memset(pt, 0, PT_SIZE);
-        *pde = (uintptr_t)VIRT_TO_PHYS(pt) | PG_DEFAULT_FLAGS;
+        *pde = VIRT_TO_PHYS(pt) | PG_DEFAULT_FLAGS;
     }
-    pt   = PHYS_TO_VIRT(*pde & (~0xfff));
-    pte  = pt + GET_FIELD(vaddr, ADDR_PT_INDEX);
-    *pte = paddr | PG_KERNEL_FLAGS;
+    pt   = PHYS_TO_VIRT(*pde & (~0xfffUL));
+    pte  = pt + GET_FIELD(virt, ADDR_PT_INDEX);
+    *pte = phys | PG_KERNEL_FLAGS;
     return;
 }
 
-void page_map(uint64_t *pg_dir, void *paddr, void *vaddr, uint64_t count)
+void page_map(phys_addr_t pg_dir, phys_addr_t phys, uintptr_t virt, int count)
 {
-    uintptr_t v, p;
-    uint64_t  i;
+    off_t offset = 0;
+    int   i;
     for (i = 0; i < count; i++)
     {
-        v = (uintptr_t)vaddr + i * PG_SIZE;
-        p = (uintptr_t)paddr + i * PG_SIZE;
-        page_map_sub(pg_dir, p, v);
+        offset = i * PG_SIZE;
+        page_map_sub(pg_dir, phys + offset, virt + offset);
     }
     return;
 }
 
-void set_page_flags(uint64_t *pg_dir, void *vaddr, uint64_t flags)
+void set_page_flags(phys_addr_t pg_dir, uintptr_t virt, uint64_t flags)
 {
-    vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
-    uint64_t *v_pml4t, *v_pml4e;
-    uint64_t *pdpt, *v_pdpte, *pdpte;
-    uint64_t *pdt, *v_pde, *pde;
-    uint64_t *pt, *v_pte, *pte;
+    virt &= ~(uintptr_t)(PG_SIZE - 1);
 
-    v_pml4t = PHYS_TO_VIRT(pg_dir);
-    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
-    if (!(*v_pml4e & PG_P))
+    uint64_t *pml4t, *pdpt, *pdt, *pt;
+    uint64_t *pml4e, *pdpte, *pde, *pte;
+
+    pml4t = PHYS_TO_VIRT(pg_dir);
+    pml4e = pml4t + GET_FIELD(virt, ADDR_PML4T_INDEX);
+    if (!(*pml4e & PG_P))
     {
         return;
     }
 
-    pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
-    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
-    v_pdpte = PHYS_TO_VIRT(pdpte);
-    if (!(*v_pdpte & PG_P))
+    pdpt  = PHYS_TO_VIRT(*pml4e & (~0xfffUL));
+    pdpte = pdpt + GET_FIELD(virt, ADDR_PDPT_INDEX);
+    if (!(*pdpte & PG_P))
     {
         return;
     }
 
-    pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
-    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
-    v_pde = PHYS_TO_VIRT(pde);
-    if (!(*v_pde & PG_P))
+    pdt = PHYS_TO_VIRT(*pdpte & (~0xfffUL));
+    pde = pdt + GET_FIELD(virt, ADDR_PDT_INDEX);
+    if (!(*pde & PG_P))
     {
         return;
     }
 
-    pt    = (uint64_t *)(*v_pde & (~0xfff));
-    pte   = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
-    v_pte = PHYS_TO_VIRT(pte);
-    if (!(*v_pte & PG_P))
+    pt  = PHYS_TO_VIRT(*pde & (~0xfffUL));
+    pte = pt + GET_FIELD(virt, ADDR_PT_INDEX);
+    if (!(*pte & PG_P))
     {
         return;
     }
 
-    *v_pte = (*v_pte & ~0xfff) | flags;
+    *pte = (*pte & ~0xfffUL) | flags;
     return;
 }
 
-void *to_physical_address(void *pg_dir, void *vaddr)
+phys_addr_t to_physical_address(phys_addr_t pg_dir, uintptr_t virt)
 {
-    uint64_t *v_pml4t, *v_pml4e;
-    uint64_t *pdpt, *v_pdpte, *pdpte;
-    uint64_t *pdt, *v_pde, *pde;
-    uint64_t *pt, *v_pte, *pte;
-    v_pml4t = PHYS_TO_VIRT(pg_dir);
-    v_pml4e = v_pml4t + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
-    if (!(*v_pml4e & PG_P))
+    uint64_t *pml4t, *pdpt, *pdt, *pt;
+    uint64_t *pml4e, *pdpte, *pde, *pte;
+
+    pml4t = PHYS_TO_VIRT(pg_dir);
+    pml4e = pml4t + GET_FIELD(virt, ADDR_PML4T_INDEX);
+    if (!(*pml4e & PG_P))
     {
-        return NULL;
+        return 0;
     }
-    pdpt    = (uint64_t *)(*v_pml4e & (~0xfff));
-    pdpte   = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
-    v_pdpte = PHYS_TO_VIRT(pdpte);
-    if (!(*v_pdpte & PG_P))
+    pdpt  = PHYS_TO_VIRT(*pml4e & (~0xfffUL));
+    pdpte = pdpt + GET_FIELD(virt, ADDR_PDPT_INDEX);
+    if (!(*pdpte & PG_P))
     {
-        return NULL;
+        return 0;
     }
-    pdt   = (uint64_t *)(*v_pdpte & (~0xfff));
-    pde   = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
-    v_pde = PHYS_TO_VIRT(pde);
-    if (!(*v_pde & PG_P))
+    pdt = PHYS_TO_VIRT(*pdpte & (~0xfffUL));
+    pde = pdt + GET_FIELD(virt, ADDR_PDT_INDEX);
+    if (!(*pde & PG_P))
     {
-        return NULL;
+        return 0;
     }
-    pt    = (uint64_t *)(*v_pde & (~0xfff));
-    pte   = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
-    v_pte = PHYS_TO_VIRT(pte);
-    if (!(*v_pte & PG_P))
+    pt  = PHYS_TO_VIRT(*pde & (~0xfffUL));
+    pte = pt + GET_FIELD(virt, ADDR_PT_INDEX);
+    if (!(*pte & PG_P))
     {
-        return NULL;
+        return 0;
     }
-    return (void *)((*v_pte & ~0xfff) +
-                    GET_FIELD((uintptr_t)vaddr, ADDR_OFFSET));
+    return (phys_addr_t)((*pte & ~0xfffUL) + GET_FIELD(virt, ADDR_OFFSET));
 }
 
-void arch_mm_map(struct task *task, void *phys, void *virt)
+void arch_mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
 {
     page_map(task->pg_dir, phys, virt, 1);
     set_page_flags(task->pg_dir, virt, PG_USER_FLAGS);
     return;
 }
 
-void arch_mm_unmap(struct task *task, void *virt)
+void arch_mm_unmap(struct task *task, uintptr_t virt)
 {
     set_page_flags(task->pg_dir, virt, PG_UNMAPPED);
     return;
 }
 
-void arch_mm_map_cow(struct task *task, void *phys, void *virt)
+void arch_mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt)
 {
     page_map(task->pg_dir, phys, virt, 1);
     set_page_flags(task->pg_dir, virt, PG_USER_COW_FLAGS);
     return;
 }
 
-static void free_pt(uintptr_t pt)
+static void free_pt(phys_addr_t pt)
 {
-    uint64_t *v_pt = PHYS_TO_VIRT(pt);
-
-    free_a_page(v_pt);
+    free_a_page(PHYS_TO_VIRT(pt));
     return;
 }
 
-static void free_pdt(uintptr_t pdt)
+static void free_pdt(phys_addr_t pdt)
 {
     uint64_t *v_pdt = PHYS_TO_VIRT(pdt);
 
@@ -190,14 +178,14 @@ static void free_pdt(uintptr_t pdt)
     {
         if (v_pdt[i] & PG_P)
         {
-            free_pt(v_pdt[i] & (~0xfff));
+            free_pt(v_pdt[i] & (~0xfffUL));
         }
     }
     free_a_page(v_pdt);
     return;
 }
 
-static void free_pdpt(uintptr_t pdpt)
+static void free_pdpt(phys_addr_t pdpt)
 {
     uint64_t *v_pdpt = PHYS_TO_VIRT(pdpt);
 
@@ -206,16 +194,16 @@ static void free_pdpt(uintptr_t pdpt)
     {
         if (v_pdpt[i] & PG_P)
         {
-            free_pdt(v_pdpt[i] & (~0xfff));
+            free_pdt(v_pdpt[i] & (~0xfffUL));
         }
     }
     free_a_page(v_pdpt);
     return;
 }
 
-void free_pg_table(uint64_t *pg_dir)
+void free_pg_table(phys_addr_t pg_dir)
 {
-    if (pg_dir == NULL)
+    if (pg_dir == 0)
     {
         return;
     }
@@ -226,7 +214,7 @@ void free_pg_table(uint64_t *pg_dir)
     {
         if (v_pml4t[i] & PG_P)
         {
-            free_pdpt(v_pml4t[i] & (~0xfff));
+            free_pdpt(v_pml4t[i] & (~0xfffUL));
         }
     }
     free_a_page(v_pml4t);
@@ -235,15 +223,15 @@ void free_pg_table(uint64_t *pg_dir)
 
 void ASMLINKAGE arch_flush_tlb(void *addr);
 
-static int page_lazy_allocate(struct task *task, void *fault_address)
+static int page_lazy_allocate(struct task *task, uintptr_t fault_address)
 {
-    void *phy_page = mm_allocate_a_page();
-    if (phy_page == NULL)
+    phys_addr_t phy_page = mm_allocate_a_page();
+    if (phy_page == 0)
     {
         return -1;
     }
     mm_map(task, phy_page, fault_address);
-    arch_flush_tlb(fault_address);
+    arch_flush_tlb((void *)fault_address);
     return 0;
 }
 
@@ -251,13 +239,13 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_address)
 {
     struct mm_struct *mm = task->mm;
 
-    void *cow_page = to_physical_address(task->pg_dir, (void *)fault_address);
+    phys_addr_t cow_page = to_physical_address(task->pg_dir, fault_address);
     // cow页已经映射,不可能为NULL
-    if (cow_page == NULL)
+    if (cow_page == 0)
     {
         return -1;
     }
-    size_t cow_pfn = ADDR_TO_PFN((uintptr_t)cow_page);
+    size_t cow_pfn = ADDR_TO_PFN(cow_page);
 
     int ret = 0;
 
@@ -271,13 +259,13 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_address)
     {
         free_table_remove(&mm->vm_map.copy_on_write, fault_address, PG_SIZE);
         free_table_add(&mm->vm_map.mapped, fault_address, PG_SIZE);
-        set_page_flags(task->pg_dir, (void *)fault_address, PG_USER_FLAGS);
+        set_page_flags(task->pg_dir, fault_address, PG_USER_FLAGS);
         arch_flush_tlb((void *)fault_address);
     }
     else
     {
-        void *new_page = mm_allocate_a_page();
-        if (new_page == NULL)
+        phys_addr_t new_page = mm_allocate_a_page();
+        if (new_page == 0)
         {
             ret = -1;
             goto fail;
@@ -286,7 +274,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_address)
         // 从cow中移除,转入unmapped表,由mm_map重新映射
         free_table_remove(&mm->vm_map.copy_on_write, fault_address, PG_SIZE);
         free_table_add(&mm->vm_map.unmapped, fault_address, PG_SIZE);
-        mm_map(task, new_page, (void *)fault_address);
+        mm_map(task, new_page, fault_address);
 
         // 减少引用,并从pg_struct链表中移除
         // 因为此时cow_page已经不属于当前任务了.
@@ -323,7 +311,7 @@ void page_faule(struct pt_regs *regs)
 
     if (unmapped)
     {
-        if (page_lazy_allocate(task, (void *)fault_address) < 0)
+        if (page_lazy_allocate(task, fault_address) < 0)
         {
             general_handler(regs);
         }

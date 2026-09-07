@@ -25,7 +25,7 @@ struct task_mgr
     int                 max_tasks;
     struct cpu         *cpus;
     int                 max_cpus;
-    void               *kernel_page_table_pos;
+    phys_addr_t         kernel_page_table_pos;
 };
 
 struct cpu
@@ -108,7 +108,7 @@ struct task
     volatile enum task_status status;
     struct atomic             block_count;
     uint64_t                  preempt_count;
-    uint64_t                 *pg_dir;
+    phys_addr_t               pg_dir;
     struct list_node          general_node;
     struct list_node          sema_node;
 

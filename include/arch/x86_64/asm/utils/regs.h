@@ -6,13 +6,13 @@
 #ifndef __ASM_UTILS_REGS_H__
 #define __ASM_UTILS_REGS_H__
 
-uint64_t ASMLINKAGE get_flags(void);
-uint64_t ASMLINKAGE get_rsp(void);
-uint64_t ASMLINKAGE get_cr0(void);
-uint64_t ASMLINKAGE get_cr2(void);
-uint64_t ASMLINKAGE get_cr3(void);
-void ASMLINKAGE     set_cr3(uint64_t cr3);
-uint64_t ASMLINKAGE get_cr4(void);
+word_t ASMLINKAGE      get_flags(void);
+word_t ASMLINKAGE      get_rsp(void);
+word_t ASMLINKAGE      get_cr0(void);
+uintptr_t ASMLINKAGE   get_cr2(void);
+phys_addr_t ASMLINKAGE get_cr3(void);
+void ASMLINKAGE        set_cr3(phys_addr_t cr3);
+word_t ASMLINKAGE      get_cr4(void);
 
 uint64_t ASMLINKAGE rdmsr(uint64_t address);
 void ASMLINKAGE     wrmsr(uint64_t address, uint64_t value);

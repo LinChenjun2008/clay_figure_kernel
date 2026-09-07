@@ -115,7 +115,7 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     {
         printf(L"create_page_table: ERROR(%d).\n\r", status);
     }
-    boot_info->page_table_pos = (void *)page_table_pos;
+    boot_info->page_table_pos = page_table_pos;
     printf(L"Page table: %p.\r\n", boot_info->page_table_pos);
 
     // Init page_mgr

@@ -249,7 +249,7 @@ void init_task_struct(
     task->status = TASK_READY;
     atomic_set(&task->block_count, 0);
     task->preempt_count = 0;
-    task->pg_dir        = NULL;
+    task->pg_dir        = 0;
 
     task->prio      = prio;
     task->run_time  = 0;

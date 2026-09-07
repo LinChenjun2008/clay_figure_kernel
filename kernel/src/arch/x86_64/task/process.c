@@ -16,13 +16,12 @@
 #include <sysinfo.h>
 #include <task.h>
 
-void *create_pg_dir(void)
+phys_addr_t create_pg_dir(void)
 {
-    uint64_t *pg_dir = NULL;
-    pg_dir           = allocate_a_page();
-    if (pg_dir == 0)
+    uint64_t *pg_dir = allocate_a_page();
+    if (pg_dir == NULL)
     {
-        return NULL;
+        return 0;
     }
     struct task_mgr *task_mgr = get_task_mgr();
 
@@ -50,12 +49,12 @@ void switch_to_user(void *func, void *arg)
     regs->fs = SELECTOR_USER_DATA64;
     regs->gs = SELECTOR_USER_DATA64;
 
-    regs->rdi = (uint64_t)arg;
+    regs->rdi = (word_t)arg;
 
-    regs->rip    = (uint64_t)func;
+    regs->rip    = (word_t)func;
     regs->cs     = SELECTOR_USER_CODE64;
     regs->rflags = EFLAGS_IOPL_0 | EFLAGS_MBS | EFLAGS_IF_1;
-    regs->rsp    = USER_STACK_VADDR_TOP;
+    regs->rsp    = (word_t)USER_STACK_VADDR_TOP;
     regs->ss     = SELECTOR_USER_DATA64;
 
     arch_switch_to_user(regs);

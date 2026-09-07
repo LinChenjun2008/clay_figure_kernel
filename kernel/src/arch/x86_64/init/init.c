@@ -57,7 +57,7 @@ void init_all(struct system_info *system_info)
 
     mp_start(ap_main);
 
-    *((uint64_t *)boot_info->page_table_pos) = 0;
+    *(uint64_t *)PHYS_TO_VIRT(boot_info->page_table_pos) = 0;
     printk("\nWelcome to Clay Figure Neo!\n");
     intr_enable();
 
