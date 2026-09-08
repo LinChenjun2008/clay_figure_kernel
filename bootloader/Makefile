@@ -1,0 +1,10 @@
+PROJECT_ROOT = ../
+SRC_DIR      = ./
+
+.PHONY: all
+all:
+	$(MAKE) -C $(SRC_DIR)/$(TARGET_ARCH) TARGET_ARCH=$(TARGET_ARCH) all
+
+.PHONY: clean
+clean:
+	$(MAKE) -C $(SRC_DIR)/$(TARGET_ARCH) TARGET_ARCH=$(TARGET_ARCH) clean

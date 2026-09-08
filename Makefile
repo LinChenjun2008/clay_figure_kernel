@@ -7,25 +7,19 @@ RAMFS_DIR    = $(BUILD_DIR)/ramfs
 
 include $(PROJECT_ROOT)/tools_def.mk
 
+include $(PROJECT_ROOT)/modules.mk
+
 .PHONY: all
 all:
 	@$(ECHO) ---[ Build ]---
-	@$(MAKE) -C bootloader/$(TARGET_ARCH) TARGET_ARCH=$(TARGET_ARCH) all
-	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) all
-	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) all
-	@$(MAKE) -C init TARGET_ARCH=$(TARGET_ARCH) all
-	@$(MAKE) -C test TARGET_ARCH=$(TARGET_ARCH) all
+	@$(MAKE) -r $(addsuffix /all,$(MODULES))
 	@$(MAKE) -r initramfs
 	@$(ECHO) ---[ Done  ]---
 
 .PHONY: clean
 clean:
 	@$(ECHO) ---[ Clean ]---
-	@$(MAKE) -C bootloader/$(TARGET_ARCH) TARGET_ARCH=$(TARGET_ARCH) clean
-	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) clean
-	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) clean
-	@$(MAKE) -C init TARGET_ARCH=$(TARGET_ARCH) all
-	@$(MAKE) -C test TARGET_ARCH=$(TARGET_ARCH) clean
+	@$(MAKE) -r $(addsuffix /clean,$(MODULES))
 	@$(RM) $(INTIRAMFS)
 	@$(ECHO) ---[ Done  ]---
 
@@ -50,3 +44,9 @@ initramfs:
 .PHONY: run
 run: all
 	-@$(QEMU) $(QEMU_FLAGS)
+
+%/all:
+	@$(MAKE) -C $(@D) TARGET_ARCH=$(TARGET_ARCH) all
+
+%/clean:
+	@$(MAKE) -C $(@D) TARGET_ARCH=$(TARGET_ARCH) clean
