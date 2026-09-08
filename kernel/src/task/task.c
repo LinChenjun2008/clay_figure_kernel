@@ -237,7 +237,7 @@ void init_task_struct(
     task->kstack_pages = kstack_pages;
 
     task->ustack_pages = ustack_pages;
-    task->ustack_sp    = NULL;
+    task->ustack_sp    = 0;
 
     task->cpu_id = get_current_task()->cpu_id;
 

@@ -165,18 +165,18 @@ void destory_mm_struct(struct mm_struct *mm)
     return;
 }
 
-void *mm_allocate_address(void *addr, size_t pages)
+uintptr_t mm_allocate_address(uintptr_t addr, size_t pages)
 {
     struct task      *task = get_current_task();
     struct vm_struct *vm   = &task->mm->vm_map;
 
-    uintptr_t start = (uintptr_t)addr;
+    uintptr_t start = addr;
     size_t    size  = pages << PG_SIZE_SHIFT;
-    if (addr != NULL)
+    if (addr != 0)
     {
         if (free_table_remove(&vm->vm_table, start, size) < 0)
         {
-            return NULL;
+            return 0;
         }
         free_table_add(&vm->unmapped, start, size);
         return addr;
@@ -185,10 +185,10 @@ void *mm_allocate_address(void *addr, size_t pages)
     start = free_table_allocate(&vm->vm_table, size);
     if (start == -1UL)
     {
-        return NULL;
+        return 0;
     }
     free_table_add(&vm->unmapped, start, size);
-    return (void *)start;
+    return start;
 }
 
 static int traversal_by_phys(struct list_node *node, void *arg)
@@ -312,9 +312,9 @@ void mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt)
     return;
 }
 
-void mm_free_address(void *addr, size_t pages)
+void mm_free_address(uintptr_t addr, size_t pages)
 {
-    if (addr == NULL)
+    if (addr == 0)
     {
         return;
     }
@@ -322,7 +322,7 @@ void mm_free_address(void *addr, size_t pages)
     struct vm_struct *vm   = &task->mm->vm_map;
     struct pg_struct *pg   = &task->mm->pg_map;
 
-    uintptr_t start = (uintptr_t)addr;
+    uintptr_t start = addr;
 
     struct free_table *table = NULL;
 

@@ -56,9 +56,9 @@ void *load_segment(void *file)
     }
     size_t pages = (addr_hi - addr_lo + (PG_SIZE - 1)) & ~PG_SIZE;
 
-    uintptr_t base_address = (uintptr_t)mm_allocate_address(NULL, pages);
+    uintptr_t base_address = mm_allocate_address(0, pages);
 
-    uintptr_t offset = base_address - addr_lo;
+    off_t offset = base_address - addr_lo;
 
     for (i = 0; i < ehdr->e_phnum; i++)
     {
@@ -70,7 +70,7 @@ void *load_segment(void *file)
         uintptr_t source      = (uintptr_t)file + phdr[i].p_offset;
         size_t    mem_size    = phdr[i].p_memsz;
         size_t    file_size   = phdr[i].p_filesz;
-        memset((void *)destination, mem_size, 0);
+        memset((void *)destination, 0, mem_size);
         memcpy((void *)destination, (void *)source, file_size);
     }
 
@@ -84,12 +84,6 @@ void *load_segment(void *file)
     {
         switch (dyn->d_tag)
         {
-            // case DT_STRTAB:
-            //     strtab = (char *)(dyn->d_un.d_ptr + offset);
-            //     break;
-            // case DT_SYMTAB:
-            //     symtab = (Elf64_sym_t *)(dyn->d_un.d_ptr + offset);
-            //     break;
             case DT_RELA:
                 reloc = (Elf64_Rela *)(dyn->d_un.d_ptr + offset);
                 break;
@@ -108,21 +102,11 @@ void *load_segment(void *file)
         Elf64_Rela *rela = &reloc[i];
         uint32_t    type = ELF64_R_TYPE(rela->r_info);
 
-        // uint32_t      sym_idx  = ELF64_R_SYM(rela->r_info);
-        // Elf64_sym_t  *sym     = &symtab[sym_idx];
-        // const char *sym_name = strtab + sym->st_name;
-
         uintptr_t *address;
         address = (uintptr_t *)(rela->r_offset + offset);
 
-        // uintptr_t value = sym->st_value + offset;
-
         switch (type)
         {
-            // case R_X86_64_GLOB_DAT:
-            // case R_X86_64_JUMP_SLOT:
-            //     *address = value;
-            //     break;
             case R_X86_64_RELATIVE:
                 *address = rela->r_addend + offset;
                 break;

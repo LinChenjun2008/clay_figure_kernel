@@ -95,8 +95,8 @@ struct task
     uintptr_t kstack_base;  // task + 8 内核栈基地址
     size_t    kstack_pages; // task + 16 内核栈页数
 
-    size_t ustack_pages;
-    void  *ustack_sp;
+    size_t    ustack_pages;
+    uintptr_t ustack_sp;
 
     uint8_t cpu_id;
 
