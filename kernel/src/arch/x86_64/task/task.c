@@ -12,7 +12,7 @@
 
 #include <mem.h>
 #include <mem/page.h>
-#include <print.h>
+#include <panic.h>
 #include <task.h>
 #include <task/process.h>
 #include <task/schedule.h>

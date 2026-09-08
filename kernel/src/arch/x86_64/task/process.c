@@ -11,7 +11,7 @@
 #include <asm/x86.h>
 
 #include <mem/page.h>
-#include <print.h>
+#include <panic.h>
 #include <std/string.h>
 #include <sysinfo.h>
 #include <task.h>

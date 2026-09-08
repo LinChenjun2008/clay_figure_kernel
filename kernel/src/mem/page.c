@@ -8,6 +8,7 @@
 #include <efi.h>
 #include <mem/page.h>
 #include <mem/struct.h>
+#include <panic.h>
 #include <print.h>
 #include <sync/atomic.h>
 #include <sync/spinlock.h>

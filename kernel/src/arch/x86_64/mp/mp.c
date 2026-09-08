@@ -11,6 +11,7 @@
 
 #include <drivers/timer.h>
 #include <mem/page.h>
+#include <panic.h>
 #include <print.h>
 #include <std/string.h>
 

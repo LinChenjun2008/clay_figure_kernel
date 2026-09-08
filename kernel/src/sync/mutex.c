@@ -5,7 +5,7 @@
 
 #include <base.h>
 
-#include <print.h>
+#include <panic.h>
 #include <sync/mutex.h>
 #include <sync/semaphore.h>
 #include <task.h>

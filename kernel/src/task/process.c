@@ -10,7 +10,7 @@
 
 #include <mem.h>
 #include <mem/page.h>
-#include <print.h>
+#include <panic.h>
 #include <ramfs.h>
 #include <sync/atomic.h>
 #include <sysinfo.h>

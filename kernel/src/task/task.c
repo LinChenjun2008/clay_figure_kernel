@@ -10,6 +10,7 @@
 
 #include <mem/allocator.h>
 #include <mem/page.h>
+#include <panic.h>
 #include <print.h>
 #include <std/stdio.h>
 #include <std/string.h>

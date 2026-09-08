@@ -8,7 +8,7 @@
 #include <asm/interrupt.h>
 #include <asm/utils/atomic_ops.h>
 
-#include <print.h>
+#include <panic.h>
 #include <sync/spinlock.h>
 
 void init_spinlock(struct spinlock *lk)

@@ -11,6 +11,7 @@
 #include <mem.h>
 #include <mem/allocator.h>
 #include <mem/page.h>
+#include <panic.h>
 #include <print.h>
 #include <std/string.h>
 #include <sysinfo.h>

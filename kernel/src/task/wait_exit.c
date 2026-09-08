@@ -6,7 +6,7 @@
 #include <base.h>
 
 #include <mem/page.h>
-#include <print.h>
+#include <panic.h>
 #include <syscall/ipc.h>
 #include <sysinfo.h>
 #include <task.h>

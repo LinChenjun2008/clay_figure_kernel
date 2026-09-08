@@ -11,7 +11,7 @@
 
 #include <mem.h>
 #include <mem/page.h>
-#include <print.h> // ASSERT
+#include <panic.h>
 #include <task.h>
 #include <task/fork.h>
 #include <task/schedule.h>

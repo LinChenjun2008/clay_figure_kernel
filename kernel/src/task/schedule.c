@@ -9,7 +9,7 @@
 #include <asm/page.h>
 #include <asm/task.h>
 
-#include <print.h>
+#include <panic.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/schedule.h>
