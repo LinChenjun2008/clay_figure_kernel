@@ -86,10 +86,6 @@ AP_CODE64_BASE:
     movq                    %rax, %gs
     movq                    %rax, %ss
 
-.ap_flag_loop:
-    movq AP_BOOT_FLAG, %rax
-    cmpq           $0, %rax
-    jz .ap_loop
     lock incq AP_BOOT_FLAG
 
 .ap_stack_loop:

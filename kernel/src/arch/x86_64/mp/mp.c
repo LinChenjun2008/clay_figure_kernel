@@ -62,6 +62,12 @@ static int wait_mp_get_stack(void *arg)
 
 void mp_init(struct system_info *system_info)
 {
+    uint64_t ap_count = apic_cpu_count() - 1;
+    if (ap_count == 0)
+    {
+        printk(MSG_INFO "mp_init: This machine has only one core.\n");
+        return;
+    }
     struct boot_info *boot_info = system_info->boot_info;
     size_t ap_boot_size = (uintptr_t)AP_BOOT_END - (uintptr_t)AP_BOOT_START;
     printk("mp_init: copy AP_BOOT to %p, size=%d.\n", AP_START, ap_boot_size);
@@ -99,21 +105,18 @@ void mp_init(struct system_info *system_info)
     send_ipi(icr);
     send_ipi(icr);
 
-    *(volatile uint64_t *)PHYS_TO_VIRT(AP_BOOT_FLAG) = 1;
-
-    uint64_t cpu_count = apic_cpu_count();
-    if (run_timeout(wait_mp_start, &cpu_count, 1000))
+    if (run_timeout(wait_mp_start, &ap_count, 1000))
     {
         PANIC("Secondary cpu start-up timeout!\n");
     }
 
-    cpu_count = *(volatile uint64_t *)PHYS_TO_VIRT(AP_BOOT_FLAG);
-    printk("mp_init: %d cpu(s) started.\n", cpu_count);
+    ap_count = *(volatile uint64_t *)PHYS_TO_VIRT(AP_BOOT_FLAG);
+    printk("mp_init: %d cpu(s) started.\n", ap_count);
 
     uintptr_t stack = 0;
 
     uint64_t i;
-    for (i = 1; i < cpu_count; i++)
+    for (i = 0; i < ap_count; i++)
     {
         stack = (uintptr_t)allocate_pages(system_info->boot_info->stack_pages);
         ASSERT(stack != 0);
@@ -131,6 +134,11 @@ void mp_init(struct system_info *system_info)
 
 void mp_start(void *mp_entry)
 {
+    uint64_t ap_count = apic_cpu_count() - 1;
+    if (ap_count == 0)
+    {
+        return;
+    }
     printk(MSG_INFO "secondary cpu(s) starting...\n");
     *(void **)PHYS_TO_VIRT(AP_ENTRY) = mp_entry;
     return;
