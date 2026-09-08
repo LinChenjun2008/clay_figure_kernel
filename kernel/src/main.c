@@ -6,8 +6,7 @@
 #include <base.h>
 
 #include <asm/init.h>
-
-#include <task/wait.h>
+#include <asm/task.h>
 
 int main(struct system_info *system_info)
 {
@@ -15,7 +14,7 @@ int main(struct system_info *system_info)
 
     while (1)
     {
-        task_waitpid(-1, NULL, WNOHANG);
+        idle_task();
     }
     return 0;
 }
@@ -26,7 +25,7 @@ int ap_main(struct system_info *system_info, uintptr_t stack)
 
     while (1)
     {
-        task_waitpid(-1, NULL, WNOHANG);
+        idle_task();
     }
     return 0;
 }

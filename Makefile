@@ -13,6 +13,7 @@ all:
 	@$(MAKE) -C bootloader/$(TARGET_ARCH) TARGET_ARCH=$(TARGET_ARCH) all
 	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) all
 	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) all
+	@$(MAKE) -C init TARGET_ARCH=$(TARGET_ARCH) all
 	@$(MAKE) -C test TARGET_ARCH=$(TARGET_ARCH) all
 	@$(MAKE) -r initramfs
 	@$(ECHO) ---[ Done  ]---
@@ -23,6 +24,7 @@ clean:
 	@$(MAKE) -C bootloader/$(TARGET_ARCH) TARGET_ARCH=$(TARGET_ARCH) clean
 	@$(MAKE) -C kernel TARGET_ARCH=$(TARGET_ARCH) clean
 	@$(MAKE) -C lib TARGET_ARCH=$(TARGET_ARCH) clean
+	@$(MAKE) -C init TARGET_ARCH=$(TARGET_ARCH) all
 	@$(MAKE) -C test TARGET_ARCH=$(TARGET_ARCH) clean
 	@$(RM) $(INTIRAMFS)
 	@$(ECHO) ---[ Done  ]---

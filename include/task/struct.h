@@ -39,7 +39,6 @@ struct cpu
     struct spinlock lock;
     size_t          running_tasks;
     struct list     task_queue;
-    struct list     blocked_queue;
 
     uint64_t min_vrun_time;
     uint64_t total_weight;
@@ -105,8 +104,9 @@ struct task
 
     char name[32];
 
+    struct spinlock           lock;
     volatile enum task_status status;
-    struct atomic             block_count;
+    uint64_t                  block_count;
     uint64_t                  preempt_count;
     phys_addr_t               pg_dir;
     struct list_node          general_node;

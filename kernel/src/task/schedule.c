@@ -228,34 +228,6 @@ static void check_dead_task(struct cpu *cpu)
     return;
 }
 
-static void check_blocked_queue_lock(struct cpu *cpu)
-{
-    if (list_len(&cpu->blocked_queue) == 0)
-    {
-        return;
-    }
-    struct list_node *node = list_next(list_head(&cpu->blocked_queue));
-    while (node != list_tail(&cpu->blocked_queue))
-    {
-        struct list_node *next = list_next(node);
-        struct task      *task = CONTAINER_OF(struct task, general_node, node);
-        if ((int64_t)atomic_read(&task->block_count) <= 0)
-        {
-            list_remove(node);
-            cpu_task_list_insert_lock(cpu, task);
-        }
-        node = next;
-    }
-}
-
-static void check_blocked_queue(struct cpu *cpu)
-{
-    spin_lock(&cpu->lock);
-    check_blocked_queue_lock(cpu);
-    spin_unlock(&cpu->lock);
-    return;
-}
-
 static void set_dead_task(struct cpu *cpu, struct task *task)
 {
     ASSERT(cpu->dead_task == NULL);
@@ -288,7 +260,6 @@ void schedule(void)
     }
 
     check_dead_task(curr_cpu);
-    check_blocked_queue(curr_cpu);
     switch (curr_task->status)
     {
         case TASK_RUNNING:
@@ -311,43 +282,23 @@ void task_block(enum task_status status)
 {
     enum intr_status intr_status = intr_disable();
     struct task     *task        = get_current_task();
+
     ASSERT(task->preempt_count == 0);
 
+    spin_lock(&task->lock);
+
     task->status = status;
-    if (task->status == TASK_DIED)
+
+    int need_block = (int64_t)task->block_count++ >= 0;
+    if (task->status != TASK_DIED && !need_block)
     {
-        schedule();
-        intr_set_status(intr_status);
-        return;
+        task->status = TASK_RUNNING;
     }
 
-    struct cpu *cpu = get_cpu_struct(task->cpu_id);
-
-    spin_lock(&cpu->lock);
-    atomic_inc(&task->block_count);
-    list_append(&cpu->blocked_queue, &task->general_node);
-    spin_unlock(&cpu->lock);
+    spin_unlock(&task->lock);
 
     schedule();
     intr_set_status(intr_status);
-    return;
-}
-
-static void task_unblock_lock(struct task *task)
-{
-    struct cpu *cpu = get_cpu_struct(task->cpu_id);
-
-    int64_t val = atomic_dec(&task->block_count);
-
-    if (val - 1 != 0)
-    {
-        return;
-    }
-    if (list_find(&cpu->blocked_queue, &task->general_node))
-    {
-        list_remove(&task->general_node);
-        cpu_task_list_insert_lock(cpu, task);
-    }
     return;
 }
 
@@ -359,9 +310,14 @@ void task_unblock(pid_t pid)
     ASSERT(task != NULL);
 
     struct cpu *cpu = get_cpu_struct(task->cpu_id);
-    spin_lock(&cpu->lock);
-    task_unblock_lock(task);
-    spin_unlock(&cpu->lock);
+
+    spin_lock(&task->lock);
+    task->block_count--;
+    if (task->block_count == 0)
+    {
+        cpu_task_list_insert(cpu, task);
+    }
+    spin_unlock(&task->lock);
 
     intr_set_status(intr_status);
     return;

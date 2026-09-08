@@ -9,6 +9,7 @@
 #include <asm/interrupt.h>
 #include <asm/task.h>
 #include <asm/task/process.h>
+#include <asm/utils/intr_ctrl.h>
 
 #include <mem.h>
 #include <mem/page.h>
@@ -90,5 +91,11 @@ void arch_task_active(struct task *task)
     {
         update_tss_rsp0(task);
     }
+    return;
+}
+
+void idle_task(void)
+{
+    io_stihlt();
     return;
 }

@@ -15,10 +15,10 @@
 // PID的最大值
 #define MAX_PID (MAX_TASKS - 1)
 
-#define PID_INDEX_SHIFT 8
-#define PID_INDEX_MASK  0xffffff
-#define PID_COUNT_SHIFT 0
-#define PID_COUNT_MASK  0xff
+#define PID_INDEX_SHIFT 0
+#define PID_INDEX_MASK  0xffff
+#define PID_COUNT_SHIFT 16
+#define PID_COUNT_MASK  0xffff
 
 #define PID_ANY   -1
 #define PID_CHILD -2

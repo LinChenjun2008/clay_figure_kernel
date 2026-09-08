@@ -17,6 +17,7 @@
 #include <syscall/ipc.h>
 #include <sysinfo.h>
 #include <task.h>
+#include <task/process.h>
 #include <task/schedule.h>
 #include <task/struct.h>
 
@@ -32,7 +33,6 @@ static void cpu_task_init(struct cpu *cpu, struct task_mgr *task_mgr)
     init_spinlock(&cpu->lock);
     cpu->running_tasks = 0;
     init_list(&cpu->task_queue);
-    init_list(&cpu->blocked_queue);
 
     cpu->min_vrun_time = 0;
     cpu->total_weight  = 0;
@@ -82,7 +82,12 @@ void task_init(struct system_info *system_info, int max_tasks)
 
     struct cpu *cpu = get_curr_cpu_struct();
     set_cpu_struct(cpu);
+
     make_main_task(kstack_base, boot_info->stack_pages);
+
+    struct task *init = process_execute("init", IDLE_PRIO, 1, 1, NULL);
+    ASSERT(init->pid == 1);
+
     return;
 }
 
@@ -247,8 +252,9 @@ void init_task_struct(
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
 
-    task->status = TASK_READY;
-    atomic_set(&task->block_count, 0);
+    init_spinlock(&task->lock);
+    task->status        = TASK_READY;
+    task->block_count   = 0;
     task->preempt_count = 0;
     task->pg_dir        = 0;
 
