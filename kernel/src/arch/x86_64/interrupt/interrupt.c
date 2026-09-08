@@ -12,7 +12,7 @@
 
 enum intr_status intr_get_status(void)
 {
-    uint64_t flags = get_flags();
+    word_t flags = get_flags();
     return (flags & 0x00000200) ? INTR_ON : INTR_OFF;
 }
 

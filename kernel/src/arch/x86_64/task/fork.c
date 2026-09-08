@@ -43,6 +43,6 @@ int copy_process(struct task *dst, struct task *src)
 
     dst_kstack -= sizeof(*dst->context);
     dst->context      = (struct task_context *)dst_kstack;
-    dst->context->rdi = (uint64_t)dst_regs;
+    dst->context->rdi = (word_t)dst_regs;
     return 0;
 }

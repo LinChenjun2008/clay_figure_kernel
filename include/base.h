@@ -6,15 +6,17 @@
 #ifndef __BASE_H__
 #define __BASE_H__
 
+#define NULL ((void *)0)
+
 #define TRUE  (1 == 1)
 #define FALSE (1 == 0)
 
-#define OFFSET(CONTAINER_TYPE, MEMBER_NAME) \
+#define OFFSET_OF(CONTAINER_TYPE, MEMBER_NAME) \
     (uint64_t)(&((CONTAINER_TYPE *)0)->MEMBER_NAME)
 
 #define CONTAINER_OF(CONTAINER_TYPE, MEMBER_NAME, MEMBER_PTR) \
     ((CONTAINER_TYPE *)((uintptr_t)MEMBER_PTR -               \
-                        OFFSET(CONTAINER_TYPE, MEMBER_NAME)))
+                        OFFSET_OF(CONTAINER_TYPE, MEMBER_NAME)))
 
 #define GET_FIELD(X, FIELD) (((X) >> FIELD##_SHIFT) & FIELD##_MASK)
 #define SET_FIELD(X, FIELD, VALUE)              \
@@ -29,10 +31,6 @@
 
 #define ASMLINKAGE SYSV_ABI
 
-#ifndef STATIC_ASSERT
-#    define STATIC_ASSERT(CONDITION, MESSAGE) _Static_assert(CONDITION, MESSAGE)
-#endif
-
 #define DIV_ROUND_UP(X, STEP) (((X) + (STEP - 1)) / STEP)
 
 #define MAX(A, B) ((A) > (B) ? (A) : (B))
@@ -44,9 +42,7 @@
 
 #ifndef __ASSEMBLER__
 
-// std
-#    include <std/stddef.h>
-#    include <std/stdint.h>
+#    include <types.h>
 
 // structures
 #    include <mem/struct.h>
@@ -57,10 +53,10 @@ typedef unsigned short char16_t;
 
 struct graphic_info
 {
-    uintptr_t frame_buffer_base;
-    uint32_t  horizontal_resolution;
-    uint32_t  vertical_resolution;
-    uint32_t  pixel_per_scanline;
+    phys_addr_t frame_buffer_base;
+    uint32_t    horizontal_resolution;
+    uint32_t    vertical_resolution;
+    uint32_t    pixel_per_scanline;
 };
 
 struct memory_map
@@ -77,11 +73,11 @@ struct boot_info
     void  *initramfs;
     size_t initramfs_size;
 
-    void     *page_table_pos;
-    uintptr_t relocate_base;
+    phys_addr_t page_table_pos;
+    uintptr_t   relocate_base;
 
-    uintptr_t stack_base;
-    size_t    stack_pages;
+    phys_addr_t stack_base;
+    size_t      stack_pages;
 
     struct memory_map   memory_map;
     struct graphic_info graphic_info;

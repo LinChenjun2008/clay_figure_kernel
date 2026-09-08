@@ -12,12 +12,12 @@
 
 #include <mem.h>
 #include <mem/page.h>
-#include <print.h>
+#include <panic.h>
 #include <task.h>
 #include <task/process.h>
 #include <task/schedule.h>
 
-static void kernel_task(int (*func)(uint64_t), uint64_t arg)
+static void kernel_task(int (*func)(word_t), word_t arg)
 {
     intr_enable();
     int ret = func(arg);
@@ -31,11 +31,11 @@ static void kernel_process(void *file, void *arg)
 
     struct task *task = get_current_task();
 
-    ASSERT(task->pg_dir != NULL);
+    ASSERT(task->pg_dir != 0);
 
-    size_t ustack_size  = task->ustack_pages << PG_SIZE_SHIFT;
-    void  *ustack_vaddr = (void *)(USER_STACK_VADDR_TOP - ustack_size);
-    if (mm_allocate_address(ustack_vaddr, task->ustack_pages) == NULL)
+    size_t    ustack_size  = task->ustack_pages << PG_SIZE_SHIFT;
+    uintptr_t ustack_vaddr = USER_STACK_VADDR_TOP - ustack_size;
+    if (mm_allocate_address(ustack_vaddr, task->ustack_pages) == 0)
     {
         process_exit(-1);
     }
@@ -66,7 +66,7 @@ void create_task_context(struct task *task, void *func, void *arg)
 
     // switch_to使用的返回地址
     kstack -= sizeof(void *);
-    if (task->pg_dir == NULL && task->mm == NULL)
+    if (task->pg_dir == 0 && task->mm == NULL)
     {
         *(void **)kstack = kernel_task;
     }
@@ -79,14 +79,14 @@ void create_task_context(struct task *task, void *func, void *arg)
     kstack -= sizeof(*task->context);
     struct task_context *context = (struct task_context *)kstack;
     task->context                = context;
-    context->rsi                 = (uint64_t)arg;
-    context->rdi                 = (uint64_t)func;
+    context->rsi                 = (word_t)arg;
+    context->rdi                 = (word_t)func;
     return;
 }
 
 void arch_task_active(struct task *task)
 {
-    if (task->pg_dir != NULL)
+    if (task->pg_dir != 0)
     {
         update_tss_rsp0(task);
     }

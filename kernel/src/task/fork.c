@@ -11,7 +11,7 @@
 
 #include <mem.h>
 #include <mem/page.h>
-#include <print.h> // ASSERT
+#include <panic.h>
 #include <task.h>
 #include <task/fork.h>
 #include <task/schedule.h>
@@ -44,7 +44,7 @@ pid_t sys_fork(void)
     init_task_struct(fork, name, prio, kstack_base, kstack_pages, ustack_pages);
 
     fork->pg_dir = create_pg_dir();
-    if (fork->pg_dir == NULL)
+    if (fork->pg_dir == 0)
     {
         goto fail;
     }

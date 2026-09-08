@@ -44,17 +44,17 @@ efi_status_t get_memory_map(struct memory_map *memmap)
     return status;
 }
 
-static void page_map_sub(uint64_t *pg_dir, void *paddr, void *vaddr)
+static void page_map_sub(uint64_t *pg_dir, void *phys, void *virt)
 {
-    paddr = (void *)((uintptr_t)paddr & ~(PG_SIZE - 1));
-    vaddr = (void *)((uintptr_t)vaddr & ~(PG_SIZE - 1));
+    phys = (void *)((uintptr_t)phys & ~(PG_SIZE - 1));
+    virt = (void *)((uintptr_t)virt & ~(PG_SIZE - 1));
 
     uint64_t *pml4e;
     uint64_t *pdpt = NULL, *pdpte;
     uint64_t *pdt  = NULL, *pde;
     uint64_t *pt   = NULL, *pte;
 
-    pml4e = pg_dir + GET_FIELD((uintptr_t)vaddr, ADDR_PML4T_INDEX);
+    pml4e = pg_dir + GET_FIELD((uintptr_t)virt, ADDR_PML4T_INDEX);
 
     efi_status_t status;
     if (!(*pml4e & PG_P))
@@ -79,7 +79,7 @@ static void page_map_sub(uint64_t *pg_dir, void *paddr, void *vaddr)
     }
 
     pdpt  = (uint64_t *)(*pml4e & (~0xfff));
-    pdpte = pdpt + GET_FIELD((uintptr_t)vaddr, ADDR_PDPT_INDEX);
+    pdpte = pdpt + GET_FIELD((uintptr_t)virt, ADDR_PDPT_INDEX);
     if (!(*pdpte & PG_P))
     {
         status = boot_services->allocate_pages(
@@ -102,7 +102,7 @@ static void page_map_sub(uint64_t *pg_dir, void *paddr, void *vaddr)
     }
 
     pdt = (uint64_t *)(*pdpte & (~0xfff));
-    pde = pdt + GET_FIELD((uintptr_t)vaddr, ADDR_PDT_INDEX);
+    pde = pdt + GET_FIELD((uintptr_t)virt, ADDR_PDT_INDEX);
     if (!(*pde & PG_P))
     {
         status = boot_services->allocate_pages(
@@ -125,21 +125,21 @@ static void page_map_sub(uint64_t *pg_dir, void *paddr, void *vaddr)
     }
 
     pt   = (uint64_t *)(*pde & (~0xfff));
-    pte  = pt + GET_FIELD((uintptr_t)vaddr, ADDR_PT_INDEX);
-    *pte = (uintptr_t)paddr | PG_DEFAULT_FLAGS;
+    pte  = pt + GET_FIELD((uintptr_t)virt, ADDR_PT_INDEX);
+    *pte = (uintptr_t)phys | PG_DEFAULT_FLAGS;
     return;
 }
 
 static void
-boot_page_map(uint64_t *pg_dir, void *paddr, void *vaddr, uint64_t pages)
+boot_page_map(uint64_t *pg_dir, void *phys, void *virt, uint64_t pages)
 {
     uint64_t i;
     for (i = 0; i < pages; i++)
     {
         page_map_sub(
             pg_dir,
-            (void *)((uintptr_t)paddr + i * PG_SIZE),
-            (void *)((uintptr_t)vaddr + i * PG_SIZE)
+            (void *)((uintptr_t)phys + i * PG_SIZE),
+            (void *)((uintptr_t)virt + i * PG_SIZE)
         );
     }
 }
@@ -166,21 +166,21 @@ efi_status_t create_page_table(void *pg_dir)
 
     boot_services->set_mem(page_table_pos, PT_SIZE, 0);
 
-    uintptr_t *paddr, *vaddr;
+    uintptr_t *phys, *virt;
 
     // 0 - 4 GiB
-    paddr = (uintptr_t *)0;
-    vaddr = PHYS_TO_VIRT(paddr);
-    printf(L"mmap: %p - %p.\r\n", paddr, vaddr);
-    boot_page_map(page_table_pos, paddr, vaddr, 1 << 20);
-    boot_page_map(page_table_pos, paddr, paddr, 1 << 20);
+    phys = (uintptr_t *)0;
+    virt = PHYS_TO_VIRT(phys);
+    printf(L"mmap: %p - %p.\r\n", phys, virt);
+    boot_page_map(page_table_pos, phys, virt, 1 << 20);
+    boot_page_map(page_table_pos, phys, phys, 1 << 20);
 
     // frame buffer
-    paddr          = (void *)gop->mode->frame_buffer_base;
-    vaddr          = PHYS_TO_VIRT(paddr);
+    phys           = (void *)gop->mode->frame_buffer_base;
+    virt           = PHYS_TO_VIRT(phys);
     uint64_t pages = (gop->mode->frame_buffer_size + PG_SIZE - 1) / PG_SIZE;
-    printf(L"mmap: %p - %p.\r\n", paddr, vaddr);
-    boot_page_map(page_table_pos, paddr, vaddr, pages);
+    printf(L"mmap: %p - %p.\r\n", phys, virt);
+    boot_page_map(page_table_pos, phys, virt, pages);
 
     // kernel code
     printf(L"mmap: %p - %p.\r\n", 0, KERNEL_TEXT_BASE);

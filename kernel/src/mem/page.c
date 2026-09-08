@@ -8,6 +8,7 @@
 #include <efi.h>
 #include <mem/page.h>
 #include <mem/struct.h>
+#include <panic.h>
 #include <print.h>
 #include <sync/atomic.h>
 #include <sync/spinlock.h>
@@ -62,9 +63,9 @@ find_free_pages(struct page_mgr *page_mgr, struct memory_map *memmap)
 {
     enum mm_type curr_type = MAX_MM_TYPE;
 
-    uintptr_t curr_start = 0;
-    uint64_t  curr_pages = 0;
-    size_t    curr_pfn   = 0;
+    phys_addr_t curr_start = 0;
+    uint64_t    curr_pages = 0;
+    size_t      curr_pfn   = 0;
 
     struct efi_memory_descriptor *mem_desc = NULL;
 
@@ -260,7 +261,7 @@ size_t free_pages(void *addr, size_t pages)
     struct system_info *system_info = get_task_mgr()->system_info;
     struct page_mgr    *page_mgr    = system_info->page_mgr;
 
-    size_t pfn = ADDR_TO_PFN((uintptr_t)VIRT_TO_PHYS(addr));
+    size_t pfn = ADDR_TO_PFN(VIRT_TO_PHYS(addr));
 
     page_struct_lock(pfn);
     struct page *head_page = &page_mgr->pages[pfn];

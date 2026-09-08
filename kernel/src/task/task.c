@@ -10,6 +10,7 @@
 
 #include <mem/allocator.h>
 #include <mem/page.h>
+#include <panic.h>
 #include <print.h>
 #include <std/stdio.h>
 #include <std/string.h>
@@ -237,7 +238,7 @@ void init_task_struct(
     task->kstack_pages = kstack_pages;
 
     task->ustack_pages = ustack_pages;
-    task->ustack_sp    = NULL;
+    task->ustack_sp    = 0;
 
     task->cpu_id = get_current_task()->cpu_id;
 
@@ -249,7 +250,7 @@ void init_task_struct(
     task->status = TASK_READY;
     atomic_set(&task->block_count, 0);
     task->preempt_count = 0;
-    task->pg_dir        = NULL;
+    task->pg_dir        = 0;
 
     task->prio      = prio;
     task->run_time  = 0;

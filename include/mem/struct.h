@@ -68,7 +68,7 @@ struct page_struct
 {
     struct list_node node;
     size_t           pfn;
-    void            *virt;
+    uintptr_t        virt;
 };
 
 struct pg_struct

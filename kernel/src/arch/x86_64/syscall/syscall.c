@@ -40,23 +40,23 @@ void arch_syscall_enable(void)
 void syscall_entry(struct pt_regs *regs);
 void syscall_entry(struct pt_regs *regs)
 {
-    uint64_t func = regs->rdi;
+    word_t func = regs->rdi;
     if (func >= NR_CONT)
     {
         printk(MSG_WARN "syscall %#llx not supported.\n", func);
-        regs->rax = -1;
+        regs->rax = (word_t)-1;
         return;
     }
     if (syscall_table[func] == NULL)
     {
         printk(MSG_WARN "syscall %#llx not supported.\n", func);
-        regs->rax = -2;
+        regs->rax = (word_t)-2;
         return;
     }
 
-    int (*sys_func)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+    int (*sys_func)(word_t, word_t, word_t, word_t, word_t);
     sys_func  = syscall_table[func];
     int ret   = sys_func(regs->rsi, regs->rdx, regs->r10, regs->r8, regs->r9);
-    regs->rax = ret;
+    regs->rax = (word_t)ret;
     return;
 }

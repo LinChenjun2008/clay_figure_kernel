@@ -41,7 +41,10 @@ void timer_init(struct boot_info *boot_info)
     return;
 }
 
+// 1 ticks = 1 microsecond
 uint64_t get_ticks(void)
 {
-    return ticks;
+    uint64_t nsecond = get_nano_time();
+    uint64_t msecond = nsecond / 1000000;
+    return msecond;
 }

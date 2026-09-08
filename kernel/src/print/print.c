@@ -10,6 +10,7 @@
 #include <asm/utils/io.h>
 #include <asm/utils/panic.h>
 
+#include <panic.h>
 #include <print.h>
 #include <std/stdarg.h>
 #include <std/stdio.h>

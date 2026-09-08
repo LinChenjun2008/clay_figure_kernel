@@ -49,33 +49,33 @@ void (*irq_handler[INTR_CNT])(struct pt_regs *);
 
 static void print_registers(struct pt_regs *regs)
 {
-    uint64_t ds = regs->ds;
-    uint64_t es = regs->es;
-    uint64_t fs = regs->fs;
-    uint64_t gs = regs->gs;
+    word_t ds = regs->ds;
+    word_t es = regs->es;
+    word_t fs = regs->fs;
+    word_t gs = regs->gs;
 
-    uint64_t rax = regs->rax;
-    uint64_t rbx = regs->rbx;
-    uint64_t rcx = regs->rcx;
-    uint64_t rdx = regs->rdx;
-    uint64_t rbp = regs->rbp;
-    uint64_t rsi = regs->rsi;
-    uint64_t rdi = regs->rdi;
+    word_t rax = regs->rax;
+    word_t rbx = regs->rbx;
+    word_t rcx = regs->rcx;
+    word_t rdx = regs->rdx;
+    word_t rbp = regs->rbp;
+    word_t rsi = regs->rsi;
+    word_t rdi = regs->rdi;
 
-    uint64_t r8  = regs->r8;
-    uint64_t r9  = regs->r9;
-    uint64_t r10 = regs->r10;
-    uint64_t r11 = regs->r11;
-    uint64_t r12 = regs->r12;
-    uint64_t r13 = regs->r13;
-    uint64_t r14 = regs->r14;
-    uint64_t r15 = regs->r15;
+    word_t r8  = regs->r8;
+    word_t r9  = regs->r9;
+    word_t r10 = regs->r10;
+    word_t r11 = regs->r11;
+    word_t r12 = regs->r12;
+    word_t r13 = regs->r13;
+    word_t r14 = regs->r14;
+    word_t r15 = regs->r15;
 
-    uint64_t rip    = regs->rip;
-    uint64_t cs     = regs->cs;
-    uint64_t rflags = regs->rflags;
-    uint64_t rsp    = regs->rsp;
-    uint64_t ss     = regs->ss;
+    word_t rip    = regs->rip;
+    word_t cs     = regs->cs;
+    word_t rflags = regs->rflags;
+    word_t rsp    = regs->rsp;
+    word_t ss     = regs->ss;
 
     printk("Registers:\n");
     printk("RIP: " MSG_HIGHLIGHT("%04x:%016lx\n"), cs, rip);
@@ -130,8 +130,8 @@ void general_handler(struct pt_regs *regs)
     uint64_t second  = nsecond / 1000000000;
     uint64_t usecond = (nsecond / 1000) % 1000000;
 
-    uint64_t vector     = regs->int_vector;
-    uint64_t error_code = regs->error_code;
+    word_t vector     = regs->int_vector;
+    word_t error_code = regs->error_code;
 
     printk(MSG_ERR "Unexpected interrupt: " MSG_HIGHLIGHT("%#04x\n"), vector);
     printk(MSG_ERR "Time: " MSG_HIGHLIGHT("%u.%06u\n"), second, usecond);
@@ -146,7 +146,7 @@ void general_handler(struct pt_regs *regs)
         printk(MSG_ERR MSG_HIGHLIGHT("%s") ".\n", intr_name[vector]);
     }
 
-    if (get_current_task()->pg_dir == NULL)
+    if (get_current_task()->pg_dir == 0)
     {
         while (1) io_hlt();
     }
