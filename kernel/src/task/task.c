@@ -17,6 +17,7 @@
 #include <syscall/ipc.h>
 #include <sysinfo.h>
 #include <task.h>
+#include <task/process.h>
 #include <task/schedule.h>
 #include <task/struct.h>
 
@@ -32,28 +33,33 @@ static void cpu_task_init(struct cpu *cpu, struct task_mgr *task_mgr)
     init_spinlock(&cpu->lock);
     cpu->running_tasks = 0;
     init_list(&cpu->task_queue);
-    init_list(&cpu->blocked_queue);
 
     cpu->min_vrun_time = 0;
     cpu->total_weight  = 0;
     return;
 }
 
-void task_init(struct system_info *system_info, int max_tasks)
+static void init_task_table(struct task_table *task_table)
+{
+    init_spinlock(&task_table->lock);
+
+    size_t pid_map_size = (MAX_PID >> 3) * sizeof(uint8_t);
+    void  *map          = kmalloc(pid_map_size, 0, 0);
+    ASSERT(map != NULL);
+    init_bitmap(&task_table->pid_map, pid_map_size, map);
+
+    task_table->task_root.count = 0;
+    int i;
+    for (i = 0; i < SLOTS_PER_LEVEL; i++)
+    {
+        task_table->task_root.slots[i] = NULL;
+    }
+    task_table->last_pid = 0;
+}
+
+void task_init(struct system_info *system_info)
 {
     struct task_mgr *task_mgr = system_info->task_mgr;
-
-    void  *task_table      = NULL;
-    size_t task_table_size = sizeof(task_mgr->task_table[0]) * max_tasks;
-    task_table             = kmalloc(task_table_size, 0, 0);
-    ASSERT(task_table != NULL);
-    memset(task_table, 0, task_table_size);
-
-    void  *pid_table      = NULL;
-    size_t pid_table_size = sizeof(pid_t) * max_tasks;
-    pid_table             = kmalloc(pid_table_size, 0, 0);
-    ASSERT(pid_table != NULL);
-    memset(pid_table, 0, pid_table_size);
 
     struct cpu *cpus      = NULL;
     int         max_cpus  = apic_max_lapic_id() + 1;
@@ -64,10 +70,7 @@ void task_init(struct system_info *system_info, int max_tasks)
 
     struct boot_info *boot_info = system_info->boot_info;
 
-    init_spinlock(&task_mgr->lock);
-    task_mgr->task_table            = task_table;
-    task_mgr->pid_table             = pid_table;
-    task_mgr->max_tasks             = max_tasks;
+    init_task_table(&task_mgr->task_table);
     task_mgr->cpus                  = cpus;
     task_mgr->max_cpus              = max_cpus;
     task_mgr->kernel_page_table_pos = boot_info->page_table_pos;
@@ -77,12 +80,17 @@ void task_init(struct system_info *system_info, int max_tasks)
     {
         cpu_task_init(&task_mgr->cpus[i], task_mgr);
     }
-    printk("task_init: max_tasks=%d,max_cpu_id=%d.\n", max_tasks, max_cpus);
+    printk("task_init: max_cpu_id=%d.\n", max_cpus);
     uintptr_t kstack_base = (uintptr_t)PHYS_TO_VIRT(boot_info->stack_base);
 
     struct cpu *cpu = get_curr_cpu_struct();
     set_cpu_struct(cpu);
+
     make_main_task(kstack_base, boot_info->stack_pages);
+
+    struct task *init = process_execute("init", IDLE_PRIO, 1, 1, NULL);
+    ASSERT(init->pid == 1);
+
     return;
 }
 
@@ -120,84 +128,197 @@ struct task *get_current_task(void)
     return cpu->curr_task;
 }
 
-int check_pid_avaiability(pid_t pid)
-{
-    struct task_mgr *task_mgr = get_task_mgr();
-
-    pid_t   task_index = GET_FIELD(pid, PID_INDEX);
-    uint8_t count      = GET_FIELD(pid, PID_COUNT);
-
-    if (task_index < 0 || task_index >= task_mgr->max_tasks)
-    {
-        return 0;
-    }
-    if (task_mgr->pid_table[task_index] != count)
-    {
-        return 0;
-    }
-    return 1;
-}
-
 struct task *pid_to_task(pid_t pid)
 {
-    if (!check_pid_avaiability(pid))
+    if (pid <= 0)
     {
         return NULL;
     }
-    pid_t task_index = GET_FIELD(pid, PID_INDEX);
+    struct task *ret = NULL;
 
-    struct task_mgr *task_mgr = get_task_mgr();
-    return task_mgr->task_table[task_index];
-}
+    int slot_1 = GET_FIELD(pid, TASK_SLOT_L1);
+    int slot_2 = GET_FIELD(pid, TASK_SLOT_L2);
+    int slot_3 = GET_FIELD(pid, TASK_SLOT_L3);
 
-static pid_t allocate_pid(struct task_mgr *task_mgr, pid_t task_index)
-{
-    pid_t count = task_mgr->pid_table[task_index];
-    pid_t ret   = 0;
-    ret += SET_FIELD(0, PID_INDEX, task_index);
-    ret += SET_FIELD(0, PID_COUNT, count);
+    struct task_mgr   *task_mgr   = get_task_mgr();
+    struct task_table *task_table = &task_mgr->task_table;
+
+    spin_lock(&task_table->lock);
+
+    struct task_slots *slot = &task_table->task_root;
+    if (slot->slots[slot_1] == NULL)
+    {
+        goto end;
+    }
+    slot = slot->slots[slot_1];
+
+    if (slot->slots[slot_2] == NULL)
+    {
+        goto end;
+    }
+    slot = slot->slots[slot_2];
+
+    if (slot->slots[slot_3] == NULL)
+    {
+        goto end;
+    }
+    ret = slot->slots[slot_3];
+end:
+    spin_unlock(&task_table->lock);
+
     return ret;
 }
 
-static pid_t allocate_task_lock(struct task_mgr *task_mgr)
+int check_pid_avaiability(pid_t pid)
 {
+    return pid_to_task(pid) != NULL;
+}
+
+pid_t allocate_pid(void)
+{
+    struct task_mgr   *task_mgr   = get_task_mgr();
+    struct task_table *task_table = &task_mgr->task_table;
+    spin_lock(&task_table->lock);
+    int   ret = -1;
     pid_t i;
-    for (i = 0; i < task_mgr->max_tasks; i++)
+    for (i = task_table->last_pid + 1; i < MAX_PID; i++)
     {
-        if (task_mgr->task_table[i] == NULL)
+        if (bitmap_scan_test(&task_table->pid_map, i))
         {
+            continue;
+        }
+        ret = i;
+        break;
+    }
+    // 如果没找到,则从头查找
+    if (i == MAX_PID)
+    {
+        for (i = RESERVED_PIDS; i < task_table->last_pid; i++)
+        {
+            if (bitmap_scan_test(&task_table->pid_map, i))
+            {
+                continue;
+            }
+            ret = i;
             break;
         }
     }
-    if (i == task_mgr->max_tasks)
+    if (ret == -1)
     {
-        return -1;
-    };
-    task_mgr->task_table[i] = kmalloc(sizeof(*task_mgr->task_table[0]), 0, 0);
-    if (task_mgr->task_table[i] == NULL)
-    {
-        return -1;
+        goto end;
     }
-    return i;
+    bitmap_set(&task_table->pid_map, ret, 1, 1);
+    task_table->last_pid = ret;
+end:
+    spin_unlock(&task_table->lock);
+    return ret;
+}
+
+void release_pid(pid_t pid)
+{
+    struct task_mgr   *task_mgr   = get_task_mgr();
+    struct task_table *task_table = &task_mgr->task_table;
+    spin_lock(&task_table->lock);
+    ASSERT(bitmap_scan_test(&task_table->pid_map, pid));
+    bitmap_set(&task_table->pid_map, pid, 0, 1);
+    spin_unlock(&task_table->lock);
+    return;
+}
+
+int pid_table_insert(struct task *task)
+{
+    int   ret = -1;
+    pid_t pid = task->pid;
+
+    struct task_mgr   *task_mgr   = get_task_mgr();
+    struct task_table *task_table = &task_mgr->task_table;
+
+    spin_lock(&task_table->lock);
+    int slot_1 = GET_FIELD(pid, TASK_SLOT_L1);
+    int slot_2 = GET_FIELD(pid, TASK_SLOT_L2);
+    int slot_3 = GET_FIELD(pid, TASK_SLOT_L3);
+
+    struct task_slots *slot = &task_table->task_root;
+    if (slot->slots[slot_1] == NULL)
+    {
+        struct task_slots *new_slot = kmalloc(sizeof(*new_slot), 0, 0);
+        if (new_slot == NULL)
+        {
+            goto end;
+        }
+        memset(new_slot, 0, sizeof(*new_slot));
+        new_slot->count = 0;
+        slot->count++;
+        slot->slots[slot_1] = new_slot;
+    }
+    slot = slot->slots[slot_1];
+
+    if (slot->slots[slot_2] == NULL)
+    {
+        struct task_slots *new_slot = kmalloc(sizeof(*new_slot), 0, 0);
+        if (new_slot == NULL)
+        {
+            goto end;
+        }
+        memset(new_slot, 0, sizeof(*new_slot));
+        new_slot->count = 0;
+        slot->count++;
+        slot->slots[slot_2] = new_slot;
+    }
+    slot = slot->slots[slot_2];
+
+    ASSERT(slot->slots[slot_3] == NULL);
+    ASSERT(slot->count < SLOTS_PER_LEVEL);
+
+    slot->slots[slot_3] = task;
+    slot->count++;
+    ret = 0;
+end:
+    spin_unlock(&task_table->lock);
+    return ret;
+}
+
+void pid_table_remove(struct task *task)
+{
+    pid_t pid    = task->pid;
+    int   slot_1 = GET_FIELD(pid, TASK_SLOT_L1);
+    int   slot_2 = GET_FIELD(pid, TASK_SLOT_L2);
+    int   slot_3 = GET_FIELD(pid, TASK_SLOT_L3);
+
+    struct task_mgr   *task_mgr   = get_task_mgr();
+    struct task_table *task_table = &task_mgr->task_table;
+
+    spin_lock(&task_table->lock);
+
+    struct task_slots *slots_1, *slots_2, *slots_3;
+    slots_1 = &task_table->task_root;
+    slots_2 = slots_1->slots[slot_1];
+    slots_3 = slots_2->slots[slot_2];
+    ASSERT(slots_3->slots[slot_3] == task);
+    slots_3->slots[slot_3] = NULL;
+    slots_3->count--;
+    if (slots_3->count == 0)
+    {
+        kfree(slots_3);
+        slots_2->slots[slot_2] = NULL;
+        slots_2->count--;
+    }
+    if (slots_2->count == 0)
+    {
+        kfree(slots_2);
+        slots_1->slots[slot_1] = NULL;
+        slots_1->count--;
+    }
+
+    spin_unlock(&task_table->lock);
+    return;
 }
 
 struct task *allocate_task_struct(void)
 {
-    struct task_mgr *task_mgr = get_task_mgr();
-
-    spin_lock(&task_mgr->lock);
-    pid_t index = allocate_task_lock(task_mgr);
-    pid_t pid   = allocate_pid(task_mgr, index);
-    spin_unlock(&task_mgr->lock);
-
-    if (index == -1)
-    {
-        return NULL;
-    }
-    struct task *task = NULL;
-    task              = pid_to_task(pid);
+    struct task *task = kmalloc(sizeof(*task), 0, 0);
     memset(task, 0, sizeof(*task));
-    task->pid = pid;
+
     return task;
 }
 
@@ -207,20 +328,8 @@ void destory_task_struct(struct task *task)
     {
         return;
     }
-    struct task_mgr *task_mgr = get_task_mgr();
-
-    pid_t pid        = task->pid;
-    pid_t task_index = GET_FIELD(pid, PID_INDEX);
-
-    if (!check_pid_avaiability(pid))
-    {
-        return;
-    }
-    spin_lock(&task_mgr->lock);
     kfree(task);
-    task_mgr->pid_table[task_index]++;
-    task_mgr->task_table[task_index] = NULL;
-    spin_unlock(&task_mgr->lock);
+
     return;
 }
 
@@ -233,6 +342,7 @@ void init_task_struct(
     size_t       ustack_pages
 )
 {
+    memset(task, 0, sizeof(*task));
     task->context      = (void *)(kstack_base + kstack_pages * PG_SIZE);
     task->kstack_base  = kstack_base;
     task->kstack_pages = kstack_pages;
@@ -240,15 +350,17 @@ void init_task_struct(
     task->ustack_pages = ustack_pages;
     task->ustack_sp    = 0;
 
-    task->cpu_id = get_current_task()->cpu_id;
+    task->cpu_id = 0;
 
-    task->ppid = get_current_task()->pid;
+    task->pid  = 0;
+    task->ppid = 0;
 
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
 
-    task->status = TASK_READY;
-    atomic_set(&task->block_count, 0);
+    init_spinlock(&task->lock);
+    task->status        = TASK_READY;
+    task->block_count   = 0;
     task->preempt_count = 0;
     task->pg_dir        = 0;
 
@@ -258,10 +370,11 @@ void init_task_struct(
 
     task->mm = NULL;
 
-    atomic_set(&task->childs, 0);
     task->return_status = 0;
+
+    init_spinlock(&task->childs_lock);
+    init_list(&task->childs_list);
     init_list(&task->exited_childs);
-    init_spinlock(&task->exited_lock);
 
     init_mailbox(&task->mailbox);
 
@@ -285,7 +398,8 @@ struct task *task_start(
     {
         return NULL;
     }
-    ASSERT(task->kstack_base == 0 && task->kstack_pages == 0);
+    task->kstack_base  = 0;
+    task->kstack_pages = 0;
 
     uintptr_t kstack_base = (uintptr_t)allocate_pages(kstack_pages);
     if (kstack_base == 0)
@@ -295,7 +409,22 @@ struct task *task_start(
     init_task_struct(task, name, prio, kstack_base, kstack_pages, 0);
     create_task_context(task, func, arg);
 
-    atomic_inc(&get_current_task()->childs);
+    task->pid = allocate_pid();
+    if (task->pid == -1)
+    {
+        goto fail;
+    }
+    task->ppid = get_current_task()->pid;
+    if (pid_table_insert(task) < 0)
+    {
+        release_pid(task->pid);
+        goto fail;
+    }
+
+    struct task *curr = get_current_task();
+    spin_lock(&curr->childs_lock);
+    list_append(&curr->childs_list, &task->parent_node);
+    spin_unlock(&curr->childs_lock);
 
     cpu_task_enqueue(task);
     return task;

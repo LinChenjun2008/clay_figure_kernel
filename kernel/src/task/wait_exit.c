@@ -13,45 +13,31 @@
 #include <task/schedule.h>
 #include <task/wait.h>
 
-static void main_adopt_childs(struct task *task)
+static void init_adopt_childs(struct task *task)
 {
-    struct task *main_task = get_cpu_struct(task->cpu_id)->main_task;
-    if (main_task == NULL || main_task == task)
-    {
-        return;
-    }
-    struct task_mgr *task_mgr = get_task_mgr();
 
-    spin_lock(&task_mgr->lock);
-    int i;
-    for (i = 0; i < task_mgr->max_tasks; i++)
-    {
-        struct task *child = task_mgr->task_table[i];
-        if (child == NULL)
-        {
-            continue;
-        }
-        if (child->ppid != task->pid)
-        {
-            continue;
-        }
-        child->ppid = main_task->pid;
-    }
-    spin_unlock(&task_mgr->lock);
+    struct task *init_task = pid_to_task(1);
+    ASSERT(init_task != NULL && init_task != task);
 
-    spin_lock_double(&task->exited_lock, &main_task->exited_lock);
+    spin_lock_double(&task->childs_lock, &init_task->childs_lock);
+    while (!list_empty(&task->childs_list))
+    {
+        struct list_node *node  = list_pop(&task->childs_list);
+        struct task      *child = CONTAINER_OF(struct task, parent_node, node);
+        child->ppid             = 1;
+
+        list_append(&init_task->childs_list, node);
+    }
     while (!list_empty(&task->exited_childs))
     {
         struct list_node *node  = list_pop(&task->exited_childs);
         struct task      *child = CONTAINER_OF(struct task, general_node, node);
-        child->ppid             = main_task->pid;
+        child->ppid             = 1;
 
-        list_append(&main_task->exited_childs, node);
+        list_append(&init_task->exited_childs, node);
     }
-    spin_unlock_double(&task->exited_lock, &main_task->exited_lock);
+    spin_unlock_double(&task->childs_lock, &init_task->childs_lock);
 
-    atomic_add(&main_task->childs, atomic_read(&task->childs));
-    atomic_set(&task->childs, 0);
     return;
 }
 
@@ -63,7 +49,7 @@ void task_exit(int return_value)
 
     task->return_status = return_value;
 
-    main_adopt_childs(task);
+    init_adopt_childs(task);
 
     mailbox_cleanup(task);
 
@@ -73,9 +59,9 @@ void task_exit(int return_value)
 
 static size_t exited_childs(struct task *task)
 {
-    spin_lock(&task->exited_lock);
+    spin_lock(&task->childs_lock);
     size_t exited_childs = list_len(&task->exited_childs);
-    spin_unlock(&task->exited_lock);
+    spin_unlock(&task->childs_lock);
     return exited_childs;
 }
 
@@ -88,12 +74,19 @@ static int find_child(struct list_node *node, void *arg)
 
 int task_release_resources(struct task *task)
 {
+    pid_table_remove(task);
+    release_pid(task->pid);
+
     struct task *parent_task = pid_to_task(task->ppid);
     ASSERT(get_current_task() == parent_task);
 
     free_pages((void *)task->kstack_base, task->kstack_pages);
     int ret = task->return_status;
-    atomic_dec(&parent_task->childs);
+
+    spin_lock(&parent_task->childs_lock);
+    list_remove(&task->parent_node);
+    spin_unlock(&parent_task->childs_lock);
+
     destory_task_struct(task);
     return ret;
 }
@@ -111,7 +104,10 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
     }
     struct task *task = get_current_task();
 
-    if (atomic_read(&task->childs) == 0)
+    spin_lock(&task->childs_lock);
+    int childs = list_len(&task->childs_list);
+    spin_unlock(&task->childs_lock);
+    if (childs == 0)
     {
         return -1;
     }
@@ -130,15 +126,15 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
     // any task
     if (pid == PID_ANY)
     {
-        spin_lock(&task->exited_lock);
+        spin_lock(&task->childs_lock);
         node = list_pop(&task->exited_childs);
-        spin_unlock(&task->exited_lock);
+        spin_unlock(&task->childs_lock);
     }
     else
     {
-        spin_lock(&task->exited_lock);
+        spin_lock(&task->childs_lock);
         node = list_traversal_remove(&task->exited_childs, find_child, &pid);
-        spin_unlock(&task->exited_lock);
+        spin_unlock(&task->childs_lock);
 
         if (node == NULL)
         {

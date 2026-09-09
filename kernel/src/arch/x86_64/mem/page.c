@@ -223,23 +223,23 @@ void free_pg_table(phys_addr_t pg_dir)
 
 void ASMLINKAGE arch_flush_tlb(void *addr);
 
-static int page_lazy_allocate(struct task *task, uintptr_t fault_address)
+static int page_lazy_allocate(struct task *task, uintptr_t fault_page)
 {
     phys_addr_t phy_page = mm_allocate_a_page();
     if (phy_page == 0)
     {
         return -1;
     }
-    mm_map(task, phy_page, fault_address);
-    arch_flush_tlb((void *)fault_address);
+    mm_map(task, phy_page, fault_page);
+    arch_flush_tlb((void *)fault_page);
     return 0;
 }
 
-static int page_copy_on_write(struct task *task, uintptr_t fault_address)
+static int page_copy_on_write(struct task *task, uintptr_t fault_page)
 {
     struct mm_struct *mm = task->mm;
 
-    phys_addr_t cow_page = to_physical_address(task->pg_dir, fault_address);
+    phys_addr_t cow_page = to_physical_address(task->pg_dir, fault_page);
     // cow页已经映射,不可能为NULL
     if (cow_page == 0)
     {
@@ -257,10 +257,10 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_address)
 
     if (ref_count == 1)
     {
-        free_table_remove(&mm->vm_map.copy_on_write, fault_address, PG_SIZE);
-        free_table_add(&mm->vm_map.mapped, fault_address, PG_SIZE);
-        set_page_flags(task->pg_dir, fault_address, PG_USER_FLAGS);
-        arch_flush_tlb((void *)fault_address);
+        free_table_remove(&mm->vm_map.copy_on_write, fault_page, PG_SIZE);
+        free_table_add(&mm->vm_map.mapped, fault_page, PG_SIZE);
+        set_page_flags(task->pg_dir, fault_page, PG_USER_FLAGS);
+        arch_flush_tlb((void *)fault_page);
     }
     else
     {
@@ -272,15 +272,15 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_address)
         }
         memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);
         // 从cow中移除,转入unmapped表,由mm_map重新映射
-        free_table_remove(&mm->vm_map.copy_on_write, fault_address, PG_SIZE);
-        free_table_add(&mm->vm_map.unmapped, fault_address, PG_SIZE);
-        mm_map(task, new_page, fault_address);
+        free_table_remove(&mm->vm_map.copy_on_write, fault_page, PG_SIZE);
+        free_table_add(&mm->vm_map.unmapped, fault_page, PG_SIZE);
+        mm_map(task, new_page, fault_page);
 
         // 减少引用,并从pg_struct链表中移除
         // 因为此时cow_page已经不属于当前任务了.
         page_reference_dec_lock(cow_pfn);
         mm_remove_a_page(cow_page);
-        arch_flush_tlb((void *)fault_address);
+        arch_flush_tlb((void *)fault_page);
     }
 fail:
     page_struct_unlock(cow_pfn);
@@ -298,10 +298,10 @@ void page_faule(struct pt_regs *regs)
         general_handler(regs);
     }
 
-    uintptr_t fault_address = get_cr2() & ~(PG_SIZE - 1);
+    uintptr_t fault_page = get_cr2() & ~(PG_SIZE - 1);
 
-    int unmapped = free_table_find(&mm->vm_map.unmapped, fault_address);
-    int cow      = free_table_find(&mm->vm_map.copy_on_write, fault_address);
+    int unmapped = free_table_find(&mm->vm_map.unmapped, fault_page);
+    int cow      = free_table_find(&mm->vm_map.copy_on_write, fault_page);
 
     // 访问非法地址触发异常
     if (!unmapped && !cow)
@@ -311,7 +311,7 @@ void page_faule(struct pt_regs *regs)
 
     if (unmapped)
     {
-        if (page_lazy_allocate(task, fault_address) < 0)
+        if (page_lazy_allocate(task, fault_page) < 0)
         {
             general_handler(regs);
         }
@@ -323,7 +323,7 @@ void page_faule(struct pt_regs *regs)
         {
             general_handler(regs);
         }
-        if (page_copy_on_write(task, fault_address) < 0)
+        if (page_copy_on_write(task, fault_page) < 0)
         {
             general_handler(regs);
         }

@@ -36,7 +36,8 @@ struct task *process_execute(
     {
         return NULL;
     }
-    ASSERT(task->kstack_base == 0 && task->kstack_pages == 0);
+    task->kstack_base  = 0;
+    task->kstack_pages = 0;
 
     uintptr_t kstack_base = (uintptr_t)allocate_pages(kstack_pages);
     if (kstack_base == 0)
@@ -74,7 +75,23 @@ struct task *process_execute(
     }
 
     create_task_context(task, fp, arg);
-    atomic_inc(&get_current_task()->childs);
+
+    task->pid = allocate_pid();
+    if (task->pid == -1)
+    {
+        goto fail;
+    }
+    task->ppid = get_current_task()->pid;
+    if (pid_table_insert(task) < 0)
+    {
+        release_pid(task->pid);
+        goto fail;
+    }
+
+    struct task *curr = get_current_task();
+    spin_lock(&curr->childs_lock);
+    list_append(&curr->childs_list, &task->parent_node);
+    spin_unlock(&curr->childs_lock);
 
     cpu_task_enqueue(task);
     return task;

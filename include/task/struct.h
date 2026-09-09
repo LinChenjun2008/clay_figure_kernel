@@ -10,19 +10,32 @@
 
 #    include <asm/ptrace.h>
 
+#    include <lib/bitmap.h>
 #    include <lib/linked_list.h>
 #    include <sync/atomic.h>
 #    include <sync/spinlock.h>
 
-typedef int32_t pid_t;
+#    define SLOTS_PER_LEVEL 256
+
+// task_slots共三层,L1,L2中slots存储task_slots,L3中slots[]存储任务指针.
+struct task_slots
+{
+    void *slots[SLOTS_PER_LEVEL];
+    int   count;
+};
+
+struct task_table
+{
+    struct spinlock   lock;
+    struct bitmap     pid_map;   // 分配pid的位图
+    struct task_slots task_root; // task_slots L1层
+    pid_t             last_pid;  // 上一个分配的pid.
+};
 
 struct task_mgr
 {
     struct system_info *system_info;
-    struct spinlock     lock;
-    struct task       **task_table;
-    uint8_t            *pid_table;
-    int                 max_tasks;
+    struct task_table   task_table;
     struct cpu         *cpus;
     int                 max_cpus;
     phys_addr_t         kernel_page_table_pos;
@@ -39,7 +52,6 @@ struct cpu
     struct spinlock lock;
     size_t          running_tasks;
     struct list     task_queue;
-    struct list     blocked_queue;
 
     uint64_t min_vrun_time;
     uint64_t total_weight;
@@ -105,8 +117,9 @@ struct task
 
     char name[32];
 
+    struct spinlock           lock;
     volatile enum task_status status;
-    struct atomic             block_count;
+    uint64_t                  block_count;
     uint64_t                  preempt_count;
     phys_addr_t               pg_dir;
     struct list_node          general_node;
@@ -118,10 +131,12 @@ struct task
 
     struct mm_struct *mm;
 
-    struct atomic   childs;
-    int             return_status;
-    struct list     exited_childs;
-    struct spinlock exited_lock;
+    int return_status;
+
+    struct spinlock  childs_lock;
+    struct list      childs_list;
+    struct list      exited_childs;
+    struct list_node parent_node;
 
     struct mailbox mailbox;
 };

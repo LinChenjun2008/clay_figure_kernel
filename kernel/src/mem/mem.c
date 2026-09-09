@@ -111,6 +111,10 @@ static int copy_pg_struct(struct task *dst, struct task *src)
 
 static void destory_pg_struct(struct pg_struct *pg)
 {
+    if (pg == NULL)
+    {
+        return;
+    }
     // free physical pages
     size_t i;
     size_t page_struct_count = list_len(&pg->list);
@@ -160,6 +164,10 @@ int copy_mm_struct(struct task *dst, struct task *src)
 
 void destory_mm_struct(struct mm_struct *mm)
 {
+    if (mm == NULL)
+    {
+        return;
+    }
     destory_vm_struct(&mm->vm_map);
     destory_pg_struct(&mm->pg_map);
     kfree(mm);
