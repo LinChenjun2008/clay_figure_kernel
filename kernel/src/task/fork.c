@@ -31,7 +31,8 @@ pid_t sys_fork(void)
     {
         return -1;
     }
-    ASSERT(fork->kstack_base == 0 && fork->kstack_pages == 0);
+    fork->kstack_base  = 0;
+    fork->kstack_pages = 0;
 
     size_t ustack_pages = curr->ustack_pages;
 
@@ -58,11 +59,23 @@ pid_t sys_fork(void)
     {
         goto fail;
     }
-    atomic_inc(&curr->childs);
 
-    fork->pid  = allocate_pid();
+    fork->pid = allocate_pid();
+    if (fork->pid == -1)
+    {
+        goto fail;
+    }
     fork->ppid = curr->pid;
-    pid_table_insert(fork);
+    if (pid_table_insert(fork) < 0)
+    {
+        release_pid(fork->pid);
+        goto fail;
+    }
+
+    spin_lock(&curr->childs_lock);
+    list_append(&curr->childs_list, &fork->parent_node);
+    spin_unlock(&curr->childs_lock);
+
     cpu_task_enqueue(fork);
     return fork->pid;
 

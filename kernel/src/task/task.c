@@ -130,6 +130,10 @@ struct task *get_current_task(void)
 
 struct task *pid_to_task(pid_t pid)
 {
+    if (pid <= 0)
+    {
+        return NULL;
+    }
     struct task *ret = NULL;
 
     int slot_1 = GET_FIELD(pid, TASK_SLOT_L1);
@@ -313,6 +317,8 @@ void pid_table_remove(struct task *task)
 struct task *allocate_task_struct(void)
 {
     struct task *task = kmalloc(sizeof(*task), 0, 0);
+    memset(task, 0, sizeof(*task));
+
     return task;
 }
 
@@ -364,10 +370,11 @@ void init_task_struct(
 
     task->mm = NULL;
 
-    atomic_set(&task->childs, 0);
     task->return_status = 0;
+
+    init_spinlock(&task->childs_lock);
+    init_list(&task->childs_list);
     init_list(&task->exited_childs);
-    init_spinlock(&task->exited_lock);
 
     init_mailbox(&task->mailbox);
 
@@ -391,7 +398,8 @@ struct task *task_start(
     {
         return NULL;
     }
-    ASSERT(task->kstack_base == 0 && task->kstack_pages == 0);
+    task->kstack_base  = 0;
+    task->kstack_pages = 0;
 
     uintptr_t kstack_base = (uintptr_t)allocate_pages(kstack_pages);
     if (kstack_base == 0)
@@ -401,11 +409,23 @@ struct task *task_start(
     init_task_struct(task, name, prio, kstack_base, kstack_pages, 0);
     create_task_context(task, func, arg);
 
-    atomic_inc(&get_current_task()->childs);
-
-    task->pid  = allocate_pid();
+    task->pid = allocate_pid();
+    if (task->pid == -1)
+    {
+        goto fail;
+    }
     task->ppid = get_current_task()->pid;
-    pid_table_insert(task);
+    if (pid_table_insert(task) < 0)
+    {
+        release_pid(task->pid);
+        goto fail;
+    }
+
+    struct task *curr = get_current_task();
+    spin_lock(&curr->childs_lock);
+    list_append(&curr->childs_list, &task->parent_node);
+    spin_unlock(&curr->childs_lock);
+
     cpu_task_enqueue(task);
     return task;
 

@@ -131,10 +131,12 @@ struct task
 
     struct mm_struct *mm;
 
-    struct atomic   childs;
-    int             return_status;
-    struct list     exited_childs;
-    struct spinlock exited_lock;
+    int return_status;
+
+    struct spinlock  childs_lock;
+    struct list      childs_list;
+    struct list      exited_childs;
+    struct list_node parent_node;
 
     struct mailbox mailbox;
 };

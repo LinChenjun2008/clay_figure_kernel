@@ -207,11 +207,21 @@ static void task_active(struct task *curr, struct task *next)
 
 static void inform_exit(struct task *task)
 {
-    struct task *parent_task = pid_to_task(task->ppid);
+    struct task *parent_task = NULL;
 
-    spin_lock(&parent_task->exited_lock);
-    list_append(&parent_task->exited_childs, &task->general_node);
-    spin_unlock(&parent_task->exited_lock);
+    int need_retry = 1;
+    do
+    {
+        parent_task = pid_to_task(task->ppid);
+
+        spin_lock(&parent_task->childs_lock);
+        if (list_find(&parent_task->childs_list, &task->parent_node))
+        {
+            list_append(&parent_task->exited_childs, &task->general_node);
+            need_retry = 0;
+        }
+        spin_unlock(&parent_task->childs_lock);
+    } while (need_retry);
 
     task_unblock(parent_task->pid);
     return;
