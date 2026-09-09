@@ -15,27 +15,43 @@
 
 static void init_adopt_childs(struct task *task)
 {
-    struct task_mgr *task_mgr = get_task_mgr();
+    struct task_mgr   *task_mgr   = get_task_mgr();
+    struct task_table *task_table = &task_mgr->task_table;
 
     struct task *init_task = pid_to_task(1);
-    ASSERT(init_task != NULL || init_task != task);
+    ASSERT(init_task != NULL && init_task != task);
 
-    spin_lock(&task_mgr->lock);
-    int i;
-    for (i = 0; i < task_mgr->max_tasks; i++)
+    spin_lock(&task_table->lock);
+    int                slot_1, slot_2, slot_3;
+    struct task_slots *slots_1, *slots_2, *slots_3;
+
+    slots_1 = &task_table->task_root;
+    for (slot_1 = 0; slot_1 < SLOTS_PER_LEVEL; slot_1++)
     {
-        struct task *child = task_mgr->task_table[i];
-        if (child == NULL)
+        slots_2 = slots_1->slots[slot_1];
+        if (slots_2 == NULL)
         {
             continue;
         }
-        if (child->ppid != task->pid)
+        for (slot_2 = 0; slot_2 < SLOTS_PER_LEVEL; slot_2++)
         {
-            continue;
+            slots_3 = slots_2->slots[slot_2];
+            if (slots_3 == NULL)
+            {
+                continue;
+            }
+            for (slot_3 = 0; slot_3 < SLOTS_PER_LEVEL; slot_3++)
+            {
+                struct task *child = slots_3->slots[slot_3];
+                if (child == NULL || child->ppid != task->pid)
+                {
+                    continue;
+                }
+                child->ppid = 1;
+            }
         }
-        child->ppid = init_task->pid;
     }
-    spin_unlock(&task_mgr->lock);
+    spin_unlock(&task_table->lock);
 
     spin_lock_double(&task->exited_lock, &init_task->exited_lock);
     while (!list_empty(&task->exited_childs))

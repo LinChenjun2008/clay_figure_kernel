@@ -46,7 +46,7 @@ void init_all(struct system_info *system_info)
     mem_init(system_info);
 
     printk(MSG_INFO MSG_HIGHLIGHT("Task management") " initializing...\n");
-    task_init(system_info, MAX_TASKS);
+    task_init(system_info);
 
     printk(MSG_INFO MSG_HIGHLIGHT("System call") " initializing...\n");
     syscall_init();

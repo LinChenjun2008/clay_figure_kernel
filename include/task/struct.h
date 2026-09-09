@@ -10,19 +10,32 @@
 
 #    include <asm/ptrace.h>
 
+#    include <lib/bitmap.h>
 #    include <lib/linked_list.h>
 #    include <sync/atomic.h>
 #    include <sync/spinlock.h>
 
-typedef int32_t pid_t;
+#    define SLOTS_PER_LEVEL 256
+
+// task_slots共三层,L1,L2中slots存储task_slots,L3中slots[]存储任务指针.
+struct task_slots
+{
+    void *slots[SLOTS_PER_LEVEL];
+    int   count;
+};
+
+struct task_table
+{
+    struct spinlock   lock;
+    struct bitmap     pid_map;   // 分配pid的位图
+    struct task_slots task_root; // task_slots L1层
+    pid_t             last_pid;  // 上一个分配的pid.
+};
 
 struct task_mgr
 {
     struct system_info *system_info;
-    struct spinlock     lock;
-    struct task       **task_table;
-    uint8_t            *pid_table;
-    int                 max_tasks;
+    struct task_table   task_table;
     struct cpu         *cpus;
     int                 max_cpus;
     phys_addr_t         kernel_page_table_pos;

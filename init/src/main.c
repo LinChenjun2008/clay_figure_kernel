@@ -10,7 +10,7 @@ int main(void)
 {
     while (1)
     {
-        waitpid(-1, (void *)0, 1);
+        wait(-1, (void *)0);
     }
     return 0;
 }
