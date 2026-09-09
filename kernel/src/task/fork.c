@@ -59,6 +59,10 @@ pid_t sys_fork(void)
         goto fail;
     }
     atomic_inc(&curr->childs);
+
+    fork->pid  = allocate_pid();
+    fork->ppid = curr->pid;
+    pid_table_insert(fork);
     cpu_task_enqueue(fork);
     return fork->pid;
 

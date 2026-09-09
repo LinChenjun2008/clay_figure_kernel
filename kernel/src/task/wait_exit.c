@@ -102,6 +102,9 @@ static int find_child(struct list_node *node, void *arg)
 
 int task_release_resources(struct task *task)
 {
+    pid_table_remove(task);
+    release_pid(task->pid);
+
     struct task *parent_task = pid_to_task(task->ppid);
     ASSERT(get_current_task() == parent_task);
 

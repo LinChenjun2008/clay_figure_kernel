@@ -51,8 +51,12 @@ void make_main_task(uintptr_t stack_base, size_t stack_pages);
 void         set_current_task(struct task *task);
 struct task *get_current_task(void);
 
-int          check_pid_avaiability(pid_t pid);
 struct task *pid_to_task(pid_t pid);
+int          check_pid_avaiability(pid_t pid);
+pid_t        allocate_pid(void);
+void         release_pid(pid_t pid);
+int          pid_table_insert(struct task *task);
+void         pid_table_remove(struct task *task);
 struct task *allocate_task_struct(void);
 void         destory_task_struct(struct task *task);
 

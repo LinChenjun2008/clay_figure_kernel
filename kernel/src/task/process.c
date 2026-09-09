@@ -76,6 +76,9 @@ struct task *process_execute(
     create_task_context(task, fp, arg);
     atomic_inc(&get_current_task()->childs);
 
+    task->pid  = allocate_pid();
+    task->ppid = get_current_task()->pid;
+    pid_table_insert(task);
     cpu_task_enqueue(task);
     return task;
 
