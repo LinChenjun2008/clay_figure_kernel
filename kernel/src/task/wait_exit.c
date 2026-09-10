@@ -23,16 +23,22 @@ void init_adopt_childs(struct task *task)
     {
         struct list_node *node  = list_pop(&task->childs_list);
         struct task      *child = CONTAINER_OF(struct task, parent_node, node);
-        child->ppid             = 1;
-
+        if (child == init_task)
+        {
+            continue;
+        }
+        child->ppid = 1;
         list_append(&init_task->childs_list, node);
     }
     while (!list_empty(&task->exited_childs))
     {
         struct list_node *node  = list_pop(&task->exited_childs);
         struct task      *child = CONTAINER_OF(struct task, general_node, node);
-        child->ppid             = 1;
-
+        if (child == init_task)
+        {
+            continue;
+        }
+        child->ppid = 1;
         list_append(&init_task->exited_childs, node);
     }
     spin_unlock_double(&task->childs_lock, &init_task->childs_lock);
