@@ -76,6 +76,5 @@ struct task *task_start(
     void       *arg
 );
 void task_exit(int return_value);
-int  task_release_resources(struct task *task);
 
 #endif /* __TASK_H__ */

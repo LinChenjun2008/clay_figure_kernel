@@ -9,6 +9,7 @@
 // waitpid
 #define WNOHANG 1
 
+void  init_adopt_childs(struct task *task);
 pid_t task_waitpid(pid_t pid, int *status, int options);
 
 #endif /* __TASK_WAIT_H__ */

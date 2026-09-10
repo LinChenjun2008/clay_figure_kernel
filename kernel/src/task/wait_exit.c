@@ -13,9 +13,8 @@
 #include <task/schedule.h>
 #include <task/wait.h>
 
-static void init_adopt_childs(struct task *task)
+void init_adopt_childs(struct task *task)
 {
-
     struct task *init_task = pid_to_task(1);
     ASSERT(init_task != NULL && init_task != task);
 
@@ -72,7 +71,7 @@ static int find_child(struct list_node *node, void *arg)
     return task->pid == *(pid_t *)arg;
 }
 
-int task_release_resources(struct task *task)
+static int task_release_resources(struct task *task)
 {
     pid_table_remove(task);
     release_pid(task->pid);
