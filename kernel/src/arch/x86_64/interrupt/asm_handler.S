@@ -57,6 +57,10 @@ save_all:
 .global intr_exit
 .type intr_exit,@function
 intr_exit:
+
+    leaq softirq_handler(%rip), %rax
+    callq *%rax
+
     popq %rax
     movw %ax, %ds
     popq %rax

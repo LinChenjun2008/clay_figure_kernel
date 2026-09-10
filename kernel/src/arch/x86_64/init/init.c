@@ -16,6 +16,7 @@
 
 #include <mem.h>
 #include <print.h>
+#include <softirq.h>
 #include <syscall.h>
 #include <sysinfo.h>
 #include <task.h>
@@ -39,6 +40,7 @@ void init_all(struct system_info *system_info)
 
     printk(MSG_INFO MSG_HIGHLIGHT("Interrupt") " initializing...\n");
     intr_init();
+    softirq_init();
 
     printk(MSG_INFO MSG_HIGHLIGHT("Timer") " initializing...\n");
     timer_init(boot_info);
