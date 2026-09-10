@@ -10,15 +10,22 @@
 #include <asm/drivers/timer.h>
 #include <asm/intr/handler.h>
 
+#include <softirq.h>
 #include <sysinfo.h>
 #include <task/schedule.h>
 
 static uint64_t ticks = 0;
 
+static void timer_softirq(void)
+{
+    ticks++;
+    return;
+}
+
 static void timer()
 {
     send_eoi();
-    ticks++;
+    raise_softirq(TIMER_SOFTIRQ);
     return;
 }
 
@@ -34,6 +41,7 @@ void timer_init(struct boot_info *boot_info)
     ticks = 0;
     register_handler(0x20, timer);
     register_handler(0x80, apic_timer);
+    register_softirq(TIMER_SOFTIRQ, timer_softirq, NULL);
 
     hpet_init(boot_info);
     apic_timer_init();

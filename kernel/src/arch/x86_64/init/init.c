@@ -16,10 +16,12 @@
 
 #include <mem.h>
 #include <print.h>
+#include <softirq.h>
 #include <syscall.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/process.h>
+#include <task/wait.h>
 
 void init_all(struct system_info *system_info)
 {
@@ -38,6 +40,7 @@ void init_all(struct system_info *system_info)
 
     printk(MSG_INFO MSG_HIGHLIGHT("Interrupt") " initializing...\n");
     intr_init();
+    softirq_init();
 
     printk(MSG_INFO MSG_HIGHLIGHT("Timer") " initializing...\n");
     timer_init(boot_info);
@@ -59,10 +62,11 @@ void init_all(struct system_info *system_info)
 
     *(uint64_t *)PHYS_TO_VIRT(boot_info->page_table_pos) = 0;
     printk("\nWelcome to Clay Figure Neo!\n");
-    intr_enable();
 
     process_execute("test", DEFAULT_PRIO, 1, 1, NULL);
 
+    init_adopt_childs(get_current_task());
+    intr_enable();
     return;
 }
 
@@ -82,5 +86,7 @@ void ap_init_all(struct system_info *system_info, uintptr_t stack)
 
     syscall_enable();
 
+    init_adopt_childs(get_current_task());
     intr_enable();
+    return;
 }

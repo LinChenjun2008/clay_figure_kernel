@@ -13,9 +13,8 @@
 #include <task/schedule.h>
 #include <task/wait.h>
 
-static void init_adopt_childs(struct task *task)
+void init_adopt_childs(struct task *task)
 {
-
     struct task *init_task = pid_to_task(1);
     ASSERT(init_task != NULL && init_task != task);
 
@@ -24,16 +23,22 @@ static void init_adopt_childs(struct task *task)
     {
         struct list_node *node  = list_pop(&task->childs_list);
         struct task      *child = CONTAINER_OF(struct task, parent_node, node);
-        child->ppid             = 1;
-
+        if (child == init_task)
+        {
+            continue;
+        }
+        child->ppid = 1;
         list_append(&init_task->childs_list, node);
     }
     while (!list_empty(&task->exited_childs))
     {
         struct list_node *node  = list_pop(&task->exited_childs);
         struct task      *child = CONTAINER_OF(struct task, general_node, node);
-        child->ppid             = 1;
-
+        if (child == init_task)
+        {
+            continue;
+        }
+        child->ppid = 1;
         list_append(&init_task->exited_childs, node);
     }
     spin_unlock_double(&task->childs_lock, &init_task->childs_lock);
@@ -72,7 +77,7 @@ static int find_child(struct list_node *node, void *arg)
     return task->pid == *(pid_t *)arg;
 }
 
-int task_release_resources(struct task *task)
+static int task_release_resources(struct task *task)
 {
     pid_table_remove(task);
     release_pid(task->pid);

@@ -103,7 +103,7 @@ void make_main_task(uintptr_t stack_base, size_t stack_pages)
     set_current_task(task);
     char name[32];
     sprintf(name, "main[%d]", get_current_cpu_id());
-    init_task_struct(task, name, DEFAULT_PRIO, stack_base, stack_pages, 0);
+    init_task_struct(task, name, IDLE_PRIO, stack_base, stack_pages, 0);
 
     task->cpu_id = get_current_cpu_id();
     task->status = TASK_RUNNING;
