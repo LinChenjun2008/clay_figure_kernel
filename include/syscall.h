@@ -6,17 +6,21 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
-#define NR_EXIT 0
-#define NR_FORK 1
-#define NR_EXEC 2
-#define NR_WAIT 3
-#define NR_SEND 4
-#define NR_RECV 5
-#define NR_BOTH 6
-#define NR_ADDR 7
-#define NR_FREE 8
+#define NR_EXIT 0 // exit
+#define NR_FORK 1 // fork
+#define NR_EXEC 2 // execve (reserved)
+#define NR_WAIT 3 // waitpid
+#define NR_SEND 4 // send a message
+#define NR_RECV 5 // receive a message
+#define NR_BOTH 6 // send and receive
+#define NR_ADDR 7 // allocate a page
+#define NR_FREE 8 // free a page
 
-#define NR_CONT 9
+#define NR_KILL 9  // kill
+#define NR_SACT 10 // signal action
+#define NR_SRET 11 // signal return
+
+#define NR_CONT 12
 
 #ifndef __ASSEMBLER__
 

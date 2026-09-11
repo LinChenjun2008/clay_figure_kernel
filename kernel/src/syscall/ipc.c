@@ -91,7 +91,7 @@ void mailbox_cleanup(struct task *task)
     {
         struct list_node *node = list_pop(&wake_list);
         struct task *src_task  = mailbox_to_task(send_node_to_mailbox(node));
-        task_unblock(src_task->pid);
+        task_unblock(src_task->pid, WAKE_NORMAL);
     }
 
     // 移除所有正在等待的任务
@@ -109,7 +109,7 @@ void mailbox_cleanup(struct task *task)
     {
         struct list_node *node = list_pop(&wake_list);
         struct task *dst_task  = mailbox_to_task(recv_node_to_mailbox(node));
-        task_unblock(dst_task->pid);
+        task_unblock(dst_task->pid, WAKE_NORMAL);
     }
     return;
 }

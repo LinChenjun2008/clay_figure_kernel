@@ -7,6 +7,7 @@
 
 #include <asm/drivers/timer.h>
 #include <asm/intr/handler.h>
+#include <asm/task/signal.h>
 #include <asm/utils/intr_ctrl.h>
 #include <asm/utils/regs.h>
 #include <asm/x86.h>
@@ -159,6 +160,7 @@ void ASMLINKAGE interrupt_handler(struct pt_regs *regs)
     int int_vector                    = regs->int_vector;
     void (*handler)(struct pt_regs *) = irq_handler[int_vector];
     handler != NULL ? handler(regs) : general_handler(regs);
+    signal_check(regs);
     return;
 }
 

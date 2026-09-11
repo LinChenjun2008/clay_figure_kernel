@@ -14,8 +14,8 @@ void     task_update(void);
 void     task_pg_active(struct task *task);
 void     schedule(void);
 
-void task_block(enum task_status status);
-void task_unblock(pid_t pid);
+void task_block(uint32_t status);
+void task_unblock(pid_t pid, enum task_wake_reason reason);
 void task_yield(void);
 
 

@@ -97,6 +97,9 @@ arch_syscall_entry:
     movq REG_R14(%rsp), %r14
     movq REG_R15(%rsp), %r15
 
+    movq    REG_RIP(%rsp), %rcx
+    movq REG_RFLAGS(%rsp), %r11
+
     movq REG_RSP(%rsp), %rsp
 
     sysretq

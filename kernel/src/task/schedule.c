@@ -223,7 +223,7 @@ static void inform_exit(struct task *task)
         spin_unlock(&parent_task->childs_lock);
     } while (need_retry);
 
-    task_unblock(parent_task->pid);
+    task_unblock(parent_task->pid, WAKE_NORMAL);
     return;
 }
 
@@ -270,7 +270,7 @@ void schedule(void)
     }
 
     check_dead_task(curr_cpu);
-    switch (curr_task->status)
+    switch (TASK_STATUS(curr_task->status))
     {
         case TASK_RUNNING:
             cpu_task_list_insert(curr_cpu, curr_task);
@@ -288,7 +288,7 @@ void schedule(void)
     return;
 }
 
-void task_block(enum task_status status)
+void task_block(uint32_t status)
 {
     enum intr_status intr_status = intr_disable();
     struct task     *task        = get_current_task();
@@ -300,7 +300,7 @@ void task_block(enum task_status status)
     task->status = status;
 
     int need_block = (int64_t)task->block_count++ >= 0;
-    if (task->status != TASK_DIED && !need_block)
+    if (TASK_STATUS(task->status) != TASK_DIED && !need_block)
     {
         task->status = TASK_RUNNING;
     }
@@ -312,7 +312,26 @@ void task_block(enum task_status status)
     return;
 }
 
-void task_unblock(pid_t pid)
+static int able_to_unblock(uint32_t status, enum task_wake_reason reason)
+{
+    if (reason == WAKE_NORMAL)
+    {
+        return 1;
+    }
+    // reason == WAKE_SIGNAL
+    switch (TASK_STATUS(status))
+    {
+        case TASK_READY:
+        case TASK_RUNNING:
+        case TASK_DIED:
+            return 0;
+        default:
+            break;
+    }
+    return !(status & UNINTERRUPTABLE);
+}
+
+void task_unblock(pid_t pid, enum task_wake_reason reason)
 {
     enum intr_status intr_status = intr_disable();
 
@@ -322,13 +341,18 @@ void task_unblock(pid_t pid)
     struct cpu *cpu = get_cpu_struct(task->cpu_id);
 
     spin_lock(&task->lock);
+    if (!able_to_unblock(task->status, reason))
+    {
+        goto fail;
+    }
     task->block_count--;
     if (task->block_count == 0)
     {
         cpu_task_list_insert(cpu, task);
     }
-    spin_unlock(&task->lock);
 
+fail:
+    spin_unlock(&task->lock);
     intr_set_status(intr_status);
     return;
 }

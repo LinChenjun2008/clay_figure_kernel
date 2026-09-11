@@ -128,7 +128,7 @@ static int msg_recv_try(struct task *dest_task, pid_t from, struct message *msg)
     }
 
     copy_to_user(msg, &dst->msg, sizeof(*msg));
-    task_unblock(src_task->pid);
+    task_unblock(src_task->pid, WAKE_NORMAL);
     return 0;
 }
 

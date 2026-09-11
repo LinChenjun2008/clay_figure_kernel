@@ -41,7 +41,7 @@ void sema_down(struct semaphore *sema)
     spin_unlock(&sema->lock);
     if (need_block)
     {
-        task_block(TASK_BLOCKED);
+        task_block(TASK_BLOCKED | UNINTERRUPTABLE);
     }
     return;
 }
@@ -65,7 +65,7 @@ void sema_up(struct semaphore *sema)
 
     if (wake != NULL)
     {
-        task_unblock(wake->pid);
+        task_unblock(wake->pid, WAKE_NORMAL);
     }
     return;
 }

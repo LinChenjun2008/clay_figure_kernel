@@ -57,7 +57,7 @@ int msg_send(pid_t dst_pid, struct message *msg)
         return -1;
     }
     dest_task = pid_to_task(dst_pid);
-    if (dest_task == NULL || dest_task->status == TASK_DIED)
+    if (dest_task == NULL || TASK_STATUS(dest_task->status) == TASK_DIED)
     {
         return -1;
     }
@@ -86,7 +86,7 @@ int msg_send(pid_t dst_pid, struct message *msg)
         }
         spin_unlock(&src->recv_lock);
 
-        task_unblock(dest_task->pid);
+        task_unblock(dest_task->pid, WAKE_NORMAL);
     }
 
     // 阻塞直到消息被接收或接收者退出
@@ -118,7 +118,7 @@ void inform_event(pid_t dst_pid, uint32_t evt_type)
         return;
     }
     struct task *dest_task = pid_to_task(dst_pid);
-    if (dest_task == NULL || dest_task->status == TASK_DIED)
+    if (dest_task == NULL || TASK_STATUS(dest_task->status) == TASK_DIED)
     {
         return;
     }
@@ -131,7 +131,7 @@ void inform_event(pid_t dst_pid, uint32_t evt_type)
 
     if (need_wake)
     {
-        task_unblock(dst_pid);
+        task_unblock(dst_pid, WAKE_NORMAL);
     }
     return;
 }

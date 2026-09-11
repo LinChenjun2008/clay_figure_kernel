@@ -8,6 +8,38 @@
 
 #include <types.h>
 
+union sigval
+{
+    int   sival_int;
+    void *sival_ptr;
+};
+
+typedef struct siginfo
+{
+    int          si_signo;
+    int          si_errno;
+    int          si_code;
+    pid_t        si_pid;
+    int          rsvd; // uid_t si_uid;
+    void        *si_addr;
+    int          si_status;
+    union sigval si_value;
+} siginfo_t;
+
+typedef uint64_t sigset_t;
+
+struct sigaction
+{
+    union
+    {
+        void (*sa_handler)(int);
+        void (*sa_sigaction)(int, siginfo_t *, void *);
+    } __sigaction_handler;
+    sigset_t sa_mask;
+    int      sa_flags;
+    void (*sa_restorer)(void);
+};
+
 struct message
 {
     pid_t    source;
@@ -35,5 +67,7 @@ pid_t wait(pid_t pid, int *status);
 pid_t send(pid_t dst, struct message *msg);
 pid_t recv(pid_t src, struct message *msg);
 pid_t both(pid_t src_dst, struct message *msg);
+int   kill(pid_t pid, int sig);
+int   sigaction(int sig, const struct sigaction *act, struct sigaction *oldact);
 
 #endif /* __LIB_H__ */

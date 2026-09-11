@@ -17,7 +17,7 @@
 #include <task/schedule.h>
 #include <task/struct.h>
 
-pid_t sys_fork(void)
+pid_t process_fork(void)
 {
     ASSERT(intr_get_status() == INTR_OFF);
 
