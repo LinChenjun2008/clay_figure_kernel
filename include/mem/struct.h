@@ -50,7 +50,7 @@ struct mem_block
 
 struct page
 {
-    uint32_t        reference_count;
+    int32_t         reference_count;
     uint16_t        flags;
     uint16_t        count;
     struct spinlock lock;

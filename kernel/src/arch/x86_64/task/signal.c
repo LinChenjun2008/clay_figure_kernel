@@ -11,6 +11,7 @@
 #include <asm/task/signal.h>
 #include <asm/x86.h>
 
+#include <errno.h>
 #include <panic.h>
 #include <std/string.h>
 #include <task.h>
@@ -36,7 +37,7 @@ static int setup_sigframe(
     stack_lo = USER_STACK_VADDR_TOP - (task->ustack_pages << PG_SIZE_SHIFT);
     if (sp < stack_lo || sp + sizeof(struct sigframe) > USER_STACK_VADDR_TOP)
     {
-        return -1;
+        return -EFAULT;
     }
     struct sigframe *frame = (void *)sp;
 
@@ -75,7 +76,12 @@ static int signal_deliver(struct task *task, struct pt_regs *regs, int sig)
     }
     if (handler != SIG_DFL)
     {
-        return setup_sigframe(task, regs, sig, &task->signal.info[sig]);
+        int ret = setup_sigframe(task, regs, sig, &task->signal.info[sig]);
+        if (ret < 0)
+        {
+            return -(128 + SIGSEGV);
+        }
+        return 0;
     }
     switch (sig)
     {
@@ -87,9 +93,7 @@ static int signal_deliver(struct task *task, struct pt_regs *regs, int sig)
         case SIGSEGV:
         default:
             return -(128 + sig);
-            break;
     }
-    return -1;
 }
 
 void signal_check(struct pt_regs *regs)
@@ -143,11 +147,11 @@ int sigaction(int sig, const struct sigaction *act, struct sigaction *oldact)
 {
     if (sig < 1 || sig > 31)
     {
-        return -1;
+        return -EINVAL;
     }
     if (sig == SIGKILL || sig == SIGSTOP)
     {
-        return -1;
+        return -EINVAL;
     }
     struct task *task = get_current_task();
     if (oldact)

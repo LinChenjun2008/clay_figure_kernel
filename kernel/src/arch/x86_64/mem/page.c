@@ -9,6 +9,7 @@
 #include <asm/ptrace.h>
 #include <asm/utils/regs.h>
 
+#include <errno.h>
 #include <mem.h>
 #include <mem/page.h>
 #include <std/string.h>
@@ -228,7 +229,7 @@ static int page_lazy_allocate(struct task *task, uintptr_t fault_page)
     phys_addr_t phy_page = mm_allocate_a_page();
     if (phy_page == 0)
     {
-        return -1;
+        return -ENOMEM;
     }
     mm_map(task, phy_page, fault_page);
     arch_flush_tlb((void *)fault_page);
@@ -243,7 +244,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
     // cow页已经映射,不可能为NULL
     if (cow_page == 0)
     {
-        return -1;
+        return -EFAULT;
     }
     size_t cow_pfn = ADDR_TO_PFN(cow_page);
 
@@ -253,7 +254,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
     // 进入cow页临界区,对cow->lock加锁
     // 临界区内执行写时复制
     page_struct_lock(cow_pfn);
-    uint32_t ref_count = page_reference_read_lock(cow_pfn);
+    int ref_count = page_reference_read_lock(cow_pfn);
 
     if (ref_count == 1)
     {
@@ -267,7 +268,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
         phys_addr_t new_page = mm_allocate_a_page();
         if (new_page == 0)
         {
-            ret = -1;
+            ret = -ENOMEM;
             goto fail;
         }
         memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);

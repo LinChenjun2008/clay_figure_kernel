@@ -5,6 +5,7 @@
 
 #include <base.h>
 
+#include <errno.h>
 #include <mem/page.h>
 #include <panic.h>
 #include <syscall/ipc.h>
@@ -101,11 +102,11 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
     // unsupport
     if (pid < -1)
     {
-        return -1;
+        return -EINVAL;
     }
     if (pid != PID_ANY && !check_pid_avaiability(pid))
     {
-        return -1;
+        return -ESRCH;
     }
     struct task *task = get_current_task();
 
@@ -114,7 +115,7 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
     spin_unlock(&task->childs_lock);
     if (!childs)
     {
-        return -1;
+        return -ECHILD;
     }
     if (!exited_childs(task) && options & WNOHANG)
     {
@@ -125,7 +126,7 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
     {
         if (task_block(TASK_WAITING) == WAKE_SIGNAL && !exited_childs(task))
         {
-            return -1;
+            return -EINTR;
         }
     }
 
@@ -146,7 +147,7 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
 
         if (node == NULL)
         {
-            return -1;
+            return -ECHILD;
         }
     }
 

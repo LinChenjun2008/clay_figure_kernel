@@ -7,6 +7,7 @@
 
 #include <asm/page.h>
 
+#include <errno.h>
 #include <std/string.h>
 #include <syscall/ipc.h>
 #include <task.h>
@@ -102,7 +103,7 @@ msg_recv_lock(struct mailbox *dst, pid_t dst_pid, pid_t from)
     return mailbox_to_task(src);
 }
 
-// 尝试取一条匹配消息/事件并投递; 返回 0 成功, -1 暂无
+// 尝试取一条匹配消息/事件并投递; 返回 0 成功, -ENOENT 表示暂无可用消息/事件
 static int msg_recv_try(struct task *dest_task, pid_t from, struct message *msg)
 {
     struct mailbox *dst = &dest_task->mailbox;
@@ -124,7 +125,7 @@ static int msg_recv_try(struct task *dest_task, pid_t from, struct message *msg)
     }
     if (src_task == NULL)
     {
-        return -1;
+        return -ENOENT;
     }
 
     copy_to_user(msg, &dst->msg, sizeof(*msg));
@@ -159,7 +160,7 @@ int msg_recv(pid_t src_pid, struct message *msg)
         src_task = pid_to_task(src_pid);
         if (src_task == NULL)
         {
-            return -1;
+            return -ESRCH;
         }
         src = &src_task->mailbox;
 
@@ -174,12 +175,12 @@ int msg_recv(pid_t src_pid, struct message *msg)
 
         if (closed)
         {
-            return -1;
+            return -ESRCH;
         }
     }
     dst->recv_from = src_pid;
 
-    int ret = -1;
+    int ret = -ENOENT;
 
     // 在block前已经接收到消息
     if (msg_recv_try(dest_task, src_pid, msg) == 0)
@@ -191,17 +192,17 @@ int msg_recv(pid_t src_pid, struct message *msg)
         while (1)
         {
             enum task_wake_reason reason = task_block(TASK_RECEIVE);
-            // 被信号唤醒: 立刻返回, 由调用方返回用户态后投递信号
+            // 被信号唤醒: 立刻返回 -EINTR, 由调用方返回用户态后投递信号
             if (reason == WAKE_SIGNAL)
             {
-                ret = -1;
+                ret = -EINTR;
                 break;
             }
             // 因发送方退出导致接收失败
             if (dst->recv_err)
             {
                 dst->recv_err = 0;
-                ret           = -1;
+                ret           = -ESRCH;
                 break;
             }
             if (msg_recv_try(dest_task, src_pid, msg) == 0)

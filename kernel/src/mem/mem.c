@@ -7,6 +7,7 @@
 
 #include <asm/intr/handler.h>
 
+#include <errno.h>
 #include <lib/free_table.h>
 #include <mem.h>
 #include <mem/allocator.h>
@@ -38,11 +39,13 @@ static void init_vm_struct(struct vm_struct *vm)
 
 static int copy_vm_struct(struct vm_struct *dst, struct vm_struct *src)
 {
-    int ret = 0;
     // mapped 在copy_pg_struct时已加入copy_on_write
-    ret += copy_free_table(&dst->vm_table, &src->vm_table);
-    ret += copy_free_table(&dst->unmapped, &src->unmapped);
-    return ret;
+    int ret = copy_free_table(&dst->vm_table, &src->vm_table);
+    if (ret < 0)
+    {
+        return ret;
+    }
+    return copy_free_table(&dst->unmapped, &src->unmapped);
 }
 
 static void destory_vm_struct(struct vm_struct *vm)
@@ -151,13 +154,13 @@ int copy_mm_struct(struct task *dst, struct task *src)
     // copy pg_struct
     if (!copy_pg_struct(dst, src))
     {
-        return -1;
+        return -ENOMEM;
     }
 
     // copy vm_struct
     if (copy_vm_struct(&dst->mm->vm_map, &src->mm->vm_map) < 0)
     {
-        return -1;
+        return -ENOMEM;
     }
     return 0;
 }
@@ -191,11 +194,12 @@ uintptr_t mm_allocate_address(uintptr_t addr, size_t pages)
         return addr;
     }
 
-    start = free_table_allocate(&vm->vm_table, size);
-    if (start == -1UL)
+    intptr_t got = free_table_allocate(&vm->vm_table, size);
+    if (got < 0)
     {
         return 0;
     }
+    start = (uintptr_t)got;
     free_table_add(&vm->unmapped, start, size);
     return start;
 }

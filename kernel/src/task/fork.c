@@ -9,6 +9,7 @@
 #include <asm/task/fork.h>
 #include <asm/task/process.h>
 
+#include <errno.h>
 #include <mem.h>
 #include <mem/page.h>
 #include <panic.h>
@@ -26,10 +27,11 @@ pid_t process_fork(void)
 
     const char *name = curr->name;
     uint64_t    prio = curr->prio;
+    int         err  = -ENOMEM;
 
     if (fork == NULL)
     {
-        return -1;
+        return -ENOMEM;
     }
     fork->kstack_base  = 0;
     fork->kstack_pages = 0;
@@ -63,12 +65,14 @@ pid_t process_fork(void)
     fork->pid = allocate_pid();
     if (fork->pid == -1)
     {
+        err = -EAGAIN;
         goto fail;
     }
     fork->ppid = curr->pid;
     if (pid_table_insert(fork) < 0)
     {
         release_pid(fork->pid);
+        err = -EAGAIN;
         goto fail;
     }
 
@@ -84,5 +88,5 @@ fail:
     free_pg_table(fork->pg_dir);
     free_pages((void *)fork->kstack_base, fork->kstack_pages);
     destory_task_struct(fork);
-    return -1;
+    return err;
 }

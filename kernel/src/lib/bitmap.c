@@ -5,6 +5,7 @@
 
 #include <base.h>
 
+#include <errno.h>
 #include <lib/bitmap.h>
 #include <std/string.h>
 
@@ -22,20 +23,20 @@ int bitmap_scan_test(struct bitmap *bitmap, size_t bit_index)
     size_t bit_odd    = bit_index & 7;
     if (byte_index >= bitmap->map_size)
     {
-        return -1;
+        return -EINVAL;
     }
     return bitmap->map[byte_index] & (1 << bit_odd) ? 1 : 0;
 }
 
-size_t bitmap_find(struct bitmap *bitmap, int value, size_t count)
+ssize_t bitmap_find(struct bitmap *bitmap, int value, size_t count)
 {
     if (value != 0 && value != 1)
     {
-        return -1;
-    };
+        return -EINVAL;
+    }
     if (count == 0)
     {
-        return -1;
+        return -EINVAL;
     }
 
     uint8_t byte_full  = value ? 0 : 0xff;
@@ -50,16 +51,16 @@ size_t bitmap_find(struct bitmap *bitmap, int value, size_t count)
 
     if (byte_index >= bitmap->map_size)
     {
-        return -1;
+        return -ENOENT;
     }
 
-    size_t bit_index;
     size_t bit_size = bitmap->map_size << 3;
     if (count > bit_size)
     {
-        return -1;
+        return -EINVAL;
     }
 
+    size_t bit_index;
     size_t scan_size = bit_size - count;
     for (bit_index = byte_index << 3; bit_index <= scan_size; bit_index++)
     {
@@ -67,7 +68,6 @@ size_t bitmap_find(struct bitmap *bitmap, int value, size_t count)
         for (free_bits = 0; free_bits < count; free_bits++)
         {
             int curr_bit = bitmap_scan_test(bitmap, bit_index + free_bits);
-            // if (curr_bit < 0)
             if (curr_bit && value == 0)
             {
                 break;
@@ -79,18 +79,18 @@ size_t bitmap_find(struct bitmap *bitmap, int value, size_t count)
         }
         if (free_bits == count)
         {
-            return bit_index;
+            return (ssize_t)bit_index;
         }
         bit_index += free_bits;
     }
-    return -1;
+    return -ENOENT;
 }
 
 int bitmap_set(struct bitmap *bitmap, size_t bit_index, int value, size_t bits)
 {
     if (value != 0 && value != 1)
     {
-        return -1;
+        return -EINVAL;
     }
     if (bits == 0)
     {
@@ -100,7 +100,7 @@ int bitmap_set(struct bitmap *bitmap, size_t bit_index, int value, size_t bits)
     size_t bit_size = bitmap->map_size << 3;
     if (bit_index >= bit_size || bits > bit_size - bit_index)
     {
-        return -1;
+        return -EINVAL;
     }
 
     size_t first_byte = bit_index >> 3;

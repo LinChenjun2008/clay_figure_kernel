@@ -5,6 +5,7 @@
 
 #include <base.h>
 
+#include <errno.h>
 #include <std/string.h>
 #include <sync/spinlock.h>
 #include <task.h>
@@ -42,12 +43,12 @@ int send_signal(pid_t pid, int sig, struct siginfo *info)
 {
     if (sig < 1 || sig > 31)
     {
-        return -1;
+        return -EINVAL;
     }
     struct task *task = pid_to_task(pid);
     if (task == NULL || TASK_STATUS(task->status) == TASK_DIED)
     {
-        return -1;
+        return -ESRCH;
     }
     spin_lock(&task->signal.lock);
     task->signal.pending |= (1ULL << sig);

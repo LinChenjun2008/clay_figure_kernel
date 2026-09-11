@@ -7,6 +7,7 @@
 
 #include <asm/page.h>
 
+#include <errno.h>
 #include <std/string.h>
 #include <syscall/ipc.h>
 #include <task.h>
@@ -29,7 +30,7 @@ static int msg_send_lock(struct mailbox *dst, struct mailbox *src)
 
     if (dst->closed)
     {
-        return -1;
+        return -ESRCH;
     }
 
     src->send_to = dest_task->pid;
@@ -52,14 +53,18 @@ int msg_send(pid_t dst_pid, struct message *msg)
     struct task *dest_task = NULL;
     int          need_wake = 0;
 
-    if (!check_pid_avaiability(dst_pid) || dst_pid == src_task->pid)
+    if (!check_pid_avaiability(dst_pid))
     {
-        return -1;
+        return -ESRCH;
+    }
+    if (dst_pid == src_task->pid)
+    {
+        return -EINVAL;
     }
     dest_task = pid_to_task(dst_pid);
     if (dest_task == NULL || TASK_STATUS(dest_task->status) == TASK_DIED)
     {
-        return -1;
+        return -ESRCH;
     }
 
     struct mailbox *src = &src_task->mailbox;
@@ -74,7 +79,7 @@ int msg_send(pid_t dst_pid, struct message *msg)
 
     if (need_wake < 0)
     {
-        return -1;
+        return need_wake;
     }
     if (need_wake)
     {
@@ -106,13 +111,13 @@ int msg_send(pid_t dst_pid, struct message *msg)
                 src->send_to = PID_NULL;
             }
             spin_unlock(&dst->send_lock);
-            return -1;
+            return -EINTR;
         }
     }
 
     if (src->send_to != PID_NULL)
     {
-        return -1;
+        return -ESRCH;
     }
     return 0;
 }
