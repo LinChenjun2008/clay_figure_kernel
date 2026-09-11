@@ -288,50 +288,72 @@ fail:
     return ret;
 }
 
+static void page_fault_fail(
+    struct task    *task,
+    struct pt_regs *regs,
+    int             code,
+    uintptr_t       fault_addr
+)
+{
+    if ((regs->cs & 3) == 3)
+    {
+        send_signal_fault(task->pid, SIGSEGV, code, (void *)fault_addr);
+        return;
+    }
+    general_handler(regs);
+    return;
+}
+
 void page_faule(struct pt_regs *regs)
 {
     struct task      *task = get_current_task();
     struct mm_struct *mm   = task->mm;
 
-    // 内核态缺页
     if (mm == NULL)
     {
         general_handler(regs);
+        return;
     }
 
-    uintptr_t fault_page = get_cr2() & ~(PG_SIZE - 1);
+    uintptr_t fault_addr = get_cr2();
+    uintptr_t fault_page = fault_addr & ~(PG_SIZE - 1);
 
     int unmapped = free_table_find(&mm->vm_map.unmapped, fault_page);
     int cow      = free_table_find(&mm->vm_map.copy_on_write, fault_page);
 
-    // 访问非法地址触发异常
+    // 访问非法地址
     if (!unmapped && !cow)
     {
-        general_handler(regs);
+        page_fault_fail(task, regs, SEGV_MAPERR, fault_addr);
+        return;
     }
 
     if (unmapped)
     {
         if (page_lazy_allocate(task, fault_page) < 0)
         {
-            general_handler(regs);
+            page_fault_fail(task, regs, SEGV_MAPERR, fault_addr);
         }
         return;
     }
+
+    // cow 页
     if (cow)
     {
         if (!(regs->error_code & PG_RW_W))
         {
-            general_handler(regs);
+            // 非写引起的 COW 缺页, 说明页表权限不对
+            page_fault_fail(task, regs, SEGV_ACCERR, fault_addr);
+            return;
         }
         if (page_copy_on_write(task, fault_page) < 0)
         {
-            general_handler(regs);
+            page_fault_fail(task, regs, SEGV_MAPERR, fault_addr);
         }
         return;
     }
 
+    // 不应该到这里
     general_handler(regs);
-
     return;
 }

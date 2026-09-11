@@ -8,6 +8,10 @@
 
 #include <types.h>
 
+#ifndef NULL
+#    define NULL ((void *)0)
+#endif
+
 #define SIGHUP    1
 #define SIGINT    2
 #define SIGQUIT   3
@@ -41,6 +45,24 @@
 
 #define SIG_DFL ((void (*)(int))0)
 #define SIG_IGN ((void (*)(int))1)
+
+#define SA_SIGINFO 0x00000004
+
+#define SS_ONSTACK 1
+#define SS_DISABLE 2
+
+#define SI_USER   0
+#define SI_QUEUE  (-1)
+#define SI_KERNEL 0x80
+
+#define CLD_EXITED  1
+#define CLD_KILLED  2
+#define SEGV_MAPERR 1
+#define SEGV_ACCERR 2
+#define ILL_ILLOPC  1
+#define FPE_INTDIV  1
+#define BUS_ADRALN  1
+#define TRAP_BRKPT  1
 
 union sigval
 {
@@ -76,6 +98,53 @@ struct sigaction
 
 #define sa_handler   __sigaction_handler.sa_handler
 #define sa_sigaction __sigaction_handler.sa_sigaction
+
+typedef struct
+{
+    void  *ss_sp;
+    int    ss_flags;
+    size_t ss_size;
+} stack_t;
+
+struct sigcontext
+{
+    word_t r15;
+    word_t r14;
+    word_t r13;
+    word_t r12;
+    word_t r11;
+    word_t r10;
+    word_t r9;
+    word_t r8;
+
+    word_t rdi;
+    word_t rsi;
+    word_t rbp;
+    word_t rbx;
+    word_t rdx;
+    word_t rax;
+    word_t rcx;
+
+    word_t rip;
+    word_t rflags;
+    word_t rsp;
+
+    word_t cs;
+    word_t ss;
+    word_t ds;
+    word_t es;
+    word_t fs;
+    word_t gs;
+};
+
+typedef struct ucontext
+{
+    uint64_t          uc_flags;
+    struct ucontext  *uc_link;
+    stack_t           uc_stack;
+    struct sigcontext uc_mcontext;
+    sigset_t          uc_sigmask;
+} ucontext_t;
 
 struct message
 {

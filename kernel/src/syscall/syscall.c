@@ -69,9 +69,7 @@ static word_t sys_free(struct pt_regs *regs)
 
 static word_t sys_kill(struct pt_regs *regs)
 {
-    struct siginfo info; // unused.
-    memset(&info, 0, sizeof(info));
-    return send_signal((pid_t)regs->rsi, (int)regs->rdx, &info);
+    return send_signal_from_user((pid_t)regs->rsi, (int)regs->rdx);
 }
 
 static word_t sys_sigaction(struct pt_regs *regs)

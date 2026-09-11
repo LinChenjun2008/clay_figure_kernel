@@ -5,6 +5,7 @@
 
 #include <base.h>
 
+#include <asm/desc.h>
 #include <asm/page.h>
 #include <asm/ptrace.h>
 #include <asm/task/process.h>
@@ -21,6 +22,68 @@
 
 extern uint8_t SIG_TRAMPOLINE_START[];
 extern uint8_t SIG_TRAMPOLINE_END[];
+
+// 把内核 trap 现场保存成用户可读写的机器上下文
+static void save_sigcontext(struct sigcontext *sc, const struct pt_regs *regs)
+{
+    sc->r15    = regs->r15;
+    sc->r14    = regs->r14;
+    sc->r13    = regs->r13;
+    sc->r12    = regs->r12;
+    sc->r11    = regs->r11;
+    sc->r10    = regs->r10;
+    sc->r9     = regs->r9;
+    sc->r8     = regs->r8;
+    sc->rdi    = regs->rdi;
+    sc->rsi    = regs->rsi;
+    sc->rbp    = regs->rbp;
+    sc->rbx    = regs->rbx;
+    sc->rdx    = regs->rdx;
+    sc->rax    = regs->rax;
+    sc->rcx    = regs->rcx;
+    sc->rip    = regs->rip;
+    sc->rflags = regs->rflags;
+    sc->rsp    = regs->rsp;
+    sc->cs     = regs->cs;
+    sc->ss     = regs->ss;
+    sc->ds     = regs->ds;
+    sc->es     = regs->es;
+    sc->fs     = regs->fs;
+    sc->gs     = regs->gs;
+    return;
+}
+
+// 用用户(可能改写过的)机器上下文覆盖 trap 现场
+// int_vector/error_code 由内核维护, 不从用户态恢复
+static void
+restore_sigcontext(struct pt_regs *regs, const struct sigcontext *sc)
+{
+    regs->r15    = sc->r15;
+    regs->r14    = sc->r14;
+    regs->r13    = sc->r13;
+    regs->r12    = sc->r12;
+    regs->r11    = sc->r11;
+    regs->r10    = sc->r10;
+    regs->r9     = sc->r9;
+    regs->r8     = sc->r8;
+    regs->rdi    = sc->rdi;
+    regs->rsi    = sc->rsi;
+    regs->rbp    = sc->rbp;
+    regs->rbx    = sc->rbx;
+    regs->rdx    = sc->rdx;
+    regs->rax    = sc->rax;
+    regs->rcx    = sc->rcx;
+    regs->rip    = sc->rip;
+    regs->rflags = sc->rflags;
+    regs->rsp    = sc->rsp;
+    regs->cs     = sc->cs;
+    regs->ss     = sc->ss;
+    regs->ds     = sc->ds;
+    regs->es     = sc->es;
+    regs->fs     = sc->fs;
+    regs->gs     = sc->gs;
+    return;
+}
 
 static int setup_sigframe(
     struct task    *task,
@@ -42,13 +105,25 @@ static int setup_sigframe(
     struct sigframe *frame = (void *)sp;
 
     frame->retcode = (word_t)&frame->trampoline;
+    frame->signum  = (uint32_t)sig;
+    frame->blocked = task->signal.blocked;
+
+    memset(&frame->info, 0, sizeof(frame->info));
     if (info)
     {
         frame->info = *info;
     }
-    frame->signum  = (uint32_t)sig;
-    frame->blocked = task->signal.blocked;
-    frame->regs    = *regs;
+
+    regs->rflags &= ~EFLAGS_DF;
+
+    // ucontext
+    frame->uc.uc_flags          = 0;
+    frame->uc.uc_link           = NULL;
+    frame->uc.uc_stack.ss_sp    = NULL;
+    frame->uc.uc_stack.ss_flags = SS_DISABLE; /// TODO
+    frame->uc.uc_stack.ss_size  = 0;
+    frame->uc.uc_sigmask        = frame->blocked;
+    save_sigcontext(&frame->uc.uc_mcontext, regs);
 
     size_t sig_size;
     sig_size = (uintptr_t)SIG_TRAMPOLINE_END - (uintptr_t)SIG_TRAMPOLINE_START;
@@ -56,11 +131,10 @@ static int setup_sigframe(
     memcpy(&frame->trampoline, SIG_TRAMPOLINE_START, sig_size);
 
     regs->rsp = (word_t)frame;
-    regs->rflags &= ~EFLAGS_DF;
     regs->rip = (word_t)task->signal.actions[sig].sa_handler;
     regs->rdi = (word_t)sig;
     regs->rsi = (word_t)&frame->info;
-    regs->rdx = 0; // ucontext = NULL
+    regs->rdx = (word_t)&frame->uc;
 
     regs->rbp = 0;
 
@@ -173,7 +247,19 @@ word_t sys_sigret(struct pt_regs *regs)
     struct sigframe *frame = (struct sigframe *)(regs->rsp - 8);
 
     task->signal.blocked = frame->blocked;
-    *regs                = frame->regs; // 整体恢复被打断的用户现场
+
+    // 通用寄存器/rip/rsp 取用户可能改写过的 uc_mcontext;
+    // 段寄存器与 cs/ss/rflags 取当前 syscall 现场的合法值:
+    struct sigcontext sc = frame->uc.uc_mcontext;
+    sc.ds                = regs->ds;
+    sc.es                = regs->es;
+    sc.fs                = regs->fs;
+    sc.gs                = regs->gs;
+    sc.cs                = regs->cs;
+    sc.ss                = regs->ss;
+    sc.rflags            = regs->rflags;
+
+    restore_sigcontext(regs, &sc); // 恢复被打断的用户现场
 
     return regs->rax;
 }

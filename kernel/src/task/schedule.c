@@ -223,7 +223,11 @@ static void inform_exit(struct task *task)
         spin_unlock(&parent_task->childs_lock);
     } while (need_retry);
 
-    task_unblock(parent_task->pid, WAKE_NORMAL);
+    // 通知父进程: 子进程已退出(父进程若会处理 SIGCHLD 则同时登记该信号)
+    int status    = task->return_status;
+    int code      = (status >= 128) ? CLD_KILLED : CLD_EXITED;
+    int si_status = (status >= 128) ? status - 128 : status;
+    send_signal_child(parent_task->pid, code, task->pid, si_status);
     return;
 }
 
