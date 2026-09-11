@@ -89,8 +89,27 @@ int msg_send(pid_t dst_pid, struct message *msg)
         task_unblock(dest_task->pid, WAKE_NORMAL);
     }
 
-    // 阻塞直到消息被接收或接收者退出
-    task_block(TASK_SEND);
+    // 阻塞直到消息被接收或接收者退出.
+    while (src->send_to == dest_task->pid)
+    {
+        enum task_wake_reason reason = task_block(TASK_SEND);
+        // 被信号中断
+        if (reason == WAKE_SIGNAL && src->send_to == dest_task->pid)
+        {
+            spin_lock(&dst->send_lock);
+            if (src->send_to == dest_task->pid)
+            {
+                if (list_find(&dst->send_list, &src->send_node))
+                {
+                    list_remove(&src->send_node);
+                }
+                src->send_to = PID_NULL;
+            }
+            spin_unlock(&dst->send_lock);
+            return -1;
+        }
+    }
+
     if (src->send_to != PID_NULL)
     {
         return -1;

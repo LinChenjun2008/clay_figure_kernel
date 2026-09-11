@@ -132,9 +132,9 @@ void signal_check(struct pt_regs *regs)
         status = signal_deliver(task, regs, sig);
     }
     spin_unlock(&task->signal.lock);
-    if (status != 0)
+    if (status < 0)
     {
-        process_exit(status);
+        process_exit(-status);
     }
     return;
 }

@@ -112,18 +112,21 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
     spin_lock(&task->childs_lock);
     int childs = list_len(&task->childs_list);
     spin_unlock(&task->childs_lock);
-    if (childs == 0)
+    if (!childs)
     {
         return -1;
     }
-    if (exited_childs(task) == 0 && options & WNOHANG)
+    if (!exited_childs(task) && options & WNOHANG)
     {
         return 0;
     }
 
-    while (exited_childs(task) == 0)
+    while (!exited_childs(task))
     {
-        task_block(TASK_WAITING);
+        if (task_block(TASK_WAITING) == WAKE_SIGNAL && !exited_childs(task))
+        {
+            return -1;
+        }
     }
 
     struct list_node *node;

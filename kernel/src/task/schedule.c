@@ -288,10 +288,11 @@ void schedule(void)
     return;
 }
 
-void task_block(uint32_t status)
+enum task_wake_reason task_block(uint32_t status)
 {
-    enum intr_status intr_status = intr_disable();
-    struct task     *task        = get_current_task();
+    enum intr_status      intr_status = intr_disable();
+    struct task          *task        = get_current_task();
+    enum task_wake_reason reason      = WAKE_NORMAL;
 
     ASSERT(task->preempt_count == 0);
 
@@ -300,8 +301,19 @@ void task_block(uint32_t status)
     task->status = status;
 
     int need_block = (int64_t)task->block_count++ >= 0;
-    if (TASK_STATUS(task->status) != TASK_DIED && !need_block)
+    if (TASK_STATUS(task->status) == TASK_DIED)
     {
+        ;
+    }
+    else if (!need_block)
+    {
+        // 唤醒先于阻塞
+        task->status = TASK_RUNNING;
+    }
+    else if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
+    {
+        // 有挂起的信号待处理
+        task->block_count--;
         task->status = TASK_RUNNING;
     }
 
@@ -309,7 +321,14 @@ void task_block(uint32_t status)
 
     schedule();
     intr_set_status(intr_status);
-    return;
+
+    // 判定唤醒原因. 信号只在返回用户态时由 signal_check 处理,
+    // 所以此刻读到的挂起信号一定尚未投递, 调用方应据此提前返回.
+    if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
+    {
+        reason = WAKE_SIGNAL;
+    }
+    return reason;
 }
 
 static int able_to_unblock(uint32_t status, enum task_wake_reason reason)

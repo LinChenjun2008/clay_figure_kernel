@@ -98,6 +98,8 @@ struct sigframe
     uint8_t        trampoline[16];
 };
 
+#define SIGNAL_PENDING(task) ((task)->signal.pending & ~(task)->signal.blocked)
+
 void init_signal(struct signal_struct *signal);
 void copy_signal(struct signal_struct *dst, struct signal_struct *src);
 int  send_signal(pid_t pid, int sig, struct siginfo *info);
