@@ -78,6 +78,27 @@ static int find_child(struct list_node *node, void *arg)
     return task->pid == *(pid_t *)arg;
 }
 
+// 有"已退出、且匹配 pid"的子进程吗
+static int child_match(struct task *task, pid_t pid)
+{
+    if (pid == PID_ANY)
+    {
+        return exited_childs(task) != 0;
+    }
+    spin_lock(&task->childs_lock);
+    struct list_node *node =
+        list_traversal(&task->exited_childs, find_child, &pid);
+    spin_unlock(&task->childs_lock);
+    return node != NULL;
+}
+
+// pid 是当前进程的子进程吗(已退出但没回收的也算)
+static int is_child(struct task *task, pid_t pid)
+{
+    struct task *child = pid_to_task(pid);
+    return child != NULL && child->ppid == task->pid;
+}
+
 static int task_release_resources(struct task *task)
 {
     pid_table_remove(task);
@@ -104,10 +125,6 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
     {
         return -EINVAL;
     }
-    if (pid != PID_ANY && !check_pid_avaiability(pid))
-    {
-        return -ESRCH;
-    }
     struct task *task = get_current_task();
 
     spin_lock(&task->childs_lock);
@@ -117,16 +134,24 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
     {
         return -ECHILD;
     }
-    if (!exited_childs(task) && options & WNOHANG)
+    if (pid != PID_ANY && !is_child(task, pid))
     {
-        return 0;
+        return -ECHILD;
     }
 
-    while (!exited_childs(task))
+    if (!child_match(task, pid))
     {
-        if (task_block(TASK_WAITING) == WAKE_SIGNAL && !exited_childs(task))
+        if (options & WNOHANG)
         {
-            return -EINTR;
+            return 0;
+        }
+        while (!child_match(task, pid))
+        {
+            enum task_wake_reason wake_reason = task_block(TASK_WAITING);
+            if (wake_reason == WAKE_SIGNAL && !child_match(task, pid))
+            {
+                return -EINTR;
+            }
         }
     }
 
@@ -144,12 +169,8 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
         spin_lock(&task->childs_lock);
         node = list_traversal_remove(&task->exited_childs, find_child, &pid);
         spin_unlock(&task->childs_lock);
-
-        if (node == NULL)
-        {
-            return -ECHILD;
-        }
     }
+    ASSERT(node != NULL); // 上面已确认该子进程已退出
 
     struct task *child      = CONTAINER_OF(struct task, general_node, node);
     pid_t        ret        = child->pid;

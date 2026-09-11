@@ -296,7 +296,7 @@ enum task_wake_reason task_block(uint32_t status)
 {
     enum intr_status      intr_status = intr_disable();
     struct task          *task        = get_current_task();
-    enum task_wake_reason reason      = WAKE_NORMAL;
+    enum task_wake_reason wake_reason = WAKE_NORMAL;
 
     ASSERT(task->preempt_count == 0);
 
@@ -330,9 +330,9 @@ enum task_wake_reason task_block(uint32_t status)
     // 所以此刻读到的挂起信号一定尚未投递, 调用方应据此提前返回.
     if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
     {
-        reason = WAKE_SIGNAL;
+        wake_reason = WAKE_SIGNAL;
     }
-    return reason;
+    return wake_reason;
 }
 
 static int able_to_unblock(uint32_t status, enum task_wake_reason reason)
@@ -341,7 +341,7 @@ static int able_to_unblock(uint32_t status, enum task_wake_reason reason)
     {
         return 1;
     }
-    // reason == WAKE_SIGNAL
+    // wake_reason == WAKE_SIGNAL
     switch (TASK_STATUS(status))
     {
         case TASK_READY:

@@ -191,9 +191,10 @@ int msg_recv(pid_t src_pid, struct message *msg)
     {
         while (1)
         {
-            enum task_wake_reason reason = task_block(TASK_RECEIVE);
+            enum task_wake_reason wake_reason;
+            wake_reason = task_block(TASK_RECEIVE);
             // 被信号唤醒: 立刻返回 -EINTR, 由调用方返回用户态后投递信号
-            if (reason == WAKE_SIGNAL)
+            if (wake_reason == WAKE_SIGNAL)
             {
                 ret = -EINTR;
                 break;
