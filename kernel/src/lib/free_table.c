@@ -5,6 +5,7 @@
 
 #include <base.h>
 
+#include <errno.h>
 #include <lib/free_table.h>
 #include <mem/allocator.h>
 
@@ -40,7 +41,7 @@ static int grow(struct free_table *free_table)
         kmalloc(new_capacity * sizeof(struct free_block), 0, 0);
     if (new_table == NULL)
     {
-        return -1;
+        return -ENOMEM;
     }
 
     int i;
@@ -179,7 +180,7 @@ int free_table_add(struct free_table *free_table, uintptr_t start, size_t size)
     {
         if (grow(free_table) != 0 || free_table->free >= free_table->capacity)
         {
-            return -1;
+            return -ENOMEM;
         }
     }
     int i = find_insert_position(free_table, start);
@@ -212,7 +213,7 @@ find_contain_block(struct free_table *free_table, uintptr_t start, size_t size)
     pos = left - 1;
     if (pos < 0)
     {
-        return -1;
+        return -ENOENT;
     }
     uintptr_t end         = start + size;
     uintptr_t block_start = free_table->table[pos].start;
@@ -221,7 +222,7 @@ find_contain_block(struct free_table *free_table, uintptr_t start, size_t size)
     {
         return pos;
     }
-    return -1;
+    return -ENOENT;
 }
 
 int free_table_remove(
@@ -233,7 +234,7 @@ int free_table_remove(
     int i = find_contain_block(free_table, start, size);
     if (i < 0)
     {
-        return -1;
+        return -ENOENT;
     }
 
     uintptr_t end         = start + size;
@@ -262,7 +263,7 @@ int free_table_remove(
             if (grow(free_table) != 0 ||
                 free_table->free >= free_table->capacity)
             {
-                return -2;
+                return -ENOMEM;
             }
         }
         free_table->table[i].size = start - block_start;
@@ -278,12 +279,12 @@ int free_table_remove(
         shrink(free_table);
         return 0;
     }
-    return -3;
+    return -EINVAL;
 }
 
-uintptr_t free_table_allocate(struct free_table *free_table, size_t size)
+intptr_t free_table_allocate(struct free_table *free_table, size_t size)
 {
-    uintptr_t ret = -1UL;
+    intptr_t  ret = -ENOMEM;
     uintptr_t start;
     int       status = 0;
     int       i;
@@ -297,7 +298,7 @@ uintptr_t free_table_allocate(struct free_table *free_table, size_t size)
         status = free_table_remove(free_table, start, size);
         if (status == 0)
         {
-            ret = start;
+            ret = (intptr_t)start;
             break;
         }
     }
@@ -327,7 +328,7 @@ int copy_free_table(struct free_table *dst, struct free_table *src)
 {
     if (dst->free != 0)
     {
-        return -1;
+        return -EINVAL;
     }
     uintptr_t block_start;
     size_t    block_size;
@@ -337,9 +338,10 @@ int copy_free_table(struct free_table *dst, struct free_table *src)
     {
         block_start = src->table[i].start;
         block_size  = src->table[i].size;
-        if (free_table_add(dst, block_start, block_size) < 0)
+        int ret     = free_table_add(dst, block_start, block_size);
+        if (ret < 0)
         {
-            return -1;
+            return ret;
         }
     }
     return 0;

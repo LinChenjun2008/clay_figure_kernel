@@ -44,3 +44,13 @@ pid_t both(pid_t src_dst, struct message *msg)
 {
     return (pid_t)syscall_2(NR_BOTH, src_dst, (uint64_t)msg);
 }
+
+int kill(pid_t pid, int sig)
+{
+    return (int)syscall_2(NR_KILL, pid, sig);
+}
+
+int sigaction(int sig, const struct sigaction *act, struct sigaction *oldact)
+{
+    return (int)syscall_3(NR_SACT, sig, (uint64_t)act, (uint64_t)oldact);
+}

@@ -19,6 +19,7 @@
 #include <task.h>
 #include <task/process.h>
 #include <task/schedule.h>
+#include <task/signal.h>
 #include <task/struct.h>
 
 static void cpu_task_init(struct cpu *cpu, struct task_mgr *task_mgr)
@@ -377,6 +378,7 @@ void init_task_struct(
     init_list(&task->exited_childs);
 
     init_mailbox(&task->mailbox);
+    init_signal(&task->signal);
 
     return;
 }

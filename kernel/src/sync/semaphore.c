@@ -32,6 +32,15 @@ static int sema_down_sub(struct semaphore *sema, struct task *task)
     return 1;
 }
 
+// 是否在等待信号量
+static int sema_is_waiting(struct semaphore *sema, struct task *task)
+{
+    spin_lock(&sema->lock);
+    int waiting = list_find(&sema->wait_list, &task->sema_node);
+    spin_unlock(&sema->lock);
+    return waiting;
+}
+
 void sema_down(struct semaphore *sema)
 {
     struct task *task = get_current_task();
@@ -39,10 +48,16 @@ void sema_down(struct semaphore *sema)
     spin_lock(&sema->lock);
     int need_block = sema_down_sub(sema, task);
     spin_unlock(&sema->lock);
-    if (need_block)
+    if (!need_block)
     {
-        task_block(TASK_BLOCKED);
+        return;
     }
+
+    // 避免假唤醒
+    do
+    {
+        task_block(TASK_BLOCKED | UNINTERRUPTABLE);
+    } while (sema_is_waiting(sema, task));
     return;
 }
 
@@ -65,7 +80,7 @@ void sema_up(struct semaphore *sema)
 
     if (wake != NULL)
     {
-        task_unblock(wake->pid);
+        task_unblock(wake->pid, WAKE_NORMAL);
     }
     return;
 }

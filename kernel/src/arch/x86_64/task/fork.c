@@ -10,6 +10,7 @@
 #include <asm/task/fork.h>
 #include <asm/task/process.h>
 
+#include <errno.h>
 #include <mem.h>
 #include <task.h>
 #include <task/schedule.h>
@@ -18,10 +19,13 @@ int copy_process(struct task *dst, struct task *src)
 {
     if (copy_mm_struct(dst, src) < 0)
     {
-        return -1;
+        return -ENOMEM;
     }
     // 刷新页表(cow)
     task_pg_active(src);
+
+    copy_signal(&dst->signal, &src->signal);
+
     dst->ustack_sp = src->ustack_sp;
 
     uintptr_t src_kstack, dst_kstack;

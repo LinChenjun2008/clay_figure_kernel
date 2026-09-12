@@ -7,6 +7,7 @@
 
 #include <asm/drivers/timer.h>
 #include <asm/intr/handler.h>
+#include <asm/task/signal.h>
 #include <asm/utils/intr_ctrl.h>
 #include <asm/utils/regs.h>
 #include <asm/x86.h>
@@ -159,6 +160,7 @@ void ASMLINKAGE interrupt_handler(struct pt_regs *regs)
     int int_vector                    = regs->int_vector;
     void (*handler)(struct pt_regs *) = irq_handler[int_vector];
     handler != NULL ? handler(regs) : general_handler(regs);
+    signal_check(regs);
     return;
 }
 
@@ -168,6 +170,51 @@ static void debug_print(struct pt_regs *regs)
     while (1);
 }
 
+// 用户态硬件异常 -> 投递信号(由返回用户态时的 signal_check 交付)
+// 内核态异常 -> general_handler(不是某个进程的错, 不能只杀一个进程)
+static void exception_signal(struct pt_regs *regs)
+{
+    struct task *task = get_current_task();
+    if ((regs->cs & 3) != 3 || task->mm == NULL)
+    {
+        general_handler(regs);
+        return;
+    }
+
+    int       sig  = 0;
+    int       code = 0;
+    uintptr_t addr = regs->rip; // 多数异常没有专门的出错地址
+    switch (regs->int_vector)
+    {
+        case 0x00: // #DE 除零
+            sig  = SIGFPE;
+            code = FPE_INTDIV;
+            break;
+        case 0x03: // #BP 断点
+            sig  = SIGTRAP;
+            code = TRAP_BRKPT;
+            break;
+        case 0x06: // #UD 非法操作码
+            sig  = SIGILL;
+            code = ILL_ILLOPC;
+            break;
+        case 0x0d: // #GP 通用保护
+            sig  = SIGSEGV;
+            code = SEGV_ACCERR;
+            break;
+        case 0x11: // #AC 未对齐
+            sig  = SIGBUS;
+            code = BUS_ADRALN;
+            addr = get_cr2();
+            break;
+        default:
+            general_handler(regs);
+            return;
+    }
+    send_signal_fault(task->pid, sig, code, (void *)addr);
+    return;
+}
+
 void intr_handler_init(void)
 {
     int i;
@@ -175,6 +222,11 @@ void intr_handler_init(void)
     {
         register_handler(i, NULL);
     }
+    register_handler(0x00, exception_signal);
+    register_handler(0x03, exception_signal);
+    register_handler(0x06, exception_signal);
+    register_handler(0x0d, exception_signal);
+    register_handler(0x11, exception_signal);
     register_handler(0xff, debug_print);
     return;
 }

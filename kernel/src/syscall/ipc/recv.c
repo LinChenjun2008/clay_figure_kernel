@@ -7,6 +7,7 @@
 
 #include <asm/page.h>
 
+#include <errno.h>
 #include <std/string.h>
 #include <syscall/ipc.h>
 #include <task.h>
@@ -102,7 +103,7 @@ msg_recv_lock(struct mailbox *dst, pid_t dst_pid, pid_t from)
     return mailbox_to_task(src);
 }
 
-// 尝试取一条匹配消息/事件并投递; 返回 0 成功, -1 暂无
+// 尝试取一条匹配消息/事件并投递; 返回 0 成功, -ENOENT 表示暂无可用消息/事件
 static int msg_recv_try(struct task *dest_task, pid_t from, struct message *msg)
 {
     struct mailbox *dst = &dest_task->mailbox;
@@ -124,11 +125,11 @@ static int msg_recv_try(struct task *dest_task, pid_t from, struct message *msg)
     }
     if (src_task == NULL)
     {
-        return -1;
+        return -ENOENT;
     }
 
     copy_to_user(msg, &dst->msg, sizeof(*msg));
-    task_unblock(src_task->pid);
+    task_unblock(src_task->pid, WAKE_NORMAL);
     return 0;
 }
 
@@ -159,13 +160,14 @@ int msg_recv(pid_t src_pid, struct message *msg)
         src_task = pid_to_task(src_pid);
         if (src_task == NULL)
         {
-            return -1;
+            return -ESRCH;
         }
         src = &src_task->mailbox;
 
         spin_lock(&src->recv_lock);
         closed = src->closed;
-        if (!closed)
+        // 防止 recv_node 重复入队(上一次 recv 异常返回可能留下残留节点)
+        if (!closed && !list_find(&src->recv_list, &dst->recv_node))
         {
             list_append(&src->recv_list, &dst->recv_node);
         }
@@ -173,34 +175,50 @@ int msg_recv(pid_t src_pid, struct message *msg)
 
         if (closed)
         {
-            return -1;
+            return -ESRCH;
         }
     }
     dst->recv_from = src_pid;
 
+    int ret = -ENOENT;
+
     // 在block前已经接收到消息
     if (msg_recv_try(dest_task, src_pid, msg) == 0)
     {
-        if (src != NULL)
+        ret = 0;
+    }
+    else
+    {
+        while (1)
         {
-            msg_recv_leave(dst, src);
+            enum task_wake_reason wake_reason;
+            wake_reason = task_block(TASK_RECEIVE);
+            // 被信号唤醒: 立刻返回 -EINTR, 由调用方返回用户态后投递信号
+            if (wake_reason == WAKE_SIGNAL)
+            {
+                ret = -EINTR;
+                break;
+            }
+            // 因发送方退出导致接收失败
+            if (dst->recv_err)
+            {
+                dst->recv_err = 0;
+                ret           = -ESRCH;
+                break;
+            }
+            if (msg_recv_try(dest_task, src_pid, msg) == 0)
+            {
+                ret = 0;
+                break;
+            }
         }
-        return 0;
     }
 
-    task_block(TASK_RECEIVE);
-
-    // 因发送方退出导致接收失败
-    if (dst->recv_err)
+    // 无论是否接收成功,都从发送者的链表中移除
+    if (src != NULL)
     {
-        dst->recv_err = 0;
-        return -1;
+        msg_recv_leave(dst, src);
     }
-
-    // 接收消息失败
-    if (!msg_recv_try(dest_task, src_pid, msg))
-    {
-        return -1;
-    }
-    return 0;
+    dst->recv_from = PID_NULL;
+    return ret;
 }

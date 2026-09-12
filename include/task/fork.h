@@ -6,6 +6,6 @@
 #ifndef __TASK_FORK_H__
 #define __TASK_FORK_H__
 
-pid_t sys_fork(void);
+pid_t process_fork(void);
 
 #endif /* __TASK_FORK_H__ */

@@ -8,6 +8,7 @@
 #include <asm/desc.h>
 #include <asm/ptrace.h>
 #include <asm/syscall.h>
+#include <asm/task/signal.h>
 #include <asm/utils/regs.h>
 #include <asm/x86.h>
 
@@ -54,9 +55,11 @@ void syscall_entry(struct pt_regs *regs)
         return;
     }
 
-    int (*sys_func)(word_t, word_t, word_t, word_t, word_t);
-    sys_func  = syscall_table[func];
-    int ret   = sys_func(regs->rsi, regs->rdx, regs->r10, regs->r8, regs->r9);
-    regs->rax = (word_t)ret;
+    word_t (*sys_func)(struct pt_regs *);
+    sys_func   = syscall_table[func];
+    word_t ret = sys_func(regs);
+    regs->rax  = (word_t)ret;
+
+    signal_check(regs);
     return;
 }

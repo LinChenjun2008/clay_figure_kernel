@@ -223,7 +223,11 @@ static void inform_exit(struct task *task)
         spin_unlock(&parent_task->childs_lock);
     } while (need_retry);
 
-    task_unblock(parent_task->pid);
+    // 通知父进程: 子进程已退出(父进程若会处理 SIGCHLD 则同时登记该信号)
+    int status    = task->return_status;
+    int code      = (status >= 128) ? CLD_KILLED : CLD_EXITED;
+    int si_status = (status >= 128) ? status - 128 : status;
+    send_signal_child(parent_task->pid, code, task->pid, si_status);
     return;
 }
 
@@ -270,7 +274,7 @@ void schedule(void)
     }
 
     check_dead_task(curr_cpu);
-    switch (curr_task->status)
+    switch (TASK_STATUS(curr_task->status))
     {
         case TASK_RUNNING:
             cpu_task_list_insert(curr_cpu, curr_task);
@@ -288,10 +292,11 @@ void schedule(void)
     return;
 }
 
-void task_block(enum task_status status)
+enum task_wake_reason task_block(uint32_t status)
 {
-    enum intr_status intr_status = intr_disable();
-    struct task     *task        = get_current_task();
+    enum intr_status      intr_status = intr_disable();
+    struct task          *task        = get_current_task();
+    enum task_wake_reason wake_reason = WAKE_NORMAL;
 
     ASSERT(task->preempt_count == 0);
 
@@ -300,8 +305,19 @@ void task_block(enum task_status status)
     task->status = status;
 
     int need_block = (int64_t)task->block_count++ >= 0;
-    if (task->status != TASK_DIED && !need_block)
+    if (TASK_STATUS(task->status) == TASK_DIED)
     {
+        ;
+    }
+    else if (!need_block)
+    {
+        // 唤醒先于阻塞
+        task->status = TASK_RUNNING;
+    }
+    else if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
+    {
+        // 有挂起的信号待处理
+        task->block_count--;
         task->status = TASK_RUNNING;
     }
 
@@ -309,10 +325,36 @@ void task_block(enum task_status status)
 
     schedule();
     intr_set_status(intr_status);
-    return;
+
+    // 判定唤醒原因. 信号只在返回用户态时由 signal_check 处理,
+    // 所以此刻读到的挂起信号一定尚未投递, 调用方应据此提前返回.
+    if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
+    {
+        wake_reason = WAKE_SIGNAL;
+    }
+    return wake_reason;
 }
 
-void task_unblock(pid_t pid)
+static int able_to_unblock(uint32_t status, enum task_wake_reason reason)
+{
+    if (reason == WAKE_NORMAL)
+    {
+        return 1;
+    }
+    // wake_reason == WAKE_SIGNAL
+    switch (TASK_STATUS(status))
+    {
+        case TASK_READY:
+        case TASK_RUNNING:
+        case TASK_DIED:
+            return 0;
+        default:
+            break;
+    }
+    return !(status & UNINTERRUPTABLE);
+}
+
+void task_unblock(pid_t pid, enum task_wake_reason reason)
 {
     enum intr_status intr_status = intr_disable();
 
@@ -322,13 +364,18 @@ void task_unblock(pid_t pid)
     struct cpu *cpu = get_cpu_struct(task->cpu_id);
 
     spin_lock(&task->lock);
+    if (!able_to_unblock(task->status, reason))
+    {
+        goto fail;
+    }
     task->block_count--;
     if (task->block_count == 0)
     {
         cpu_task_list_insert(cpu, task);
     }
-    spin_unlock(&task->lock);
 
+fail:
+    spin_unlock(&task->lock);
     intr_set_status(intr_status);
     return;
 }

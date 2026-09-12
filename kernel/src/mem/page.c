@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <efi.h>
+#include <errno.h>
 #include <mem/page.h>
 #include <mem/struct.h>
 #include <panic.h>
@@ -153,26 +154,26 @@ void page_reference_inc_lock(size_t pfn)
     return;
 }
 
-uint32_t page_reference_dec_lock(size_t pfn)
+int32_t page_reference_dec_lock(size_t pfn)
 {
     struct system_info *system_info = get_task_mgr()->system_info;
     struct page_mgr    *page_mgr    = system_info->page_mgr;
 
     if (pfn > page_mgr->max_pfn)
     {
-        return -1;
+        return -EINVAL;
     }
     return page_mgr->pages[pfn].reference_count--;
 }
 
-uint32_t page_reference_read_lock(size_t pfn)
+int32_t page_reference_read_lock(size_t pfn)
 {
     struct system_info *system_info = get_task_mgr()->system_info;
     struct page_mgr    *page_mgr    = system_info->page_mgr;
 
     if (pfn > page_mgr->max_pfn)
     {
-        return -1;
+        return -EINVAL;
     }
     return page_mgr->pages[pfn].reference_count;
 }
@@ -185,18 +186,18 @@ void page_reference_inc(size_t pfn)
     return;
 }
 
-uint32_t page_reference_dec(size_t pfn)
+int32_t page_reference_dec(size_t pfn)
 {
     page_struct_lock(pfn);
-    uint32_t ret = page_reference_dec_lock(pfn);
+    int32_t ret = page_reference_dec_lock(pfn);
     page_struct_unlock(pfn);
     return ret;
 }
 
-uint32_t page_reference_read(size_t pfn)
+int32_t page_reference_read(size_t pfn)
 {
     page_struct_lock(pfn);
-    uint32_t ret = page_reference_read_lock(pfn);
+    int32_t ret = page_reference_read_lock(pfn);
     page_struct_unlock(pfn);
     return ret;
 }
@@ -214,13 +215,13 @@ void *allocate_pages(size_t pages)
     struct page_mgr    *page_mgr    = system_info->page_mgr;
 
     spin_lock(&page_mgr->lock);
-    size_t pfn = bitmap_find(&page_mgr->bitmap, 1, pages);
-    if (pfn != -1UL)
+    ssize_t pfn = bitmap_find(&page_mgr->bitmap, 1, pages);
+    if (pfn >= 0)
     {
-        bitmap_set(&page_mgr->bitmap, pfn, 0, pages);
+        bitmap_set(&page_mgr->bitmap, (size_t)pfn, 0, pages);
     }
     spin_unlock(&page_mgr->lock);
-    if (pfn == -1UL)
+    if (pfn < 0)
     {
         goto fail;
     }
@@ -232,7 +233,7 @@ void *allocate_pages(size_t pages)
     head_page->flags |= PAGE_HEAD;
     head_page->count = pages;
 
-    ret = PHYS_TO_VIRT(PFN_TO_ADDR(pfn));
+    ret = PHYS_TO_VIRT(PFN_TO_ADDR((size_t)pfn));
 
 fail:
     return ret;

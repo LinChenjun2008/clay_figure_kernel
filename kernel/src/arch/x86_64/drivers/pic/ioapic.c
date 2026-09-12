@@ -10,6 +10,7 @@
 #include <asm/page.h> // PHYS_TO_VIRT
 #include <asm/utils/barrier.h>
 
+#include <errno.h>
 #include <print.h>
 
 extern struct apic apic;
@@ -99,7 +100,7 @@ int ioapic_irq_enable(uint8_t irq, uint8_t vector, uint8_t destination)
     if (i == MAX_IOAPIC)
     {
         printk(MSG_ERR "ioapic_irq_enable: i == MAX_IOAPIC.\n");
-        return -1;
+        return -ENODEV;
     }
     uint8_t  pin   = gsi - ioapic->gsi_start;
     uint16_t flags = destination;

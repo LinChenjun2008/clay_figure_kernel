@@ -6,6 +6,20 @@
 #ifndef __TASK_STRUCT_H__
 #define __TASK_STRUCT_H__
 
+#define TASK_STATUS_MASK  0x7
+#define TASK_STATUS_SHIFT 0
+
+#define TASK_STATUS(X) GET_FIELD(X, TASK_STATUS)
+
+#define TASK_READY      1
+#define TASK_RUNNING    2
+#define TASK_BLOCKED    3
+#define TASK_SEND       4
+#define TASK_RECEIVE    5
+#define TASK_WAITING    6
+#define TASK_DIED       7
+#define UNINTERRUPTABLE (1 << 3)
+
 #ifndef __ASSEMBLER__
 
 #    include <asm/ptrace.h>
@@ -14,6 +28,7 @@
 #    include <lib/linked_list.h>
 #    include <sync/atomic.h>
 #    include <sync/spinlock.h>
+#    include <task/signal.h>
 
 #    define SLOTS_PER_LEVEL 256
 
@@ -57,18 +72,6 @@ struct cpu
     uint64_t total_weight;
 };
 
-// 任务状态标志
-enum task_status
-{
-    TASK_READY = 1, // 任务就绪,随时进入运行状态
-    TASK_RUNNING,   // 任务正在运行
-    TASK_BLOCKED,   // 任务阻塞
-    TASK_SEND,
-    TASK_RECEIVE,
-    TASK_WAITING, // 等待子任务结束
-    TASK_DIED     // 任务结束
-};
-
 #    define EVT_NR 8
 
 struct message
@@ -100,6 +103,12 @@ struct mailbox
     struct spinlock  recv_lock; // 操作邮箱时获取的锁
 };
 
+enum task_wake_reason
+{
+    WAKE_NORMAL,
+    WAKE_SIGNAL,
+};
+
 struct task
 {
     struct task_context *context; // task + 0 上下文
@@ -117,13 +126,13 @@ struct task
 
     char name[32];
 
-    struct spinlock           lock;
-    volatile enum task_status status;
-    uint64_t                  block_count;
-    uint64_t                  preempt_count;
-    phys_addr_t               pg_dir;
-    struct list_node          general_node;
-    struct list_node          sema_node;
+    struct spinlock   lock;
+    volatile uint32_t status;
+    uint64_t          block_count;
+    uint64_t          preempt_count;
+    phys_addr_t       pg_dir;
+    struct list_node  general_node;
+    struct list_node  sema_node;
 
     uint64_t prio;
     uint64_t run_time;
@@ -138,7 +147,8 @@ struct task
     struct list      exited_childs;
     struct list_node parent_node;
 
-    struct mailbox mailbox;
+    struct mailbox       mailbox;
+    struct signal_struct signal;
 };
 
 #endif /* __ASSEMBLER__ */
