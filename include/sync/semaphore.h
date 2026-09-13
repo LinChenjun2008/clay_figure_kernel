@@ -6,14 +6,14 @@
 #ifndef __SYNC_SEMAPHORE_H__
 #define __SYNC_SEMAPHORE_H__
 
-#include <lib/linked_list.h>
 #include <sync/spinlock.h>
+#include <task/schedule.h>
 
 struct semaphore
 {
-    struct spinlock lock;
-    long            value;
-    struct list     wait_list;
+    struct spinlock   lock;
+    long              value;
+    struct wait_queue wq;
 };
 
 void init_semaphore(struct semaphore *sema, long value);

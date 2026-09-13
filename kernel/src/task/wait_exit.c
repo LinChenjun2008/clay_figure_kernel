@@ -5,6 +5,8 @@
 
 #include <base.h>
 
+#include <asm/interrupt.h>
+
 #include <errno.h>
 #include <mem/page.h>
 #include <panic.h>
@@ -59,7 +61,10 @@ void task_exit(int return_value)
 
     mailbox_cleanup(task);
 
-    task_block(TASK_DIED);
+    enum intr_status intr_status = intr_disable();
+    task->status                 = TASK_DIED;
+    schedule();
+    intr_set_status(intr_status);
     return;
 }
 
@@ -97,6 +102,18 @@ static int is_child(struct task *task, pid_t pid)
 {
     struct task *child = pid_to_task(pid);
     return child != NULL && child->ppid == task->pid;
+}
+
+struct wait_pid_pack
+{
+    struct task *task;
+    pid_t        pid;
+};
+
+int waitpid_ready(void *arg)
+{
+    struct wait_pid_pack *pack = arg;
+    return child_match(pack->task, pack->pid);
 }
 
 static int task_release_resources(struct task *task)
@@ -145,13 +162,15 @@ pid_t task_waitpid(pid_t pid, int *status, int options)
         {
             return 0;
         }
-        while (!child_match(task, pid))
+        struct wait_pid_pack pack;
+        pack.task = task;
+        pack.pid  = pid;
+
+        int wake = wait_event(&task->child_wq, &pack, TASK_WAITING);
+        // 被打断但子进程已退出时按成功处理
+        if (wake == -EINTR && !child_match(task, pid))
         {
-            enum task_wake_reason wake_reason = task_block(TASK_WAITING);
-            if (wake_reason == WAKE_SIGNAL && !child_match(task, pid))
-            {
-                return -EINTR;
-            }
+            return -EINTR;
         }
     }
 

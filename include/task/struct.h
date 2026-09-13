@@ -28,6 +28,7 @@
 #    include <lib/linked_list.h>
 #    include <sync/atomic.h>
 #    include <sync/spinlock.h>
+#    include <task/schedule.h>
 #    include <task/signal.h>
 
 #    define SLOTS_PER_LEVEL 256
@@ -101,12 +102,9 @@ struct mailbox
     struct list      recv_list; // 从当前邮箱接收消息的队列
     struct list_node recv_node; // 接收消息时加入来源邮箱的send_list
     struct spinlock  recv_lock; // 操作邮箱时获取的锁
-};
 
-enum task_wake_reason
-{
-    WAKE_NORMAL,
-    WAKE_SIGNAL,
+    struct wait_queue recv_wq;
+    struct wait_queue send_wq;
 };
 
 struct task
@@ -128,11 +126,10 @@ struct task
 
     struct spinlock   lock;
     volatile uint32_t status;
-    uint64_t          block_count;
     uint64_t          preempt_count;
     phys_addr_t       pg_dir;
     struct list_node  general_node;
-    struct list_node  sema_node;
+    struct list_node  wait_queue_node;
 
     uint64_t prio;
     uint64_t run_time;
@@ -146,6 +143,8 @@ struct task
     struct list      childs_list;
     struct list      exited_childs;
     struct list_node parent_node;
+
+    struct wait_queue child_wq;
 
     struct mailbox       mailbox;
     struct signal_struct signal;

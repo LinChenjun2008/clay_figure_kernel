@@ -9,6 +9,9 @@
 #include <lib/linked_list.h>
 #include <sync/spinlock.h>
 
+struct cpu;
+struct task;
+
 typedef int (*wq_cond_t)(void *);
 
 struct wait_queue
@@ -27,11 +30,10 @@ void     task_pg_active(struct task *task);
 void     schedule(void);
 
 void init_wait_queue(struct wait_queue *wq, wq_cond_t condition);
-int  wait_event(struct wait_queue *wq, void *arg, int status);
+int  wait_event(struct wait_queue *wq, void *arg, uint32_t status);
 void wake_up(struct wait_queue *wq);
+void wake_up_signal(pid_t pid);
 
-// enum task_wake_reason task_block(uint32_t status);
-// void                  task_unblock(pid_t pid, enum task_wake_reason reason);
 void task_yield(void);
 
 

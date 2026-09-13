@@ -66,6 +66,8 @@ static int signal_ignored(struct task *task, int sig)
 // 返回 1 = 已登记, 0 = 被忽略
 static int signal_queue(struct task *task, int sig, struct siginfo *info)
 {
+    int ret = 1;
+
     struct siginfo new_info;
     memset(&new_info, 0, sizeof(new_info));
     if (info != NULL)
@@ -77,13 +79,15 @@ static int signal_queue(struct task *task, int sig, struct siginfo *info)
     spin_lock(&task->signal.lock);
     if (signal_ignored(task, sig))
     {
-        spin_unlock(&task->signal.lock);
-        return 0;
+        ret = 0;
+        goto end;
     }
     task->signal.pending |= (1ULL << sig);
     task->signal.info[sig] = new_info;
+
+end:
     spin_unlock(&task->signal.lock);
-    return 1;
+    return ret;
 }
 
 int send_signal(pid_t pid, int sig, struct siginfo *info)
@@ -99,7 +103,7 @@ int send_signal(pid_t pid, int sig, struct siginfo *info)
     }
     if (signal_queue(task, sig, info))
     {
-        task_unblock(pid, WAKE_SIGNAL);
+        wake_up_signal(pid);
     }
     return 0;
 }
@@ -123,7 +127,7 @@ int send_signal_fault(pid_t pid, int sig, int code, void *addr)
     return send_signal(pid, sig, &info);
 }
 
-// 子进程状态变化: 若父进程会处理 SIGCHLD 则登记它, 并唤醒父进程(WAKE_NORMAL)
+// 子进程状态变化: 若父进程会处理 SIGCHLD 则登记它, 并唤醒等子进程的父进程
 int send_signal_child(pid_t pid, int code, pid_t child, int status)
 {
     struct task *task = pid_to_task(pid);
@@ -139,6 +143,6 @@ int send_signal_child(pid_t pid, int code, pid_t child, int status)
     info.si_status = status;
 
     signal_queue(task, SIGCHLD, &info);
-    task_unblock(pid, WAKE_NORMAL);
+    wake_up(&task->child_wq);
     return 0;
 }
