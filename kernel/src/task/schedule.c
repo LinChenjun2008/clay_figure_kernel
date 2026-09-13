@@ -9,6 +9,7 @@
 #include <asm/page.h>
 #include <asm/task.h>
 
+#include <errno.h>
 #include <panic.h>
 #include <sysinfo.h>
 #include <task.h>
@@ -292,93 +293,185 @@ void schedule(void)
     return;
 }
 
-enum task_wake_reason task_block(uint32_t status)
+// 加入wait_queue
+static void wait_enqueue(struct wait_queue *wq, struct task *task)
 {
-    enum intr_status      intr_status = intr_disable();
-    struct task          *task        = get_current_task();
-    enum task_wake_reason wake_reason = WAKE_NORMAL;
-
-    ASSERT(task->preempt_count == 0);
-
-    spin_lock(&task->lock);
-
-    task->status = status;
-
-    int need_block = (int64_t)task->block_count++ >= 0;
-    if (TASK_STATUS(task->status) == TASK_DIED)
+    spin_lock(&wq->lock);
+    if (!list_find(&wq->queue, &task->general_node))
     {
-        ;
+        list_append(&wq->queue, &task->general_node);
     }
-    else if (!need_block)
-    {
-        // 唤醒先于阻塞
-        task->status = TASK_RUNNING;
-    }
-    else if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
-    {
-        // 有挂起的信号待处理
-        task->block_count--;
-        task->status = TASK_RUNNING;
-    }
-
-    spin_unlock(&task->lock);
-
-    schedule();
-    intr_set_status(intr_status);
-
-    // 判定唤醒原因. 信号只在返回用户态时由 signal_check 处理,
-    // 所以此刻读到的挂起信号一定尚未投递, 调用方应据此提前返回.
-    if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
-    {
-        wake_reason = WAKE_SIGNAL;
-    }
-    return wake_reason;
-}
-
-static int able_to_unblock(uint32_t status, enum task_wake_reason reason)
-{
-    if (reason == WAKE_NORMAL)
-    {
-        return 1;
-    }
-    // wake_reason == WAKE_SIGNAL
-    switch (TASK_STATUS(status))
-    {
-        case TASK_READY:
-        case TASK_RUNNING:
-        case TASK_DIED:
-            return 0;
-        default:
-            break;
-    }
-    return !(status & UNINTERRUPTABLE);
-}
-
-void task_unblock(pid_t pid, enum task_wake_reason reason)
-{
-    enum intr_status intr_status = intr_disable();
-
-    struct task *task = pid_to_task(pid);
-    ASSERT(task != NULL);
-
-    struct cpu *cpu = get_cpu_struct(task->cpu_id);
-
-    spin_lock(&task->lock);
-    if (!able_to_unblock(task->status, reason))
-    {
-        goto fail;
-    }
-    task->block_count--;
-    if (task->block_count == 0)
-    {
-        cpu_task_list_insert(cpu, task);
-    }
-
-fail:
-    spin_unlock(&task->lock);
-    intr_set_status(intr_status);
+    spin_unlock(&wq->lock);
     return;
 }
+
+// 从wait_queue中移除
+static void wait_dequeue(struct wait_queue *wq, struct task *task)
+{
+    spin_lock(&wq->lock);
+    if (list_find(&wq->queue, &task->general_node))
+    {
+        list_remove(&task->general_node);
+    }
+    spin_unlock(&wq->lock);
+    return;
+}
+
+void init_wait_queue(struct wait_queue *wq, wq_cond_t condition)
+{
+    init_spinlock(&wq->lock);
+    init_list(&wq->queue);
+    wq->condition = condition;
+    return;
+}
+
+int wait_event(struct wait_queue *wq, void *arg, int status)
+{
+    int ret = 0;
+    if (wq->condition(arg))
+    {
+        return 0;
+    }
+    struct task *task = get_current_task();
+    ASSERT(task->preempt_count == 0);
+    if (task->preempt_count > 0)
+    {
+        return -EAGAIN;
+    }
+    while (1)
+    {
+        wait_enqueue(wq, task);
+
+        if (wq->condition(arg))
+        {
+            break;
+        }
+        if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
+        {
+            ret = -EINTR;
+            break;
+        }
+
+        enum intr_status intr_status = intr_disable();
+
+        task->status = status;
+        schedule();
+
+        intr_set_status(intr_status);
+        continue;
+    }
+    wait_dequeue(wq, task);
+    task->status = TASK_RUNNING;
+    return ret;
+}
+
+static void try_wake_up(struct wait_queue *wq)
+{
+    while (!list_empty(&wq->queue))
+    {
+        struct list_node *node = list_pop(&wq->queue);
+        struct task      *task = CONTAINER_OF(struct task, general_node, node);
+        struct cpu       *cpu  = get_cpu_struct(task->cpu_id);
+        cpu_task_list_insert(cpu, task);
+    }
+    return;
+}
+
+void wake_up(struct wait_queue *wq)
+{
+    spin_lock(&wq->lock);
+    try_wake_up(wq);
+    spin_unlock(&wq->lock);
+    return;
+}
+
+// enum task_wake_reason task_block(uint32_t status)
+// {
+//     enum intr_status      intr_status = intr_disable();
+//     struct task          *task        = get_current_task();
+//     enum task_wake_reason wake_reason = WAKE_NORMAL;
+
+//     ASSERT(task->preempt_count == 0);
+
+//     spin_lock(&task->lock);
+
+//     task->status = status;
+
+//     int need_block = (int64_t)task->block_count++ >= 0;
+//     if (TASK_STATUS(task->status) == TASK_DIED)
+//     {
+//         ;
+//     }
+//     else if (!need_block)
+//     {
+//         // 唤醒先于阻塞
+//         task->status = TASK_RUNNING;
+//     }
+//     else if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
+//     {
+//         // 有挂起的信号待处理
+//         task->block_count--;
+//         task->status = TASK_RUNNING;
+//     }
+
+//     spin_unlock(&task->lock);
+
+//     schedule();
+//     intr_set_status(intr_status);
+
+//     // 判定唤醒原因. 信号只在返回用户态时由 signal_check 处理,
+//     // 所以此刻读到的挂起信号一定尚未投递, 调用方应据此提前返回.
+//     if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
+//     {
+//         wake_reason = WAKE_SIGNAL;
+//     }
+//     return wake_reason;
+// }
+
+// static int able_to_unblock(uint32_t status, enum task_wake_reason reason)
+// {
+//     if (reason == WAKE_NORMAL)
+//     {
+//         return 1;
+//     }
+//     // wake_reason == WAKE_SIGNAL
+//     switch (TASK_STATUS(status))
+//     {
+//         case TASK_READY:
+//         case TASK_RUNNING:
+//         case TASK_DIED:
+//             return 0;
+//         default:
+//             break;
+//     }
+//     return !(status & UNINTERRUPTABLE);
+// }
+
+// void task_unblock(pid_t pid, enum task_wake_reason reason)
+// {
+//     enum intr_status intr_status = intr_disable();
+
+//     struct task *task = pid_to_task(pid);
+//     ASSERT(task != NULL);
+
+//     struct cpu *cpu = get_cpu_struct(task->cpu_id);
+
+//     spin_lock(&task->lock);
+//     if (!able_to_unblock(task->status, reason))
+//     {
+//         goto fail;
+//     }
+//     task->block_count--;
+//     if (task->block_count == 0)
+//     {
+//         cpu_task_list_insert(cpu, task);
+//     }
+
+// fail:
+//     spin_unlock(&task->lock);
+//     intr_set_status(intr_status);
+//     return;
+// }
 
 void task_yield(void)
 {
