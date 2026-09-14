@@ -4,6 +4,7 @@
  */
 
 #include <bootloader.h>
+#include <sysinfo.h>
 
 efi_status_t read_acpi_tables(struct boot_info *boot_info)
 {

@@ -6,6 +6,8 @@
 #ifndef __ASM_DRIVERS_PIC_H__
 #define __ASM_DRIVERS_PIC_H__
 
+struct boot_info;
+
 void pic_init(struct boot_info *boot_info);
 void send_eoi(void);
 

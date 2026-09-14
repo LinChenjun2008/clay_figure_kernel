@@ -9,6 +9,7 @@
 #include <asm/sysinfo.h>
 
 #include <sysinfo.h>
+#include <task/struct.h>
 
 struct task_mgr *get_task_mgr(void)
 {

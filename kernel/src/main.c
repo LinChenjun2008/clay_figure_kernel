@@ -8,6 +8,9 @@
 #include <asm/init.h>
 #include <asm/task.h>
 
+#include <mem/struct.h>
+#include <task/struct.h>
+
 int main(struct system_info *system_info)
 {
     init_all(system_info);

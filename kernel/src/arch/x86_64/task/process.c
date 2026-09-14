@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <asm/desc.h>
+#include <asm/interrupt.h>
 #include <asm/page.h>
 #include <asm/ptrace.h>
 #include <asm/task/process.h>
@@ -16,6 +17,7 @@
 #include <std/string.h>
 #include <sysinfo.h>
 #include <task.h>
+#include <task/struct.h>
 
 phys_addr_t create_pg_dir(void)
 {

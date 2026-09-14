@@ -14,6 +14,8 @@
 #include <mem.h>
 #include <task.h>
 #include <task/schedule.h>
+#include <task/signal.h>
+#include <task/struct.h>
 
 int copy_process(struct task *dst, struct task *src)
 {

@@ -8,6 +8,8 @@
 
 #ifndef __ASSEMBLER__
 
+struct pt_regs;
+
 // intr_handler.c
 void            general_handler(struct pt_regs *regs);
 void ASMLINKAGE interrupt_handler(struct pt_regs *regs);

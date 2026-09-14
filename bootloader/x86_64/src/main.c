@@ -4,6 +4,9 @@
  */
 
 #include <bootloader.h>
+#include <mem/struct.h>
+#include <sysinfo.h>
+#include <task/struct.h>
 
 struct efi_system_table             *system_table;
 struct efi_boot_services            *boot_services;

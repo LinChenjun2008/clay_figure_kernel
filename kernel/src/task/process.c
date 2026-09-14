@@ -11,6 +11,7 @@
 
 #include <mem.h>
 #include <mem/page.h>
+#include <mem/struct.h>
 #include <panic.h>
 #include <ramfs.h>
 #include <sync/atomic.h>

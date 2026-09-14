@@ -6,10 +6,54 @@
 #ifndef __SYSINFO_H__
 #define __SYSINFO_H__
 
-struct task_mgr;
+#include <types.h>
+
 struct cpu;
 struct page_mgr;
-struct system_info;
+struct task_mgr;
+
+struct graphic_info
+{
+    phys_addr_t frame_buffer_base;
+    uint32_t    horizontal_resolution;
+    uint32_t    vertical_resolution;
+    uint32_t    pixel_per_scanline;
+};
+
+struct memory_map
+{
+    uint64_t map_size;
+    void    *buffer;
+    uint64_t map_key;
+    uint64_t descriptor_size;
+    uint32_t descriptor_version;
+};
+
+struct boot_info
+{
+    void  *initramfs;
+    size_t initramfs_size;
+
+    phys_addr_t page_table_pos;
+    uintptr_t   relocate_base;
+
+    phys_addr_t stack_base;
+    size_t      stack_pages;
+
+    struct memory_map   memory_map;
+    struct graphic_info graphic_info;
+
+    uintptr_t **sdt_baseaddr_array;
+    uint32_t    sdt_entries;
+};
+
+struct system_info
+{
+    struct boot_info *boot_info;
+    struct page_mgr  *page_mgr;
+    struct cpu       *cpu;
+    struct task_mgr  *task_mgr;
+};
 
 struct task_mgr    *get_task_mgr(void);
 uint8_t             get_current_cpu_id(void);

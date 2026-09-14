@@ -13,10 +13,13 @@
 #include <errno.h>
 #include <mem.h>
 #include <mem/page.h>
+#include <mem/struct.h>
 #include <std/string.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/schedule.h>
+#include <task/signal.h>
+#include <task/struct.h>
 
 void set_pg_table(phys_addr_t pg_table)
 {

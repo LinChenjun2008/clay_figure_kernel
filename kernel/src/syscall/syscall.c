@@ -18,6 +18,7 @@
 #include <std/string.h>
 #include <task/fork.h>
 #include <task/process.h>
+#include <task/signal.h>
 #include <task/wait.h>
 
 void *syscall_table[NR_CONT];

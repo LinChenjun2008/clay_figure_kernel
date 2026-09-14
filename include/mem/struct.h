@@ -15,6 +15,8 @@
 #define MAX_BLOCK_SIZE  2048 //   2 KiB
 #define MAX_BLOCK_TYPES 6
 
+#define MAX_ALLOCATE_PAGES 2048
+
 enum mm_type
 {
     MM_TYPE_FREE = 1,
@@ -43,8 +45,6 @@ struct mem_block
     uint64_t         magic;
     struct list_node node;
 };
-
-#define MAX_ALLOCATE_PAGES 2048
 
 #define PAGE_HEAD (1 << 0)
 

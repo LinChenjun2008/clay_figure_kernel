@@ -9,6 +9,7 @@
 #include <sync/mutex.h>
 #include <sync/semaphore.h>
 #include <task.h>
+#include <task/struct.h>
 
 void init_mutex(struct mutex *mutex)
 {

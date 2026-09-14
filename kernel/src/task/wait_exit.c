@@ -14,6 +14,7 @@
 #include <sysinfo.h>
 #include <task.h>
 #include <task/schedule.h>
+#include <task/struct.h>
 #include <task/wait.h>
 
 void init_adopt_childs(struct task *task)

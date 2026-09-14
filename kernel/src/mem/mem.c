@@ -13,11 +13,13 @@
 #include <mem.h>
 #include <mem/allocator.h>
 #include <mem/page.h>
+#include <mem/struct.h>
 #include <panic.h>
 #include <print.h>
 #include <std/string.h>
 #include <sysinfo.h>
 #include <task.h>
+#include <task/struct.h>
 
 void mem_init(struct system_info *system_info)
 {

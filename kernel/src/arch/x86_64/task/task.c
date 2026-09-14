@@ -8,6 +8,7 @@
 #include <asm/desc.h>
 #include <asm/interrupt.h>
 #include <asm/page.h>
+#include <asm/ptrace.h>
 #include <asm/task.h>
 #include <asm/task/process.h>
 #include <asm/utils/intr_ctrl.h>
@@ -18,6 +19,7 @@
 #include <task.h>
 #include <task/process.h>
 #include <task/schedule.h>
+#include <task/struct.h>
 
 static void kernel_task(int (*func)(word_t), word_t arg)
 {

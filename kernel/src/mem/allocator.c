@@ -13,6 +13,7 @@
 #include <panic.h>
 #include <print.h>
 #include <sysinfo.h>
+#include <task/struct.h>
 
 void mem_allocator_init(void)
 {

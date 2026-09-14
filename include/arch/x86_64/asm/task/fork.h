@@ -6,6 +6,8 @@
 #ifndef __ASM_TASK_FORK_H__
 #define __ASM_TASK_FORK_H__
 
+struct task;
+
 int copy_process(struct task *dst, struct task *src);
 
 #endif /* __ASM_TASK_FORK_H__ */

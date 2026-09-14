@@ -60,6 +60,11 @@
 
 #ifndef __ASSEMBLER__
 
+#    include <asm/types.h>
+
+struct pt_regs;
+struct task;
+
 void set_pg_table(phys_addr_t pg_table);
 
 void page_map(phys_addr_t pg_dir, phys_addr_t phys, uintptr_t virt, int count);

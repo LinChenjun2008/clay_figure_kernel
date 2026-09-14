@@ -64,6 +64,8 @@
 #define BUS_ADRALN  1 // SIGBUS:  地址未对齐
 #define TRAP_BRKPT  1 // SIGTRAP: 断点
 
+#define SIGNAL_PENDING(task) ((task)->signal.pending & ~(task)->signal.blocked)
+
 union sigval
 {
     int   sival_int;
@@ -166,8 +168,6 @@ struct sigframe
     ucontext_t     uc;
     uint8_t        trampoline[16];
 };
-
-#define SIGNAL_PENDING(task) ((task)->signal.pending & ~(task)->signal.blocked)
 
 void init_signal(struct signal_struct *signal);
 void copy_signal(struct signal_struct *dst, struct signal_struct *src);

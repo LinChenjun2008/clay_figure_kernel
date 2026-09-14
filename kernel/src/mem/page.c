@@ -16,6 +16,7 @@
 #include <sync/atomic.h>
 #include <sync/spinlock.h>
 #include <sysinfo.h>
+#include <task/struct.h>
 
 static enum mm_type get_page_type(enum efi_memory_type efi_type)
 {

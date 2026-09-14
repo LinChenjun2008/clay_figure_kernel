@@ -45,6 +45,8 @@
 
 #define MAX_VRUNTIME(A, B) ((int64_t)((A) - (B)) > 0 ? (A) : (B))
 
+struct task;
+
 void task_init(struct system_info *system_info);
 void make_main_task(uintptr_t stack_base, size_t stack_pages);
 

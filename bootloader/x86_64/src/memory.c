@@ -4,6 +4,8 @@
  */
 
 #include <bootloader.h>
+#include <mem/struct.h>
+#include <sysinfo.h>
 
 void *efi_malloc(size_t size)
 {

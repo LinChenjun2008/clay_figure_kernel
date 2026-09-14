@@ -6,7 +6,9 @@
 #include <base.h>
 
 #include <asm/drivers/timer.h>
+#include <asm/interrupt.h>
 #include <asm/intr/handler.h>
+#include <asm/ptrace.h>
 #include <asm/task/signal.h>
 #include <asm/utils/intr_ctrl.h>
 #include <asm/utils/regs.h>
@@ -16,6 +18,8 @@
 #include <sysinfo.h>
 #include <task.h>
 #include <task/process.h>
+#include <task/signal.h>
+#include <task/struct.h>
 
 static int has_error_code[256] = {
 #define INTR_HANDLER(ENTRY, NR, ERROR_CODE) !ERROR_CODE,

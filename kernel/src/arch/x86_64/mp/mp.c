@@ -15,6 +15,7 @@
 #include <panic.h>
 #include <print.h>
 #include <std/string.h>
+#include <sysinfo.h>
 
 extern uint8_t AP_BOOT_START[];
 extern uint8_t AP_BOOT_END[];

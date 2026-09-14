@@ -55,6 +55,8 @@
 #define ICR_ALL_INCLUDE_SELF 2
 #define ICR_ALL_EXCLUDE_SELF 3
 
+struct boot_info;
+
 void    apic_init(struct boot_info *boot_info);
 uint8_t apic_cpu_count(void);
 uint8_t apic_max_lapic_id(void);
