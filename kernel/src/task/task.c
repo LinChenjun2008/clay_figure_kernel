@@ -21,6 +21,7 @@
 #include <task/schedule.h>
 #include <task/signal.h>
 #include <task/struct.h>
+#include <task/wait.h>
 
 static void cpu_task_init(struct cpu *cpu, struct task_mgr *task_mgr)
 {
@@ -361,7 +362,6 @@ void init_task_struct(
 
     init_spinlock(&task->lock);
     task->status        = TASK_READY;
-    task->block_count   = 0;
     task->preempt_count = 0;
     task->pg_dir        = 0;
 
@@ -376,6 +376,7 @@ void init_task_struct(
     init_spinlock(&task->childs_lock);
     init_list(&task->childs_list);
     init_list(&task->exited_childs);
+    init_wait_queue(&task->child_wq, waitpid_ready);
 
     init_mailbox(&task->mailbox);
     init_signal(&task->signal);

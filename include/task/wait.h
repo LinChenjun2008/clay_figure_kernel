@@ -12,4 +12,6 @@
 void  init_adopt_childs(struct task *task);
 pid_t task_waitpid(pid_t pid, int *status, int options);
 
+int waitpid_ready(void *arg);
+
 #endif /* __TASK_WAIT_H__ */

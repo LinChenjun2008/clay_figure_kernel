@@ -62,22 +62,6 @@ static int msg_event_lock(struct mailbox *dst, pid_t from)
     return 1;
 }
 
-struct check_send_list_pack
-{
-    pid_t dst_pid;
-    pid_t from;
-};
-
-// 检查是否有匹配的任务发送消息
-static int check_send_list(struct list_node *node, void *arg)
-{
-    struct check_send_list_pack *pack = arg;
-
-    struct mailbox *src      = send_node_to_mailbox(node);
-    struct task    *src_task = mailbox_to_task(src);
-    return msg_match(pack->from, pack->dst_pid, src_task->pid);
-}
-
 // 获取一条来自其他任务的消息
 static struct task *
 msg_recv_lock(struct mailbox *dst, pid_t dst_pid, pid_t from)
@@ -129,7 +113,7 @@ static int msg_recv_try(struct task *dest_task, pid_t from, struct message *msg)
     }
 
     copy_to_user(msg, &dst->msg, sizeof(*msg));
-    task_unblock(src_task->pid, WAKE_NORMAL);
+    wake_up(&src_task->mailbox.send_wq);
     return 0;
 }
 
@@ -189,14 +173,18 @@ int msg_recv(pid_t src_pid, struct message *msg)
     }
     else
     {
+        struct msg_recv_pack pack;
+        pack.task = dest_task;
+        pack.from = src_pid;
+
         while (1)
         {
-            enum task_wake_reason wake_reason;
-            wake_reason = task_block(TASK_RECEIVE);
-            // 被信号唤醒: 立刻返回 -EINTR, 由调用方返回用户态后投递信号
-            if (wake_reason == WAKE_SIGNAL)
+            int wake = wait_event(&dst->recv_wq, &pack, TASK_RECEIVE);
+
+            // 这次已收到
+            if (msg_recv_try(dest_task, src_pid, msg) == 0)
             {
-                ret = -EINTR;
+                ret = 0;
                 break;
             }
             // 因发送方退出导致接收失败
@@ -206,11 +194,13 @@ int msg_recv(pid_t src_pid, struct message *msg)
                 ret           = -ESRCH;
                 break;
             }
-            if (msg_recv_try(dest_task, src_pid, msg) == 0)
+            // 被信号打断: 立刻返回 -EINTR, 由调用方返回用户态后投递信号
+            if (wake == -EINTR)
             {
-                ret = 0;
+                ret = -EINTR;
                 break;
             }
+            // 继续等
         }
     }
 

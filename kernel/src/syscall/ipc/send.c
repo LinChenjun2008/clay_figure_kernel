@@ -91,28 +91,31 @@ int msg_send(pid_t dst_pid, struct message *msg)
         }
         spin_unlock(&src->recv_lock);
 
-        task_unblock(dest_task->pid, WAKE_NORMAL);
+        wake_up(&dst->recv_wq);
     }
 
-    // 阻塞直到消息被接收或接收者退出.
-    while (src->send_to == dest_task->pid)
+    // 等到消息被接收, 或接收者退出
+    struct msg_send_pack pack;
+    pack.task    = src_task;
+    pack.dst_pid = dest_task->pid;
+
+    int wake = wait_event(&src->send_wq, &pack, TASK_SEND);
+
+    // 信号打断
+    if (wake == -EINTR && src->send_to == dest_task->pid)
     {
-        enum task_wake_reason wake_reason = task_block(TASK_SEND);
-        // 被信号中断
-        if (wake_reason == WAKE_SIGNAL && src->send_to == dest_task->pid)
+        // 撤回本次发送登记
+        spin_lock(&dst->send_lock);
+        if (src->send_to == dest_task->pid)
         {
-            spin_lock(&dst->send_lock);
-            if (src->send_to == dest_task->pid)
+            if (list_find(&dst->send_list, &src->send_node))
             {
-                if (list_find(&dst->send_list, &src->send_node))
-                {
-                    list_remove(&src->send_node);
-                }
-                src->send_to = PID_NULL;
+                list_remove(&src->send_node);
             }
-            spin_unlock(&dst->send_lock);
-            return -EINTR;
+            src->send_to = PID_NULL;
         }
+        spin_unlock(&dst->send_lock);
+        return -EINTR;
     }
 
     if (src->send_to != PID_NULL)
@@ -155,7 +158,7 @@ void inform_event(pid_t dst_pid, uint32_t evt_type)
 
     if (need_wake)
     {
-        task_unblock(dst_pid, WAKE_NORMAL);
+        wake_up(&dst->recv_wq);
     }
     return;
 }
