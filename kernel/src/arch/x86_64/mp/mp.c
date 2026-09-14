@@ -8,6 +8,7 @@
 #include <asm/drivers/apic.h>
 #include <asm/drivers/apic/lapic.h>
 #include <asm/mp.h>
+#include <asm/page.h>
 
 #include <drivers/timer.h>
 #include <mem/page.h>

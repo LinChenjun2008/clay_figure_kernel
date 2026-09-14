@@ -5,6 +5,7 @@
 
 #include <base.h>
 
+#include <asm/page.h>
 #include <asm/task.h>
 #include <asm/task/process.h>
 

@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <asm/interrupt.h>
+#include <asm/page.h>
 #include <asm/task/fork.h>
 #include <asm/task/process.h>
 

@@ -6,8 +6,6 @@
 #ifndef __TASK_SIGNAL_H__
 #define __TASK_SIGNAL_H__
 
-#include <asm/ptrace.h>
-
 #include <sync/spinlock.h>
 
 #define SIGHUP    1

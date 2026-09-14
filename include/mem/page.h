@@ -6,7 +6,7 @@
 #ifndef __MEM_PAGE_H__
 #define __MEM_PAGE_H__
 
-#include <asm/page.h>
+struct system_info;
 
 // page.c
 void page_mgr_init(struct system_info *system_info);

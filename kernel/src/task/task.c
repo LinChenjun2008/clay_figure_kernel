@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <asm/drivers/apic.h>
+#include <asm/page.h>
 #include <asm/task.h>
 
 #include <mem/allocator.h>

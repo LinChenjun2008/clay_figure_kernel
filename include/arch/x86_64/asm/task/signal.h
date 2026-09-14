@@ -6,7 +6,8 @@
 #ifndef __ASM_TASK_SIGNAL_H__
 #define __ASM_TASK_SIGNAL_H__
 
-#include <asm/ptrace.h>
+struct pt_regs;
+struct sigaction;
 
 void signal_check(struct pt_regs *regs);
 int  sigaction(int sig, const struct sigaction *act, struct sigaction *oldact);

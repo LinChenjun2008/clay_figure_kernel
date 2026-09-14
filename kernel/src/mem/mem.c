@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <asm/intr/handler.h>
+#include <asm/page.h>
 
 #include <errno.h>
 #include <lib/free_table.h>

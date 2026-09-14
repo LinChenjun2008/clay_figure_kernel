@@ -6,8 +6,10 @@
 #ifndef __SYSINFO_H__
 #define __SYSINFO_H__
 
-#include <mem/struct.h>
-#include <task/struct.h>
+struct task_mgr;
+struct cpu;
+struct page_mgr;
+struct system_info;
 
 struct task_mgr    *get_task_mgr(void);
 uint8_t             get_current_cpu_id(void);

@@ -6,7 +6,10 @@
 #ifndef __SYSCALL_IPC_H__
 #define __SYSCALL_IPC_H__
 
-#include <task/struct.h>
+struct mailbox;
+struct task;
+struct message;
+struct list_node;
 
 struct mailbox *send_node_to_mailbox(struct list_node *node);
 struct task    *mailbox_to_task(struct mailbox *mailbox);

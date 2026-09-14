@@ -5,6 +5,8 @@
 
 #include <base.h>
 
+#include <asm/page.h>
+
 #include <efi.h>
 #include <errno.h>
 #include <mem/page.h>

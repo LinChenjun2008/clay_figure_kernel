@@ -26,7 +26,6 @@
 
 #    include <lib/bitmap.h>
 #    include <lib/linked_list.h>
-#    include <sync/atomic.h>
 #    include <sync/spinlock.h>
 #    include <task/schedule.h>
 #    include <task/signal.h>

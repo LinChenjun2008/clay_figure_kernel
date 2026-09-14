@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <asm/desc.h>
+#include <asm/page.h>
 #include <asm/ptrace.h>
 #include <asm/task/process.h>
 #include <asm/x86.h>

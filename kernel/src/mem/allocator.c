@@ -5,6 +5,8 @@
 
 #include <base.h>
 
+#include <asm/page.h>
+
 #include <mem/allocator.h>
 #include <mem/page.h>
 #include <mem/struct.h>
