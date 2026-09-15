@@ -131,7 +131,7 @@ static void destory_pg_struct(struct pg_struct *pg)
         ASSERT(node != NULL);
 
         struct page_struct *page = CONTAINER_OF(struct page_struct, node, node);
-        void               *addr = PHYS_TO_VIRT(PFN_TO_ADDR(page->pfn));
+        phys_addr_t         addr = PFN_TO_ADDR(page->pfn);
         free_a_page(addr);
         kfree(page);
     }
@@ -397,16 +397,16 @@ phys_addr_t mm_allocate_a_page(void)
         return 0;
     }
 
-    void *addr = allocate_a_page();
-    if (addr == NULL)
+    phys_addr_t addr = allocate_a_page();
+    if (addr == 0)
     {
         kfree(page_struct);
         return 0;
     }
-    page_struct->pfn  = ADDR_TO_PFN(VIRT_TO_PHYS(addr));
+    page_struct->pfn  = ADDR_TO_PFN(addr);
     page_struct->virt = 0;
     list_append(&pg->list, &page_struct->node);
-    return VIRT_TO_PHYS(addr);
+    return addr;
 }
 
 // 移除addr对应的page_struct,但不释放物理页
@@ -433,5 +433,5 @@ void mm_remove_a_page(phys_addr_t addr)
 size_t mm_free_a_page(phys_addr_t addr)
 {
     mm_remove_a_page(addr);
-    return free_a_page(PHYS_TO_VIRT(addr));
+    return free_a_page(addr);
 }

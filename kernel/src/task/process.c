@@ -41,7 +41,7 @@ struct task *process_execute(
     task->kstack_base  = 0;
     task->kstack_pages = 0;
 
-    uintptr_t kstack_base = (uintptr_t)allocate_pages(kstack_pages);
+    uintptr_t kstack_base = (uintptr_t)kallocate_pages(kstack_pages);
     if (kstack_base == 0)
     {
         goto fail;
@@ -101,7 +101,7 @@ struct task *process_execute(
 fail:
     destory_mm_struct(task->mm);
     free_pg_table(task->pg_dir);
-    free_pages((void *)task->kstack_base, task->kstack_pages);
+    kfree_pages((void *)task->kstack_base, task->kstack_pages);
     destory_task_struct(task);
     return NULL;
 }

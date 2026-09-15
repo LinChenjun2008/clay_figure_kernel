@@ -125,7 +125,7 @@ static int task_release_resources(struct task *task)
     struct task *parent_task = pid_to_task(task->ppid);
     ASSERT(get_current_task() == parent_task);
 
-    free_pages((void *)task->kstack_base, task->kstack_pages);
+    kfree_pages((void *)task->kstack_base, task->kstack_pages);
     int ret = task->return_status;
 
     spin_lock(&parent_task->childs_lock);

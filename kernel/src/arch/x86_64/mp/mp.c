@@ -120,7 +120,7 @@ void mp_init(struct system_info *system_info)
     uint64_t i;
     for (i = 0; i < ap_count; i++)
     {
-        stack = (uintptr_t)allocate_pages(system_info->boot_info->stack_pages);
+        stack = (uintptr_t)kallocate_pages(system_info->boot_info->stack_pages);
         ASSERT(stack != 0);
         uintptr_t stack_top                           = stack + PG_SIZE;
         *(volatile uintptr_t *)PHYS_TO_VIRT(AP_STACK) = stack_top;

@@ -21,7 +21,7 @@
 
 phys_addr_t create_pg_dir(void)
 {
-    uint64_t *pg_dir = allocate_a_page();
+    uint64_t *pg_dir = kallocate_a_page();
     if (pg_dir == NULL)
     {
         return 0;

@@ -39,7 +39,7 @@ static void page_map_sub(phys_addr_t pg_dir, phys_addr_t phys, uintptr_t virt)
     pml4e = pml4t + GET_FIELD(virt, ADDR_PML4T_INDEX);
     if (!(*pml4e & PG_P))
     {
-        pdpt = allocate_a_page();
+        pdpt = kallocate_a_page();
         memset(pdpt, 0, PT_SIZE);
         *pml4e = VIRT_TO_PHYS(pdpt) | PG_DEFAULT_FLAGS;
     }
@@ -47,7 +47,7 @@ static void page_map_sub(phys_addr_t pg_dir, phys_addr_t phys, uintptr_t virt)
     pdpte = pdpt + GET_FIELD(virt, ADDR_PDPT_INDEX);
     if (!(*pdpte & PG_P))
     {
-        pdt = allocate_a_page();
+        pdt = kallocate_a_page();
         memset(pdt, 0, PT_SIZE);
         *pdpte = VIRT_TO_PHYS(pdt) | PG_DEFAULT_FLAGS;
     }
@@ -55,7 +55,7 @@ static void page_map_sub(phys_addr_t pg_dir, phys_addr_t phys, uintptr_t virt)
     pde = pdt + GET_FIELD(virt, ADDR_PDT_INDEX);
     if (!(*pde & PG_P))
     {
-        pt = allocate_a_page();
+        pt = kallocate_a_page();
         memset(pt, 0, PT_SIZE);
         *pde = VIRT_TO_PHYS(pt) | PG_DEFAULT_FLAGS;
     }
@@ -170,7 +170,7 @@ void arch_mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt)
 
 static void free_pt(phys_addr_t pt)
 {
-    free_a_page(PHYS_TO_VIRT(pt));
+    free_a_page(pt);
     return;
 }
 
@@ -186,7 +186,7 @@ static void free_pdt(phys_addr_t pdt)
             free_pt(v_pdt[i] & (~0xfffUL));
         }
     }
-    free_a_page(v_pdt);
+    free_a_page(pdt);
     return;
 }
 
@@ -202,7 +202,7 @@ static void free_pdpt(phys_addr_t pdpt)
             free_pdt(v_pdpt[i] & (~0xfffUL));
         }
     }
-    free_a_page(v_pdpt);
+    free_a_page(pdpt);
     return;
 }
 
@@ -222,7 +222,7 @@ void free_pg_table(phys_addr_t pg_dir)
             free_pdpt(v_pml4t[i] & (~0xfffUL));
         }
     }
-    free_a_page(v_pml4t);
+    free_a_page(pg_dir);
     return;
 }
 
