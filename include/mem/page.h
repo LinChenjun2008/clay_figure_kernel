@@ -6,7 +6,7 @@
 #ifndef __MEM_PAGE_H__
 #define __MEM_PAGE_H__
 
-#include <asm/page.h>
+struct system_info;
 
 // page.c
 void page_mgr_init(struct system_info *system_info);
@@ -19,9 +19,15 @@ int32_t page_reference_read_lock(size_t pfn);
 void    page_reference_inc(size_t pfn);
 int32_t page_reference_dec(size_t pfn);
 int32_t page_reference_read(size_t pfn);
-void   *allocate_pages(size_t pages);
-void   *allocate_a_page(void);
-size_t  free_pages(void *addr, size_t pages);
-size_t  free_a_page(void *addr);
+
+phys_addr_t allocate_pages(size_t pages);
+phys_addr_t allocate_a_page(void);
+size_t      free_pages(phys_addr_t addr, size_t pages);
+size_t      free_a_page(phys_addr_t addr);
+
+void  *kallocate_pages(size_t pages);
+void  *kallocate_a_page(void);
+size_t kfree_pages(void *addr, size_t pages);
+size_t kfree_a_page(void *addr);
 
 #endif /* __MEM_PAGE_H__ */

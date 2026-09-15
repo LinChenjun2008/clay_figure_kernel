@@ -6,11 +6,17 @@
 #ifndef __BOOTLOADER_H__
 #define __BOOTLOADER_H__
 
+#include <asm/page.h>
+
 #include <efi.h>
 #include <efi/acpi.h>
 #include <efi/protocol/graphics_output.h>
 #include <efi/protocol/loaded_image.h>
 #include <std/stdarg.h>
+
+struct boot_info;
+struct memory_map;
+struct system_info;
 
 efi_status_t EFIAPI efi_main(
     efi_handle_t             in_image_handle,
@@ -40,8 +46,6 @@ void *ramfs_open(void *fs, const char *filename);
 int compare_guid(struct efi_guid *guid1, struct efi_guid *guid2);
 
 // memory.c
-#include <asm/page.h>
-
 void        *efi_malloc(size_t size);
 efi_status_t get_memory_map(struct memory_map *memmap);
 efi_status_t create_page_table(void *pg_dir);

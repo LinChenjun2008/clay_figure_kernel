@@ -6,6 +6,8 @@
 #include <base.h>
 
 #include <asm/desc.h>
+#include <asm/interrupt.h>
+#include <asm/page.h>
 #include <asm/ptrace.h>
 #include <asm/task/process.h>
 #include <asm/x86.h>
@@ -15,10 +17,11 @@
 #include <std/string.h>
 #include <sysinfo.h>
 #include <task.h>
+#include <task/struct.h>
 
 phys_addr_t create_pg_dir(void)
 {
-    uint64_t *pg_dir = allocate_a_page();
+    uint64_t *pg_dir = kallocate_a_page();
     if (pg_dir == NULL)
     {
         return 0;

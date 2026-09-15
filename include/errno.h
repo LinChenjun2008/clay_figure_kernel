@@ -40,8 +40,9 @@
 #define EPIPE   32 // Broken pipe
 #define EDOM    33 // Numerical argument out of domain
 #define ERANGE  34 // Numerical result out of range
+#define EDEADLK 35 // Resource deadlock avoided
 
-#define ERRNO_MAX ERANGE
+#define ERRNO_MAX EDEADLK
 
 #ifndef __ASSEMBLER__
 

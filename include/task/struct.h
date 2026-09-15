@@ -20,18 +20,19 @@
 #define TASK_DIED       7
 #define UNINTERRUPTABLE (1 << 3)
 
+#define EVT_NR 8
+
+#define SLOTS_PER_LEVEL 256
+
 #ifndef __ASSEMBLER__
 
 #    include <asm/ptrace.h>
 
 #    include <lib/bitmap.h>
 #    include <lib/linked_list.h>
-#    include <sync/atomic.h>
 #    include <sync/spinlock.h>
 #    include <task/schedule.h>
 #    include <task/signal.h>
-
-#    define SLOTS_PER_LEVEL 256
 
 // task_slots共三层,L1,L2中slots存储task_slots,L3中slots[]存储任务指针.
 struct task_slots
@@ -72,8 +73,6 @@ struct cpu
     uint64_t min_vrun_time;
     uint64_t total_weight;
 };
-
-#    define EVT_NR 8
 
 struct message
 {

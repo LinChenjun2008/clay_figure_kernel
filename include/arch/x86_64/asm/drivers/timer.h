@@ -8,6 +8,8 @@
 
 #define TIMER_FREQUENCY 1000UL
 
+struct boot_info;
+
 // apic_timer.c
 void apic_timer_init(void);
 

@@ -6,12 +6,10 @@
 #ifndef __SYSCALL_IPC_H__
 #define __SYSCALL_IPC_H__
 
-#include <task/struct.h>
-
-struct mailbox *send_node_to_mailbox(struct list_node *node);
-struct task    *mailbox_to_task(struct mailbox *mailbox);
-struct mailbox *recv_node_to_mailbox(struct list_node *node);
-int             msg_match(pid_t from, pid_t dst_pid, pid_t src_pid);
+struct list_node;
+struct mailbox;
+struct message;
+struct task;
 
 // 检查 send_list 中是否有匹配的消息来源
 struct check_send_list_pack
@@ -19,21 +17,25 @@ struct check_send_list_pack
     pid_t dst_pid;
     pid_t from;
 };
-int check_send_list(struct list_node *node, void *arg);
+
+struct mailbox *send_node_to_mailbox(struct list_node *node);
+struct task    *mailbox_to_task(struct mailbox *mailbox);
+struct mailbox *recv_node_to_mailbox(struct list_node *node);
+int             msg_match(pid_t from, pid_t dst_pid, pid_t src_pid);
+int             check_send_list(struct list_node *node, void *arg);
 
 struct msg_recv_pack
 {
     struct task *task;
     pid_t        from;
 };
+int msg_recv_wakeup_condition(void *arg);
 
 struct msg_send_pack
 {
     struct task *task;
     pid_t        dst_pid;
 };
-
-int msg_recv_wakeup_condition(void *arg);
 int msg_send_wakeup_condition(void *arg);
 
 void init_mailbox(struct mailbox *mailbox);

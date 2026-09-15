@@ -5,6 +5,8 @@
 
 #include <base.h>
 
+#include <asm/page.h>
+
 #include <efi.h>
 #include <errno.h>
 #include <mem/page.h>
@@ -14,6 +16,7 @@
 #include <sync/atomic.h>
 #include <sync/spinlock.h>
 #include <sysinfo.h>
+#include <task/struct.h>
 
 static enum mm_type get_page_type(enum efi_memory_type efi_type)
 {
@@ -202,14 +205,14 @@ int32_t page_reference_read(size_t pfn)
     return ret;
 }
 
-void *allocate_pages(size_t pages)
+phys_addr_t allocate_pages(size_t pages)
 {
     if (pages > MAX_ALLOCATE_PAGES)
     {
-        return NULL;
+        return 0;
     }
 
-    void *ret = NULL;
+    phys_addr_t ret = 0;
 
     struct system_info *system_info = get_task_mgr()->system_info;
     struct page_mgr    *page_mgr    = system_info->page_mgr;
@@ -233,25 +236,25 @@ void *allocate_pages(size_t pages)
     head_page->flags |= PAGE_HEAD;
     head_page->count = pages;
 
-    ret = PHYS_TO_VIRT(PFN_TO_ADDR((size_t)pfn));
+    ret = PFN_TO_ADDR((size_t)pfn);
 
 fail:
     return ret;
 }
 
-void *allocate_a_page(void)
+phys_addr_t allocate_a_page(void)
 {
     return allocate_pages(1);
 }
 
-size_t free_pages(void *addr, size_t pages)
+size_t free_pages(phys_addr_t addr, size_t pages)
 {
     if (pages > MAX_ALLOCATE_PAGES)
     {
         return 0;
     }
 
-    if (addr == NULL)
+    if (addr == 0)
     {
         printk(MSG_WARN "free_pages: Free null point.\n");
         return 0;
@@ -262,7 +265,7 @@ size_t free_pages(void *addr, size_t pages)
     struct system_info *system_info = get_task_mgr()->system_info;
     struct page_mgr    *page_mgr    = system_info->page_mgr;
 
-    size_t pfn = ADDR_TO_PFN(VIRT_TO_PHYS(addr));
+    size_t pfn = ADDR_TO_PFN(addr);
 
     page_struct_lock(pfn);
     struct page *head_page = &page_mgr->pages[pfn];
@@ -291,7 +294,36 @@ size_t free_pages(void *addr, size_t pages)
     return pages;
 }
 
-size_t free_a_page(void *addr)
+size_t free_a_page(phys_addr_t addr)
 {
     return free_pages(addr, 1);
+}
+
+void *kallocate_pages(size_t pages)
+{
+    phys_addr_t addr = allocate_pages(pages);
+    if (addr == 0)
+    {
+        return NULL;
+    }
+    return PHYS_TO_VIRT(addr);
+}
+
+void *kallocate_a_page(void)
+{
+    return kallocate_pages(1);
+}
+
+size_t kfree_pages(void *addr, size_t pages)
+{
+    if (addr == NULL)
+    {
+        return 0;
+    }
+    return free_pages(VIRT_TO_PHYS(addr), pages);
+}
+
+size_t kfree_a_page(void *addr)
+{
+    return kfree_pages(addr, 1);
 }

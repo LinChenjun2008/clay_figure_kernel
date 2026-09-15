@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <asm/drivers/apic.h>
+#include <asm/page.h>
 #include <asm/task.h>
 
 #include <mem/allocator.h>
@@ -404,7 +405,7 @@ struct task *task_start(
     task->kstack_base  = 0;
     task->kstack_pages = 0;
 
-    uintptr_t kstack_base = (uintptr_t)allocate_pages(kstack_pages);
+    uintptr_t kstack_base = (uintptr_t)kallocate_pages(kstack_pages);
     if (kstack_base == 0)
     {
         goto fail;
@@ -433,7 +434,7 @@ struct task *task_start(
     return task;
 
 fail:
-    free_pages((void *)task->kstack_base, task->kstack_pages);
+    kfree_pages((void *)task->kstack_base, task->kstack_pages);
     destory_task_struct(task);
     return NULL;
 }

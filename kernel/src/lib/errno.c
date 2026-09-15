@@ -43,6 +43,7 @@ static const char *const err_tab[][2] = {
     { "EPIPE", "Broken pipe" },                       // 32
     { "EDOM", "Numerical argument out of domain" },   // 33
     { "ERANGE", "Numerical result out of range" },    // 34
+    { "EDEADLK", "Resource deadlock avoided" },       // 35
 };
 
 static const char *err_lookup(int err, int field)

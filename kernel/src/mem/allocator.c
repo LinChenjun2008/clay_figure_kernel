@@ -5,12 +5,15 @@
 
 #include <base.h>
 
+#include <asm/page.h>
+
 #include <mem/allocator.h>
 #include <mem/page.h>
 #include <mem/struct.h>
 #include <panic.h>
 #include <print.h>
 #include <sysinfo.h>
+#include <task/struct.h>
 
 void mem_allocator_init(void)
 {
@@ -127,7 +130,7 @@ kmalloc_find(struct mem_group *g, size_t alignment, size_t boundary)
     struct mem_block *b = NULL;
     if (list_empty(&g->free_block_list))
     {
-        c = allocate_a_page();
+        c = kallocate_a_page();
         if (c == NULL)
         {
             printk(MSG_ERR "kmalloc: allocate page failed.\n");
@@ -175,7 +178,7 @@ void *kmalloc(size_t size, size_t alignment, size_t boundary)
         size_t allocate_size = MIN_BLOCK_SIZE + alignment + size;
         size_t pages         = DIV_ROUND_UP(allocate_size, PG_SIZE);
 
-        c = allocate_pages(pages);
+        c = kallocate_pages(pages);
         if (c == NULL)
         {
             return NULL;
@@ -217,7 +220,7 @@ void kfree(void *addr)
 
     if (c->group == NULL)
     {
-        free_pages(c, c->count);
+        kfree_pages(c, c->count);
         if (c == NULL)
         {
             addr = NULL;
@@ -249,7 +252,7 @@ void kfree(void *addr)
             list_remove(&b->node);
         }
         g->total_free -= c->number_of_blocks;
-        free_a_page(c);
+        kfree_a_page(c);
     }
     spin_unlock(&g->lock);
     return;

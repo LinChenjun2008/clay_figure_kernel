@@ -11,6 +11,7 @@
 #include <task.h>
 #include <task/schedule.h>
 #include <task/signal.h>
+#include <task/struct.h>
 
 void init_signal(struct signal_struct *signal)
 {

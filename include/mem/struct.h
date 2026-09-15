@@ -15,6 +15,8 @@
 #define MAX_BLOCK_SIZE  2048 //   2 KiB
 #define MAX_BLOCK_TYPES 6
 
+#define MAX_ALLOCATE_PAGES 2048
+
 enum mm_type
 {
     MM_TYPE_FREE = 1,
@@ -44,8 +46,6 @@ struct mem_block
     struct list_node node;
 };
 
-#define MAX_ALLOCATE_PAGES 2048
-
 #define PAGE_HEAD (1 << 0)
 
 struct page
@@ -56,12 +56,18 @@ struct page
     struct spinlock lock;
 };
 
+enum vm_type
+{
+    VM_TAB,
+    VM_MAP,
+    VM_UMP,
+    VM_COW,
+    MAX_VM_TYPE,
+};
+
 struct vm_struct
 {
-    struct free_table vm_table;
-    struct free_table mapped;
-    struct free_table unmapped;
-    struct free_table copy_on_write;
+    struct free_table table[MAX_VM_TYPE];
 };
 
 struct page_struct

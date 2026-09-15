@@ -12,6 +12,7 @@
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
+#include <task/struct.h>
 
 static void *copy_from_user(void *dst, const void *src, size_t size)
 {

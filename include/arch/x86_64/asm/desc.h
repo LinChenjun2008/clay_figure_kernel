@@ -120,7 +120,7 @@ void load_idt(void);
 
 // TSS
 
-#    include <task.h>
+struct task;
 
 #    pragma pack(1)
 struct tss64

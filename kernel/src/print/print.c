@@ -15,12 +15,15 @@
 #include <std/stdarg.h>
 #include <std/stdio.h>
 #include <sync/spinlock.h>
+#include <sysinfo.h>
 
 #define IS_TRANSMIT_EMPTY(port) (io_in8(port + 5) & 0x20)
 #define SERIAL_PORT             0x3f8
 
 #define X 0
 #define Y 1
+
+#define IS_DIGIT(c) ((c) >= '0' && (c) <= '9')
 
 static uint32_t palette[8][2] = {
     { 0x000000, 0x555555 }, // black
@@ -150,8 +153,6 @@ void init_print(struct graphic_info *graphic_info)
     printk("\n");
     return;
 }
-
-#define IS_DIGIT(c) ((c) >= '0' && (c) <= '9')
 
 static int skip_atoi(const char **s)
 {

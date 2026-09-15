@@ -8,12 +8,14 @@
 #include <asm/drivers/apic.h>
 #include <asm/drivers/apic/lapic.h>
 #include <asm/mp.h>
+#include <asm/page.h>
 
 #include <drivers/timer.h>
 #include <mem/page.h>
 #include <panic.h>
 #include <print.h>
 #include <std/string.h>
+#include <sysinfo.h>
 
 extern uint8_t AP_BOOT_START[];
 extern uint8_t AP_BOOT_END[];
@@ -118,7 +120,7 @@ void mp_init(struct system_info *system_info)
     uint64_t i;
     for (i = 0; i < ap_count; i++)
     {
-        stack = (uintptr_t)allocate_pages(system_info->boot_info->stack_pages);
+        stack = (uintptr_t)kallocate_pages(system_info->boot_info->stack_pages);
         ASSERT(stack != 0);
         uintptr_t stack_top                           = stack + PG_SIZE;
         *(volatile uintptr_t *)PHYS_TO_VIRT(AP_STACK) = stack_top;

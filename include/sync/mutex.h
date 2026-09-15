@@ -7,7 +7,8 @@
 #define __SYNC_MUTEX_H__
 
 #include <sync/semaphore.h>
-#include <task/struct.h>
+
+struct task;
 
 struct mutex
 {

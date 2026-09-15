@@ -6,8 +6,6 @@
 #ifndef __TASK_SIGNAL_H__
 #define __TASK_SIGNAL_H__
 
-#include <asm/ptrace.h>
-
 #include <sync/spinlock.h>
 
 #define SIGHUP    1
@@ -65,6 +63,8 @@
 #define FPE_INTDIV  1 // SIGFPE:  整数除零
 #define BUS_ADRALN  1 // SIGBUS:  地址未对齐
 #define TRAP_BRKPT  1 // SIGTRAP: 断点
+
+#define SIGNAL_PENDING(task) ((task)->signal.pending & ~(task)->signal.blocked)
 
 union sigval
 {
@@ -168,8 +168,6 @@ struct sigframe
     ucontext_t     uc;
     uint8_t        trampoline[16];
 };
-
-#define SIGNAL_PENDING(task) ((task)->signal.pending & ~(task)->signal.blocked)
 
 void init_signal(struct signal_struct *signal);
 void copy_signal(struct signal_struct *dst, struct signal_struct *src);

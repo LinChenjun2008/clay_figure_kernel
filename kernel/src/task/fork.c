@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <asm/interrupt.h>
+#include <asm/page.h>
 #include <asm/task/fork.h>
 #include <asm/task/process.h>
 
@@ -39,7 +40,7 @@ pid_t process_fork(void)
     size_t ustack_pages = curr->ustack_pages;
 
     size_t    kstack_pages = curr->kstack_pages;
-    uintptr_t kstack_base  = (uintptr_t)allocate_pages(kstack_pages);
+    uintptr_t kstack_base  = (uintptr_t)kallocate_pages(kstack_pages);
     if (kstack_base == 0)
     {
         goto fail;
@@ -86,7 +87,7 @@ pid_t process_fork(void)
 fail:
     destory_mm_struct(fork->mm);
     free_pg_table(fork->pg_dir);
-    free_pages((void *)fork->kstack_base, fork->kstack_pages);
+    kfree_pages((void *)fork->kstack_base, fork->kstack_pages);
     destory_task_struct(fork);
     return err;
 }

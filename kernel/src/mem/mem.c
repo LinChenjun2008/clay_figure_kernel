@@ -6,17 +6,20 @@
 #include <base.h>
 
 #include <asm/intr/handler.h>
+#include <asm/page.h>
 
 #include <errno.h>
 #include <lib/free_table.h>
 #include <mem.h>
 #include <mem/allocator.h>
 #include <mem/page.h>
+#include <mem/struct.h>
 #include <panic.h>
 #include <print.h>
 #include <std/string.h>
 #include <sysinfo.h>
 #include <task.h>
+#include <task/struct.h>
 
 void mem_init(struct system_info *system_info)
 {
@@ -30,22 +33,23 @@ void mem_init(struct system_info *system_info)
 
 static void init_vm_struct(struct vm_struct *vm)
 {
-    init_free_table(&vm->vm_table, 8);
-    init_free_table(&vm->mapped, 8);
-    init_free_table(&vm->unmapped, 8);
-    init_free_table(&vm->copy_on_write, 8);
+    int i;
+    for (i = 0; i < MAX_VM_TYPE; i++)
+    {
+        init_free_table(&vm->table[i], 8);
+    }
     return;
 }
 
 static int copy_vm_struct(struct vm_struct *dst, struct vm_struct *src)
 {
-    // mapped 在copy_pg_struct时已加入copy_on_write
-    int ret = copy_free_table(&dst->vm_table, &src->vm_table);
+    // VM_MAP 在copy_pg_struct时已加入COW
+    int ret = copy_free_table(&dst->table[VM_TAB], &src->table[VM_TAB]);
     if (ret < 0)
     {
         return ret;
     }
-    return copy_free_table(&dst->unmapped, &src->unmapped);
+    return copy_free_table(&dst->table[VM_UMP], &src->table[VM_UMP]);
 }
 
 static void destory_vm_struct(struct vm_struct *vm)
@@ -54,10 +58,11 @@ static void destory_vm_struct(struct vm_struct *vm)
     {
         return;
     }
-    destroy_free_table(&vm->vm_table);
-    destroy_free_table(&vm->mapped);
-    destroy_free_table(&vm->unmapped);
-    destroy_free_table(&vm->copy_on_write);
+    int i;
+    for (i = 0; i < MAX_VM_TYPE; i++)
+    {
+        destroy_free_table(&vm->table[i]);
+    }
     return;
 }
 
@@ -128,7 +133,7 @@ static void destory_pg_struct(struct pg_struct *pg)
         ASSERT(node != NULL);
 
         struct page_struct *page = CONTAINER_OF(struct page_struct, node, node);
-        void               *addr = PHYS_TO_VIRT(PFN_TO_ADDR(page->pfn));
+        phys_addr_t         addr = PFN_TO_ADDR(page->pfn);
         free_a_page(addr);
         kfree(page);
     }
@@ -186,21 +191,21 @@ uintptr_t mm_allocate_address(uintptr_t addr, size_t pages)
     size_t    size  = pages << PG_SIZE_SHIFT;
     if (addr != 0)
     {
-        if (free_table_remove(&vm->vm_table, start, size) < 0)
+        if (free_table_remove(&vm->table[VM_TAB], start, size) < 0)
         {
             return 0;
         }
-        free_table_add(&vm->unmapped, start, size);
+        free_table_add(&vm->table[VM_UMP], start, size);
         return addr;
     }
 
-    intptr_t got = free_table_allocate(&vm->vm_table, size);
+    intptr_t got = free_table_allocate(&vm->table[VM_TAB], size);
     if (got < 0)
     {
         return 0;
     }
     start = (uintptr_t)got;
-    free_table_add(&vm->unmapped, start, size);
+    free_table_add(&vm->table[VM_UMP], start, size);
     return start;
 }
 
@@ -254,8 +259,8 @@ void mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
     struct vm_struct *vm = &task->mm->vm_map;
     struct pg_struct *pg = &task->mm->pg_map;
 
-    free_table_remove(&vm->unmapped, (uintptr_t)virt, PG_SIZE);
-    free_table_add(&vm->mapped, (uintptr_t)virt, PG_SIZE);
+    free_table_remove(&vm->table[VM_UMP], (uintptr_t)virt, PG_SIZE);
+    free_table_add(&vm->table[VM_MAP], (uintptr_t)virt, PG_SIZE);
 
     struct list_node *node;
     node = list_traversal(&pg->list, traversal_by_phys, &phys);
@@ -279,8 +284,8 @@ void mm_unmap(struct task *task, uintptr_t virt)
     struct vm_struct *vm = &task->mm->vm_map;
     struct pg_struct *pg = &task->mm->pg_map;
 
-    free_table_remove(&vm->mapped, virt, PG_SIZE);
-    free_table_add(&vm->vm_table, virt, PG_SIZE);
+    free_table_remove(&vm->table[VM_MAP], virt, PG_SIZE);
+    free_table_add(&vm->table[VM_TAB], virt, PG_SIZE);
 
     struct list_node *node;
     node = list_traversal(&pg->list, traversal_by_virt, &virt);
@@ -305,19 +310,19 @@ void mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt)
     struct vm_struct *vm = &task->mm->vm_map;
 
     // 移除旧表中的页
-    if (free_table_find(&vm->mapped, virt))
+    if (free_table_find(&vm->table[VM_MAP], virt))
     {
-        free_table_remove(&vm->mapped, virt, PG_SIZE);
+        free_table_remove(&vm->table[VM_MAP], virt, PG_SIZE);
     }
 
     // 写时复制不对未映射的页生效
-    ASSERT(!free_table_find(&vm->unmapped, virt));
+    ASSERT(!free_table_find(&vm->table[VM_UMP], virt));
 
     // 加入写时复制表
     // 如果该页已是cow页但未复制,则不重复添加.
-    if (!free_table_find(&vm->copy_on_write, virt))
+    if (!free_table_find(&vm->table[VM_COW], virt))
     {
-        free_table_add(&vm->copy_on_write, virt, PG_SIZE);
+        free_table_add(&vm->table[VM_COW], virt, PG_SIZE);
     }
 
     // 设置页表中的标志
@@ -337,40 +342,31 @@ void mm_free_address(uintptr_t addr, size_t pages)
 
     uintptr_t start = addr;
 
-    struct free_table *table = NULL;
-
     struct page_struct *page_struct = NULL;
     size_t              remain_pages;
     for (remain_pages = pages; remain_pages > 0; remain_pages--)
     {
-        table       = NULL;
         page_struct = NULL;
 
-        int mapped   = free_table_find(&vm->mapped, start);
-        int unmapped = free_table_find(&vm->unmapped, start);
-        int cow      = free_table_find(&vm->copy_on_write, start);
+        int mapped   = free_table_find(&vm->table[VM_MAP], start);
+        int unmapped = free_table_find(&vm->table[VM_UMP], start);
+        int cow      = free_table_find(&vm->table[VM_COW], start);
 
         ASSERT(mapped || unmapped || cow);
         ASSERT(mapped + unmapped + cow == 1);
 
         if (unmapped)
         {
-            table = &vm->unmapped;
-            free_table_remove(table, start, PG_SIZE);
-            free_table_add(&vm->vm_table, start, PG_SIZE);
+            free_table_remove(&vm->table[VM_UMP], start, PG_SIZE);
+            free_table_add(&vm->table[VM_TAB], start, PG_SIZE);
         }
         else
         {
             page_struct = get_page_by_virt(pg, start);
-            if (mapped)
-            {
-                table = &vm->mapped;
-            }
             if (cow)
             {
-                table = &vm->copy_on_write;
-                free_table_remove(table, start, PG_SIZE);
-                free_table_add(&vm->mapped, start, PG_SIZE);
+                free_table_remove(&vm->table[VM_COW], start, PG_SIZE);
+                free_table_add(&vm->table[VM_MAP], start, PG_SIZE);
             }
             mm_unmap(task, page_struct->virt);
             mm_free_a_page(PFN_TO_ADDR(page_struct->pfn));
@@ -394,16 +390,16 @@ phys_addr_t mm_allocate_a_page(void)
         return 0;
     }
 
-    void *addr = allocate_a_page();
-    if (addr == NULL)
+    phys_addr_t addr = allocate_a_page();
+    if (addr == 0)
     {
         kfree(page_struct);
         return 0;
     }
-    page_struct->pfn  = ADDR_TO_PFN(VIRT_TO_PHYS(addr));
+    page_struct->pfn  = ADDR_TO_PFN(addr);
     page_struct->virt = 0;
     list_append(&pg->list, &page_struct->node);
-    return VIRT_TO_PHYS(addr);
+    return addr;
 }
 
 // 移除addr对应的page_struct,但不释放物理页
@@ -430,5 +426,5 @@ void mm_remove_a_page(phys_addr_t addr)
 size_t mm_free_a_page(phys_addr_t addr)
 {
     mm_remove_a_page(addr);
-    return free_a_page(PHYS_TO_VIRT(addr));
+    return free_a_page(addr);
 }

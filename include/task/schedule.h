@@ -22,10 +22,10 @@ struct wait_queue
 };
 
 void cpu_task_list_insert(struct cpu *cpu, struct task *task);
-void cpu_task_enqueue(struct task *task);
 
 uint64_t get_min_vrun_time(struct cpu *cpu);
 void     task_update(void);
+void     cpu_task_enqueue(struct task *task);
 void     task_pg_active(struct task *task);
 void     schedule(void);
 

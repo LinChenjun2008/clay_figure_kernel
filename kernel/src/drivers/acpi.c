@@ -6,6 +6,7 @@
 #include <base.h>
 
 #include <drivers/acpi.h>
+#include <sysinfo.h>
 
 struct acpi_description_header *
 acpi_find_table(struct boot_info *boot_info, uint32_t signature)

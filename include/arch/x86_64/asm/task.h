@@ -6,6 +6,9 @@
 #ifndef __ASM_TASK_H__
 #define __ASM_TASK_H__
 
+struct task;
+struct task_context;
+
 void create_task_context(struct task *task, void *func, void *arg);
 
 void ASMLINKAGE

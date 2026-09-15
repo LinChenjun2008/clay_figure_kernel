@@ -6,6 +6,8 @@
 #ifndef __DRIVERS_ACPI_H__
 #define __DRIVERS_ACPI_H__
 
+struct boot_info;
+
 #pragma pack(1)
 struct acpi_description_header
 {

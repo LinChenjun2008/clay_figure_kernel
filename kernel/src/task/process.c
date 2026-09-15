@@ -5,11 +5,13 @@
 
 #include <base.h>
 
+#include <asm/page.h>
 #include <asm/task.h>
 #include <asm/task/process.h>
 
 #include <mem.h>
 #include <mem/page.h>
+#include <mem/struct.h>
 #include <panic.h>
 #include <ramfs.h>
 #include <sync/atomic.h>
@@ -39,7 +41,7 @@ struct task *process_execute(
     task->kstack_base  = 0;
     task->kstack_pages = 0;
 
-    uintptr_t kstack_base = (uintptr_t)allocate_pages(kstack_pages);
+    uintptr_t kstack_base = (uintptr_t)kallocate_pages(kstack_pages);
     if (kstack_base == 0)
     {
         goto fail;
@@ -63,8 +65,8 @@ struct task *process_execute(
     user_space_size    = USER_STACK_VADDR_TOP - (ustack_pages + 1) * PG_SIZE;
     size_t ustack_size = task->ustack_pages << PG_SIZE_SHIFT;
     size_t ustack_base = USER_STACK_VADDR_TOP - ustack_size;
-    free_table_add(&vm->vm_table, USER_VADDR_START, user_space_size);
-    free_table_add(&vm->vm_table, ustack_base, ustack_size);
+    free_table_add(&vm->table[VM_TAB], USER_VADDR_START, user_space_size);
+    free_table_add(&vm->table[VM_TAB], ustack_base, ustack_size);
 
     // read executable file
     struct system_info *sys_info = get_system_info();
@@ -99,7 +101,7 @@ struct task *process_execute(
 fail:
     destory_mm_struct(task->mm);
     free_pg_table(task->pg_dir);
-    free_pages((void *)task->kstack_base, task->kstack_pages);
+    kfree_pages((void *)task->kstack_base, task->kstack_pages);
     destory_task_struct(task);
     return NULL;
 }

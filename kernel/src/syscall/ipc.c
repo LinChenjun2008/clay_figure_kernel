@@ -9,6 +9,7 @@
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
+#include <task/struct.h>
 
 struct mailbox *send_node_to_mailbox(struct list_node *node)
 {

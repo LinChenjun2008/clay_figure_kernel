@@ -8,6 +8,8 @@
 
 #include <print/format.h>
 
+struct graphic_info;
+
 struct textbox
 {
     uint32_t *fb;   // frame buffer

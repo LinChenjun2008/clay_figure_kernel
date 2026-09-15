@@ -8,8 +8,6 @@
 
 #define INTR_CNT 0x100
 
-#include <asm/ptrace.h>
-
 enum intr_status
 {
     INTR_OFF = 0,
