@@ -262,8 +262,8 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
 
     if (ref_count == 1)
     {
-        free_table_remove(&mm->vm_map.copy_on_write, fault_page, PG_SIZE);
-        free_table_add(&mm->vm_map.mapped, fault_page, PG_SIZE);
+        free_table_remove(&mm->vm_map.table[VM_COW], fault_page, PG_SIZE);
+        free_table_add(&mm->vm_map.table[VM_MAP], fault_page, PG_SIZE);
         set_page_flags(task->pg_dir, fault_page, PG_USER_FLAGS);
         arch_flush_tlb((void *)fault_page);
     }
@@ -277,8 +277,8 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
         }
         memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);
         // 从cow中移除,转入unmapped表,由mm_map重新映射
-        free_table_remove(&mm->vm_map.copy_on_write, fault_page, PG_SIZE);
-        free_table_add(&mm->vm_map.unmapped, fault_page, PG_SIZE);
+        free_table_remove(&mm->vm_map.table[VM_COW], fault_page, PG_SIZE);
+        free_table_add(&mm->vm_map.table[VM_UMP], fault_page, PG_SIZE);
         mm_map(task, new_page, fault_page);
 
         // 减少引用,并从pg_struct链表中移除
@@ -322,8 +322,8 @@ void page_faule(struct pt_regs *regs)
     uintptr_t fault_addr = get_cr2();
     uintptr_t fault_page = fault_addr & ~(PG_SIZE - 1);
 
-    int unmapped = free_table_find(&mm->vm_map.unmapped, fault_page);
-    int cow      = free_table_find(&mm->vm_map.copy_on_write, fault_page);
+    int unmapped = free_table_find(&mm->vm_map.table[VM_UMP], fault_page);
+    int cow      = free_table_find(&mm->vm_map.table[VM_COW], fault_page);
 
     // 访问非法地址
     if (!unmapped && !cow)

@@ -65,8 +65,8 @@ struct task *process_execute(
     user_space_size    = USER_STACK_VADDR_TOP - (ustack_pages + 1) * PG_SIZE;
     size_t ustack_size = task->ustack_pages << PG_SIZE_SHIFT;
     size_t ustack_base = USER_STACK_VADDR_TOP - ustack_size;
-    free_table_add(&vm->vm_table, USER_VADDR_START, user_space_size);
-    free_table_add(&vm->vm_table, ustack_base, ustack_size);
+    free_table_add(&vm->table[VM_TAB], USER_VADDR_START, user_space_size);
+    free_table_add(&vm->table[VM_TAB], ustack_base, ustack_size);
 
     // read executable file
     struct system_info *sys_info = get_system_info();

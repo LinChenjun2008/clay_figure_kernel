@@ -56,12 +56,18 @@ struct page
     struct spinlock lock;
 };
 
+enum vm_type
+{
+    VM_TAB,
+    VM_MAP,
+    VM_UMP,
+    VM_COW,
+    MAX_VM_TYPE,
+};
+
 struct vm_struct
 {
-    struct free_table vm_table;
-    struct free_table mapped;
-    struct free_table unmapped;
-    struct free_table copy_on_write;
+    struct free_table table[MAX_VM_TYPE];
 };
 
 struct page_struct
