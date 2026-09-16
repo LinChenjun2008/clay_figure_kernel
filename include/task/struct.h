@@ -34,6 +34,8 @@
 #    include <task/schedule.h>
 #    include <task/signal.h>
 
+struct cap_head;
+
 // task_slots共三层,L1,L2中slots存储task_slots,L3中slots[]存储任务指针.
 struct task_slots
 {
@@ -134,9 +136,10 @@ struct task
     uint64_t run_time;
     uint64_t vrun_time;
 
-    struct mm_struct *mm;
-
     int return_status;
+
+    struct cap_head  *cnode;
+    struct mm_struct *mm;
 
     struct spinlock  childs_lock;
     struct list      childs_list;

@@ -370,9 +370,10 @@ void init_task_struct(
     task->run_time  = 0;
     task->vrun_time = 0;
 
-    task->mm = NULL;
-
     task->return_status = 0;
+
+    task->cnode = NULL;
+    task->mm    = NULL;
 
     init_spinlock(&task->childs_lock);
     init_list(&task->childs_list);
