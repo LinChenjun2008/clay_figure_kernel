@@ -19,7 +19,9 @@ typedef unsigned int           uint32_t;
 typedef unsigned long long int uint64_t;
 
 typedef uint64_t phys_addr_t;
+
 typedef uint64_t word_t;
+typedef int64_t  sword_t;
 
 typedef uint64_t uintptr_t;
 typedef int64_t  intptr_t;
@@ -40,7 +42,9 @@ _Static_assert(sizeof(uint32_t) == 4, "uint32_t size mismatch");
 _Static_assert(sizeof(uint64_t) == 8, "uint64_t size mismatch");
 
 _Static_assert(sizeof(phys_addr_t) == 8, "phys_addr_t size mismatch");
+
 _Static_assert(sizeof(word_t) == 8, "word_t size mismatch");
+_Static_assert(sizeof(sword_t) == 8, "sword_t size mismatch");
 
 _Static_assert(sizeof(uintptr_t) == sizeof(void *), "uintptr_t size mismatch");
 _Static_assert(sizeof(intptr_t) == sizeof(void *), "intptr_t size mismatch");

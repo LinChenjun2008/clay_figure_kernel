@@ -6,6 +6,11 @@
 #ifndef __SYSCALL_CAP_H__
 #define __SYSCALL_CAP_H__
 
+#define CAP_READ  (1 << 0)
+#define CAP_WRITE (1 << 1)
+#define CAP_EXEC  (1 << 2)
+#define CAP_CTRL  (1 << 3)
+
 // slot id( >= 1 )
 #define CAP_HANDLE_SLOT_ID_SHIFT 16
 #define CAP_HANDLE_SLOT_ID_MASK  0xffff
@@ -32,8 +37,6 @@ enum cap_type
     CAP_TASK,
     CAP_NR // 有效对象类型数量
 };
-
-typedef uint32_t cap_handle_t;
 
 void init_cap_head(
     struct cap_head      *head,

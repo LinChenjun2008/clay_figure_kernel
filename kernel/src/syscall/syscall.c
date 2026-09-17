@@ -9,11 +9,16 @@
 #include <asm/syscall.h>
 
 #include <syscall.h>
+#include <syscall/cap.h>
+#include <syscall/cap/object.h>
 #include <syscall/ipc.h>
+#include <task.h>
+#include <task/struct.h>
 
 // syscall functions
 #include <asm/task/signal.h>
 
+#include <errno.h>
 #include <mem.h>
 #include <std/string.h>
 #include <task/fork.h>
@@ -44,7 +49,23 @@ static word_t sys_wait(struct pt_regs *regs)
 
 static word_t sys_send(struct pt_regs *regs)
 {
-    return (word_t)msg_send((pid_t)regs->rsi, (struct message *)regs->rdx);
+    struct task *task    = get_current_task();
+    cap_handle_t handle  = (cap_handle_t)regs->rsi;
+    pid_t        dst_pid = PID_NULL;
+
+    struct cap_head *head = cap_lookup(task->cnode, handle, CAP_WRITE);
+    if (head->type == CAP_IPC)
+    {
+        struct cap_ipc *cap = (struct cap_ipc *)head;
+        dst_pid             = cap->port;
+    }
+    cap_release(head);
+
+    if (dst_pid == PID_NULL)
+    {
+        return -EACCES;
+    }
+    return (word_t)msg_send(dst_pid, (struct message *)regs->rdx);
 }
 
 static word_t sys_recv(struct pt_regs *regs)
@@ -54,7 +75,12 @@ static word_t sys_recv(struct pt_regs *regs)
 
 static word_t sys_both(struct pt_regs *regs)
 {
-    return (word_t)msg_both((pid_t)regs->rsi, (struct message *)regs->rdx);
+    sword_t ret = sys_send(regs);
+    if (ret < 0)
+    {
+        return ret;
+    }
+    return (word_t)msg_recv((pid_t)regs->rsi, (struct message *)regs->rdx);
 }
 
 static word_t sys_addr(struct pt_regs *regs)

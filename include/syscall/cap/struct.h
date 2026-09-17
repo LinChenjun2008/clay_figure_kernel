@@ -8,11 +8,6 @@
 
 #include <sync/spinlock.h>
 
-#define CAP_READ  (1 << 0)
-#define CAP_WRITE (1 << 1)
-#define CAP_EXEC  (1 << 2)
-#define CAP_CTRL  (1 << 3)
-
 struct cap_head;
 
 struct cap_slot
