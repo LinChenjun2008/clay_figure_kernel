@@ -66,9 +66,9 @@ end:
 }
 
 void init_cap_head(
-    struct cap_head *head,
-    enum cap_type    type,
-    struct cap_opt  *opt
+    struct cap_head      *head,
+    enum cap_type         type,
+    const struct cap_opt *opt
 )
 {
     head->type = type;
@@ -314,7 +314,7 @@ void cap_delete(struct cap_head *node_head, cap_handle_t handle)
 }
 
 static struct cap_head *
-cap_get_verified(struct cap_slot *slot, uint16_t key, uint32_t rights)
+cap_get_verified(const struct cap_slot *slot, uint16_t key, uint32_t rights)
 {
     if (slot->head == NULL)
     {

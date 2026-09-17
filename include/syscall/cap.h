@@ -36,9 +36,9 @@ enum cap_type
 typedef uint32_t cap_handle_t;
 
 void init_cap_head(
-    struct cap_head *head,
-    enum cap_type    type,
-    struct cap_opt  *opt
+    struct cap_head      *head,
+    enum cap_type         type,
+    const struct cap_opt *opt
 );
 
 int32_t cap_reference(struct cap_head *head);
