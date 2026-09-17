@@ -176,13 +176,3 @@ void mailbox_cleanup(struct task *task)
     }
     return;
 }
-
-int msg_both(pid_t src_dst, struct message *msg)
-{
-    int ret = msg_send(src_dst, msg);
-    if (ret < 0)
-    {
-        return ret;
-    }
-    return msg_recv(src_dst, msg);
-}
