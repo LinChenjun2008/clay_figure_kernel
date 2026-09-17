@@ -23,7 +23,7 @@ static void *copy_from_user(void *dst, const void *src, size_t size)
     return memcpy(dst, src, size);
 }
 
-static int msg_send_lock(struct mailbox *dst, struct mailbox *src)
+static int ipc_send_lock(struct mailbox *dst, struct mailbox *src)
 {
     struct task *dest_task = mailbox_to_task(dst);
     struct task *src_task  = mailbox_to_task(src);
@@ -41,14 +41,14 @@ static int msg_send_lock(struct mailbox *dst, struct mailbox *src)
     {
         need_wake = 0;
     }
-    if (!msg_match(dst->recv_from, dest_task->pid, src_task->pid))
+    if (!ipc_match(dst->recv_from, dest_task->pid, src_task->pid))
     {
         need_wake = 0;
     }
     return need_wake;
 }
 
-int msg_send(pid_t dst_pid, struct message *msg)
+int ipc_send(pid_t dst_pid, struct message *msg)
 {
     struct task *src_task  = get_current_task();
     struct task *dest_task = NULL;
@@ -75,7 +75,7 @@ int msg_send(pid_t dst_pid, struct message *msg)
     src->msg.source = src_task->pid;
 
     spin_lock(&dst->send_lock);
-    need_wake = msg_send_lock(dst, src);
+    need_wake = ipc_send_lock(dst, src);
     spin_unlock(&dst->send_lock);
 
     if (need_wake < 0)
@@ -96,7 +96,7 @@ int msg_send(pid_t dst_pid, struct message *msg)
     }
 
     // 等到消息被接收, 或接收者退出
-    struct msg_send_pack pack;
+    struct ipc_send_pack pack;
     pack.task    = src_task;
     pack.dst_pid = dest_task->pid;
 
@@ -126,40 +126,40 @@ int msg_send(pid_t dst_pid, struct message *msg)
     return 0;
 }
 
-static int inform_event_lock(struct mailbox *dst, uint32_t evt_type)
-{
-    if (dst->closed)
-    {
-        return 0;
-    }
-    if (dst->evt_msg[evt_type] != 0xff)
-    {
-        dst->evt_msg[evt_type]++;
-    }
-    return msg_match(dst->recv_from, PID_NULL, PID_EVENT);
-}
+// static int inform_event_lock(struct mailbox *dst, uint32_t evt_type)
+// {
+//     if (dst->closed)
+//     {
+//         return 0;
+//     }
+//     if (dst->evt_msg[evt_type] != 0xff)
+//     {
+//         dst->evt_msg[evt_type]++;
+//     }
+//     return ipc_match(dst->recv_from, PID_NULL, PID_EVENT);
+// }
 
-void inform_event(pid_t dst_pid, uint32_t evt_type)
-{
-    if (evt_type >= EVT_NR)
-    {
-        return;
-    }
-    struct task *dest_task = pid_to_task(dst_pid);
-    if (dest_task == NULL || TASK_STATUS(dest_task->status) == TASK_DIED)
-    {
-        return;
-    }
-    int need_wake = 0;
+// void inform_event(pid_t dst_pid, uint32_t evt_type)
+// {
+//     if (evt_type >= EVT_NR)
+//     {
+//         return;
+//     }
+//     struct task *dest_task = pid_to_task(dst_pid);
+//     if (dest_task == NULL || TASK_STATUS(dest_task->status) == TASK_DIED)
+//     {
+//         return;
+//     }
+//     int need_wake = 0;
 
-    struct mailbox *dst = &dest_task->mailbox;
-    spin_lock(&dst->send_lock);
-    need_wake = inform_event_lock(dst, evt_type);
-    spin_unlock(&dst->send_lock);
+//     struct mailbox *dst = &dest_task->mailbox;
+//     spin_lock(&dst->send_lock);
+//     need_wake = inform_event_lock(dst, evt_type);
+//     spin_unlock(&dst->send_lock);
 
-    if (need_wake)
-    {
-        wake_up(&dst->recv_wq);
-    }
-    return;
-}
+//     if (need_wake)
+//     {
+//         wake_up(&dst->recv_wq);
+//     }
+//     return;
+// }

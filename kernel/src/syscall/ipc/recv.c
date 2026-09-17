@@ -23,49 +23,49 @@ static void *copy_to_user(void *dst, const void *src, size_t size)
     return memcpy(dst, src, size);
 }
 
-// 接收来自event的消息
-static int msg_event_lock(struct mailbox *dst, pid_t from)
-{
-    if (from != PID_ANY && from != PID_EVENT)
-    {
-        return 0;
-    }
+// // 接收来自event的消息
+// static int ipc_event_lock(struct mailbox *dst, pid_t from)
+// {
+//     if (from != PID_ANY && from != PID_EVENT)
+//     {
+//         return 0;
+//     }
 
-    int has_event = 0;
-    int i;
-    for (i = 0; i < EVT_NR; i++)
-    {
-        if (dst->evt_msg[i] == 0)
-        {
-            continue;
-        }
-        has_event = 1;
-        break;
-    }
-    if (!has_event)
-    {
-        return 0;
-    }
+//     int has_event = 0;
+//     int i;
+//     for (i = 0; i < EVT_NR; i++)
+//     {
+//         if (dst->evt_msg[i] == 0)
+//         {
+//             continue;
+//         }
+//         has_event = 1;
+//         break;
+//     }
+//     if (!has_event)
+//     {
+//         return 0;
+//     }
 
-    struct message *evt = &dst->msg;
-    memset(evt, 0, sizeof(*evt));
-    evt->source = PID_EVENT;
-    for (i = 0; i < EVT_NR; i++)
-    {
-        if (dst->evt_msg[i] == 0)
-        {
-            continue;
-        }
-        evt->type |= (1U << i);
-        evt->m32[i]     = dst->evt_msg[i];
-        dst->evt_msg[i] = 0;
-    }
-    return 1;
-}
+//     struct message *evt = &dst->msg;
+//     memset(evt, 0, sizeof(*evt));
+//     evt->source = PID_EVENT;
+//     for (i = 0; i < EVT_NR; i++)
+//     {
+//         if (dst->evt_msg[i] == 0)
+//         {
+//             continue;
+//         }
+//         evt->type |= (1U << i);
+//         evt->m32[i]     = dst->evt_msg[i];
+//         dst->evt_msg[i] = 0;
+//     }
+//     return 1;
+// }
 
 // 获取一条来自其他任务的消息
 static struct task *
-msg_recv_lock(struct mailbox *dst, pid_t dst_pid, pid_t from)
+ipc_recv_lock(struct mailbox *dst, pid_t dst_pid, pid_t from)
 {
     struct list_node *node = NULL;
 
@@ -89,25 +89,25 @@ msg_recv_lock(struct mailbox *dst, pid_t dst_pid, pid_t from)
 }
 
 // 尝试取一条匹配消息/事件并投递; 返回 0 成功, -ENOENT 表示暂无可用消息/事件
-static int msg_recv_try(struct task *dest_task, pid_t from, struct message *msg)
+static int ipc_recv_try(struct task *dest_task, pid_t from, struct message *msg)
 {
     struct mailbox *dst = &dest_task->mailbox;
     struct task    *src_task;
-    int             has_event;
+    // int             has_event;
 
     spin_lock(&dst->send_lock);
-    has_event = msg_event_lock(dst, from);
-    if (!has_event)
-    {
-        src_task = msg_recv_lock(dst, dest_task->pid, from);
-    }
+    // has_event = ipc_event_lock(dst, from);
+    // if (!has_event)
+    // {
+    src_task = ipc_recv_lock(dst, dest_task->pid, from);
+    // }
     spin_unlock(&dst->send_lock);
 
-    if (has_event)
-    {
-        copy_to_user(msg, &dst->msg, sizeof(*msg));
-        return 0;
-    }
+    // if (has_event)
+    // {
+    //     copy_to_user(msg, &dst->msg, sizeof(*msg));
+    //     return 0;
+    // }
     if (src_task == NULL)
     {
         return -ENOENT;
@@ -119,7 +119,7 @@ static int msg_recv_try(struct task *dest_task, pid_t from, struct message *msg)
 }
 
 // 把本任务从发送者的 recv_list 摘除(若仍在)
-static void msg_recv_leave(struct mailbox *dst, struct mailbox *src)
+static void ipc_recv_leave(struct mailbox *dst, struct mailbox *src)
 {
     spin_lock(&src->recv_lock);
     if (list_find(&src->recv_list, &dst->recv_node))
@@ -130,7 +130,7 @@ static void msg_recv_leave(struct mailbox *dst, struct mailbox *src)
     return;
 }
 
-int msg_recv(pid_t src_pid, struct message *msg)
+int ipc_recv(pid_t src_pid, struct message *msg)
 {
     struct task    *dest_task = get_current_task();
     struct mailbox *dst       = &dest_task->mailbox;
@@ -168,13 +168,13 @@ int msg_recv(pid_t src_pid, struct message *msg)
     int ret = -ENOENT;
 
     // 在block前已经接收到消息
-    if (msg_recv_try(dest_task, src_pid, msg) == 0)
+    if (ipc_recv_try(dest_task, src_pid, msg) == 0)
     {
         ret = 0;
     }
     else
     {
-        struct msg_recv_pack pack;
+        struct ipc_recv_pack pack;
         pack.task = dest_task;
         pack.from = src_pid;
 
@@ -183,7 +183,7 @@ int msg_recv(pid_t src_pid, struct message *msg)
             int wake = wait_event(&dst->recv_wq, &pack, TASK_RECEIVE);
 
             // 这次已收到
-            if (msg_recv_try(dest_task, src_pid, msg) == 0)
+            if (ipc_recv_try(dest_task, src_pid, msg) == 0)
             {
                 ret = 0;
                 break;
@@ -208,7 +208,7 @@ int msg_recv(pid_t src_pid, struct message *msg)
     // 无论是否接收成功,都从发送者的链表中移除
     if (src != NULL)
     {
-        msg_recv_leave(dst, src);
+        ipc_recv_leave(dst, src);
     }
     dst->recv_from = PID_NULL;
     return ret;

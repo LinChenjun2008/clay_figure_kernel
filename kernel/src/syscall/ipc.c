@@ -34,7 +34,7 @@ struct mailbox *recv_node_to_mailbox(struct list_node *node)
     return CONTAINER_OF(struct mailbox, recv_node, node);
 }
 
-int msg_match(pid_t from, pid_t dst_pid, pid_t src_pid)
+int ipc_match(pid_t from, pid_t dst_pid, pid_t src_pid)
 {
     if (from == PID_ANY)
     {
@@ -62,40 +62,39 @@ int check_send_list(struct list_node *node, void *arg)
 
     struct mailbox *src      = send_node_to_mailbox(node);
     struct task    *src_task = mailbox_to_task(src);
-    return msg_match(pack->from, pack->dst_pid, src_task->pid);
+    return ipc_match(pack->from, pack->dst_pid, src_task->pid);
 }
 
 // wait_event 条件: 有可接收的匹配消息/事件, 或来源已退出
-int msg_recv_wakeup_condition(void *arg)
+int ipc_recv_wakeup_condition(void *arg)
 {
-    struct msg_recv_pack *pack  = arg;
+    struct ipc_recv_pack *pack  = arg;
     struct mailbox       *dst   = &pack->task->mailbox;
     int                   ready = 0;
 
     spin_lock(&dst->send_lock);
 
-    // 事件(与 msg_event_lock 的匹配规则一致)
-    if (pack->from == PID_ANY || pack->from == PID_EVENT)
-    {
-        int i;
-        for (i = 0; i < EVT_NR; i++)
-        {
-            if (dst->evt_msg[i] != 0)
-            {
-                ready = 1;
-                break;
-            }
-        }
-    }
-    // 其他任务发来的消息
-    if (!ready)
-    {
-        struct check_send_list_pack check;
-        check.dst_pid = pack->task->pid;
-        check.from    = pack->from;
-        ready =
-            list_traversal(&dst->send_list, check_send_list, &check) != NULL;
-    }
+    // // 事件(与 ipc_event_lock 的匹配规则一致)
+    // if (pack->from == PID_ANY || pack->from == PID_EVENT)
+    // {
+    //     int i;
+    //     for (i = 0; i < EVT_NR; i++)
+    //     {
+    //         if (dst->evt_msg[i] != 0)
+    //         {
+    //             ready = 1;
+    //             break;
+    //         }
+    //     }
+    // }
+    // // 其他任务发来的消息
+    // if (!ready)
+    // {
+    struct check_send_list_pack check;
+    check.dst_pid = pack->task->pid;
+    check.from    = pack->from;
+    ready = list_traversal(&dst->send_list, check_send_list, &check) != NULL;
+    // }
 
     spin_unlock(&dst->send_lock);
 
@@ -107,9 +106,9 @@ int msg_recv_wakeup_condition(void *arg)
 }
 
 // wait_event 条件: 本任务发出的消息已被接收, 或接收者已退出
-int msg_send_wakeup_condition(void *arg)
+int ipc_send_wakeup_condition(void *arg)
 {
-    struct msg_send_pack *pack = arg;
+    struct ipc_send_pack *pack = arg;
     return pack->task->mailbox.send_to != pack->dst_pid;
 }
 
@@ -125,8 +124,8 @@ void init_mailbox(struct mailbox *mailbox)
     init_spinlock(&mailbox->send_lock);
     init_list(&mailbox->recv_list);
     init_spinlock(&mailbox->recv_lock);
-    init_wait_queue(&mailbox->recv_wq, msg_recv_wakeup_condition);
-    init_wait_queue(&mailbox->send_wq, msg_send_wakeup_condition);
+    init_wait_queue(&mailbox->recv_wq, ipc_recv_wakeup_condition);
+    init_wait_queue(&mailbox->send_wq, ipc_send_wakeup_condition);
     return;
 }
 
