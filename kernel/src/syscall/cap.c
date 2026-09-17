@@ -14,22 +14,53 @@
 #include <syscall/cap/struct.h>
 #include <task.h>
 
+// slots_map 的 bit i 表示 table[i] 已分配
+#define CAP_TABLE_BIT(X) ((uint64_t)1 << (X))
+
+static inline uint16_t cap_slot_to_table(uint16_t slot_id)
+{
+    return (uint16_t)((slot_id - 1) / CAP_SLOTS);
+}
+
+static inline uint16_t cap_slot_to_index(uint16_t slot_id)
+{
+    return (uint16_t)((slot_id - 1) % CAP_SLOTS);
+}
+
+static inline uint16_t cap_make_slot_id(uint16_t table_id, uint16_t slot_idx)
+{
+    return (uint16_t)(table_id * CAP_SLOTS + slot_idx + 1);
+}
+
 static void destory_root_cap_node(struct cap_head *head)
 {
     struct cap_node *cnode = (struct cap_node *)head;
     ASSERT(cnode->head.type == CAP_NODE);
 
-    int i;
-    for (i = 0; i < CAP_SLOTS; i++)
+    if (cnode->slots_map == 0)
     {
-        struct cap_slot *slot = &cnode->slots[i];
-        if (slot->head == NULL)
+        goto end;
+    }
+    uint16_t table_id;
+    for (table_id = 0; table_id < CAP_TABLE_NR; table_id++)
+    {
+        if (!(cnode->slots_map & CAP_TABLE_BIT(table_id)))
         {
             continue;
         }
-        ASSERT(slot->head != NULL);
-        destory_cap(slot->head);
+        struct cap_slot_table *table = cnode->table[table_id];
+
+        uint16_t slot_idx;
+        for (slot_idx = 0; slot_idx < CAP_SLOTS; slot_idx++)
+        {
+            if (table->slots[slot_idx].head != NULL)
+            {
+                destory_cap(table->slots[slot_idx].head);
+            }
+        }
+        kfree(table);
     }
+end:
     kfree(cnode);
     return;
 }
@@ -76,6 +107,37 @@ int32_t cap_release(struct cap_head *head)
     return ref;
 }
 
+// 分配 table[idx] 并将 slots_map 对应位置 1
+static struct cap_slot_table *
+cap_table_alloc(struct cap_node *cnode, uint16_t table_id)
+{
+    struct cap_slot_table *table = kmalloc(sizeof(*table), 0, 0);
+    if (table == NULL)
+    {
+        return NULL;
+    }
+    uint16_t slot_idx;
+    for (slot_idx = 0; slot_idx < CAP_SLOTS; slot_idx++)
+    {
+        table->slots[slot_idx].head   = NULL;
+        table->slots[slot_idx].key    = 0;
+        table->slots[slot_idx].rights = 0;
+    }
+    table->count           = 0;
+    cnode->table[table_id] = table;
+    cnode->slots_map |= CAP_TABLE_BIT(table_id);
+    return table;
+}
+
+// 释放 table[id] 并清除 slots_map 对应位
+static void cap_table_free(struct cap_node *cnode, uint16_t table_id)
+{
+    kfree(cnode->table[table_id]);
+    cnode->table[table_id] = NULL;
+    cnode->slots_map &= ~CAP_TABLE_BIT(table_id);
+    return;
+}
+
 // 创建根cnode
 struct cap_head *create_root_cap_node(void)
 {
@@ -86,18 +148,15 @@ struct cap_head *create_root_cap_node(void)
     }
     memset(cnode, 0, sizeof(*cnode));
     struct cap_head *head = &cnode->head;
-    struct cap_opt   opt;
+    cnode->slots_map      = 0;
+    uint16_t table_id;
+    for (table_id = 0; table_id < CAP_TABLE_NR; table_id++)
+    {
+        cnode->table[table_id] = NULL;
+    }
+    struct cap_opt opt;
     opt.destory = destory_root_cap_node;
     init_cap_head(head, CAP_NODE, &opt);
-    int i;
-    for (i = 0; i < CAP_SLOTS; i++)
-    {
-        struct cap_slot *slot = &cnode->slots[i];
-        slot->head            = NULL;
-        slot->key_seed        = 0;
-        slot->key             = 0;
-        slot->rights          = 0;
-    }
     return head;
 }
 
@@ -138,31 +197,72 @@ cap_insert(struct cap_head *node_head, struct cap_head *head, uint32_t rights)
     {
         return 0;
     }
-    cap_handle_t handle = 0;
+    cap_handle_t handle  = 0;
+    uint16_t     slot_id = 0;
+    uint16_t     table_id;
+    uint16_t     slot_idx;
+
     spin_lock(&cnode->head.lock);
-    uint16_t slot_id = 0;
-    int      i;
-    for (i = 0; i < CAP_SLOTS; i++)
+
+    for (table_id = 0; table_id < CAP_TABLE_NR; table_id++)
     {
-        struct cap_slot *slot = &cnode->slots[i];
-        if (slot->head != NULL)
+        if (!(cnode->slots_map & CAP_TABLE_BIT(table_id)))
         {
             continue;
         }
-        cap_reference(head);
-        slot_id      = i + 1;
-        slot->head   = head;
-        slot->key    = slot->key_seed;
-        slot->rights = rights;
-
-        handle = CAP_HANDLE(slot_id, slot->key);
-        break;
+        struct cap_slot_table *table = cnode->table[table_id];
+        if (table->count >= CAP_SLOTS)
+        {
+            continue;
+        }
+        for (slot_idx = 0; slot_idx < CAP_SLOTS; slot_idx++)
+        {
+            if (table->slots[slot_idx].head == NULL)
+            {
+                break;
+            }
+        }
+        if (slot_idx < CAP_SLOTS)
+        {
+            slot_id = cap_make_slot_id(table_id, slot_idx);
+            break;
+        }
     }
-    spin_unlock(&cnode->head.lock);
+    // 所有slot已满,分配新的slot_table
     if (slot_id == 0)
     {
-        return 0;
+        for (table_id = 0; table_id < CAP_TABLE_NR; table_id++)
+        {
+            if (!(cnode->slots_map & CAP_TABLE_BIT(table_id)))
+            {
+                break;
+            }
+        }
+        if (table_id == CAP_TABLE_NR)
+        {
+            goto fail; // 已达上限
+        }
+        if (cap_table_alloc(cnode, table_id) == NULL)
+        {
+            goto fail;
+        }
+        slot_id = cap_make_slot_id(table_id, 0);
     }
+    // 3) 由 slot_id 换算 table 下标与槽内 id, 占用槽位
+    table_id = cap_slot_to_table(slot_id);
+    slot_idx = cap_slot_to_index(slot_id);
+
+    struct cap_slot_table *table = cnode->table[table_id];
+    struct cap_slot       *slot  = &table->slots[slot_idx];
+    cap_reference(head);
+    slot->head   = head;
+    slot->key    = cnode->key_seed++;
+    slot->rights = rights;
+    table->count++;
+    handle = CAP_HANDLE(slot_id, slot->key);
+
+fail:
+    spin_unlock(&cnode->head.lock);
     return handle;
 }
 
@@ -176,43 +276,45 @@ void cap_delete(struct cap_head *node_head, cap_handle_t handle)
     struct cap_node *cnode   = (struct cap_node *)node_head;
     uint16_t         key     = CAP_HANDLE_GET_KEY(handle);
     uint16_t         slot_id = CAP_HANDLE_GET_SLOT_ID(handle);
-    if (slot_id <= 0 || slot_id > CAP_SLOTS)
+
+    if (slot_id <= 0 || slot_id > MAX_SLOTS)
     {
         return;
     }
+    uint16_t table_id = cap_slot_to_table(slot_id);
+    uint16_t slot_idx = cap_slot_to_index(slot_id);
+
     spin_lock(&cnode->head.lock);
-    struct cap_slot *slot = &cnode->slots[slot_id - 1];
-    struct cap_head *head = slot->head;
-
-    int need_release = 1;
-
-    if (key != slot->key)
+    if (!(cnode->slots_map & CAP_TABLE_BIT(table_id)))
     {
-        need_release = 0;
-        goto fail;
+        spin_unlock(&cnode->head.lock);
+        return;
     }
-    if (slot->head == NULL)
+    struct cap_slot_table *table = cnode->table[table_id];
+    struct cap_slot       *slot  = &table->slots[slot_idx];
+    struct cap_head       *head  = slot->head;
+
+    if (head == NULL || key != slot->key)
     {
-        need_release = 0;
-        goto fail;
+        spin_unlock(&cnode->head.lock);
+        return;
     }
-    slot->head = NULL;
-    slot->key_seed++;
+    slot->head   = NULL;
     slot->key    = 0;
     slot->rights = 0;
-
-fail:
-    spin_unlock(&cnode->head.lock);
-    if (need_release)
+    table->count--;
+    if (table->count == 0)
     {
-        cap_release(head);
+        cap_table_free(cnode, table_id);
     }
+    spin_unlock(&cnode->head.lock);
 
+    cap_release(head);
     return;
 }
 
 static struct cap_head *
-cap_verify_reference(struct cap_slot *slot, uint16_t key, uint32_t rights)
+cap_get_verified(struct cap_slot *slot, uint16_t key, uint32_t rights)
 {
     if (slot->head == NULL)
     {
@@ -250,16 +352,23 @@ cap_lookup(struct cap_head *node_head, cap_handle_t handle, uint32_t rights)
     uint16_t key     = CAP_HANDLE_GET_KEY(handle);
     uint16_t slot_id = CAP_HANDLE_GET_SLOT_ID(handle);
 
-    if (slot_id <= 0 || slot_id > CAP_SLOTS)
+    spin_lock(&cnode->head.lock);
+    if (slot_id <= 0 || slot_id > MAX_SLOTS)
     {
+        spin_unlock(&cnode->head.lock);
         return NULL;
     }
-    spin_lock(&cnode->head.lock);
-
-    struct cap_slot *slot = &cnode->slots[slot_id - 1];
+    uint16_t table_id = cap_slot_to_table(slot_id);
+    if (!(cnode->slots_map & CAP_TABLE_BIT(table_id)))
+    {
+        spin_unlock(&cnode->head.lock);
+        return NULL;
+    }
+    uint16_t         slot_idx = cap_slot_to_index(slot_id);
+    struct cap_slot *slot     = &cnode->table[table_id]->slots[slot_idx];
 
     // 验证key和right的有效性,通过检查则增加引用.
-    head = cap_verify_reference(slot, key, rights);
+    head = cap_get_verified(slot, key, rights);
 
     spin_unlock(&cnode->head.lock);
 
@@ -267,6 +376,7 @@ cap_lookup(struct cap_head *node_head, cap_handle_t handle, uint32_t rights)
 }
 
 // 原样复制 cnode,用于 fork 继承, 保证父子 handle 一致。
+// 要求 dst 为空 cnode(如新建), 且复制期间 src 不被并发修改
 int copy_cnode(struct cap_head *dst, struct cap_head *src)
 {
     if (dst == NULL || src == NULL)
@@ -286,22 +396,37 @@ int copy_cnode(struct cap_head *dst, struct cap_head *src)
 
     spin_lock_double(&src->lock, &dst->lock);
 
-    // 逐槽原样复制, 对象引用 +1
-    int i;
-    for (i = 0; i < CAP_SLOTS; i++)
+    // 复制全局key种子, 保证 fork 后 key 演化一致
+    dst_node->key_seed = src_node->key_seed;
+
+    // 按 slots_map 逐 table 原样复制, 对象引用 +1
+    uint16_t table_id;
+    for (table_id = 0; table_id < CAP_TABLE_NR; table_id++)
     {
-        struct cap_slot *sslot = &src_node->slots[i];
-        struct cap_slot *dslot = &dst_node->slots[i];
-
-        dslot->head     = sslot->head;
-        dslot->key_seed = sslot->key_seed;
-        dslot->key      = sslot->key;
-        dslot->rights   = sslot->rights;
-
-        if (sslot->head != NULL)
+        if (!(src_node->slots_map & CAP_TABLE_BIT(table_id)))
         {
-            cap_reference(sslot->head);
+            continue;
         }
+        struct cap_slot_table *src_table = src_node->table[table_id];
+        struct cap_slot_table *dst_table = kmalloc(sizeof(*dst_table), 0, 0);
+        if (dst_table == NULL)
+        {
+            // 已复制的 table 由调用方 destory_cap(dst) 回收
+            spin_unlock_double(&src->lock, &dst->lock);
+            return -1;
+        }
+        uint16_t slot_idx;
+        for (slot_idx = 0; slot_idx < CAP_SLOTS; slot_idx++)
+        {
+            dst_table->slots[slot_idx] = src_table->slots[slot_idx];
+            if (src_table->slots[slot_idx].head != NULL)
+            {
+                cap_reference(src_table->slots[slot_idx].head);
+            }
+        }
+        dst_table->count          = src_table->count;
+        dst_node->table[table_id] = dst_table;
+        dst_node->slots_map |= CAP_TABLE_BIT(table_id);
     }
     spin_unlock_double(&src->lock, &dst->lock);
     return 0;

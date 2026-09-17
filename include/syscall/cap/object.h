@@ -6,7 +6,9 @@
 #ifndef __SYSCALL_CAP_OBJECT_H__
 #define __SYSCALL_CAP_OBJECT_H__
 
-#define CAP_SLOTS 32
+#define CAP_SLOTS    32
+#define CAP_TABLE_NR 64
+#define MAX_SLOTS    (CAP_SLOTS * CAP_TABLE_NR)
 
 #include <sync/spinlock.h>
 #include <syscall/cap.h>
@@ -29,10 +31,18 @@ struct cap_head
     struct cap_opt opt;
 };
 
+struct cap_slot_table
+{
+    struct cap_slot slots[CAP_SLOTS];
+    uint16_t        count;
+};
+
 struct cap_node
 {
-    struct cap_head head;
-    struct cap_slot slots[CAP_SLOTS];
+    struct cap_head        head;
+    uint16_t               key_seed;
+    uint64_t               slots_map;
+    struct cap_slot_table *table[CAP_TABLE_NR];
 };
 
 struct cap_ipc

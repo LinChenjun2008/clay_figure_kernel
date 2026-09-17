@@ -18,9 +18,8 @@ struct cap_head;
 struct cap_slot
 {
     struct cap_head *head;
-    uint16_t         key_seed; // key种子,用于避免handle泄漏
-    uint16_t         key;      // 访问cap的key
-    uint32_t         rights;   // 操作head所属cap的权限
+    uint16_t         key;    // 访问cap的key
+    uint32_t         rights; // 操作head所属cap的权限
 };
 
 #endif /* __SYSCALL_CAP_STRUCT_H__ */
