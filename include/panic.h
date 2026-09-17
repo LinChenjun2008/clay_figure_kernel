@@ -27,6 +27,13 @@
         }                                                             \
     } while (0)
 
+#define PERROR(ERRNO)            \
+    do                           \
+    {                            \
+        perror(__func__, ERRNO); \
+    } while (0)
+
 void panic_spin(const char *function, int line, const char *message);
+void perror(const char *function, int err);
 
 #endif /* __PANIC_H__ */
