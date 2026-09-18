@@ -74,9 +74,9 @@ void task_init(struct system_info *system_info)
     struct boot_info *boot_info = system_info->boot_info;
 
     init_task_table(&task_mgr->task_table);
-    task_mgr->cpus                  = cpus;
-    task_mgr->max_cpus              = max_cpus;
-    task_mgr->kernel_page_table_pos = boot_info->page_table_pos;
+    task_mgr->cpus          = cpus;
+    task_mgr->max_cpus      = max_cpus;
+    task_mgr->kernel_pg_dir = boot_info->pg_dir;
 
     int i;
     for (i = 0; i < task_mgr->max_cpus; i++)

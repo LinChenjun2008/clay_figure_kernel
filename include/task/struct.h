@@ -57,7 +57,7 @@ struct task_mgr
     struct task_table   task_table;
     struct cpu         *cpus;
     int                 max_cpus;
-    phys_addr_t         kernel_page_table_pos;
+    phys_addr_t         kernel_pg_dir;
 };
 
 struct cpu

@@ -148,14 +148,14 @@ boot_page_map(uint64_t *pg_dir, void *phys, void *virt, uint64_t pages)
 
 efi_status_t create_page_table(void *pg_dir)
 {
-    efi_status_t status         = EFI_SUCCESS;
-    uint64_t    *page_table_pos = NULL;
+    efi_status_t status     = EFI_SUCCESS;
+    uint64_t    *page_table = NULL;
 
     status = boot_services->allocate_pages(
         EFI_ALLOCATE_ANY_PAGES,
         EFI_LOADER_DATA,
         1,
-        (efi_physical_address_t *)&page_table_pos
+        (efi_physical_address_t *)&page_table
     );
     if (EFI_ERROR(status))
     {
@@ -166,7 +166,7 @@ efi_status_t create_page_table(void *pg_dir)
         return status;
     }
 
-    boot_services->set_mem(page_table_pos, PT_SIZE, 0);
+    boot_services->set_mem(page_table, PT_SIZE, 0);
 
     uintptr_t *phys, *virt;
 
@@ -174,21 +174,21 @@ efi_status_t create_page_table(void *pg_dir)
     phys = (uintptr_t *)0;
     virt = PHYS_TO_VIRT(phys);
     printf(L"mmap: %p - %p.\r\n", phys, virt);
-    boot_page_map(page_table_pos, phys, virt, 1 << 20);
-    boot_page_map(page_table_pos, phys, phys, 1 << 20);
+    boot_page_map(page_table, phys, virt, 1 << 20);
+    boot_page_map(page_table, phys, phys, 1 << 20);
 
     // frame buffer
     phys           = (void *)gop->mode->frame_buffer_base;
     virt           = PHYS_TO_VIRT(phys);
     uint64_t pages = (gop->mode->frame_buffer_size + PG_SIZE - 1) / PG_SIZE;
     printf(L"mmap: %p - %p.\r\n", phys, virt);
-    boot_page_map(page_table_pos, phys, virt, pages);
+    boot_page_map(page_table, phys, virt, pages);
 
     // kernel code
     printf(L"mmap: %p - %p.\r\n", 0, KERNEL_TEXT_BASE);
-    boot_page_map(page_table_pos, (void *)0, (void *)KERNEL_TEXT_BASE, 512);
+    boot_page_map(page_table, (void *)0, (void *)KERNEL_TEXT_BASE, 512);
 
-    *(uint64_t **)pg_dir = page_table_pos;
+    *(uint64_t **)pg_dir = page_table;
     return status;
 }
 
