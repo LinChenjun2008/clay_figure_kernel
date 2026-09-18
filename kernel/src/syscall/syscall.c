@@ -70,7 +70,7 @@ static word_t sys_send(struct pt_regs *regs)
         return -EACCES;
     }
     struct task *dst_task = pid_to_task(dst_pid);
-    if (dst_task == NULL || TASK_STATUS(dst_task) == TASK_DIED)
+    if (dst_task == NULL || TASK_STATUS(dst_task->status) == TASK_DIED)
     {
         cap_delete(task->cnode, handle);
         return -ESRCH;
@@ -106,6 +106,16 @@ static word_t sys_sigaction(struct pt_regs *regs)
     return ret;
 }
 
+static void register_syscall(uint64_t num, void *func)
+{
+    if (num >= NR_CONT)
+    {
+        return;
+    }
+    syscall_table[num] = func;
+    return;
+}
+
 void syscall_init(void)
 {
     int i;
@@ -129,15 +139,5 @@ void syscall_init(void)
 void syscall_enable(void)
 {
     arch_syscall_enable();
-    return;
-}
-
-void register_syscall(uint64_t num, void *func)
-{
-    if (num >= NR_CONT)
-    {
-        return;
-    }
-    syscall_table[num] = func;
     return;
 }

@@ -25,7 +25,6 @@
 
 void syscall_init(void);
 void syscall_enable(void);
-void register_syscall(uint64_t num, void *func);
 
 #endif /* __ASSEMBLER__ */
 
