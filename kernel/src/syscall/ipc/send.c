@@ -71,6 +71,7 @@ int ipc_send(pid_t dst_pid, struct message *msg)
     struct mailbox *src = &src_task->mailbox;
     struct mailbox *dst = &dest_task->mailbox;
 
+    memset(&src->msg, 0, sizeof(src->msg));
     copy_from_user(&src->msg, msg, sizeof(*msg));
     src->msg.source = src_task->pid;
 

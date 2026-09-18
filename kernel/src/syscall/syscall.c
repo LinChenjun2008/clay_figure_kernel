@@ -54,6 +54,10 @@ static word_t sys_send(struct pt_regs *regs)
     pid_t        dst_pid = PID_NULL;
 
     struct cap_head *head = cap_lookup(task->cnode, handle, CAP_WRITE);
+    if (head == NULL)
+    {
+        return -EACCES;
+    }
     if (head->type == CAP_IPC)
     {
         struct cap_ipc *cap = (struct cap_ipc *)head;
@@ -65,21 +69,17 @@ static word_t sys_send(struct pt_regs *regs)
     {
         return -EACCES;
     }
+    struct task *dst_task = pid_to_task(dst_pid);
+    if (dst_task == NULL || TASK_STATUS(dst_task) == TASK_DIED)
+    {
+        cap_delete(task->cnode, handle);
+        return -ESRCH;
+    }
     return (word_t)ipc_send(dst_pid, (struct message *)regs->rdx);
 }
 
 static word_t sys_recv(struct pt_regs *regs)
 {
-    return (word_t)ipc_recv((pid_t)regs->rsi, (struct message *)regs->rdx);
-}
-
-static word_t sys_both(struct pt_regs *regs)
-{
-    sword_t ret = sys_send(regs);
-    if (ret < 0)
-    {
-        return ret;
-    }
     return (word_t)ipc_recv((pid_t)regs->rsi, (struct message *)regs->rdx);
 }
 
@@ -118,7 +118,6 @@ void syscall_init(void)
     register_syscall(NR_WAIT, sys_wait);
     register_syscall(NR_SEND, sys_send);
     register_syscall(NR_RECV, sys_recv);
-    register_syscall(NR_BOTH, sys_both);
     register_syscall(NR_ADDR, sys_addr);
     register_syscall(NR_FREE, sys_free);
     register_syscall(NR_KILL, sys_kill);

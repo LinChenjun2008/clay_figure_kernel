@@ -45,12 +45,15 @@ struct cap_node
     struct cap_slot_table *table[CAP_TABLE_NR];
 };
 
+// 进行ipc的capability
+// 仅send时需要
 struct cap_ipc
 {
     struct cap_head head;
     pid_t           port;
 };
 
+// 使用物理内存的capability
 struct cap_mem
 {
     struct cap_head head;
@@ -58,6 +61,7 @@ struct cap_mem
     size_t          pages;
 };
 
+// 控制相应进程的cap
 struct cap_task
 {
     struct cap_head head;

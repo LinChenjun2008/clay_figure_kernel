@@ -40,11 +40,6 @@ pid_t recv(pid_t src, struct message *msg)
     return (pid_t)syscall_2(NR_RECV, src, (uint64_t)msg);
 }
 
-pid_t both(pid_t src_dst, struct message *msg)
-{
-    return (pid_t)syscall_2(NR_BOTH, src_dst, (uint64_t)msg);
-}
-
 int kill(pid_t pid, int sig)
 {
     return (int)syscall_2(NR_KILL, pid, sig);

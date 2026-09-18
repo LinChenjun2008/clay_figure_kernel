@@ -12,15 +12,14 @@
 #define NR_WAIT 3 // waitpid
 #define NR_SEND 4 // send a message
 #define NR_RECV 5 // receive a message
-#define NR_BOTH 6 // send and receive
-#define NR_ADDR 7 // allocate a page
-#define NR_FREE 8 // free a page
+#define NR_ADDR 6 // allocate a page
+#define NR_FREE 7 // free a page
 
-#define NR_KILL 9  // kill
-#define NR_SACT 10 // signal action
-#define NR_SRET 11 // signal return
+#define NR_KILL 8  // kill
+#define NR_SACT 9  // signal action
+#define NR_SRET 10 // signal return
 
-#define NR_CONT 12
+#define NR_CONT 11
 
 #ifndef __ASSEMBLER__
 
