@@ -47,12 +47,12 @@ static word_t sys_wait(struct pt_regs *regs)
 
 static word_t sys_send(struct pt_regs *regs)
 {
-    return (word_t)ipc_send((pid_t)regs->rsi, (struct message *)regs->rdx);
+    return (word_t)ipc_send((pid_t)regs->rsi, (struct msg_head *)regs->rdx);
 }
 
 static word_t sys_recv(struct pt_regs *regs)
 {
-    return (word_t)ipc_recv((pid_t)regs->rsi, (struct message *)regs->rdx);
+    return (word_t)ipc_recv((pid_t)regs->rsi, (struct msg_head *)regs->rdx);
 }
 
 static word_t sys_addr(struct pt_regs *regs)

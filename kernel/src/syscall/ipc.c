@@ -5,11 +5,43 @@
 
 #include <base.h>
 
+#include <asm/page.h>
+
+#include <errno.h>
+#include <panic.h>
 #include <std/string.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
 #include <task/struct.h>
+
+// 检查message结构是否正常设置
+/// TODO: 检查msg所在页面是否可读写.
+int check_message(struct task *task, struct msg_head *msg)
+{
+    // 1. msg必须在用户空间
+    if (!USER_VMA_SPACE(msg))
+    {
+        return -EINVAL;
+    }
+    // 2. msg必须已映射(防止懒分配机制导致读取到脏数据)
+    phys_addr_t msg_phys = to_physical_address(task->pg_dir, (uintptr_t)msg);
+    if (msg_phys == 0)
+    {
+        return -EFAULT;
+    }
+    // 从此开始可以访问msg内部字段.
+    // 3. 字段正确性保证
+    if (msg->legnth > MAX_MESSAGE_LEGNTH)
+    {
+        return -EINVAL;
+    }
+    if (msg->header_legnth > msg->legnth)
+    {
+        return -EINVAL;
+    }
+    return 0;
+}
 
 struct mailbox *send_node_to_mailbox(struct list_node *node)
 {
@@ -47,6 +79,8 @@ int ipc_match(pid_t from, pid_t dst_pid, pid_t src_pid)
 
     struct task *dest_task = pid_to_task(dst_pid);
     struct task *src_task  = pid_to_task(src_pid);
+    ASSERT(dest_task != NULL && src_task != NULL);
+
     if (from == PID_CHILD)
     {
         return src_task->ppid == dest_task->pid;
@@ -98,7 +132,7 @@ int ipc_recv_wakeup_condition(void *arg)
 
     spin_unlock(&dst->send_lock);
 
-    if (dst->recv_err) // 消息来源已退出
+    if (dst->recv_err != 0) // 接收出错
     {
         ready = 1;
     }
@@ -109,6 +143,10 @@ int ipc_recv_wakeup_condition(void *arg)
 int ipc_send_wakeup_condition(void *arg)
 {
     struct ipc_send_pack *pack = arg;
+    if (pack->task->mailbox.send_err != 0)
+    {
+        return 1;
+    }
     return pack->task->mailbox.send_to != pack->dst_pid;
 }
 
@@ -119,6 +157,7 @@ void init_mailbox(struct mailbox *mailbox)
     mailbox->send_to   = PID_NULL;
     mailbox->recv_from = PID_NULL;
     mailbox->closed    = 0;
+    mailbox->send_err  = 0;
     mailbox->recv_err  = 0;
     init_list(&mailbox->send_list);
     init_spinlock(&mailbox->send_lock);
@@ -161,7 +200,7 @@ void mailbox_cleanup(struct task *task)
     {
         struct list_node *node = list_pop(&dst->recv_list);
         struct task *dst_task  = mailbox_to_task(recv_node_to_mailbox(node));
-        dst_task->mailbox.recv_err = 1;
+        dst_task->mailbox.recv_err = -ESRCH;
         list_append(&wake_list, node);
     }
     spin_unlock(&dst->recv_lock);

@@ -6,7 +6,7 @@
 #ifndef __ASM_TASK_PROCESS_H__
 #define __ASM_TASK_PROCESS_H__
 
-#define USER_STACK_VADDR_TOP 0x0000800000000000
+#define USER_STACK_VADDR_TOP USER_VMA_TOP
 #define USER_VADDR_START     0x800000
 
 struct pt_regs;

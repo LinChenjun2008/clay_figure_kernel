@@ -14,15 +14,6 @@
 #include <task/schedule.h>
 #include <task/struct.h>
 
-static void *copy_from_user(void *dst, const void *src, size_t size)
-{
-    if ((uintptr_t)src >= KERNEL_VMA_BASE)
-    {
-        return NULL;
-    }
-    return memcpy(dst, src, size);
-}
-
 static int ipc_send_lock(struct mailbox *dst, struct mailbox *src)
 {
     struct task *dest_task = mailbox_to_task(dst);
@@ -33,7 +24,6 @@ static int ipc_send_lock(struct mailbox *dst, struct mailbox *src)
     {
         return -ESRCH;
     }
-
     src->send_to = dest_task->pid;
     list_append(&dst->send_list, &src->send_node);
 
@@ -48,11 +38,17 @@ static int ipc_send_lock(struct mailbox *dst, struct mailbox *src)
     return need_wake;
 }
 
-int ipc_send(pid_t dst_pid, struct message *msg)
+int ipc_send(pid_t dst_pid, struct msg_head *msg)
 {
     struct task *src_task  = get_current_task();
     struct task *dest_task = NULL;
     int          need_wake = 0;
+
+    int msg_status = check_message(src_task, msg);
+    if (msg_status < 0)
+    {
+        return msg_status;
+    }
 
     if (!check_pid_avaiability(dst_pid))
     {
@@ -71,9 +67,9 @@ int ipc_send(pid_t dst_pid, struct message *msg)
     struct mailbox *src = &src_task->mailbox;
     struct mailbox *dst = &dest_task->mailbox;
 
-    memset(&src->msg, 0, sizeof(src->msg));
-    copy_from_user(&src->msg, msg, sizeof(*msg));
-    src->msg.source = src_task->pid;
+    src->send_err    = 0;
+    src->msg         = msg;
+    src->msg->source = src_task->pid;
 
     spin_lock(&dst->send_lock);
     need_wake = ipc_send_lock(dst, src);
@@ -119,48 +115,15 @@ int ipc_send(pid_t dst_pid, struct message *msg)
         spin_unlock(&dst->send_lock);
         return -EINTR;
     }
-
+    if (src->send_err != 0)
+    {
+        int ret       = src->send_err;
+        src->send_err = 0;
+        return ret;
+    }
     if (src->send_to != PID_NULL)
     {
         return -ESRCH;
     }
     return 0;
 }
-
-// static int inform_event_lock(struct mailbox *dst, uint32_t evt_type)
-// {
-//     if (dst->closed)
-//     {
-//         return 0;
-//     }
-//     if (dst->evt_msg[evt_type] != 0xff)
-//     {
-//         dst->evt_msg[evt_type]++;
-//     }
-//     return ipc_match(dst->recv_from, PID_NULL, PID_EVENT);
-// }
-
-// void inform_event(pid_t dst_pid, uint32_t evt_type)
-// {
-//     if (evt_type >= EVT_NR)
-//     {
-//         return;
-//     }
-//     struct task *dest_task = pid_to_task(dst_pid);
-//     if (dest_task == NULL || TASK_STATUS(dest_task->status) == TASK_DIED)
-//     {
-//         return;
-//     }
-//     int need_wake = 0;
-
-//     struct mailbox *dst = &dest_task->mailbox;
-//     spin_lock(&dst->send_lock);
-//     need_wake = inform_event_lock(dst, evt_type);
-//     spin_unlock(&dst->send_lock);
-
-//     if (need_wake)
-//     {
-//         wake_up(&dst->recv_wq);
-//     }
-//     return;
-// }

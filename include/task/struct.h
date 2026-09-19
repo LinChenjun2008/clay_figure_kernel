@@ -74,25 +74,17 @@ struct cpu
     uint64_t total_weight;
 };
 
-struct message
-{
-    pid_t    source;
-    uint32_t type;
-    union
-    {
-        uint32_t m32[14];
-        uint64_t m64[7];
-    };
-};
+struct msg_head;
 
 struct mailbox
 {
-    struct message msg;             // 临时存储发送/接收的消息
-    uint8_t        evt_msg[EVT_NR]; // evt_msg[i]表示时间i发生的次数
-    pid_t          send_to;         // 向send_to对应的任务发送消息
-    pid_t          recv_from;       // 从recv_from匹配的消息源接收消息
-    uint8_t        closed;          // 邮箱关闭标记,置位后拒绝发送/接收消息
-    uint8_t        recv_err;        // 接收消息出现错误的标记
+    struct msg_head *msg;             // 临时存储发送/接收的消息
+    uint8_t          evt_msg[EVT_NR]; // evt_msg[i]表示时间i发生的次数
+    pid_t            send_to;         // 向send_to对应的任务发送消息
+    pid_t            recv_from;       // 从recv_from匹配的消息源接收消息
+    uint8_t          closed;          // 邮箱关闭标记,置位后拒绝发送/接收消息
+    int              send_err;        // 发送消息出现错误的标记
+    int              recv_err;        // 接收消息出现错误的标记
 
     struct list      send_list; // 向当前邮箱发送消息的队列
     struct list_node send_node; // 发送消息时加入目标邮箱的send_list
