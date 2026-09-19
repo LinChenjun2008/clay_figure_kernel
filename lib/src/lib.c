@@ -20,7 +20,7 @@ pid_t fork(void)
 
 pid_t waitpid(pid_t pid, int *status, int options)
 {
-    pid_t ret = (pid_t)syscall_3(NR_WAIT, pid, (uint64_t)status, options);
+    pid_t ret = (pid_t)syscall_3(NR_WAIT, pid, (word_t)status, options);
     return ret;
 }
 
@@ -32,12 +32,23 @@ pid_t wait(pid_t pid, int *status)
 
 pid_t send(pid_t dst, struct message *msg)
 {
-    return (pid_t)syscall_2(NR_SEND, dst, (uint64_t)msg);
+    return (pid_t)syscall_2(NR_SEND, dst, (word_t)msg);
 }
 
 pid_t recv(pid_t src, struct message *msg)
 {
-    return (pid_t)syscall_2(NR_RECV, src, (uint64_t)msg);
+    return (pid_t)syscall_2(NR_RECV, src, (word_t)msg);
+}
+
+void *allocate_pages(void *addr, size_t pages)
+{
+    return (void *)syscall_2(NR_ADDR, (word_t)addr, pages);
+}
+
+void free_pages(void *addr, size_t pages)
+{
+    syscall_2(NR_FREE, (word_t)addr, pages);
+    return;
 }
 
 int kill(pid_t pid, int sig)
@@ -47,5 +58,5 @@ int kill(pid_t pid, int sig)
 
 int sigaction(int sig, const struct sigaction *act, struct sigaction *oldact)
 {
-    return (int)syscall_3(NR_SACT, sig, (uint64_t)act, (uint64_t)oldact);
+    return (int)syscall_3(NR_SACT, sig, (word_t)act, (word_t)oldact);
 }

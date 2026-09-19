@@ -76,12 +76,12 @@ struct message
 };
 
 // syscall
-uint64_t syscall_0(uint64_t);
-uint64_t syscall_1(uint64_t, uint64_t);
-uint64_t syscall_2(uint64_t, uint64_t, uint64_t);
-uint64_t syscall_3(uint64_t, uint64_t, uint64_t, uint64_t);
-uint64_t syscall_4(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
-uint64_t syscall_5(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+word_t syscall_0(word_t);
+word_t syscall_1(word_t, word_t);
+word_t syscall_2(word_t, word_t, word_t);
+word_t syscall_3(word_t, word_t, word_t, word_t);
+word_t syscall_4(word_t, word_t, word_t, word_t, word_t);
+word_t syscall_5(word_t, word_t, word_t, word_t, word_t, word_t);
 
 void  exit(int status);
 pid_t fork(void);
@@ -90,7 +90,8 @@ pid_t wait(pid_t pid, int *status);
 
 pid_t send(pid_t dst, struct message *msg);
 pid_t recv(pid_t src, struct message *msg);
-pid_t both(pid_t src_dst, struct message *msg);
+void *allocate_pages(void *addr, size_t pages);
+void  free_pages(void *addr, size_t pages);
 int   kill(pid_t pid, int sig);
 int   sigaction(int sig, const struct sigaction *act, struct sigaction *oldact);
 
