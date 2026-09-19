@@ -9,8 +9,6 @@
 #include <asm/syscall.h>
 
 #include <syscall.h>
-#include <syscall/cap.h>
-#include <syscall/cap/object.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/struct.h>
@@ -49,33 +47,7 @@ static word_t sys_wait(struct pt_regs *regs)
 
 static word_t sys_send(struct pt_regs *regs)
 {
-    struct task *task    = get_current_task();
-    cap_handle_t handle  = (cap_handle_t)regs->rsi;
-    pid_t        dst_pid = PID_NULL;
-
-    struct cap_head *head = cap_lookup(task->cnode, handle, CAP_WRITE);
-    if (head == NULL)
-    {
-        return -EACCES;
-    }
-    if (head->type == CAP_IPC)
-    {
-        struct cap_ipc *cap = (struct cap_ipc *)head;
-        dst_pid             = cap->port;
-    }
-    cap_release(head);
-
-    if (dst_pid == PID_NULL)
-    {
-        return -EACCES;
-    }
-    struct task *dst_task = pid_to_task(dst_pid);
-    if (dst_task == NULL || TASK_STATUS(dst_task->status) == TASK_DIED)
-    {
-        cap_delete(task->cnode, handle);
-        return -ESRCH;
-    }
-    return (word_t)ipc_send(dst_pid, (struct message *)regs->rdx);
+    return (word_t)ipc_send((pid_t)regs->rsi, (struct message *)regs->rdx);
 }
 
 static word_t sys_recv(struct pt_regs *regs)

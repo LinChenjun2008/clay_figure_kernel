@@ -372,8 +372,7 @@ void init_task_struct(
 
     task->return_status = 0;
 
-    task->cnode = NULL;
-    task->mm    = NULL;
+    task->mm = NULL;
 
     init_spinlock(&task->childs_lock);
     init_list(&task->childs_list);

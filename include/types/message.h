@@ -8,8 +8,7 @@
 
 enum msg_type
 {
-    MSG_NORMAL,      // 正常消息传递
-    MSG_CAP_DELIVER, // 传递capability
+    MSG_NORMAL, // 正常消息传递
 };
 
 struct msg_head
@@ -18,15 +17,6 @@ struct msg_head
     enum msg_type type;
     size_t        header_legnth; // sizeof(struct msg_head)
     size_t        legnth;        // head + body
-};
-
-// 传递capability的消息
-struct msg_cap_deliver
-{
-    struct msg_head head;
-    cap_handle_t    handle; // 要传递的cap的handle
-    uint32_t        rights; // 以这个权限传递
-    uint32_t        append; // 附加消息
 };
 
 #endif /* __TYPES_MESSAGE_H__ */
