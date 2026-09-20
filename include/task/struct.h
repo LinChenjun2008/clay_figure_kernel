@@ -20,8 +20,6 @@
 #define TASK_DIED       7
 #define UNINTERRUPTABLE (1 << 3)
 
-#define EVT_NR 8
-
 #define SLOTS_PER_LEVEL 256
 
 #ifndef __ASSEMBLER__
@@ -78,24 +76,17 @@ struct msg_head;
 
 struct mailbox
 {
-    struct msg_head *msg;             // 临时存储发送/接收的消息
-    uint8_t          evt_msg[EVT_NR]; // evt_msg[i]表示时间i发生的次数
-    pid_t            send_to;         // 向send_to对应的任务发送消息
-    pid_t            recv_from;       // 从recv_from匹配的消息源接收消息
-    uint8_t          closed;          // 邮箱关闭标记,置位后拒绝发送/接收消息
-    int              send_err;        // 发送消息出现错误的标记
-    int              recv_err;        // 接收消息出现错误的标记
+    struct msg_head *msg;         // 发送方暂存待发送的消息
+    pid_t            send_to;     // 向send_to对应的任务发送消息
+    uint8_t          closed;      // 邮箱关闭标记,置位后拒绝发送消息
+    int              send_status; // 发送消息状态标记
 
     struct list      send_list; // 向当前邮箱发送消息的队列
     struct list_node send_node; // 发送消息时加入目标邮箱的send_list
     struct spinlock  send_lock; // 操作邮箱时获取的锁
 
-    struct list      recv_list; // 从当前邮箱接收消息的队列
-    struct list_node recv_node; // 接收消息时加入来源邮箱的send_list
-    struct spinlock  recv_lock; // 操作邮箱时获取的锁
-
-    struct wait_queue recv_wq;
-    struct wait_queue send_wq;
+    struct wait_queue recv_wq; // 从当前邮箱接收消息时在此队列上等待
+    struct wait_queue send_wq; // 向当前邮箱发送消息时在此队列上等待
 };
 
 struct task

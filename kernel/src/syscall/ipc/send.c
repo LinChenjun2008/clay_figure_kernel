@@ -8,122 +8,108 @@
 #include <asm/page.h>
 
 #include <errno.h>
+#include <panic.h>
 #include <std/string.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
 #include <task/struct.h>
 
-static int ipc_send_lock(struct mailbox *dst, struct mailbox *src)
+// 发送消息
+static int
+ipc_do_send(struct task *dst_task, struct task *src_task, struct msg_head *msg)
 {
-    struct task *dest_task = mailbox_to_task(dst);
-    struct task *src_task  = mailbox_to_task(src);
-    int          need_wake = 1;
+    struct mailbox *dst = &dst_task->mailbox;
+    struct mailbox *src = &src_task->mailbox;
 
     if (dst->closed)
     {
         return -ESRCH;
     }
-    src->send_to = dest_task->pid;
+    src->send_status = 1;
+    src->send_to     = dst_task->pid;
+    src->msg         = msg;
+    msg->source      = src_task->pid;
     list_append(&dst->send_list, &src->send_node);
+    return 0;
+}
 
-    if (dst->recv_from == PID_NULL)
+static int ipc_check_send_status(int wake_status, int send_status)
+{
+    // 成功
+    if (wake_status == 0 && send_status == 0)
     {
-        need_wake = 0;
+        return 0;
     }
-    if (!ipc_match(dst->recv_from, dest_task->pid, src_task->pid))
+    // 被信号打断,导致消息没有被发送.
+    if (wake_status == -EINTR && send_status > 0)
     {
-        need_wake = 0;
+        return -EINTR;
     }
-    return need_wake;
+
+    // 错误情况
+    PANIC("Should not be here.\n");
+    return 0;
 }
 
 int ipc_send(pid_t dst_pid, struct msg_head *msg)
 {
-    struct task *src_task  = get_current_task();
-    struct task *dest_task = NULL;
-    int          need_wake = 0;
+    struct task    *src_task    = get_current_task();
+    struct mailbox *src         = &src_task->mailbox;
+    int             status      = 0;
+    int             send_status = 0;
+    int             wake_status = 0;
 
-    int msg_status = check_message(src_task, msg);
-    if (msg_status < 0)
+    // 检查参数状态
+    status = check_message(src_task, msg);
+    if (status < 0)
     {
-        return msg_status;
-    }
-
-    if (!check_pid_avaiability(dst_pid))
-    {
-        return -ESRCH;
+        return status;
     }
     if (dst_pid == src_task->pid)
     {
-        return -EINVAL;
+        return -EDEADLK;
     }
-    dest_task = pid_to_task(dst_pid);
-    if (dest_task == NULL || TASK_STATUS(dest_task->status) == TASK_DIED)
+
+    // 获取接收方相关信息
+    struct task    *dst_task = NULL;
+    struct mailbox *dst      = NULL;
+
+    dst_task = pid_to_task(dst_pid);
+    if (dst_task == NULL || TASK_STATUS(dst_task->status) == TASK_DIED)
     {
         return -ESRCH;
     }
+    dst = &dst_task->mailbox;
 
-    struct mailbox *src = &src_task->mailbox;
-    struct mailbox *dst = &dest_task->mailbox;
-
-    src->send_err    = 0;
-    src->msg         = msg;
-    src->msg->source = src_task->pid;
-
+    // 发送消息
     spin_lock(&dst->send_lock);
-    need_wake = ipc_send_lock(dst, src);
+    send_status = ipc_do_send(dst_task, src_task, msg);
     spin_unlock(&dst->send_lock);
 
-    if (need_wake < 0)
+    if (send_status < 0)
     {
-        return need_wake;
-    }
-    if (need_wake)
-    {
-        // 接收者在等待: 从自己的 recv_list 出队并唤醒
-        spin_lock(&src->recv_lock);
-        if (list_find(&src->recv_list, &dst->recv_node))
-        {
-            list_remove(&dst->recv_node);
-        }
-        spin_unlock(&src->recv_lock);
-
-        wake_up(&dst->recv_wq);
+        status = send_status;
+        goto end;
     }
 
-    // 等到消息被接收, 或接收者退出
-    struct ipc_send_pack pack;
-    pack.task    = src_task;
-    pack.dst_pid = dest_task->pid;
+    // 唤醒接收方,等待消息被取走
+    wake_up(&dst->recv_wq);
+    wake_status = wait_event(&dst->send_wq, &src_task->mailbox, TASK_SEND);
+    send_status = src->send_status;
 
-    int wake = wait_event(&src->send_wq, &pack, TASK_SEND);
+    status = ipc_check_send_status(wake_status, send_status);
 
-    // 信号打断
-    if (wake == -EINTR && src->send_to == dest_task->pid)
+end:
+    spin_lock(&dst->send_lock);
+    if (list_find(&dst->send_list, &src->send_node))
     {
-        // 撤回本次发送登记
-        spin_lock(&dst->send_lock);
-        if (src->send_to == dest_task->pid)
-        {
-            if (list_find(&dst->send_list, &src->send_node))
-            {
-                list_remove(&src->send_node);
-            }
-            src->send_to = PID_NULL;
-        }
-        spin_unlock(&dst->send_lock);
-        return -EINTR;
+        list_remove(&src->send_node);
     }
-    if (src->send_err != 0)
-    {
-        int ret       = src->send_err;
-        src->send_err = 0;
-        return ret;
-    }
-    if (src->send_to != PID_NULL)
-    {
-        return -ESRCH;
-    }
-    return 0;
+    spin_unlock(&dst->send_lock);
+
+    src->msg         = NULL;
+    src->send_status = 0;
+    src->send_to     = PID_NULL;
+    return status;
 }

@@ -216,15 +216,12 @@ void kfree(void *addr)
 
     b = (struct mem_block *)addr;
     c = block2cache(b);
+    ASSERT(c != NULL);
     g = c->group;
 
     if (c->group == NULL)
     {
         kfree_pages(c, c->count);
-        if (c == NULL)
-        {
-            addr = NULL;
-        }
         return;
     }
     if (b->magic == block_index(c, b) + c->number_of_blocks)

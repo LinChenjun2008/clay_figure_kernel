@@ -7,6 +7,7 @@
 #define __LIB_H__
 
 #include <types.h>
+#include <syscall/ipc.h>
 
 #ifndef NULL
 #    define NULL ((void *)0)
@@ -64,17 +65,6 @@
 #define BUS_ADRALN  1
 #define TRAP_BRKPT  1
 
-struct message
-{
-    pid_t    source;
-    uint32_t type;
-    union
-    {
-        uint32_t m32[14];
-        uint64_t m64[7];
-    };
-};
-
 // syscall
 word_t syscall_0(word_t);
 word_t syscall_1(word_t, word_t);
@@ -88,8 +78,8 @@ pid_t fork(void);
 pid_t waitpid(pid_t pid, int *status, int options);
 pid_t wait(pid_t pid, int *status);
 
-pid_t send(pid_t dst, struct message *msg);
-pid_t recv(pid_t src, struct message *msg);
+int send(pid_t dst, struct msg_head *msg);
+int recv(struct msg_head *msg, int option);
 void *allocate_pages(void *addr, size_t pages);
 void  free_pages(void *addr, size_t pages);
 int   kill(pid_t pid, int sig);

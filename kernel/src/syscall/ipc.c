@@ -16,7 +16,7 @@
 #include <task/struct.h>
 
 // 检查message结构是否正常设置
-/// TODO: 检查msg所在页面是否可读写.
+/// TODO: 检查msg所在页面是否可读写(目前暂无只读/只写页面).
 int check_message(struct task *task, struct msg_head *msg)
 {
     // 1. msg必须在用户空间
@@ -32,11 +32,28 @@ int check_message(struct task *task, struct msg_head *msg)
     }
     // 从此开始可以访问msg内部字段.
     // 3. 字段正确性保证
+    if (msg->legnth == 0 || msg->header_legnth == 0)
+    {
+        return -EINVAL;
+    }
     if (msg->legnth > MAX_MESSAGE_LEGNTH)
     {
         return -EINVAL;
     }
     if (msg->header_legnth > msg->legnth)
+    {
+        return -EINVAL;
+    }
+    if (msg->header_legnth < sizeof(*msg))
+    {
+        return -EINVAL;
+    }
+    // msg必须在同一页面
+    uintptr_t start = (uintptr_t)msg;
+    uintptr_t end   = start + msg->legnth - 1;
+
+    // 用PFN辅助判断
+    if (ADDR_TO_PFN(start) != ADDR_TO_PFN(end))
     {
         return -EINVAL;
     }
@@ -57,160 +74,108 @@ struct task *mailbox_to_task(struct mailbox *mailbox)
     return CONTAINER_OF(struct task, mailbox, mailbox);
 }
 
-struct mailbox *recv_node_to_mailbox(struct list_node *node)
-{
-    if (node == NULL)
-    {
-        return NULL;
-    }
-    return CONTAINER_OF(struct mailbox, recv_node, node);
-}
-
-int ipc_match(pid_t from, pid_t dst_pid, pid_t src_pid)
-{
-    if (from == PID_ANY)
-    {
-        return 1;
-    }
-    if (src_pid == PID_EVENT)
-    {
-        return from == PID_EVENT;
-    }
-
-    struct task *dest_task = pid_to_task(dst_pid);
-    struct task *src_task  = pid_to_task(src_pid);
-    ASSERT(dest_task != NULL && src_task != NULL);
-
-    if (from == PID_CHILD)
-    {
-        return src_task->ppid == dest_task->pid;
-    }
-
-    return from >= 0 && src_task->pid == from;
-}
-
-// 检查 send_list 中是否有匹配的消息来源
-int check_send_list(struct list_node *node, void *arg)
-{
-    struct check_send_list_pack *pack = arg;
-
-    struct mailbox *src      = send_node_to_mailbox(node);
-    struct task    *src_task = mailbox_to_task(src);
-    return ipc_match(pack->from, pack->dst_pid, src_task->pid);
-}
-
-// wait_event 条件: 有可接收的匹配消息/事件, 或来源已退出
+// wait_event 条件: 有可接收的消息
+// 这里不加锁读链表: 发送方先把自己挂进send_list再唤醒, 且等待者被唤醒后
+// 会在send_lock内重新确认, 所以读到旧值最多多循环一次
 int ipc_recv_wakeup_condition(void *arg)
 {
-    struct ipc_recv_pack *pack  = arg;
-    struct mailbox       *dst   = &pack->task->mailbox;
-    int                   ready = 0;
+    struct mailbox *dst = arg;
 
-    spin_lock(&dst->send_lock);
-
-    // // 事件(与 ipc_event_lock 的匹配规则一致)
-    // if (pack->from == PID_ANY || pack->from == PID_EVENT)
-    // {
-    //     int i;
-    //     for (i = 0; i < EVT_NR; i++)
-    //     {
-    //         if (dst->evt_msg[i] != 0)
-    //         {
-    //             ready = 1;
-    //             break;
-    //         }
-    //     }
-    // }
-    // // 其他任务发来的消息
-    // if (!ready)
-    // {
-    struct check_send_list_pack check;
-    check.dst_pid = pack->task->pid;
-    check.from    = pack->from;
-    ready = list_traversal(&dst->send_list, check_send_list, &check) != NULL;
-    // }
-
-    spin_unlock(&dst->send_lock);
-
-    if (dst->recv_err != 0) // 接收出错
-    {
-        ready = 1;
-    }
-    return ready;
+    return !list_empty(&dst->send_list);
 }
 
 // wait_event 条件: 本任务发出的消息已被接收, 或接收者已退出
+// 根据send_status判断:
+//      send_status > 0 发送中
+//      send_status = 0 完成
+//      send_status < 0 错误码
 int ipc_send_wakeup_condition(void *arg)
 {
-    struct ipc_send_pack *pack = arg;
-    if (pack->task->mailbox.send_err != 0)
-    {
-        return 1;
-    }
-    return pack->task->mailbox.send_to != pack->dst_pid;
+    struct mailbox *src = arg;
+
+    int status = src->send_status;
+    return status <= 0;
 }
 
 void init_mailbox(struct mailbox *mailbox)
 {
     memset(&mailbox->msg, 0, sizeof(mailbox->msg));
-    memset(&mailbox->evt_msg, 0, sizeof(mailbox->evt_msg));
-    mailbox->send_to   = PID_NULL;
-    mailbox->recv_from = PID_NULL;
-    mailbox->closed    = 0;
-    mailbox->send_err  = 0;
-    mailbox->recv_err  = 0;
+    mailbox->send_to     = PID_NULL;
+    mailbox->closed      = 0;
+    mailbox->send_status = 0;
     init_list(&mailbox->send_list);
     init_spinlock(&mailbox->send_lock);
-    init_list(&mailbox->recv_list);
-    init_spinlock(&mailbox->recv_lock);
     init_wait_queue(&mailbox->recv_wq, ipc_recv_wakeup_condition);
     init_wait_queue(&mailbox->send_wq, ipc_send_wakeup_condition);
     return;
 }
 
-void mailbox_cleanup(struct task *task)
+static int mailbox_cleanup_send(struct list_node *node, void *arg)
 {
-    struct mailbox *dst = &task->mailbox;
-    struct list     wake_list;
-    init_list(&wake_list);
+    (void)arg;
+    struct mailbox *src = send_node_to_mailbox(node);
+    src->send_status    = -ESRCH;
+    return 0;
+}
 
-    // 关闭邮箱,并移除所有正在发送的任务
-    spin_lock(&dst->send_lock);
-    dst->closed = 1;
-    while (!list_empty(&dst->send_list))
+// 回收本任务发出去、目标还没接收的消息.
+// 同一时刻一个任务最多只有一条在途消息(ipc_send是同步的), 所以按send_to回收一条即可.
+// 不回收的话, 发送方退出后目标仍可能去读它的地址空间(消息正文在发送方的用户态).
+// 调用时不能持有cur的邮箱锁: 这里要拿目标邮箱的锁.
+static void mailbox_send_reclaim(struct mailbox *cur)
+{
+    pid_t dst_pid = cur->send_to;
+
+    if (dst_pid < 0)
     {
-        struct list_node *node    = list_pop(&dst->send_list);
-        struct task *src_task     = mailbox_to_task(send_node_to_mailbox(node));
-        src_task->mailbox.send_to = PID_ERROR;
-        list_append(&wake_list, node);
+        // 没有在途消息
+        return;
+    }
+    struct task *dst_task = pid_to_task(dst_pid);
+    if (dst_task == NULL)
+    {
+        // 目标已经退出, 它的邮箱随之失效
+        return;
+    }
+    struct mailbox *dst = &dst_task->mailbox;
+
+    spin_lock(&dst->send_lock);
+    // 消息可能已经被目标取走了
+    if (list_find(&dst->send_list, &cur->send_node))
+    {
+        list_remove(&cur->send_node);
     }
     spin_unlock(&dst->send_lock);
+    return;
+}
 
-    while (!list_empty(&wake_list))
+void mailbox_cleanup(struct task *task)
+{
+    struct mailbox *cur = &task->mailbox;
+
+    // 回收自己发出去但还没被接收的消息
+    mailbox_send_reclaim(cur);
+
+    spin_lock(&cur->send_lock);
+    // 关闭邮箱,并移除所有正在发送的任务
+    // 然后设置对方的send_status为异常值.
+    cur->closed = 1;
+    list_traversal(&cur->send_list, mailbox_cleanup_send, NULL);
+    spin_unlock(&cur->send_lock);
+
+    wake_up(&cur->send_wq);
+
+    // 等待对方自己出列
+    while (1)
     {
-        struct list_node *node = list_pop(&wake_list);
-        struct task *src_task  = mailbox_to_task(send_node_to_mailbox(node));
-
-        wake_up(&src_task->mailbox.send_wq);
-    }
-
-    // 移除所有正在等待的任务
-    spin_lock(&dst->recv_lock);
-    while (!list_empty(&dst->recv_list))
-    {
-        struct list_node *node = list_pop(&dst->recv_list);
-        struct task *dst_task  = mailbox_to_task(recv_node_to_mailbox(node));
-        dst_task->mailbox.recv_err = -ESRCH;
-        list_append(&wake_list, node);
-    }
-    spin_unlock(&dst->recv_lock);
-
-    while (!list_empty(&wake_list))
-    {
-        struct list_node *node = list_pop(&wake_list);
-        struct task *dst_task  = mailbox_to_task(recv_node_to_mailbox(node));
-
-        wake_up(&dst_task->mailbox.recv_wq);
+        spin_lock(&cur->send_lock);
+        int len = list_len(&cur->send_list);
+        spin_unlock(&cur->send_lock);
+        if (len == 0)
+        {
+            break;
+        }
+        task_yield();
     }
     return;
 }

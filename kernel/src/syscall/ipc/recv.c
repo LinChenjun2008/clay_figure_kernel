@@ -35,156 +35,99 @@ copy_from_other(struct msg_head *dst_msg, uintptr_t src, struct task *src_task)
     return 0;
 }
 
-// 获取一条来自其他任务的消息
-static struct task *
-ipc_recv_lock(struct mailbox *dst, pid_t dst_pid, pid_t from)
+// 从自己的等待队列取出队首消息并投递
+// 返回: -ENOENT 没有消息
+//       0       投递成功
+//       其它    这条消息被丢弃(长度不足 / 源地址无效), 已写入发送方的send_status
+static int ipc_do_recv(struct task *dst_task, struct msg_head *msg)
 {
-    struct list_node *node = NULL;
-
-    struct check_send_list_pack pack;
-    pack.dst_pid = dst_pid;
-    pack.from    = from;
-
-    node = list_traversal_remove(&dst->send_list, check_send_list, &pack);
+    struct mailbox   *dst  = &dst_task->mailbox;
+    struct list_node *node = list_pop(&dst->send_list);
 
     if (node == NULL)
     {
-        return NULL;
-    }
-
-    struct mailbox *src = send_node_to_mailbox(node);
-    return mailbox_to_task(src);
-}
-
-// 尝试取一条匹配消息并投递.
-static int
-ipc_recv_try(struct task *dest_task, pid_t from, struct msg_head *msg)
-{
-    struct mailbox *dst = &dest_task->mailbox;
-    struct task    *src_task;
-
-    spin_lock(&dst->send_lock);
-
-    src_task = ipc_recv_lock(dst, dest_task->pid, from);
-    if (src_task == NULL)
-    {
-        spin_unlock(&dst->send_lock);
         return -ENOENT;
     }
-    struct mailbox *src = &src_task->mailbox;
+    struct mailbox *src      = send_node_to_mailbox(node);
+    struct task    *src_task = mailbox_to_task(src);
 
     int ret = copy_from_other(msg, (uintptr_t)src->msg, src_task);
 
-    src->send_err = ret;
-    src->send_to  = PID_NULL;
-
-    spin_unlock(&dst->send_lock);
-
-    wake_up(&src_task->mailbox.send_wq);
+    src->send_status = ret;
+    src->send_to     = PID_NULL;
     return ret;
 }
 
-// 把本任务从发送者的 recv_list 摘除(若仍在)
-static void ipc_recv_leave(struct mailbox *dst, struct mailbox *src)
+/**
+ * ipc_recv流程
+ * 1. 检查参数合法性
+ * 2. 从自己的等待队列取出队首消息并投递:
+ * 2.1 摘除发送方的send_node
+ * 2.2 跨进程复制消息到msg
+ * 2.3 把复制结果写入发送方的send_status,随后唤醒发送方
+ * 3. 没有消息可接收时:
+ * 3.1 option带IPC_NOWAIT,立即返回-EAGAIN
+ * 3.2 否则在recv_wq上等待发送方,被信号打断则返回-EINTR
+ */
+int ipc_recv(struct msg_head *msg, int option)
 {
-    spin_lock(&src->recv_lock);
-    if (list_find(&src->recv_list, &dst->recv_node))
+    struct task    *dst_task    = get_current_task();
+    struct mailbox *dst         = &dst_task->mailbox;
+    int             status      = 0;
+    int             recv_status = 0;
+    int             wake_status = 0;
+
+    status = check_message(dst_task, msg);
+    if (status < 0)
     {
-        list_remove(&dst->recv_node);
+        return status;
     }
-    spin_unlock(&src->recv_lock);
-    return;
-}
-
-int ipc_recv(pid_t src_pid, struct msg_head *msg)
-{
-    struct task    *dest_task = get_current_task();
-    struct mailbox *dst       = &dest_task->mailbox;
-    struct task    *src_task  = NULL;
-    struct mailbox *src       = NULL;
-
-    dst->recv_err = 0;
-
-    int msg_status = check_message(dest_task, msg);
-    if (msg_status < 0)
-    {
-        return msg_status;
-    }
-
-    dst->recv_from = src_pid;
-
-    // 有效pid: 从特定任务接收消息
-    if (check_pid_avaiability(src_pid))
-    {
-        int closed;
-
-        src_task = pid_to_task(src_pid);
-        if (src_task == NULL)
-        {
-            dst->recv_from = PID_NULL;
-            return -ESRCH;
-        }
-        src = &src_task->mailbox;
-
-        spin_lock(&src->recv_lock);
-        closed = src->closed;
-        // 防止 recv_node 重复入队(上一次 recv 异常返回可能留下残留节点)
-        if (!closed && !list_find(&src->recv_list, &dst->recv_node))
-        {
-            list_append(&src->recv_list, &dst->recv_node);
-        }
-        spin_unlock(&src->recv_lock);
-
-        if (closed)
-        {
-            dst->recv_from = PID_NULL;
-            return -ESRCH;
-        }
-    }
-    int ret = -ENOENT;
-
-    struct ipc_recv_pack pack;
-    pack.task = dest_task;
-    pack.from = src_pid;
 
     while (1)
     {
-        int recv_status = ipc_recv_try(dest_task, src_pid, msg);
-        // recv_status:
-        // 0      成功收到消息
-        // ENOENT 没有消息
-        // 其它   收到了但被丢弃(长度不足 -E2BIG / 源地址无效 -EFAULT), 继续等
+        // 尝试获取消息
+        spin_lock(&dst->send_lock);
+        recv_status = ipc_do_recv(dst_task, msg);
+        spin_unlock(&dst->send_lock);
+
+        wake_up(&dst->send_wq);
+
+        // 根据status判断接收情况
 
         if (recv_status == 0)
         {
-            ret = 0;
+            // 顺利接收
+            status = 0;
             break;
         }
-
-        int wake = wait_event(&dst->recv_wq, &pack, TASK_RECEIVE);
-
-        // 接收出现错误
-        if (dst->recv_err != 0)
+        else if (recv_status == -E2BIG || recv_status == -EFAULT)
         {
-            ret           = dst->recv_err;
-            dst->recv_err = 0;
-            break;
+            // 重新接收
+            continue;
         }
-        // 被信号打断: 立刻返回 -EINTR, 由调用方返回用户态后投递信号
-        if (wake == -EINTR)
+        else if (recv_status == -ENOENT)
         {
-            ret = -EINTR;
+            // 没有消息
+            if (option & IPC_NOWAIT)
+            {
+                status = -EAGAIN;
+                break;
+            }
+        }
+        else
+        {
+            // 其他错误
+            status = recv_status;
             break;
         }
-        // 继续等
-    }
 
-
-    // 无论是否接收成功,都从发送者的链表中移除
-    if (src != NULL)
-    {
-        ipc_recv_leave(dst, src);
+        // 被信号或其他原因打断
+        if (wake_status != 0)
+        {
+            status = wake_status;
+            break;
+        }
+        wake_status = wait_event(&dst->recv_wq, dst, TASK_RECEIVE);
     }
-    dst->recv_from = PID_NULL;
-    return ret;
+    return recv_status;
 }

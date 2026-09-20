@@ -30,14 +30,14 @@ pid_t wait(pid_t pid, int *status)
     return ret;
 }
 
-pid_t send(pid_t dst, struct message *msg)
+int send(pid_t dst, struct msg_head *msg)
 {
-    return (pid_t)syscall_2(NR_SEND, dst, (word_t)msg);
+    return (int)syscall_2(NR_SEND, dst, (word_t)msg);
 }
 
-pid_t recv(pid_t src, struct message *msg)
+int recv(struct msg_head *msg, int option)
 {
-    return (pid_t)syscall_2(NR_RECV, src, (word_t)msg);
+    return (int)syscall_2(NR_RECV, (word_t)msg, (word_t)option);
 }
 
 void *allocate_pages(void *addr, size_t pages)
