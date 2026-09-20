@@ -10,6 +10,7 @@
 #include <asm/utils/io.h>
 #include <asm/utils/panic.h>
 
+#include <errno.h>
 #include <panic.h>
 #include <print.h>
 #include <std/stdarg.h>
@@ -325,5 +326,12 @@ void panic_spin(const char *function, int line, const char *message)
     arch_panic();
     while (1);
 
+    return;
+}
+
+void perror(const char *function, int err)
+{
+    const char *msg = strerror(err);
+    printk(MSG_ERR "%s:" MSG_HIGHLIGHT(" %s\n"), function, msg);
     return;
 }

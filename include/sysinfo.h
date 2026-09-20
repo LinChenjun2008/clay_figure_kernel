@@ -34,7 +34,7 @@ struct boot_info
     void  *initramfs;
     size_t initramfs_size;
 
-    phys_addr_t page_table_pos;
+    phys_addr_t pg_dir;
     uintptr_t   relocate_base;
 
     phys_addr_t stack_base;

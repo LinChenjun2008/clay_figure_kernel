@@ -28,7 +28,7 @@ phys_addr_t create_pg_dir(void)
     }
     struct task_mgr *task_mgr = get_task_mgr();
 
-    uint64_t *kernel_pg_dir = PHYS_TO_VIRT(task_mgr->kernel_page_table_pos);
+    uint64_t *kernel_pg_dir = PHYS_TO_VIRT(task_mgr->kernel_pg_dir);
     memset(pg_dir, 0, PT_SIZE);
     memcpy(pg_dir + 0x100, kernel_pg_dir + 0x100, PT_SIZE / 2);
     return VIRT_TO_PHYS(pg_dir);

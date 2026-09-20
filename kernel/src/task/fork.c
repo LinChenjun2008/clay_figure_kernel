@@ -14,7 +14,6 @@
 #include <mem.h>
 #include <mem/page.h>
 #include <panic.h>
-#include <syscall/cap.h>
 #include <task.h>
 #include <task/fork.h>
 #include <task/schedule.h>
@@ -54,16 +53,6 @@ pid_t process_fork(void)
         goto fail;
     }
 
-    fork->cnode = create_root_cap_node();
-    if (fork->cnode == NULL)
-    {
-        goto fail;
-    }
-    // 继承父进程的能力(cnode 复制; 内核线程 cnode 为空, 无需复制)
-    if (copy_cnode(fork->cnode, curr->cnode) < 0)
-    {
-        goto fail;
-    }
     fork->mm = allocate_mm_struct();
     if (fork->mm == NULL)
     {
@@ -96,7 +85,6 @@ pid_t process_fork(void)
     return fork->pid;
 
 fail:
-    destory_cap(fork->cnode);
     destory_mm_struct(fork->mm);
     free_pg_table(fork->pg_dir);
     kfree_pages((void *)fork->kstack_base, fork->kstack_pages);

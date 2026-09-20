@@ -7,6 +7,7 @@
 #define __LIB_H__
 
 #include <types.h>
+#include <syscall/ipc.h>
 
 #ifndef NULL
 #    define NULL ((void *)0)
@@ -64,115 +65,23 @@
 #define BUS_ADRALN  1
 #define TRAP_BRKPT  1
 
-union sigval
-{
-    int   sival_int;
-    void *sival_ptr;
-};
-
-typedef struct siginfo
-{
-    int          si_signo;
-    int          si_errno;
-    int          si_code;
-    pid_t        si_pid;
-    int          rsvd; // uid_t si_uid;
-    void        *si_addr;
-    int          si_status;
-    union sigval si_value;
-} siginfo_t;
-
-typedef uint64_t sigset_t;
-
-struct sigaction
-{
-    union
-    {
-        void (*sa_handler)(int);
-        void (*sa_sigaction)(int, siginfo_t *, void *);
-    } __sigaction_handler;
-    sigset_t sa_mask;
-    int      sa_flags;
-    void (*sa_restorer)(void);
-};
-
-#define sa_handler   __sigaction_handler.sa_handler
-#define sa_sigaction __sigaction_handler.sa_sigaction
-
-typedef struct
-{
-    void  *ss_sp;
-    int    ss_flags;
-    size_t ss_size;
-} stack_t;
-
-struct sigcontext
-{
-    word_t r15;
-    word_t r14;
-    word_t r13;
-    word_t r12;
-    word_t r11;
-    word_t r10;
-    word_t r9;
-    word_t r8;
-
-    word_t rdi;
-    word_t rsi;
-    word_t rbp;
-    word_t rbx;
-    word_t rdx;
-    word_t rax;
-    word_t rcx;
-
-    word_t rip;
-    word_t rflags;
-    word_t rsp;
-
-    word_t cs;
-    word_t ss;
-    word_t ds;
-    word_t es;
-    word_t fs;
-    word_t gs;
-};
-
-typedef struct ucontext
-{
-    uint64_t          uc_flags;
-    struct ucontext  *uc_link;
-    stack_t           uc_stack;
-    struct sigcontext uc_mcontext;
-    sigset_t          uc_sigmask;
-} ucontext_t;
-
-struct message
-{
-    pid_t    source;
-    uint32_t type;
-    union
-    {
-        uint32_t m32[14];
-        uint64_t m64[7];
-    };
-};
-
 // syscall
-uint64_t syscall_0(uint64_t);
-uint64_t syscall_1(uint64_t, uint64_t);
-uint64_t syscall_2(uint64_t, uint64_t, uint64_t);
-uint64_t syscall_3(uint64_t, uint64_t, uint64_t, uint64_t);
-uint64_t syscall_4(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
-uint64_t syscall_5(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+word_t syscall_0(word_t);
+word_t syscall_1(word_t, word_t);
+word_t syscall_2(word_t, word_t, word_t);
+word_t syscall_3(word_t, word_t, word_t, word_t);
+word_t syscall_4(word_t, word_t, word_t, word_t, word_t);
+word_t syscall_5(word_t, word_t, word_t, word_t, word_t, word_t);
 
 void  exit(int status);
 pid_t fork(void);
 pid_t waitpid(pid_t pid, int *status, int options);
 pid_t wait(pid_t pid, int *status);
 
-pid_t send(pid_t dst, struct message *msg);
-pid_t recv(pid_t src, struct message *msg);
-pid_t both(pid_t src_dst, struct message *msg);
+int send(pid_t dst, struct msg_head *msg);
+int recv(struct msg_head *msg, int option);
+void *allocate_pages(void *addr, size_t pages);
+void  free_pages(void *addr, size_t pages);
 int   kill(pid_t pid, int sig);
 int   sigaction(int sig, const struct sigaction *act, struct sigaction *oldact);
 

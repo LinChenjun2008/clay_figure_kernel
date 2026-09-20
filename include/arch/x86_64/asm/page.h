@@ -55,8 +55,13 @@
 #define KERNEL_VMA_BASE  0xffff800000000000
 #define KERNEL_TEXT_BASE 0xffffffff80000000
 
+#define USER_VMA_TOP 0x0000800000000000
+
 #define PHYS_TO_VIRT(PHYS) ((void *)((uintptr_t)(PHYS) + KERNEL_VMA_BASE))
 #define VIRT_TO_PHYS(VIRT) ((phys_addr_t)((uintptr_t)(VIRT) - KERNEL_VMA_BASE))
+
+// 判断是否在用户内存空间
+#define USER_VMA_SPACE(VIRT) ((uintptr_t)(VIRT) < USER_VMA_TOP)
 
 #ifndef __ASSEMBLER__
 

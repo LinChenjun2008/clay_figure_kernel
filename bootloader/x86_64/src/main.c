@@ -112,14 +112,14 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     printf(L"Video: frame buffer: %p.\r\n", graphic_info->frame_buffer_base);
 
     // Create page table
-    uintptr_t page_table_pos;
-    status = create_page_table(&page_table_pos);
+    uintptr_t pg_dir;
+    status = create_page_table(&pg_dir);
     if (EFI_ERROR(status))
     {
         printf(L"create_page_table: ERROR(%d).\n\r", status);
     }
-    boot_info->page_table_pos = page_table_pos;
-    printf(L"Page table: %p.\r\n", boot_info->page_table_pos);
+    boot_info->pg_dir = pg_dir;
+    printf(L"Page table: %p.\r\n", boot_info->pg_dir);
 
     // Init page_mgr
     boot_info->memory_map.map_size           = 4096 * 4;
@@ -163,7 +163,7 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     preprocess_system_info(system_info);
     int(SYSV_ABI * kernel)(struct system_info *, uintptr_t) = (void *)(entry);
 
-    status = kernel(system_info, page_table_pos);
+    status = kernel(system_info, pg_dir);
 
     while (1);
     return status;

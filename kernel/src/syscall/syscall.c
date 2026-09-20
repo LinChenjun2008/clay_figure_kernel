@@ -9,8 +9,6 @@
 #include <asm/syscall.h>
 
 #include <syscall.h>
-#include <syscall/cap.h>
-#include <syscall/cap/object.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/struct.h>
@@ -49,38 +47,12 @@ static word_t sys_wait(struct pt_regs *regs)
 
 static word_t sys_send(struct pt_regs *regs)
 {
-    struct task *task    = get_current_task();
-    cap_handle_t handle  = (cap_handle_t)regs->rsi;
-    pid_t        dst_pid = PID_NULL;
-
-    struct cap_head *head = cap_lookup(task->cnode, handle, CAP_WRITE);
-    if (head->type == CAP_IPC)
-    {
-        struct cap_ipc *cap = (struct cap_ipc *)head;
-        dst_pid             = cap->port;
-    }
-    cap_release(head);
-
-    if (dst_pid == PID_NULL)
-    {
-        return -EACCES;
-    }
-    return (word_t)msg_send(dst_pid, (struct message *)regs->rdx);
+    return (word_t)ipc_send((pid_t)regs->rsi, (struct msg_head *)regs->rdx);
 }
 
 static word_t sys_recv(struct pt_regs *regs)
 {
-    return (word_t)msg_recv((pid_t)regs->rsi, (struct message *)regs->rdx);
-}
-
-static word_t sys_both(struct pt_regs *regs)
-{
-    sword_t ret = sys_send(regs);
-    if (ret < 0)
-    {
-        return ret;
-    }
-    return (word_t)msg_recv((pid_t)regs->rsi, (struct message *)regs->rdx);
+    return (word_t)ipc_recv((struct msg_head *)regs->rsi, (int)regs->rdx);
 }
 
 static word_t sys_addr(struct pt_regs *regs)
@@ -106,6 +78,16 @@ static word_t sys_sigaction(struct pt_regs *regs)
     return ret;
 }
 
+static void register_syscall(uint64_t num, void *func)
+{
+    if (num >= NR_CONT)
+    {
+        return;
+    }
+    syscall_table[num] = func;
+    return;
+}
+
 void syscall_init(void)
 {
     int i;
@@ -118,7 +100,6 @@ void syscall_init(void)
     register_syscall(NR_WAIT, sys_wait);
     register_syscall(NR_SEND, sys_send);
     register_syscall(NR_RECV, sys_recv);
-    register_syscall(NR_BOTH, sys_both);
     register_syscall(NR_ADDR, sys_addr);
     register_syscall(NR_FREE, sys_free);
     register_syscall(NR_KILL, sys_kill);
@@ -130,15 +111,5 @@ void syscall_init(void)
 void syscall_enable(void)
 {
     arch_syscall_enable();
-    return;
-}
-
-void register_syscall(uint64_t num, void *func)
-{
-    if (num >= NR_CONT)
-    {
-        return;
-    }
-    syscall_table[num] = func;
     return;
 }

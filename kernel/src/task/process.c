@@ -15,7 +15,6 @@
 #include <panic.h>
 #include <ramfs.h>
 #include <sync/atomic.h>
-#include <syscall/cap.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/process.h>
@@ -54,11 +53,7 @@ struct task *process_execute(
     {
         goto fail;
     }
-    task->cnode = create_root_cap_node();
-    if (task->cnode == NULL)
-    {
-        goto fail;
-    }
+
     task->mm = allocate_mm_struct();
     if (task->mm == NULL)
     {
@@ -105,7 +100,6 @@ struct task *process_execute(
 
 fail:
     destory_mm_struct(task->mm);
-    destory_cap(task->cnode);
     free_pg_table(task->pg_dir);
     kfree_pages((void *)task->kstack_base, task->kstack_pages);
     destory_task_struct(task);
@@ -116,10 +110,8 @@ void process_exit(int status)
 {
     struct task *task = get_current_task();
 
-    destory_cap(task->cnode);
     destory_mm_struct(task->mm);
-    task->cnode = NULL;
-    task->mm    = NULL;
+    task->mm = NULL;
 
     phys_addr_t pg_dir = task->pg_dir;
     task->pg_dir       = 0;
