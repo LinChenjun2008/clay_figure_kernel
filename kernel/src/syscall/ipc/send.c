@@ -52,7 +52,7 @@ static int ipc_check_send_status(int wake_status, int send_status)
     return 0;
 }
 
-int ipc_send(pid_t dst_pid, struct msg_head *msg)
+int ipc_send(struct msg_head *msg, pid_t dst_pid)
 {
     struct task    *src_task    = get_current_task();
     struct mailbox *src         = &src_task->mailbox;

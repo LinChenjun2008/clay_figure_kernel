@@ -7,6 +7,8 @@
 #define __LIB_H__
 
 #include <types.h>
+
+// system calls
 #include <syscall/ipc.h>
 
 #ifndef NULL
@@ -78,8 +80,8 @@ pid_t fork(void);
 pid_t waitpid(pid_t pid, int *status, int options);
 pid_t wait(pid_t pid, int *status);
 
-int send(pid_t dst, struct msg_head *msg);
-int recv(struct msg_head *msg, int option);
+int   send(struct msg_head *msg, pid_t dst);
+int   recv(struct msg_head *msg, int option);
 void *allocate_pages(void *addr, size_t pages);
 void  free_pages(void *addr, size_t pages);
 int   kill(pid_t pid, int sig);

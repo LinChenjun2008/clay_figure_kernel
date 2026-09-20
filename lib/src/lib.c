@@ -30,9 +30,9 @@ pid_t wait(pid_t pid, int *status)
     return ret;
 }
 
-int send(pid_t dst, struct msg_head *msg)
+int send(struct msg_head *msg, pid_t dst)
 {
-    return (int)syscall_2(NR_SEND, dst, (word_t)msg);
+    return (int)syscall_2(NR_SEND, (word_t)msg, dst);
 }
 
 int recv(struct msg_head *msg, int option)

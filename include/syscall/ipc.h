@@ -26,9 +26,7 @@ int ipc_send_wakeup_condition(void *arg);
 void init_mailbox(struct mailbox *mailbox);
 void mailbox_cleanup(struct task *task);
 
-int ipc_send(pid_t dst_pid, struct msg_head *msg);
-// void inform_event(pid_t dst_pid, uint32_t evt_type);
-
+int ipc_send(struct msg_head *msg, pid_t dst_pid);
 int ipc_recv(struct msg_head *msg, int option);
 
 #endif /* __SYSCALL_IPC_H__ */
