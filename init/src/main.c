@@ -5,7 +5,6 @@
 
 #include <user/lib.h>
 
-int main(void);
 int main(void)
 {
     while (1)

@@ -67,6 +67,8 @@
 #define BUS_ADRALN  1
 #define TRAP_BRKPT  1
 
+int main(void);
+
 void lib_init(void);
 
 // syscall
