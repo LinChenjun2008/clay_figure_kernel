@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __LIB_H__
-#define __LIB_H__
+#ifndef __USER_LIB_H__
+#define __USER_LIB_H__
 
 #include <types.h>
 
@@ -67,6 +67,8 @@
 #define BUS_ADRALN  1
 #define TRAP_BRKPT  1
 
+void lib_init(void);
+
 // syscall
 word_t syscall_0(word_t);
 word_t syscall_1(word_t, word_t);
@@ -87,4 +89,8 @@ void  free_pages(void *addr, size_t pages);
 int   kill(pid_t pid, int sig);
 int   sigaction(int sig, const struct sigaction *act, struct sigaction *oldact);
 
-#endif /* __LIB_H__ */
+void  lib_allocator_init(void);
+void *malloc(size_t size);
+void  free(void *addr);
+
+#endif /* __USER_LIB_H__ */

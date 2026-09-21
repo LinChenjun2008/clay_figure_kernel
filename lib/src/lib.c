@@ -3,8 +3,14 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <lib.h>
 #include <syscall.h>
+#include <user/lib.h>
+
+void lib_init(void)
+{
+    lib_allocator_init();
+    return;
+}
 
 void exit(int status)
 {
