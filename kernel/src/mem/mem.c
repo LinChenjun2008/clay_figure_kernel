@@ -369,6 +369,8 @@ void mm_free_address(uintptr_t addr, size_t pages)
                 free_table_add(&vm->table[VM_MAP], start, PG_SIZE);
             }
             mm_unmap(task, page_struct->virt);
+            flush_tlb(task, (void *)start);
+
             mm_free_a_page(PFN_TO_ADDR(page_struct->pfn));
         }
 

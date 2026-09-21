@@ -82,6 +82,8 @@ void arch_mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt);
 void free_pg_table(phys_addr_t pg_dir);
 void page_faule(struct pt_regs *regs);
 
+void flush_tlb(struct task *task, void *fault_page);
+
 #endif /* __ASSEMBLER__ */
 
 #endif /* __ASM_PAGE_H__ */
