@@ -305,14 +305,12 @@ void schedule(void)
 }
 
 // 加入wait_queue
-static void wait_enqueue(struct wait_queue *wq, struct task *task)
+static void wait_enqueue_lock(struct wait_queue *wq, struct task *task)
 {
-    spin_lock(&wq->lock);
     if (!list_find(&wq->queue, &task->wait_queue_node))
     {
         list_append(&wq->queue, &task->wait_queue_node);
     }
-    spin_unlock(&wq->lock);
     return;
 }
 
@@ -351,25 +349,39 @@ int wait_event(struct wait_queue *wq, void *arg, uint32_t status)
     }
     while (1)
     {
-        wait_enqueue(wq, task);
+        int wake = 0;
 
+        spin_lock(&wq->lock);
+
+        wait_enqueue_lock(wq, task);
+
+        // 唤醒条件已达成
         if (wq->condition(arg))
         {
-            break;
+            wake = 1;
         }
-        if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
+        else if (!(status & UNINTERRUPTABLE) && SIGNAL_PENDING(task))
         {
-            ret = -EINTR;
+            // 被信号打断
+            ret  = -EINTR;
+            wake = 1;
+        }
+        else
+        {
+            // 需要等待
+            task->status = status;
+        }
+
+        spin_unlock(&wq->lock);
+
+        if (wake)
+        {
             break;
         }
 
         enum intr_status intr_status = intr_disable();
-
-        task->status = status;
         schedule();
-
         intr_set_status(intr_status);
-        continue;
     }
     wait_dequeue(wq, task);
     task->status = TASK_RUNNING;
@@ -403,7 +415,11 @@ void wake_up_signal(pid_t pid)
     enum intr_status intr_status = intr_disable();
 
     struct task *task = pid_to_task(pid);
-    struct cpu  *cpu  = get_cpu_struct(task->cpu_id);
+    if (task == NULL)
+    {
+        return;
+    }
+    struct cpu *cpu = get_cpu_struct(task->cpu_id);
 
     if (task != NULL)
     {
