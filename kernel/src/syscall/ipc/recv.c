@@ -18,13 +18,22 @@
 static int
 copy_from_other(struct msg_head *dst_msg, uintptr_t src, struct task *src_task)
 {
-    phys_addr_t src_phys = to_physical_address(src_task->pg_dir, src);
-    if (src_phys == 0)
+    struct msg_head *src_msg = NULL;
+
+    if (IS_KERNEL_TASK(src_task))
     {
-        // 发送方的消息缓冲区所在页未映射
-        return -EFAULT;
+        src_msg = (struct msg_head *)src;
     }
-    struct msg_head *src_msg = PHYS_TO_VIRT(src_phys);
+    else
+    {
+        phys_addr_t src_phys = to_physical_address(src_task->pg_dir, src);
+        if (src_phys == 0)
+        {
+            // 发送方的消息缓冲区所在页未映射
+            return -EFAULT;
+        }
+        src_msg = PHYS_TO_VIRT(src_phys);
+    }
     if (src_msg->legnth > dst_msg->legnth)
     {
         // 接收方缓冲区不够: 回写自身容量, 供发送方重整后重试
@@ -129,5 +138,5 @@ int ipc_recv(struct msg_head *msg, int option)
         }
         wake_status = wait_event(&dst->recv_wq, dst, TASK_RECEIVE);
     }
-    return recv_status;
+    return status;
 }

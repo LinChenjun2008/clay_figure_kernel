@@ -36,20 +36,18 @@ ipc_do_send(struct task *dst_task, struct task *src_task, struct msg_head *msg)
 
 static int ipc_check_send_status(int wake_status, int send_status)
 {
-    // 成功
-    if (wake_status == 0 && send_status == 0)
+    if (send_status <= 0)
     {
-        return 0;
+        return send_status;
     }
-    // 被信号打断,导致消息没有被发送.
-    if (wake_status == -EINTR && send_status > 0)
+    // send_status > 0
+    // 被信号打断
+    if (wake_status == -EINTR)
     {
         return -EINTR;
     }
 
-    // 错误情况
-    PANIC("Should not be here.\n");
-    return 0;
+    return -EIO;
 }
 
 int ipc_send(struct msg_head *msg, pid_t dst_pid)

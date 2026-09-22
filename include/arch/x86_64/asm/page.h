@@ -62,6 +62,7 @@
 
 // 判断是否在用户内存空间
 #define USER_VMA_SPACE(VIRT) ((uintptr_t)(VIRT) < USER_VMA_TOP)
+#define KERN_VMA_SPACE(VIRT) ((uintptr_t)(VIRT) >= KERNEL_VMA_BASE)
 
 #ifndef __ASSEMBLER__
 

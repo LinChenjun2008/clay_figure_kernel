@@ -11,6 +11,7 @@
 
 #include <errno.h>
 #include <panic.h>
+#include <print.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/schedule.h>
@@ -223,6 +224,7 @@ static void inform_exit(struct task *task)
     do
     {
         parent_task = pid_to_task(task->ppid);
+        ASSERT(parent_task != NULL);
 
         spin_lock(&parent_task->childs_lock);
         if (list_find(&parent_task->childs_list, &task->parent_node))

@@ -90,7 +90,8 @@ void task_init(struct system_info *system_info)
     set_cpu_struct(cpu);
 
     make_main_task(kstack_base, boot_info->stack_pages);
-
+    int status = pid_table_insert(cpu->main_task);
+    ASSERT(status == 0);
     struct task *init = process_execute("init", IDLE_PRIO, 1, 1, NULL);
     ASSERT(init->pid == 1);
 
@@ -107,12 +108,14 @@ void make_main_task(uintptr_t stack_base, size_t stack_pages)
     char name[32];
     sprintf(name, "main[%d]", get_current_cpu_id());
     init_task_struct(task, name, IDLE_PRIO, stack_base, stack_pages, 0);
+    task->pg_dir = get_task_mgr()->kernel_pg_dir;
 
     task->cpu_id = get_current_cpu_id();
     task->status = TASK_RUNNING;
 
     struct cpu *cpu = get_cpu_struct(task->cpu_id);
     cpu->main_task  = task;
+
     return;
 }
 
@@ -133,7 +136,7 @@ struct task *get_current_task(void)
 
 struct task *pid_to_task(pid_t pid)
 {
-    if (pid <= 0)
+    if (pid < 0)
     {
         return NULL;
     }
@@ -366,6 +369,8 @@ void init_task_struct(
     task->preempt_count = 0;
     task->pg_dir        = 0;
 
+    task->task_flags = 0;
+
     task->prio      = prio;
     task->run_time  = 0;
     task->vrun_time = 0;
@@ -411,6 +416,9 @@ struct task *task_start(
         goto fail;
     }
     init_task_struct(task, name, prio, kstack_base, kstack_pages, 0);
+
+    task->pg_dir = get_task_mgr()->kernel_pg_dir;
+
     create_task_context(task, func, arg);
 
     task->pid = allocate_pid();

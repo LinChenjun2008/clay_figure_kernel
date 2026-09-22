@@ -47,6 +47,7 @@ struct task *process_execute(
         goto fail;
     }
     init_task_struct(task, file, prio, kstack_base, kstack_pages, ustack_pages);
+    task->task_flags |= TASK_FLAG_USER;
 
     task->pg_dir = create_pg_dir();
     if (task->pg_dir == 0)

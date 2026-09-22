@@ -46,6 +46,7 @@ pid_t process_fork(void)
         goto fail;
     }
     init_task_struct(fork, name, prio, kstack_base, kstack_pages, ustack_pages);
+    fork->task_flags |= TASK_FLAG_USER;
 
     fork->pg_dir = create_pg_dir();
     if (fork->pg_dir == 0)

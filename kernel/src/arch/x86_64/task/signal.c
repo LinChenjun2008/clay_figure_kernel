@@ -177,7 +177,7 @@ void signal_check(struct pt_regs *regs)
     {
         return;
     }
-    if (task->pg_dir == 0)
+    if (IS_KERNEL_TASK(task))
     {
         return;
     }

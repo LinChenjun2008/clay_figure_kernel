@@ -152,7 +152,7 @@ void general_handler(struct pt_regs *regs)
         printk(MSG_ERR MSG_HIGHLIGHT("%s") ".\n", intr_name[vector]);
     }
 
-    if (get_current_task()->pg_dir == 0)
+    if (IS_KERNEL_TASK(get_current_task()))
     {
         while (1) io_hlt();
     }

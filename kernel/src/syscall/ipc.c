@@ -19,16 +19,22 @@
 /// TODO: 检查msg所在页面是否可读写(目前暂无只读/只写页面).
 int check_message(struct task *task, struct msg_head *msg)
 {
-    // 1. msg必须在用户空间
-    if (!USER_VMA_SPACE(msg))
+    // 1. 用户任务的msg必须在用户空间, 且必须已映射(防止懒分配机制导致读取到脏数据)
+    if (IS_USER_TASK(task))
+    {
+        if (!USER_VMA_SPACE(msg))
+        {
+            return -EINVAL;
+        }
+        if (to_physical_address(task->pg_dir, (uintptr_t)msg) == 0)
+        {
+            return -EFAULT;
+        }
+    }
+    // 2. 内核任务消息需要在内核空间
+    else if (!KERN_VMA_SPACE(msg))
     {
         return -EINVAL;
-    }
-    // 2. msg必须已映射(防止懒分配机制导致读取到脏数据)
-    phys_addr_t msg_phys = to_physical_address(task->pg_dir, (uintptr_t)msg);
-    if (msg_phys == 0)
-    {
-        return -EFAULT;
     }
     // 从此开始可以访问msg内部字段.
     // 3. 字段正确性保证
