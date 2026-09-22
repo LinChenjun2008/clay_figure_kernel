@@ -120,7 +120,8 @@ static void print_registers(struct pt_regs *regs)
     printk("CR3: " MSG_HIGHLIGHT("%016lx "), get_cr3());
     printk("CR4: " MSG_HIGHLIGHT("%016lx\n"), get_cr4());
 
-    printk("current: %s.\n", get_current_task()->name);
+    struct task *curr = get_current_task();
+    printk("current (%d): %s.\n", curr->pid, curr->name);
     printk(MSG_ERR "CPU ID: %d.\n", get_current_cpu_id());
     return;
 }
