@@ -99,7 +99,7 @@ static void serial_printk(uint16_t port, char *buf)
             {
                 io_out8(port, '\r');
             }
-        } while (*buf++);
+        } while (*++buf);
     }
     return;
 }

@@ -37,7 +37,7 @@ enum efi_graphics_pixel_format
     PIXEL_FORMAT_MAX
 };
 
-struct efi_graphcis_output_mode_information
+struct efi_graphics_output_mode_information
 {
     uint32_t                       version;
     uint32_t                       horizontal_resolution;
@@ -51,7 +51,7 @@ struct efi_graphics_output_protocol_mode
 {
     uint32_t                                     max_mode;
     uint32_t                                     mode;
-    struct efi_graphcis_output_mode_information *info;
+    struct efi_graphics_output_mode_information *info;
     efi_uint_t                                   size_of_info;
     efi_physical_address_t                       frame_buffer_base;
     efi_uint_t                                   frame_buffer_size;
@@ -63,7 +63,7 @@ typedef efi_status_t(EFIAPI *efi_graphics_output_protocol_query_mode_t)(
     struct efi_graphics_output_protocol *this,
     uint32_t                                      mode_number,
     efi_uint_t                                   *size_of_info,
-    struct efi_graphcis_output_mode_information **info
+    struct efi_graphics_output_mode_information **info
 );
 
 typedef efi_status_t(EFIAPI *efi_graphics_output_protocol_set_mode_t)(

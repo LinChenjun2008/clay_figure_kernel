@@ -174,7 +174,7 @@ end:
     return ret;
 }
 
-int check_pid_avaiability(pid_t pid)
+int check_pid_availability(pid_t pid)
 {
     return pid_to_task(pid) != NULL;
 }
@@ -327,7 +327,7 @@ struct task *allocate_task_struct(void)
     return task;
 }
 
-void destory_task_struct(struct task *task)
+void destroy_task_struct(struct task *task)
 {
     if (task == NULL)
     {
@@ -442,6 +442,6 @@ struct task *task_start(
 
 fail:
     kfree_pages((void *)task->kstack_base, task->kstack_pages);
-    destory_task_struct(task);
+    destroy_task_struct(task);
     return NULL;
 }

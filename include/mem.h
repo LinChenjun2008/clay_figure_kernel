@@ -14,7 +14,7 @@ void mem_init(struct system_info *system_info);
 
 struct mm_struct *allocate_mm_struct(void);
 int               copy_mm_struct(struct task *dst, struct task *src);
-void              destory_mm_struct(struct mm_struct *mm);
+void              destroy_mm_struct(struct mm_struct *mm);
 
 #define ADDR_ALLOCATED 0
 #define ADDR_MAPPED    1

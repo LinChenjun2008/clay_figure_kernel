@@ -27,7 +27,7 @@ void mem_init(struct system_info *system_info)
     page_mgr_init(system_info);
     printk("mem_init: memory management initializing...\n");
     mem_allocator_init();
-    register_handler(0x0e, page_faule);
+    register_handler(0x0e, page_fault);
     return;
 }
 
@@ -52,7 +52,7 @@ static int copy_vm_struct(struct vm_struct *dst, struct vm_struct *src)
     return copy_free_table(&dst->table[VM_UMP], &src->table[VM_UMP]);
 }
 
-static void destory_vm_struct(struct vm_struct *vm)
+static void destroy_vm_struct(struct vm_struct *vm)
 {
     if (vm == NULL)
     {
@@ -117,7 +117,7 @@ static int copy_pg_struct(struct task *dst, struct task *src)
     return list_traversal(src_list, traversal_copy_pg, &pack) == NULL;
 }
 
-static void destory_pg_struct(struct pg_struct *pg)
+static void destroy_pg_struct(struct pg_struct *pg)
 {
     if (pg == NULL)
     {
@@ -170,14 +170,14 @@ int copy_mm_struct(struct task *dst, struct task *src)
     return 0;
 }
 
-void destory_mm_struct(struct mm_struct *mm)
+void destroy_mm_struct(struct mm_struct *mm)
 {
     if (mm == NULL)
     {
         return;
     }
-    destory_vm_struct(&mm->vm_map);
-    destory_pg_struct(&mm->pg_map);
+    destroy_vm_struct(&mm->vm_map);
+    destroy_pg_struct(&mm->pg_map);
     kfree(mm);
     return;
 }

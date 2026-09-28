@@ -306,7 +306,7 @@ static void page_fault_fail(
     return;
 }
 
-void page_faule(struct pt_regs *regs)
+void page_fault(struct pt_regs *regs)
 {
     struct task      *task = get_current_task();
     struct mm_struct *mm   = task->mm;

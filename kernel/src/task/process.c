@@ -100,10 +100,10 @@ struct task *process_execute(
     return task;
 
 fail:
-    destory_mm_struct(task->mm);
+    destroy_mm_struct(task->mm);
     free_pg_table(task->pg_dir);
     kfree_pages((void *)task->kstack_base, task->kstack_pages);
-    destory_task_struct(task);
+    destroy_task_struct(task);
     return NULL;
 }
 
@@ -111,7 +111,7 @@ void process_exit(int status)
 {
     struct task *task = get_current_task();
 
-    destory_mm_struct(task->mm);
+    destroy_mm_struct(task->mm);
     task->mm = NULL;
 
     phys_addr_t pg_dir = task->pg_dir;
