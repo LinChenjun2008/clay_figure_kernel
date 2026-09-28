@@ -19,23 +19,6 @@
 #include <task/struct.h>
 #include <user/services/vfs.h>
 
-static char *print_progress(char *str, int width, int persent)
-{
-    int filled = persent * width / 100;
-    int i;
-    for (i = 0; i < width; i++)
-    {
-        if (i < filled)
-            str[i] = '=';
-        else if (i == filled)
-            str[i] = '>';
-        else
-            str[i] = ' ';
-    }
-    str[i] = '\0';
-    return str;
-}
-
 static void launch_vfs(struct system_info *system_info)
 {
     struct task *task = NULL;
@@ -77,7 +60,7 @@ static void launch_vfs(struct system_info *system_info)
 
         int progress = 100 - remain_size * 100 / total_size;
         print_progress(str, sizeof(str) / sizeof(str[0]) - 1, progress);
-        printk("\r%s| %3d%% | address %p", str, progress, ramfs_base);
+        printk("\r\t[%s]", str);
 
         memcpy(copy_dst, copy_src, copy_size);
         remain_size -= copy_size;
@@ -98,7 +81,7 @@ static void launch_vfs(struct system_info *system_info)
 
 void launch_services(struct system_info *sysinfo)
 {
-    printk("launch VFS service\n");
+    printk("launch VFS service.\n");
     launch_vfs(sysinfo);
     return;
 }
