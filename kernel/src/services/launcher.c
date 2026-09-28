@@ -25,57 +25,49 @@ static void launch_vfs(struct system_info *system_info)
 
     task = process_execute("vfs", DEFAULT_PRIO, 1, 1, NULL);
     ASSERT(task != NULL);
-    // 初始化vfs
-    struct msg_head *msg = kallocate_a_page();
-    msg->key             = 0;
-    msg->type            = MSG_NORMAL;
-    msg->header_legnth   = sizeof(*msg);
+    // 初始化vfs: 先告知ramfs镜像总大小
+    struct msg_head msg;
 
-    struct vfs_ramfs_size *ramfs_size = (void *)msg;
-    ramfs_size->size                  = system_info->boot_info->initramfs_size;
-    msg->legnth                       = sizeof(*ramfs_size);
+    size_t total_size = system_info->boot_info->initramfs_size;
+
+    msg.key  = 0;
+    msg.type = MSG_NORMAL;
+    msg.data = &total_size;
+    msg.size = sizeof(total_size);
 
     int status = 0;
-    status     = ipc_send(msg, task->pid);
+    status     = ipc_send(&msg, task->pid);
     if (status < 0)
     {
         PERROR(status);
     }
 
-    // read ramfs
-    uintptr_t ramfs_base  = (uintptr_t)system_info->boot_info->initramfs;
-    size_t    total_size  = system_info->boot_info->initramfs_size;
-    ssize_t   remain_size = total_size;
+    // 发送ramfs镜像: head.data指向内核中的镜像, 由内核直接写入vfs的镜像缓冲区
+    uintptr_t ramfs_base = (uintptr_t)system_info->boot_info->initramfs;
+    size_t    offset     = 0;
 
     char str[32];
-    while (remain_size >= 0)
+    while (offset < total_size)
     {
-        struct vfs_ramfs_data *ramfs_data = (void *)msg;
-        ramfs_data->head.header_legnth    = sizeof(ramfs_data->head);
-        ramfs_data->head.legnth           = PG_SIZE;
+        size_t chunk = MIN(total_size - offset, PG_SIZE);
 
-        size_t copy_size = PG_SIZE - sizeof(*ramfs_data);
-        void  *copy_src  = (void *)ramfs_base;
-        void  *copy_dst  = (uint8_t *)ramfs_data->data;
-
-        int progress = 100 - remain_size * 100 / total_size;
+        int progress = (int)((offset + chunk) * 100 / total_size);
         print_progress(str, sizeof(str) / sizeof(str[0]) - 1, progress);
         printk("\r\t[%s]", str);
 
-        memcpy(copy_dst, copy_src, copy_size);
-        remain_size -= copy_size;
-        // 结尾标记.
-        if (remain_size <= 0)
-        {
-            ramfs_data->flag = 1;
-        }
-        status = ipc_send(msg, task->pid);
+        msg.key  = 0;
+        msg.type = MSG_NORMAL;
+        msg.data = (void *)(ramfs_base + offset);
+        msg.size = chunk;
+
+        status = ipc_send(&msg, task->pid);
         if (status < 0)
         {
             PERROR(status);
         }
-        ramfs_base += copy_size;
+        offset += chunk;
     }
+    printk("\n");
     return;
 }
 

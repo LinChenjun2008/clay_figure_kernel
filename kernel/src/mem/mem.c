@@ -252,6 +252,48 @@ get_page_by_virt(struct pg_struct *pg, uintptr_t virt)
     return CONTAINER_OF(struct page_struct, node, node);
 }
 
+int mm_check_addr(struct task *task, void *addr, size_t size, int flags)
+{
+    if (size == 0)
+    {
+        return 0;
+    }
+    ASSERT(IS_USER_TASK(task) && task->mm != NULL);
+
+    uintptr_t start = (uintptr_t)addr;
+    uintptr_t end   = start + size - 1;
+    if (end < start)
+    {
+        return -EINVAL;
+    }
+    if (!USER_VMA_SPACE(start) || !USER_VMA_SPACE(end))
+    {
+        return -EINVAL;
+    }
+    struct vm_struct *vm   = &task->mm->vm_map;
+    uintptr_t         page = start & ~(PG_SIZE - 1);
+
+    while (page <= (end & ~(PG_SIZE - 1)))
+    {
+        int mapped   = free_table_find(&vm->table[VM_MAP], page);
+        int unmapped = free_table_find(&vm->table[VM_UMP], page);
+        int cow      = free_table_find(&vm->table[VM_COW], page);
+
+        // 页必须已分配给该任务
+        if (!mapped && !unmapped && !cow)
+        {
+            return -EFAULT; // 地址未分配
+        }
+        // 要求已映射时, 不允许懒分配页
+        if (flags == MM_ADDR_MAPPED && !mapped)
+        {
+            return -EFAULT;
+        }
+        page += PG_SIZE;
+    }
+    return 0;
+}
+
 void mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
 {
     ASSERT(task->mm != NULL && phys != 0 && virt != 0);

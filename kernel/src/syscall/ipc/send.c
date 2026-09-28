@@ -8,6 +8,7 @@
 #include <asm/page.h>
 
 #include <errno.h>
+#include <mem.h>
 #include <panic.h>
 #include <std/string.h>
 #include <syscall/ipc.h>
@@ -67,6 +68,15 @@ int ipc_send(struct msg_head *msg, pid_t dst_pid)
     if (dst_pid == src_task->pid)
     {
         return -EDEADLK;
+    }
+
+    if (IS_USER_TASK(src_task))
+    {
+        status = mm_check_addr(src_task, msg->data, msg->size, MM_ADDR_MAPPED);
+        if (status < 0)
+        {
+            return status;
+        }
     }
 
     // 获取接收方相关信息

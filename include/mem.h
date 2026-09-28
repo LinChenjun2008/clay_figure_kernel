@@ -15,11 +15,16 @@ void mem_init(struct system_info *system_info);
 struct mm_struct *allocate_mm_struct(void);
 int               copy_mm_struct(struct task *dst, struct task *src);
 void              destory_mm_struct(struct mm_struct *mm);
-uintptr_t         mm_allocate_address(uintptr_t addr, size_t pages);
-void              mm_map(struct task *task, phys_addr_t phys, uintptr_t virt);
-void              mm_unmap(struct task *task, uintptr_t virt);
-void        mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt);
-void        mm_free_address(uintptr_t addr, size_t pages);
+
+#define MM_ADDR_ALLOCATED 0
+#define MM_ADDR_MAPPED    1
+
+int       mm_check_addr(struct task *task, void *addr, size_t size, int flags);
+uintptr_t mm_allocate_address(uintptr_t addr, size_t pages);
+void      mm_map(struct task *task, phys_addr_t phys, uintptr_t virt);
+void      mm_unmap(struct task *task, uintptr_t virt);
+void      mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt);
+void      mm_free_address(uintptr_t addr, size_t pages);
 phys_addr_t mm_allocate_a_page(void);
 void        mm_remove_a_page(phys_addr_t addr);
 size_t      mm_free_a_page(phys_addr_t addr);

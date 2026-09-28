@@ -16,17 +16,4 @@
 
 #include <types/message.h>
 
-struct vfs_ramfs_size
-{
-    struct msg_head head;
-    size_t          size;
-};
-
-struct vfs_ramfs_data
-{
-    struct msg_head head;
-    uint8_t         flag;
-    uint8_t         data[];
-};
-
 #endif /* __USER_SERVICES_VFS_H__ */

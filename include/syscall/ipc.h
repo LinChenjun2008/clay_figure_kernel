@@ -6,8 +6,6 @@
 #ifndef __SYSCALL_IPC_H__
 #define __SYSCALL_IPC_H__
 
-#define MAX_MESSAGE_LEGNTH PG_SIZE
-
 // ipc_recv的option: 没有消息时立即返回-EAGAIN
 #define IPC_NOWAIT 1
 

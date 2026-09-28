@@ -6,6 +6,8 @@
 #include <user/lib.h>
 
 //
+#include <asm/page.h> // PG_SIZE
+
 #include <errno.h>
 #include <user/bitmap.h>
 #include <user/services/vfs.h>
@@ -13,60 +15,63 @@
 
 void *ramfs_base;
 
-static int read_ramfs(struct msg_head *msg)
+static int read_ramfs(void)
 {
     int status = 0;
 
-    // 初始化消息结构体.
-    msg->type          = MSG_NORMAL;
-    msg->header_legnth = sizeof(*msg);
-    msg->legnth        = msg->header_legnth + sizeof(size_t);
+    // 1. 获取ramfs镜像大小: 消息头在栈上, data/size直接指向数据区(本地变量)
+    struct msg_head head;
+    size_t          total_size = 0;
 
-    // 1. 获取ramfs大小
-    status = recv(msg, 0);
-    if (status < 0)
+    while (1)
     {
-        return status;
+        head.data = &total_size;
+        head.size = sizeof(total_size);
+
+        status = recv(&head, 0);
+        if (status < 0)
+        {
+            return status;
+        }
+        // vfs初始化阶段非内核数据直接丢弃.
+        if (head.source != 0)
+        {
+            continue;
+        }
+        break;
     }
-    struct vfs_ramfs_size *ramfs_size = (void *)msg;
 
-    size_t ramfs_pages = (ramfs_size->size + 4065) / 4096;
-
-    ramfs_base = allocate_pages(NULL, ramfs_pages);
+    // 2. 分配镜像缓冲区, 接收全部镜像数据
+    size_t ramfs_pages = (total_size + PG_SIZE - 1) / PG_SIZE;
+    ramfs_base         = allocate_pages(NULL, ramfs_pages);
     if (ramfs_base == NULL)
     {
         return -ENOMEM;
     }
 
-    // 读取文件
-    off_t ramfs_offset = 0;
-    while (1)
+    size_t offset = 0;
+    while (offset < total_size)
     {
-        struct vfs_ramfs_data *ramfs_data = (void *)msg;
-        ramfs_data->head.header_legnth    = sizeof(ramfs_data->head);
-        ramfs_data->head.legnth           = 4096;
+        size_t chunk = total_size - offset;
+        if (chunk > PG_SIZE)
+        {
+            chunk = PG_SIZE;
+        }
+        // 内核会把本块数据直接写入ramfs_base + offset, 不需要再复制
+        head.data = (uint8_t *)ramfs_base + offset;
+        head.size = chunk;
 
-        status = recv(msg, 0);
+        status = recv(&head, 0);
         if (status < 0)
         {
             return -ENOENT;
         }
         // vfs初始化阶段非内核数据直接丢弃.
-        if (msg->source != 0)
+        if (head.source != 0)
         {
             continue;
         }
-        size_t copy_size = 4096 - sizeof(*ramfs_data);
-        void  *copy_src  = (void *)&ramfs_data->data;
-        void  *copy_dst  = (uint8_t *)ramfs_base + ramfs_offset;
-
-        memcpy(copy_dst, copy_src, copy_size);
-        ramfs_offset += copy_size;
-        // 最后一个数据块
-        if (ramfs_data->flag == 1)
-        {
-            break;
-        }
+        offset += head.size; // 实际收到的数据大小
     }
     return 0;
 }
@@ -75,27 +80,26 @@ int main()
 {
     int status = 0;
 
-    // 准备消息.
-    struct msg_head *msg = allocate_pages(NULL, 1);
-    if (msg == NULL)
-    {
-        return -ENOMEM;
-    }
-
-    status = read_ramfs(msg);
+    status = read_ramfs();
     if (status < 0)
     {
         return status;
     }
 
+    // 准备消息(主循环长期复用), 主循环暂不接收数据区
+    struct msg_head msg;
+
+    msg.data = NULL;
+    msg.size = 0;
+
     while (1)
     {
-        status = recv(msg, 0);
+        status = recv(&msg, 0);
         if (status < 0)
         {
             continue;
         }
-        switch (msg->key)
+        switch (msg.key)
         {
             case VFS_OPEN:
                 break;
