@@ -42,7 +42,7 @@ static int ipc_check_send_status(int wake_status, int send_status)
         return send_status;
     }
     // send_status > 0
-    // 被信号打断
+    // 被信号打断(目前不可能发生)
     if (wake_status == -EINTR)
     {
         return -EINTR;
@@ -72,7 +72,7 @@ int ipc_send(struct msg_head *msg, pid_t dst_pid)
 
     if (IS_USER_TASK(src_task))
     {
-        status = mm_check_addr(src_task, msg->data, msg->size, MM_ADDR_MAPPED);
+        status = mm_check_addr(src_task, msg->data, msg->size, ADDR_MAPPED);
         if (status < 0)
         {
             return status;
@@ -103,7 +103,9 @@ int ipc_send(struct msg_head *msg, pid_t dst_pid)
 
     // 唤醒接收方,等待消息被取走
     wake_up(&dst->recv_wq);
-    wake_status = wait_event(&dst->send_wq, &src_task->mailbox, TASK_SEND);
+    uint32_t wait_status = TASK_SEND | UNINTERRUPTABLE;
+    wake_status = wait_event(&dst->send_wq, &src_task->mailbox, wait_status);
+    ASSERT(wake_status != -EINTR);
     send_status = src->send_status;
 
     status = ipc_check_send_status(wake_status, send_status);

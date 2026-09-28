@@ -285,7 +285,7 @@ int mm_check_addr(struct task *task, void *addr, size_t size, int flags)
             return -EFAULT; // 地址未分配
         }
         // 要求已映射时, 不允许懒分配页
-        if (flags == MM_ADDR_MAPPED && !mapped)
+        if (flags == ADDR_MAPPED && !mapped)
         {
             return -EFAULT;
         }

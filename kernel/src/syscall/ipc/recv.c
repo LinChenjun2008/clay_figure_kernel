@@ -65,10 +65,6 @@ static int copy_data(void *dst, struct task *src_task, void *src, size_t size)
     return 0;
 }
 
-// 跨进程复制消息
-// 返回: 0      复制成功(接收方msg_head::size为实际收到的数据大小)
-//      -E2BIG 接收方数据区容量不足, 已把接收方容量回写到发送方的msg_head::size
-//      其它   地址非法等错误
 static int
 copy_from_other(struct msg_head *dst_msg, uintptr_t src, struct task *src_task)
 {
@@ -103,40 +99,30 @@ copy_from_other(struct msg_head *dst_msg, uintptr_t src, struct task *src_task)
     return 0;
 }
 
-// 从自己的等待队列取出队首消息并投递
-// 返回: -ENOENT 没有消息
-//       0       投递成功
-//       其它    这条消息被丢弃(容量不足 / 发送方地址无效), 结果已写入发送方的send_status
-static int ipc_do_recv(struct task *dst_task, struct msg_head *msg)
+// 从自己的等待队列摘取队首消息
+static struct mailbox *
+ipc_get_msg(struct task *dst_task, struct msg_head **msg_from_src)
 {
-    struct mailbox   *dst  = &dst_task->mailbox;
-    struct list_node *node = list_pop(&dst->send_list);
+    struct list_node *node = list_pop(&dst_task->mailbox.send_list);
 
     if (node == NULL)
     {
-        return -ENOENT;
+        return NULL;
     }
-    struct mailbox *src      = send_node_to_mailbox(node);
-    struct task    *src_task = mailbox_to_task(src);
+    struct mailbox *src = send_node_to_mailbox(node);
 
-    int ret = copy_from_other(msg, (uintptr_t)src->msg, src_task);
-
-    src->send_status = ret;
-    src->send_to     = PID_NULL;
-    return ret;
+    *msg_from_src = src->msg;
+    return src;
 }
 
-/**
- * ipc_recv流程
- * 1. 检查参数合法性
- * 2. 从自己的等待队列取出队首消息并投递:
- * 2.1 摘除发送方的send_node
- * 2.2 跨进程复制消息到msg
- * 2.3 把复制结果写入发送方的send_status,随后唤醒发送方
- * 3. 没有消息可接收时:
- * 3.1 option带IPC_NOWAIT,立即返回-EAGAIN
- * 3.2 否则在recv_wq上等待发送方,被信号打断则返回-EINTR
- */
+// 回写投递结果, 使发送方可以返回(调用时必须持dst->send_lock)
+static void ipc_recv_inform(struct mailbox *src, int ret)
+{
+    src->send_status = ret;
+    src->send_to     = PID_NULL;
+    return;
+}
+
 int ipc_recv(struct msg_head *msg, int option)
 {
     struct task    *dst_task    = get_current_task();
@@ -153,8 +139,7 @@ int ipc_recv(struct msg_head *msg, int option)
     // 接收方的数据区只要求地址已分配(未映射页由内核态缺页处理自动补页)
     if (IS_USER_TASK(dst_task))
     {
-        status =
-            mm_check_addr(dst_task, msg->data, msg->size, MM_ADDR_ALLOCATED);
+        status = mm_check_addr(dst_task, msg->data, msg->size, ADDR_ALLOCATED);
         if (status < 0)
         {
             return status;
@@ -163,10 +148,29 @@ int ipc_recv(struct msg_head *msg, int option)
 
     while (1)
     {
-        // 尝试获取消息
+        struct mailbox  *src      = NULL;
+        struct task     *src_task = NULL;
+        struct msg_head *src_msg  = NULL;
+
+        // 1. 锁内摘取队首消息
         spin_lock(&dst->send_lock);
-        recv_status = ipc_do_recv(dst_task, msg);
+        src = ipc_get_msg(dst_task, &src_msg);
         spin_unlock(&dst->send_lock);
+
+        if (src != NULL)
+        {
+            // 2. 锁外拷贝
+            src_task    = mailbox_to_task(src);
+            recv_status = copy_from_other(msg, (uintptr_t)src_msg, src_task);
+            // 3. 锁内回写结果
+            spin_lock(&dst->send_lock);
+            ipc_recv_inform(src, recv_status);
+            spin_unlock(&dst->send_lock);
+        }
+        else
+        {
+            recv_status = -ENOENT;
+        }
 
         wake_up(&dst->send_wq);
 

@@ -118,9 +118,6 @@ static int mailbox_cleanup_send(struct list_node *node, void *arg)
 }
 
 // 回收本任务发出去、目标还没接收的消息.
-// 同一时刻一个任务最多只有一条在途消息(ipc_send是同步的), 所以按send_to回收一条即可.
-// 不回收的话, 发送方退出后目标仍可能去读它的地址空间(消息正文在发送方的用户态).
-// 调用时不能持有cur的邮箱锁: 这里要拿目标邮箱的锁.
 static void mailbox_send_reclaim(struct mailbox *cur)
 {
     pid_t dst_pid = cur->send_to;

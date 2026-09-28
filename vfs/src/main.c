@@ -19,7 +19,7 @@ static int read_ramfs(void)
 {
     int status = 0;
 
-    // 1. 获取ramfs镜像大小: 消息头在栈上, data/size直接指向数据区(本地变量)
+    // 1. 获取ramfs大小
     struct msg_head head;
     size_t          total_size = 0;
 
@@ -41,7 +41,7 @@ static int read_ramfs(void)
         break;
     }
 
-    // 2. 分配镜像缓冲区, 接收全部镜像数据
+    // 2. 读取数据
     size_t ramfs_pages = (total_size + PG_SIZE - 1) / PG_SIZE;
     ramfs_base         = allocate_pages(NULL, ramfs_pages);
     if (ramfs_base == NULL)
@@ -57,7 +57,6 @@ static int read_ramfs(void)
         {
             chunk = PG_SIZE;
         }
-        // 内核会把本块数据直接写入ramfs_base + offset, 不需要再复制
         head.data = (uint8_t *)ramfs_base + offset;
         head.size = chunk;
 
@@ -86,7 +85,6 @@ int main()
         return status;
     }
 
-    // 准备消息(主循环长期复用), 主循环暂不接收数据区
     struct msg_head msg;
 
     msg.data = NULL;
