@@ -16,6 +16,7 @@
 
 #include <mem.h>
 #include <print.h>
+#include <services.h>
 #include <softirq.h>
 #include <syscall.h>
 #include <sysinfo.h>
@@ -61,12 +62,13 @@ void init_all(struct system_info *system_info)
     mp_start(ap_main);
 
     *(uint64_t *)PHYS_TO_VIRT(boot_info->pg_dir) = 0;
-    printk("\nWelcome to Clay Figure Neo!\n");
+    intr_enable();
 
-    process_execute("test", DEFAULT_PRIO, 1, 1, NULL);
+    printk(MSG_INFO MSG_HIGHLIGHT("Services") " initializing...\n");
+    launch_services(system_info);
 
     init_adopt_childs(get_current_task());
-    intr_enable();
+    printk("\nWelcome to Clay Figure Neo!\n");
     return;
 }
 

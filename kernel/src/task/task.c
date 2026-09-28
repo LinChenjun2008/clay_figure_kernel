@@ -100,7 +100,6 @@ void task_init(struct system_info *system_info)
 
 void make_main_task(uintptr_t stack_base, size_t stack_pages)
 {
-    printk("make_main_task: stack %p, %d page(s).\n", stack_base, stack_pages);
     struct task *task = allocate_task_struct();
     ASSERT(task != NULL);
 
