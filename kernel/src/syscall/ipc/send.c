@@ -8,6 +8,7 @@
 #include <asm/page.h>
 
 #include <errno.h>
+#include <mem.h>
 #include <panic.h>
 #include <std/string.h>
 #include <syscall/ipc.h>
@@ -36,23 +37,21 @@ ipc_do_send(struct task *dst_task, struct task *src_task, struct msg_head *msg)
 
 static int ipc_check_send_status(int wake_status, int send_status)
 {
-    // 成功
-    if (wake_status == 0 && send_status == 0)
+    if (send_status <= 0)
     {
-        return 0;
+        return send_status;
     }
-    // 被信号打断,导致消息没有被发送.
-    if (wake_status == -EINTR && send_status > 0)
+    // send_status > 0
+    // 被信号打断(目前不可能发生)
+    if (wake_status == -EINTR)
     {
         return -EINTR;
     }
 
-    // 错误情况
-    PANIC("Should not be here.\n");
-    return 0;
+    return -EIO;
 }
 
-int ipc_send(pid_t dst_pid, struct msg_head *msg)
+int ipc_send(struct msg_head *msg, pid_t dst_pid)
 {
     struct task    *src_task    = get_current_task();
     struct mailbox *src         = &src_task->mailbox;
@@ -69,6 +68,15 @@ int ipc_send(pid_t dst_pid, struct msg_head *msg)
     if (dst_pid == src_task->pid)
     {
         return -EDEADLK;
+    }
+
+    if (IS_USER_TASK(src_task))
+    {
+        status = mm_check_addr(src_task, msg->data, msg->size, ADDR_MAPPED);
+        if (status < 0)
+        {
+            return status;
+        }
     }
 
     // 获取接收方相关信息
@@ -95,7 +103,9 @@ int ipc_send(pid_t dst_pid, struct msg_head *msg)
 
     // 唤醒接收方,等待消息被取走
     wake_up(&dst->recv_wq);
-    wake_status = wait_event(&dst->send_wq, &src_task->mailbox, TASK_SEND);
+    uint32_t wait_status = TASK_SEND | UNINTERRUPTABLE;
+    wake_status = wait_event(&dst->send_wq, &src_task->mailbox, wait_status);
+    ASSERT(wake_status != -EINTR);
     send_status = src->send_status;
 
     status = ipc_check_send_status(wake_status, send_status);

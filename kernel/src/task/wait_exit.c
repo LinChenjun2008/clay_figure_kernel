@@ -132,7 +132,7 @@ static int task_release_resources(struct task *task)
     list_remove(&task->parent_node);
     spin_unlock(&parent_task->childs_lock);
 
-    destory_task_struct(task);
+    destroy_task_struct(task);
     return ret;
 }
 

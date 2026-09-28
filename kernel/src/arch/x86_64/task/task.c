@@ -35,7 +35,7 @@ static void kernel_process(void *file, void *arg)
 
     struct task *task = get_current_task();
 
-    ASSERT(task->pg_dir != 0);
+    ASSERT(IS_USER_TASK(task));
 
     size_t    ustack_size  = task->ustack_pages << PG_SIZE_SHIFT;
     uintptr_t ustack_vaddr = USER_STACK_VADDR_TOP - ustack_size;
@@ -70,7 +70,7 @@ void create_task_context(struct task *task, void *func, void *arg)
 
     // switch_to使用的返回地址
     kstack -= sizeof(void *);
-    if (task->pg_dir == 0 && task->mm == NULL)
+    if (IS_KERNEL_TASK(task))
     {
         *(void **)kstack = kernel_task;
     }
@@ -90,7 +90,7 @@ void create_task_context(struct task *task, void *func, void *arg)
 
 void arch_task_active(struct task *task)
 {
-    if (task->pg_dir != 0)
+    if (IS_USER_TASK(task))
     {
         update_tss_rsp0(task);
     }

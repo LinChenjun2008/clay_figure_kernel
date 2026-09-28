@@ -8,6 +8,8 @@
 .global _start
 .type _start,@function
 _start:
+    leaq lib_init(%rip),%rax
+    callq *%rax
     leaq main(%rip),%rax
     callq *%rax
     movq $NR_EXIT, %rdi

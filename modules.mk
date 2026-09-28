@@ -1,1 +1,1 @@
-MODULES = bootloader kernel lib init test
+MODULES = bootloader kernel lib init vfs test

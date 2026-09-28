@@ -3,10 +3,12 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __LIB_H__
-#define __LIB_H__
+#ifndef __USER_LIB_H__
+#define __USER_LIB_H__
 
 #include <types.h>
+
+// system calls
 #include <syscall/ipc.h>
 
 #ifndef NULL
@@ -65,6 +67,10 @@
 #define BUS_ADRALN  1
 #define TRAP_BRKPT  1
 
+int main(void);
+
+void lib_init(void);
+
 // syscall
 word_t syscall_0(word_t);
 word_t syscall_1(word_t, word_t);
@@ -78,11 +84,15 @@ pid_t fork(void);
 pid_t waitpid(pid_t pid, int *status, int options);
 pid_t wait(pid_t pid, int *status);
 
-int send(pid_t dst, struct msg_head *msg);
-int recv(struct msg_head *msg, int option);
+int   send(struct msg_head *msg, pid_t dst);
+int   recv(struct msg_head *msg, int option);
 void *allocate_pages(void *addr, size_t pages);
 void  free_pages(void *addr, size_t pages);
 int   kill(pid_t pid, int sig);
 int   sigaction(int sig, const struct sigaction *act, struct sigaction *oldact);
 
-#endif /* __LIB_H__ */
+void  lib_allocator_init(void);
+void *malloc(size_t size);
+void  free(void *addr);
+
+#endif /* __USER_LIB_H__ */

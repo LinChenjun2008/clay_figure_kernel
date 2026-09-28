@@ -97,7 +97,7 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
 
     // Video mode
     struct graphic_info *graphic_info = &boot_info->graphic_info;
-    struct efi_graphcis_output_mode_information *mode_info = gop->mode->info;
+    struct efi_graphics_output_mode_information *mode_info = gop->mode->info;
 
     graphic_info->frame_buffer_base     = gop->mode->frame_buffer_base;
     graphic_info->horizontal_resolution = mode_info->horizontal_resolution;

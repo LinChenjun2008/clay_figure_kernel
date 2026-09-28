@@ -62,6 +62,7 @@
 
 // 判断是否在用户内存空间
 #define USER_VMA_SPACE(VIRT) ((uintptr_t)(VIRT) < USER_VMA_TOP)
+#define KERN_VMA_SPACE(VIRT) ((uintptr_t)(VIRT) >= KERNEL_VMA_BASE)
 
 #ifndef __ASSEMBLER__
 
@@ -80,7 +81,9 @@ void        arch_mm_map(struct task *task, phys_addr_t phys, uintptr_t virt);
 void        arch_mm_unmap(struct task *task, uintptr_t virt);
 void arch_mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt);
 void free_pg_table(phys_addr_t pg_dir);
-void page_faule(struct pt_regs *regs);
+void page_fault(struct pt_regs *regs);
+
+void flush_tlb(struct task *task, void *fault_page);
 
 #endif /* __ASSEMBLER__ */
 

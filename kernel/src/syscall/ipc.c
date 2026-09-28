@@ -19,41 +19,40 @@
 /// TODO: 检查msg所在页面是否可读写(目前暂无只读/只写页面).
 int check_message(struct task *task, struct msg_head *msg)
 {
-    // 1. msg必须在用户空间
-    if (!USER_VMA_SPACE(msg))
+    // 1. 用户消息头必须位于任务对应的地址空间, 且必须已映射
+    if (IS_USER_TASK(task))
+    {
+        if (!USER_VMA_SPACE(msg))
+        {
+            return -EINVAL;
+        }
+        if (to_physical_address(task->pg_dir, (uintptr_t)msg) == 0)
+        {
+            return -EFAULT;
+        }
+    }
+    // 内核任务消息需要在内核空间
+    else if (!KERN_VMA_SPACE(msg))
     {
         return -EINVAL;
     }
-    // 2. msg必须已映射(防止懒分配机制导致读取到脏数据)
-    phys_addr_t msg_phys = to_physical_address(task->pg_dir, (uintptr_t)msg);
-    if (msg_phys == 0)
-    {
-        return -EFAULT;
-    }
-    // 从此开始可以访问msg内部字段.
-    // 3. 字段正确性保证
-    if (msg->legnth == 0 || msg->header_legnth == 0)
-    {
-        return -EINVAL;
-    }
-    if (msg->legnth > MAX_MESSAGE_LEGNTH)
-    {
-        return -EINVAL;
-    }
-    if (msg->header_legnth > msg->legnth)
-    {
-        return -EINVAL;
-    }
-    if (msg->header_legnth < sizeof(*msg))
-    {
-        return -EINVAL;
-    }
-    // msg必须在同一页面
+    // 2. 消息头(定长)必须完整落在同一物理页内
     uintptr_t start = (uintptr_t)msg;
-    uintptr_t end   = start + msg->legnth - 1;
+    uintptr_t end   = start + sizeof(*msg) - 1;
 
     // 用PFN辅助判断
     if (ADDR_TO_PFN(start) != ADDR_TO_PFN(end))
+    {
+        return -EINVAL;
+    }
+    // 从此开始可以访问msg内部字段.
+    // 3. 数据区字段检查(地址范围与字节数由发送方/接收方各自按需校验):
+    //    发送方用data/size描述要发送的数据, 接收方用data/size描述接收缓冲区及其容量
+    if (msg->size == 0)
+    {
+        return 0;
+    }
+    if (msg->data == NULL)
     {
         return -EINVAL;
     }
@@ -119,9 +118,6 @@ static int mailbox_cleanup_send(struct list_node *node, void *arg)
 }
 
 // 回收本任务发出去、目标还没接收的消息.
-// 同一时刻一个任务最多只有一条在途消息(ipc_send是同步的), 所以按send_to回收一条即可.
-// 不回收的话, 发送方退出后目标仍可能去读它的地址空间(消息正文在发送方的用户态).
-// 调用时不能持有cur的邮箱锁: 这里要拿目标邮箱的锁.
 static void mailbox_send_reclaim(struct mailbox *cur)
 {
     pid_t dst_pid = cur->send_to;

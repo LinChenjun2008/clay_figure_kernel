@@ -46,6 +46,7 @@ pid_t process_fork(void)
         goto fail;
     }
     init_task_struct(fork, name, prio, kstack_base, kstack_pages, ustack_pages);
+    fork->task_flags |= TASK_FLAG_USER;
 
     fork->pg_dir = create_pg_dir();
     if (fork->pg_dir == 0)
@@ -85,9 +86,9 @@ pid_t process_fork(void)
     return fork->pid;
 
 fail:
-    destory_mm_struct(fork->mm);
+    destroy_mm_struct(fork->mm);
     free_pg_table(fork->pg_dir);
     kfree_pages((void *)fork->kstack_base, fork->kstack_pages);
-    destory_task_struct(fork);
+    destroy_task_struct(fork);
     return err;
 }

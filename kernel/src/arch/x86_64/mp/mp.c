@@ -53,7 +53,8 @@ static void send_ipi(uint64_t icr)
 static int wait_mp_start(void *arg)
 {
     uint64_t cpu_count = *(uint64_t *)arg;
-    return *(volatile uint64_t *)PHYS_TO_VIRT(AP_BOOT_FLAG) < cpu_count;
+    uint64_t started   = *(volatile uint64_t *)PHYS_TO_VIRT(AP_BOOT_FLAG);
+    return started < cpu_count;
 }
 
 static int wait_mp_get_stack(void *arg)
@@ -117,6 +118,8 @@ void mp_init(struct system_info *system_info)
 
     uintptr_t stack = 0;
 
+    printk("Allocate Stack for AP.\n");
+    char     str[32];
     uint64_t i;
     for (i = 0; i < ap_count; i++)
     {
@@ -128,7 +131,12 @@ void mp_init(struct system_info *system_info)
         {
             PANIC("Secondary cpu get stack point timeout!\n");
         }
+        int persent = (i + 1) * 100 / ap_count;
+        print_progress(str, sizeof(str) / sizeof(str[0]) - 1, persent);
+        printk("\r\t[%s]", str);
     }
+    printk("\n");
+
     printk("mp_init: secondary cpu(s) are ready.\n");
 
     return;

@@ -14,9 +14,11 @@ enum msg_type
 struct msg_head
 {
     pid_t         source;
+    int           key;
     enum msg_type type;
-    size_t        header_legnth; // sizeof(struct msg_head)
-    size_t        legnth;        // head + body
+
+    void  *data;
+    size_t size;
 };
 
 #endif /* __TYPES_MESSAGE_H__ */

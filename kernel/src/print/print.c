@@ -15,6 +15,7 @@
 #include <print.h>
 #include <std/stdarg.h>
 #include <std/stdio.h>
+#include <std/string.h>
 #include <sync/spinlock.h>
 #include <sysinfo.h>
 
@@ -98,7 +99,7 @@ static void serial_printk(uint16_t port, char *buf)
             {
                 io_out8(port, '\r');
             }
-        } while (*buf++);
+        } while (*++buf);
     }
     return;
 }
@@ -334,4 +335,37 @@ void perror(const char *function, int err)
     const char *msg = strerror(err);
     printk(MSG_ERR "%s:" MSG_HIGHLIGHT(" %s\n"), function, msg);
     return;
+}
+
+char *print_progress(char *str, int width, int persent)
+{
+    char num[7];
+    sprintf(num, " %d%% ", persent);
+    int num_width = strlen(num);
+    if (width < 10)
+    {
+        strcpy(str, num);
+        return str;
+    }
+
+    int filled = persent * width / 100;
+
+    int i;
+    for (i = 0; i < width; i++)
+    {
+        if (i < filled)
+            str[i] = '=';
+        else if (i == filled)
+            str[i] = '>';
+        else
+            str[i] = ' ';
+    }
+
+    int num_position = (width - num_width) / 2;
+    for (i = 0; i < num_width; i++)
+    {
+        str[i + num_position] = num[i];
+    }
+    str[width] = '\0';
+    return str;
 }

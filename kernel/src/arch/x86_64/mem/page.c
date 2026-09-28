@@ -226,8 +226,6 @@ void free_pg_table(phys_addr_t pg_dir)
     return;
 }
 
-void ASMLINKAGE arch_flush_tlb(void *addr);
-
 static int page_lazy_allocate(struct task *task, uintptr_t fault_page)
 {
     phys_addr_t phy_page = mm_allocate_a_page();
@@ -236,7 +234,7 @@ static int page_lazy_allocate(struct task *task, uintptr_t fault_page)
         return -ENOMEM;
     }
     mm_map(task, phy_page, fault_page);
-    arch_flush_tlb((void *)fault_page);
+    flush_tlb(task, (void *)fault_page);
     return 0;
 }
 
@@ -265,7 +263,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
         free_table_remove(&mm->vm_map.table[VM_COW], fault_page, PG_SIZE);
         free_table_add(&mm->vm_map.table[VM_MAP], fault_page, PG_SIZE);
         set_page_flags(task->pg_dir, fault_page, PG_USER_FLAGS);
-        arch_flush_tlb((void *)fault_page);
+        flush_tlb(task, (void *)fault_page);
     }
     else
     {
@@ -280,12 +278,12 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
         free_table_remove(&mm->vm_map.table[VM_COW], fault_page, PG_SIZE);
         free_table_add(&mm->vm_map.table[VM_UMP], fault_page, PG_SIZE);
         mm_map(task, new_page, fault_page);
+        flush_tlb(task, (void *)fault_page);
 
         // 减少引用,并从pg_struct链表中移除
         // 因为此时cow_page已经不属于当前任务了.
         page_reference_dec_lock(cow_pfn);
         mm_remove_a_page(cow_page);
-        arch_flush_tlb((void *)fault_page);
     }
 fail:
     page_struct_unlock(cow_pfn);
@@ -308,7 +306,7 @@ static void page_fault_fail(
     return;
 }
 
-void page_faule(struct pt_regs *regs)
+void page_fault(struct pt_regs *regs)
 {
     struct task      *task = get_current_task();
     struct mm_struct *mm   = task->mm;
@@ -359,5 +357,19 @@ void page_faule(struct pt_regs *regs)
 
     // 不应该到这里
     general_handler(regs);
+    return;
+}
+
+void ASMLINKAGE arch_flush_tlb(void *addr);
+
+// 只刷新当前进程tlb
+// 非当前进程会在schedule中重新加载页表
+
+void flush_tlb(struct task *task, void *fault_page)
+{
+    if (task == get_current_task())
+    {
+        arch_flush_tlb(fault_page);
+    }
     return;
 }

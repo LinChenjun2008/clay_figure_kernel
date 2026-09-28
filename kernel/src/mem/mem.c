@@ -27,7 +27,7 @@ void mem_init(struct system_info *system_info)
     page_mgr_init(system_info);
     printk("mem_init: memory management initializing...\n");
     mem_allocator_init();
-    register_handler(0x0e, page_faule);
+    register_handler(0x0e, page_fault);
     return;
 }
 
@@ -52,7 +52,7 @@ static int copy_vm_struct(struct vm_struct *dst, struct vm_struct *src)
     return copy_free_table(&dst->table[VM_UMP], &src->table[VM_UMP]);
 }
 
-static void destory_vm_struct(struct vm_struct *vm)
+static void destroy_vm_struct(struct vm_struct *vm)
 {
     if (vm == NULL)
     {
@@ -117,7 +117,7 @@ static int copy_pg_struct(struct task *dst, struct task *src)
     return list_traversal(src_list, traversal_copy_pg, &pack) == NULL;
 }
 
-static void destory_pg_struct(struct pg_struct *pg)
+static void destroy_pg_struct(struct pg_struct *pg)
 {
     if (pg == NULL)
     {
@@ -170,14 +170,14 @@ int copy_mm_struct(struct task *dst, struct task *src)
     return 0;
 }
 
-void destory_mm_struct(struct mm_struct *mm)
+void destroy_mm_struct(struct mm_struct *mm)
 {
     if (mm == NULL)
     {
         return;
     }
-    destory_vm_struct(&mm->vm_map);
-    destory_pg_struct(&mm->pg_map);
+    destroy_vm_struct(&mm->vm_map);
+    destroy_pg_struct(&mm->pg_map);
     kfree(mm);
     return;
 }
@@ -250,6 +250,48 @@ get_page_by_virt(struct pg_struct *pg, uintptr_t virt)
         return NULL;
     }
     return CONTAINER_OF(struct page_struct, node, node);
+}
+
+int mm_check_addr(struct task *task, void *addr, size_t size, int flags)
+{
+    if (size == 0)
+    {
+        return 0;
+    }
+    ASSERT(IS_USER_TASK(task) && task->mm != NULL);
+
+    uintptr_t start = (uintptr_t)addr;
+    uintptr_t end   = start + size - 1;
+    if (end < start)
+    {
+        return -EINVAL;
+    }
+    if (!USER_VMA_SPACE(start) || !USER_VMA_SPACE(end))
+    {
+        return -EINVAL;
+    }
+    struct vm_struct *vm   = &task->mm->vm_map;
+    uintptr_t         page = start & ~(PG_SIZE - 1);
+
+    while (page <= (end & ~(PG_SIZE - 1)))
+    {
+        int mapped   = free_table_find(&vm->table[VM_MAP], page);
+        int unmapped = free_table_find(&vm->table[VM_UMP], page);
+        int cow      = free_table_find(&vm->table[VM_COW], page);
+
+        // 页必须已分配给该任务
+        if (!mapped && !unmapped && !cow)
+        {
+            return -EFAULT; // 地址未分配
+        }
+        // 要求已映射时, 不允许懒分配页
+        if (flags == ADDR_MAPPED && !mapped)
+        {
+            return -EFAULT;
+        }
+        page += PG_SIZE;
+    }
+    return 0;
 }
 
 void mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
@@ -369,6 +411,8 @@ void mm_free_address(uintptr_t addr, size_t pages)
                 free_table_add(&vm->table[VM_MAP], start, PG_SIZE);
             }
             mm_unmap(task, page_struct->virt);
+            flush_tlb(task, (void *)start);
+
             mm_free_a_page(PFN_TO_ADDR(page_struct->pfn));
         }
 

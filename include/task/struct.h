@@ -20,6 +20,11 @@
 #define TASK_DIED       7
 #define UNINTERRUPTABLE (1 << 3)
 
+#define TASK_FLAG_USER 1
+
+#define IS_USER_TASK(TASK)   (((TASK)->task_flags & TASK_FLAG_USER) != 0)
+#define IS_KERNEL_TASK(TASK) (((TASK)->task_flags & TASK_FLAG_USER) == 0)
+
 #define SLOTS_PER_LEVEL 256
 
 #ifndef __ASSEMBLER__
@@ -112,6 +117,8 @@ struct task
     phys_addr_t       pg_dir;
     struct list_node  general_node;
     struct list_node  wait_queue_node;
+
+    uint32_t task_flags;
 
     uint64_t prio;
     uint64_t run_time;
