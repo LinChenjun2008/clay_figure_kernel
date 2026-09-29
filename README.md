@@ -40,6 +40,14 @@ of the USB drive. Then simply boot from the USB drive.
 - [x] APIC - Advanced Programmable Interrupt Controller
 - [x] HPET - High Precision Event Timer
 - [x] SMP - Symmetric Multi-Processor
+- [x] Virtual memory management (4-level page table, lazy allocation, copy-on-write)
+- [x] Task scheduling (CFS-like scheduler)
+- [x] System calls
+- [x] Inter-process communication (IPC)
+- [x] Signals (POSIX-like signals)
+- [x] VFS service framework (user-space)
+- [ ] execve (not yet implemented)
+- [ ] Full VFS (not yet implemented)
 
 ## License
 
@@ -47,17 +55,17 @@ This project is licensed under the GPL-3.0 License.
 
 ```
 Clay Figure Kernel is free software: you can redistribute it and/or modify
-it underthe terms of the GNU Lesser General Public License as published by
-the Free Software Foundation,either version 3 of the License, or (at your option)
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or (at your option)
 any later version.
 
 Clay Figure Kernel is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY;without even the implied warranty of
+but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
+GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License
-along with Clay Figure Kernel.If not, see
+You should have received a copy of the GNU General Public License
+along with Clay Figure Kernel. If not, see
 <https://www.gnu.org/licenses/>.
 ```
 
@@ -80,4 +88,4 @@ This project references the following books/projects:
 
 Copyright &copy; 2026 Clay-Figure-Neo Developers
 
-(Last updated: August 13, 2026)
+(Last updated: September 29, 2026)
