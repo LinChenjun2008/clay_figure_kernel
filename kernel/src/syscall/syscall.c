@@ -26,6 +26,20 @@
 
 void *syscall_table[NR_CONT];
 
+static int check_user_address(const void *addr, size_t size)
+{
+    if (addr == NULL)
+    {
+        return 0;
+    }
+    struct task *task = get_current_task();
+    if (!IS_USER_TASK(task))
+    {
+        return 0;
+    }
+    return mm_check_addr(task, (void *)addr, size, ADDR_ALLOCATED);
+}
+
 static word_t sys_exit(struct pt_regs *regs)
 {
     process_exit((int)regs->rsi);
@@ -40,9 +54,15 @@ static word_t sys_fork(struct pt_regs *regs)
 
 static word_t sys_wait(struct pt_regs *regs)
 {
-    word_t ret = -1;
-    ret = task_waitpid((pid_t)regs->rsi, (int *)regs->rdx, (int)regs->r10);
-    return ret;
+    int *status = (int *)regs->rdx;
+    int  ret;
+
+    ret = check_user_address(status, sizeof(*status));
+    if (ret < 0)
+    {
+        return (word_t)ret;
+    }
+    return (word_t)task_waitpid((pid_t)regs->rsi, status, (int)regs->r10);
 }
 
 static word_t sys_send(struct pt_regs *regs)
@@ -73,9 +93,21 @@ static word_t sys_kill(struct pt_regs *regs)
 
 static word_t sys_sigaction(struct pt_regs *regs)
 {
-    word_t ret;
-    ret = sigaction((int)regs->rsi, (void *)regs->rdx, (void *)regs->r10);
-    return ret;
+    struct sigaction *act    = (void *)regs->rdx;
+    struct sigaction *oldact = (void *)regs->r10;
+    int               ret;
+
+    ret = check_user_address(act, sizeof(*act));
+    if (ret < 0)
+    {
+        return (word_t)ret;
+    }
+    ret = check_user_address(oldact, sizeof(*oldact));
+    if (ret < 0)
+    {
+        return (word_t)ret;
+    }
+    return (word_t)sigaction((int)regs->rsi, act, oldact);
 }
 
 static void register_syscall(uint64_t num, void *func)
