@@ -337,10 +337,10 @@ void perror(const char *function, int err)
     return;
 }
 
-char *print_progress(char *str, int width, int persent)
+char *print_progress(char *str, int width, int percent)
 {
     char num[7];
-    sprintf(num, " %d%% ", persent);
+    sprintf(num, " %d%% ", percent);
     int num_width = strlen(num);
     if (width < 10)
     {
@@ -348,7 +348,7 @@ char *print_progress(char *str, int width, int persent)
         return str;
     }
 
-    int filled = persent * width / 100;
+    int filled = percent * width / 100;
 
     int i;
     for (i = 0; i < width; i++)

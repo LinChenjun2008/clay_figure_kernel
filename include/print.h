@@ -36,6 +36,6 @@ void init_print(struct graphic_info *graphic_info);
 
 int printk(const char *fmt, ...);
 
-char *print_progress(char *str, int width, int persent);
+char *print_progress(char *str, int width, int percent);
 
 #endif
