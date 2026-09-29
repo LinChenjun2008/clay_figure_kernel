@@ -98,11 +98,20 @@ static int child_match(struct task *task, pid_t pid)
     return node != NULL;
 }
 
+static int check_child_pid(struct list_node *node, void *arg)
+{
+    struct task *task = CONTAINER_OF(struct task, parent_node, node);
+    return task->pid == *(pid_t *)arg;
+}
+
 // pid 是当前进程的子进程吗(已退出但没回收的也算)
 static int is_child(struct task *task, pid_t pid)
 {
-    struct task *child = pid_to_task(pid);
-    return child != NULL && child->ppid == task->pid;
+    struct list_node *node;
+    spin_lock(&task->childs_lock);
+    node = list_traversal(&task->childs_list, check_child_pid, &pid);
+    spin_unlock(&task->childs_lock);
+    return node != NULL;
 }
 
 struct wait_pid_pack

@@ -417,7 +417,7 @@ void wake_up_signal(pid_t pid)
     struct task *task = pid_to_task(pid);
     if (task == NULL)
     {
-        return;
+        goto end;
     }
     struct cpu *cpu = get_cpu_struct(task->cpu_id);
 
@@ -436,6 +436,7 @@ void wake_up_signal(pid_t pid)
         }
         spin_unlock(&task->lock);
     }
+end:
     intr_set_status(intr_status);
     return;
 }
