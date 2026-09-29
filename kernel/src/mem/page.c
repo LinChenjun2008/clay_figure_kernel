@@ -226,7 +226,7 @@ phys_addr_t allocate_pages(size_t pages)
     spin_unlock(&page_mgr->lock);
     if (pfn < 0)
     {
-        goto fail;
+        goto end;
     }
 
     struct page *head_page = &page_mgr->pages[pfn];
@@ -238,7 +238,7 @@ phys_addr_t allocate_pages(size_t pages)
 
     ret = PFN_TO_ADDR((size_t)pfn);
 
-fail:
+end:
     return ret;
 }
 

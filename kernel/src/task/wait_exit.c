@@ -19,7 +19,7 @@
 
 void init_adopt_childs(struct task *task)
 {
-    struct task *init_task = pid_to_task(1);
+    struct task *init_task = get_task_by_pid(1);
     ASSERT(init_task != NULL && init_task != task);
 
     spin_lock_double(&task->childs_lock, &init_task->childs_lock);
@@ -47,6 +47,7 @@ void init_adopt_childs(struct task *task)
     }
     spin_unlock_double(&task->childs_lock, &init_task->childs_lock);
 
+    put_task_struct(init_task);
     return;
 }
 
@@ -131,7 +132,7 @@ static int task_release_resources(struct task *task)
     pid_table_remove(task);
     release_pid(task->pid);
 
-    struct task *parent_task = pid_to_task(task->ppid);
+    struct task *parent_task = get_task_by_pid(task->ppid);
     ASSERT(get_current_task() == parent_task);
 
     kfree_pages((void *)task->kstack_base, task->kstack_pages);
@@ -141,7 +142,8 @@ static int task_release_resources(struct task *task)
     list_remove(&task->parent_node);
     spin_unlock(&parent_task->childs_lock);
 
-    destroy_task_struct(task);
+    put_task_struct(parent_task);
+    put_task_struct(task);
     return ret;
 }
 

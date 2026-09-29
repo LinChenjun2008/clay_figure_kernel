@@ -133,7 +133,7 @@ struct task *get_current_task(void)
     return cpu->curr_task;
 }
 
-struct task *pid_to_task(pid_t pid)
+struct task *get_task_by_pid(pid_t pid)
 {
     if (pid < 0)
     {
@@ -168,15 +168,52 @@ struct task *pid_to_task(pid_t pid)
         goto end;
     }
     ret = slot->slots[slot_3];
+    if (ret == NULL)
+    {
+        goto end;
+    }
+
+    int ref_count = get_kobject(&ret->kobj);
+    if (ref_count == 0)
+    {
+        ret = NULL;
+        goto end;
+    }
 end:
+
     spin_unlock(&task_table->lock);
 
     return ret;
 }
 
+int get_task_struct(struct task *task)
+{
+    if (task == NULL)
+    {
+        return 0;
+    }
+    return get_kobject(&task->kobj);
+}
+
+void put_task_struct(struct task *task)
+{
+    if (task == NULL)
+    {
+        return;
+    }
+    put_kobject(&task->kobj);
+    return;
+}
+
 int check_pid_availability(pid_t pid)
 {
-    return pid_to_task(pid) != NULL;
+    struct task *task = get_task_by_pid(pid);
+    if (task == NULL)
+    {
+        return 0;
+    }
+    put_task_struct(task);
+    return 1;
 }
 
 pid_t allocate_pid(void)
@@ -275,6 +312,7 @@ int pid_table_insert(struct task *task)
     ASSERT(slot->slots[slot_3] == NULL);
     ASSERT(slot->count < SLOTS_PER_LEVEL);
 
+    get_task_struct(task);
     slot->slots[slot_3] = task;
     slot->count++;
     ret = 0;
@@ -316,6 +354,8 @@ void pid_table_remove(struct task *task)
     }
 
     spin_unlock(&task_table->lock);
+
+    put_task_struct(task);
     return;
 }
 
@@ -338,6 +378,13 @@ void destroy_task_struct(struct task *task)
     return;
 }
 
+static void task_kobject_destroy(struct kobject *obj)
+{
+    struct task *task = CONTAINER_OF(struct task, kobj, obj);
+    destroy_task_struct(task);
+    return;
+}
+
 void init_task_struct(
     struct task *task,
     const char  *name,
@@ -356,6 +403,8 @@ void init_task_struct(
     task->ustack_sp    = 0;
 
     task->cpu_id = 0;
+
+    init_kobject(&task->kobj, task_kobject_destroy);
 
     task->pid  = 0;
     task->ppid = 0;

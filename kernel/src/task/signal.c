@@ -97,16 +97,22 @@ int send_signal(pid_t pid, int sig, struct siginfo *info)
     {
         return -EINVAL;
     }
-    struct task *task = pid_to_task(pid);
-    if (task == NULL || TASK_STATUS(task->status) == TASK_DIED)
+    int          status = 0;
+    struct task *task   = get_task_by_pid(pid);
+    if (task == NULL)
     {
         return -ESRCH;
     }
-    if (signal_queue(task, sig, info))
+    if (TASK_STATUS(task->status) == TASK_DIED)
+    {
+        status = -ESRCH;
+    }
+    else if (signal_queue(task, sig, info))
     {
         wake_up_signal(pid);
     }
-    return 0;
+    put_task_struct(task);
+    return status;
 }
 
 int send_signal_from_user(pid_t pid, int sig)
@@ -131,19 +137,27 @@ int send_signal_fault(pid_t pid, int sig, int code, void *addr)
 // 子进程状态变化: 若父进程会处理 SIGCHLD 则登记它, 并唤醒等子进程的父进程
 int send_signal_child(pid_t pid, int code, pid_t child, int status)
 {
-    struct task *task = pid_to_task(pid);
-    if (task == NULL || TASK_STATUS(task->status) == TASK_DIED)
+    int          ret  = 0;
+    struct task *task = get_task_by_pid(pid);
+    if (task == NULL)
     {
         return -ESRCH;
     }
+    if (TASK_STATUS(task->status) == TASK_DIED)
+    {
+        ret = -ESRCH;
+    }
+    else
+    {
+        struct siginfo info;
+        memset(&info, 0, sizeof(info));
+        info.si_code   = code;
+        info.si_pid    = child;
+        info.si_status = status;
 
-    struct siginfo info;
-    memset(&info, 0, sizeof(info));
-    info.si_code   = code;
-    info.si_pid    = child;
-    info.si_status = status;
-
-    signal_queue(task, SIGCHLD, &info);
-    wake_up(&task->child_wq);
-    return 0;
+        signal_queue(task, SIGCHLD, &info);
+        wake_up(&task->child_wq);
+    }
+    put_task_struct(task);
+    return ret;
 }

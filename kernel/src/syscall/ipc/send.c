@@ -83,12 +83,17 @@ int ipc_send(struct msg_head *msg, pid_t dst_pid)
     struct task    *dst_task = NULL;
     struct mailbox *dst      = NULL;
 
-    dst_task = pid_to_task(dst_pid);
-    if (dst_task == NULL || TASK_STATUS(dst_task->status) == TASK_DIED)
+    dst_task = get_task_by_pid(dst_pid);
+    if (dst_task == NULL)
     {
         return -ESRCH;
     }
     dst = &dst_task->mailbox;
+    if (TASK_STATUS(dst_task->status) == TASK_DIED)
+    {
+        status = -ESRCH;
+        goto end;
+    }
 
     // 发送消息
     spin_lock(&dst->send_lock);
@@ -121,5 +126,7 @@ end:
     src->msg         = NULL;
     src->send_status = 0;
     src->send_to     = PID_NULL;
+
+    put_task_struct(dst_task);
     return status;
 }

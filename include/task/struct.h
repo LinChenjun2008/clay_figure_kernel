@@ -31,6 +31,7 @@
 
 #    include <asm/ptrace.h>
 
+#    include <kobject.h>
 #    include <lib/bitmap.h>
 #    include <lib/linked_list.h>
 #    include <sync/spinlock.h>
@@ -105,6 +106,8 @@ struct task
     uintptr_t ustack_sp;
 
     uint8_t cpu_id;
+
+    struct kobject kobj;
 
     pid_t pid;
     pid_t ppid;

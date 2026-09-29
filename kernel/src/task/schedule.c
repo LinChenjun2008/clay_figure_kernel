@@ -220,11 +220,17 @@ static void inform_exit(struct task *task)
 {
     struct task *parent_task = NULL;
 
+    // 避免被提前回收
+    get_task_struct(task);
+
     int need_retry = 1;
     do
     {
-        parent_task = pid_to_task(task->ppid);
-        ASSERT(parent_task != NULL);
+        parent_task = get_task_by_pid(task->ppid);
+        if (parent_task == NULL)
+        {
+            continue;
+        }
 
         spin_lock(&parent_task->childs_lock);
         if (list_find(&parent_task->childs_list, &task->parent_node))
@@ -233,6 +239,11 @@ static void inform_exit(struct task *task)
             need_retry = 0;
         }
         spin_unlock(&parent_task->childs_lock);
+
+        if (need_retry)
+        {
+            put_task_struct(parent_task);
+        }
     } while (need_retry);
 
     // 通知父进程: 子进程已退出(父进程若会处理 SIGCHLD 则同时登记该信号)
@@ -240,6 +251,9 @@ static void inform_exit(struct task *task)
     int code      = (status >= 128) ? CLD_KILLED : CLD_EXITED;
     int si_status = (status >= 128) ? status - 128 : status;
     send_signal_child(parent_task->pid, code, task->pid, si_status);
+
+    put_task_struct(parent_task);
+    put_task_struct(task);
     return;
 }
 
@@ -414,28 +428,27 @@ void wake_up_signal(pid_t pid)
 {
     enum intr_status intr_status = intr_disable();
 
-    struct task *task = pid_to_task(pid);
+    struct task *task = get_task_by_pid(pid);
     if (task == NULL)
     {
         goto end;
     }
     struct cpu *cpu = get_cpu_struct(task->cpu_id);
 
-    if (task != NULL)
+    spin_lock(&task->lock);
+    switch (TASK_STATUS(task->status))
     {
-        spin_lock(&task->lock);
-        switch (TASK_STATUS(task->status))
-        {
-            case TASK_READY:
-            case TASK_RUNNING:
-            case TASK_DIED:
-                break;
-            default:
-                cpu_task_list_insert(cpu, task);
-                break;
-        }
-        spin_unlock(&task->lock);
+        case TASK_READY:
+        case TASK_RUNNING:
+        case TASK_DIED:
+            break;
+        default:
+            cpu_task_list_insert(cpu, task);
+            break;
     }
+    spin_unlock(&task->lock);
+
+    put_task_struct(task);
 end:
     intr_set_status(intr_status);
     return;

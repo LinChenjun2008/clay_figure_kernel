@@ -271,7 +271,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
         if (new_page == 0)
         {
             ret = -ENOMEM;
-            goto fail;
+            goto end;
         }
         memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);
         // 从cow中移除,转入unmapped表,由mm_map重新映射
@@ -285,7 +285,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
         page_reference_dec_lock(cow_pfn);
         mm_remove_a_page(cow_page);
     }
-fail:
+end:
     page_struct_unlock(cow_pfn);
     return ret;
 }
