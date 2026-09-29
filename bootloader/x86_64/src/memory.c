@@ -31,7 +31,7 @@ efi_status_t get_memory_map(struct memory_map *memmap)
     if (EFI_ERROR(status))
     {
         printf(
-            L"get_memory_map: boot_services->allocate_pool: ERROR(%d).\n\r",
+            L"get_memory_map: boot_services->allocate_pool: ERROR(%d).\r\n",
             status
         );
         return status;
@@ -71,7 +71,7 @@ static void page_map_sub(uint64_t *pg_dir, void *phys, void *virt)
         {
             printf(
                 L"page_map_sub: boot_services->allocate_pages(pdpt): "
-                L"ERROR(%d).\n\r",
+                L"ERROR(%d).\r\n",
                 status
             );
             return;
@@ -94,7 +94,7 @@ static void page_map_sub(uint64_t *pg_dir, void *phys, void *virt)
         {
             printf(
                 L"page_map_sub: boot_services->allocate_pages(pdt): "
-                L"ERROR(%d).\n\r",
+                L"ERROR(%d).\r\n",
                 status
             );
             return;
@@ -117,7 +117,7 @@ static void page_map_sub(uint64_t *pg_dir, void *phys, void *virt)
         {
             printf(
                 L"page_map_sub: boot_services->allocate_pages(pt): "
-                L"ERROR(%d).\n\r",
+                L"ERROR(%d).\r\n",
                 status
             );
             return;
@@ -160,7 +160,7 @@ efi_status_t create_page_table(void *pg_dir)
     if (EFI_ERROR(status))
     {
         printf(
-            L"create_page_table: boot_services->allcate_pages: ERROR(%d).\n\r",
+            L"create_page_table: boot_services->allcate_pages: ERROR(%d).\r\n",
             status
         );
         return status;

@@ -24,7 +24,7 @@ read_file(char16_t *file_name, void **file_buffer_base, efi_uint_t *file_size)
     {
         printf(
             L"read_file: boot_services->handle_protocol(loaded_image): "
-            L"ERROR(%d).\n\r",
+            L"ERROR(%d).\r\n",
             status
         );
         return status;
@@ -40,7 +40,7 @@ read_file(char16_t *file_name, void **file_buffer_base, efi_uint_t *file_size)
     {
         printf(
             L"read_file: boot_services->handle_protocol(file_system): "
-            L"ERROR(%d).\n\r",
+            L"ERROR(%d).\r\n",
             status
         );
         return status;
@@ -49,7 +49,7 @@ read_file(char16_t *file_name, void **file_buffer_base, efi_uint_t *file_size)
     status = file_system->open_volume(file_system, &root);
     if (EFI_ERROR(status))
     {
-        printf(L"read_file: file_system->open_volume: ERROR(%d).\n\r", status);
+        printf(L"read_file: file_system->open_volume: ERROR(%d).\r\n", status);
         return status;
     }
 
@@ -62,7 +62,7 @@ read_file(char16_t *file_name, void **file_buffer_base, efi_uint_t *file_size)
     );
     if (EFI_ERROR(status))
     {
-        printf(L"read_file: root->open(%s): ERROR(%d).\n\r", file_name, status);
+        printf(L"read_file: root->open(%s): ERROR(%d).\r\n", file_name, status);
         return status;
     }
 
@@ -75,7 +75,7 @@ read_file(char16_t *file_name, void **file_buffer_base, efi_uint_t *file_size)
     {
         printf(
             L"read_file: boot_services->allocate_pool(file_info): "
-            L"ERROR(%d).\n\r",
+            L"ERROR(%d).\r\n",
             status
         );
         return status;
@@ -86,7 +86,7 @@ read_file(char16_t *file_name, void **file_buffer_base, efi_uint_t *file_size)
     );
     if (EFI_ERROR(status))
     {
-        printf(L"read_file: file_handle->get_info: ERROR(%d).\n\r", status);
+        printf(L"read_file: file_handle->get_info: ERROR(%d).\r\n", status);
         boot_services->free_pool(file_info);
         return status;
     }
@@ -103,7 +103,7 @@ read_file(char16_t *file_name, void **file_buffer_base, efi_uint_t *file_size)
     if (EFI_ERROR(status))
     {
         printf(
-            L"read_file: boot_services->allocate_pages(%lld): ERROR(%d).\n\r",
+            L"read_file: boot_services->allocate_pages(%lld): ERROR(%d).\r\n",
             file_page_size,
             status
         );
@@ -121,7 +121,7 @@ read_file(char16_t *file_name, void **file_buffer_base, efi_uint_t *file_size)
     if (EFI_ERROR(status))
     {
         printf(
-            L"read_file: file_handle->read(%d): ERROR(%d).\n\r",
+            L"read_file: file_handle->read(%d): ERROR(%d).\r\n",
             read_szie,
             status
         );
