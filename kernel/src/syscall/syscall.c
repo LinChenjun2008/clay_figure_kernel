@@ -42,7 +42,9 @@ static int check_user_address(const void *addr, size_t size)
 
 static word_t sys_exit(struct pt_regs *regs)
 {
-    process_exit((int)regs->rsi);
+    int status = (int)regs->rsi;
+
+    process_exit(status);
     return 0; // process_exit 不返回
 }
 
@@ -54,45 +56,63 @@ static word_t sys_fork(struct pt_regs *regs)
 
 static word_t sys_wait(struct pt_regs *regs)
 {
-    int *status = (int *)regs->rdx;
-    int  ret;
+    pid_t pid     = (pid_t)regs->rsi;
+    int  *status  = (int *)regs->rdx;
+    int   options = (int)regs->r10;
+    int   ret;
 
     ret = check_user_address(status, sizeof(*status));
     if (ret < 0)
     {
         return (word_t)ret;
     }
-    return (word_t)task_waitpid((pid_t)regs->rsi, status, (int)regs->r10);
+    return (word_t)task_waitpid(pid, status, options);
 }
 
 static word_t sys_send(struct pt_regs *regs)
 {
-    return (word_t)ipc_send((struct msg_head *)regs->rsi, (pid_t)regs->rdx);
+    struct msg_head *msg     = (struct msg_head *)regs->rsi;
+    pid_t            dst_pid = (pid_t)regs->rdx;
+
+    return (word_t)ipc_send(msg, dst_pid);
 }
 
 static word_t sys_recv(struct pt_regs *regs)
 {
-    return (word_t)ipc_recv((struct msg_head *)regs->rsi, (int)regs->rdx);
+    struct msg_head *msg    = (struct msg_head *)regs->rsi;
+    int              option = (int)regs->rdx;
+
+    return (word_t)ipc_recv(msg, option);
 }
 
 static word_t sys_addr(struct pt_regs *regs)
 {
-    return mm_allocate_address((uintptr_t)regs->rsi, (size_t)regs->rdx);
+    uintptr_t addr  = (uintptr_t)regs->rsi;
+    size_t    pages = (size_t)regs->rdx;
+
+    return mm_allocate_address(addr, pages);
 }
 
 static word_t sys_free(struct pt_regs *regs)
 {
-    mm_free_address((uintptr_t)regs->rsi, (size_t)regs->rdx);
+    uintptr_t addr  = (uintptr_t)regs->rsi;
+    size_t    pages = (size_t)regs->rdx;
+
+    mm_free_address(addr, pages);
     return 0;
 }
 
 static word_t sys_kill(struct pt_regs *regs)
 {
-    return send_signal_from_user((pid_t)regs->rsi, (int)regs->rdx);
+    pid_t pid = (pid_t)regs->rsi;
+    int   sig = (int)regs->rdx;
+
+    return send_signal_from_user(pid, sig);
 }
 
 static word_t sys_sigaction(struct pt_regs *regs)
 {
+    int               sig    = (int)regs->rsi;
     struct sigaction *act    = (void *)regs->rdx;
     struct sigaction *oldact = (void *)regs->r10;
     int               ret;
@@ -107,7 +127,7 @@ static word_t sys_sigaction(struct pt_regs *regs)
     {
         return (word_t)ret;
     }
-    return (word_t)sigaction((int)regs->rsi, act, oldact);
+    return (word_t)sigaction(sig, act, oldact);
 }
 
 static void register_syscall(uint64_t num, void *func)
