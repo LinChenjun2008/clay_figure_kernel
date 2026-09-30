@@ -64,14 +64,17 @@ uint64_t get_nano_time(void)
 
 void hpet_init(struct boot_info *boot_info)
 {
-    uint32_t          signature = SIGNATURE_32('H', 'P', 'E', 'T');
+    uint32_t            signature = SIGNATURE_32('H', 'P', 'E', 'T');
+    struct hpet_address hpet_addr = { 0 };
+    hpet_addr.address             = 0xfed00000;
+
     struct acpi_hpet *hpet_table;
     hpet_table = (struct acpi_hpet *)acpi_find_table(boot_info, signature);
-
-    struct hpet_address *hpet_addr;
-    hpet_addr = (struct hpet_address *)&hpet_table->address;
-
-    hpet.addr       = (uintptr_t)PHYS_TO_VIRT(hpet_addr->address);
+    if (hpet_table != NULL)
+    {
+        hpet_addr = *(struct hpet_address *)&hpet_table->address;
+    }
+    hpet.addr       = (uintptr_t)PHYS_TO_VIRT(hpet_addr.address);
     hpet.gcap_id    = (uint64_t *)(hpet.addr + HPET_GCAP_ID);
     hpet.gen_conf   = (uint64_t *)(hpet.addr + HPET_GEN_CONF);
     hpet.main_cnt   = (uint64_t *)(hpet.addr + HPET_MAIN_CNT);

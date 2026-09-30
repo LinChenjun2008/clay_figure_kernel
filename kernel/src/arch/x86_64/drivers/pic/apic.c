@@ -12,6 +12,7 @@
 #include <asm/drivers/pic.h>
 #include <asm/utils/io.h>
 
+#include <panic.h>
 #include <print.h>
 #include <std/string.h> // memset
 
@@ -101,6 +102,10 @@ static void read_madt(struct boot_info *boot_info)
 
     struct madt *madt;
     madt = (struct madt *)acpi_find_table(boot_info, MADT_SIGNATURE);
+    if (madt == NULL)
+    {
+        PANIC("Cannot find MADT");
+    }
     apic.local_apic_address = madt->local_apic_address;
     printk("local apic address: %p.\n", apic.local_apic_address);
     uint8_t max_lapic_id = 0;

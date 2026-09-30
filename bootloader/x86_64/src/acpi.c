@@ -13,7 +13,7 @@ efi_status_t read_acpi_tables(struct boot_info *boot_info)
     // Read acpi table
     // find rsdp
     struct efi_configuration_table                      *config_table;
-    struct efi_acpi_6_4_root_system_description_pointer *rsdp;
+    struct efi_acpi_6_4_root_system_description_pointer *rsdp = NULL;
 
     config_table = system_table->configuration_table;
 
@@ -27,15 +27,19 @@ efi_status_t read_acpi_tables(struct boot_info *boot_info)
             {
                 break;
             }
+            rsdp = NULL;
         }
         config_table++;
     }
 
+    if (rsdp == NULL)
+    {
+        return EFI_ERR;
+    }
     // read sdt
     struct xsdt_table *xsdt = (void *)rsdp->xsdt_address;
     uint32_t  sdt_entries   = (xsdt->header.length - sizeof(xsdt->header)) / 8;
     uint64_t *point_to_othre_sdt = &xsdt->entry;
-
 
     status = boot_services->allocate_pool(
         EFI_LOADER_DATA,
@@ -46,7 +50,7 @@ efi_status_t read_acpi_tables(struct boot_info *boot_info)
     {
         printf(
             L"boot_services->allocate_pool: cannot alloc memory for "
-            L"sdt_baseaddr_array.\n\r"
+            L"sdt_baseaddr_array.\r\n"
         );
         return status;
     }
@@ -66,13 +70,13 @@ efi_status_t read_acpi_tables(struct boot_info *boot_info)
         {
             printf(
                 L"boot_services->allocate_pool: cannot alloc memory for "
-                L"sdt_baseaddr_array[%d].\n\r",
+                L"sdt_baseaddr_array[%d].\r\n",
                 i
             );
             return status;
         }
         printf(
-            L"SDT[%d]: %c%c%c%c\n\r",
+            L"SDT[%d]: %c%c%c%c\r\n",
             i,
             h->signature & 0xff,
             (h->signature >> 8) & 0xff,

@@ -131,8 +131,8 @@ void mp_init(struct system_info *system_info)
         {
             PANIC("Secondary cpu get stack point timeout!\n");
         }
-        int persent = (i + 1) * 100 / ap_count;
-        print_progress(str, sizeof(str) / sizeof(str[0]) - 1, persent);
+        int percent = (i + 1) * 100 / ap_count;
+        print_progress(str, sizeof(str) / sizeof(str[0]) - 1, percent);
         printk("\r\t[%s]", str);
     }
     printk("\n");

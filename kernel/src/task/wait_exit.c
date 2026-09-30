@@ -19,7 +19,7 @@
 
 void init_adopt_childs(struct task *task)
 {
-    struct task *init_task = pid_to_task(1);
+    struct task *init_task = get_task_by_pid(1);
     ASSERT(init_task != NULL && init_task != task);
 
     spin_lock_double(&task->childs_lock, &init_task->childs_lock);
@@ -47,6 +47,7 @@ void init_adopt_childs(struct task *task)
     }
     spin_unlock_double(&task->childs_lock, &init_task->childs_lock);
 
+    put_task_struct(init_task);
     return;
 }
 
@@ -98,11 +99,20 @@ static int child_match(struct task *task, pid_t pid)
     return node != NULL;
 }
 
+static int check_child_pid(struct list_node *node, void *arg)
+{
+    struct task *task = CONTAINER_OF(struct task, parent_node, node);
+    return task->pid == *(pid_t *)arg;
+}
+
 // pid 是当前进程的子进程吗(已退出但没回收的也算)
 static int is_child(struct task *task, pid_t pid)
 {
-    struct task *child = pid_to_task(pid);
-    return child != NULL && child->ppid == task->pid;
+    struct list_node *node;
+    spin_lock(&task->childs_lock);
+    node = list_traversal(&task->childs_list, check_child_pid, &pid);
+    spin_unlock(&task->childs_lock);
+    return node != NULL;
 }
 
 struct wait_pid_pack
@@ -122,7 +132,11 @@ static int task_release_resources(struct task *task)
     pid_table_remove(task);
     release_pid(task->pid);
 
-    struct task *parent_task = pid_to_task(task->ppid);
+    struct task *parent_task = get_task_by_pid(task->ppid);
+    if (parent_task == NULL)
+    {
+        PANIC("Cannot get parent of child task.");
+    }
     ASSERT(get_current_task() == parent_task);
 
     kfree_pages((void *)task->kstack_base, task->kstack_pages);
@@ -132,7 +146,8 @@ static int task_release_resources(struct task *task)
     list_remove(&task->parent_node);
     spin_unlock(&parent_task->childs_lock);
 
-    destroy_task_struct(task);
+    put_task_struct(parent_task);
+    put_task_struct(task);
     return ret;
 }
 

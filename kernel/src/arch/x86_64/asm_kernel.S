@@ -19,12 +19,12 @@ kernel_entry:
     movq BI_STACK_PAGES(%rsi), %rax
     shlq                  $12, %rax
     addq  BI_STACK_BASE(%rsi), %rax
-    movq     $KERNEL_VMA_BASE, %rcx
-    addq                 %rcx, %rax
+    movq     $KERNEL_VMA_BASE, %rbx
+    addq                 %rbx, %rax
     movq                 %rax, %rsp
 
-    movq       $KERNEL_VMA_BASE, %rcx
-    addq                   %rcx, %rdi
-    leaq             main(%rip), %rax
-    addq BI_RELOCATE_BASE(%rsi), %rax
+    movq          $KERNEL_VMA_BASE, %rbx
+    addq                      %rbx, %rdi
+    leaq                main(%rip), %rax
+    addq  BI_RELOCATE_OFFSET(%rsi), %rax
     jmpq *%rax

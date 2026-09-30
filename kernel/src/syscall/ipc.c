@@ -127,7 +127,7 @@ static void mailbox_send_reclaim(struct mailbox *cur)
         // 没有在途消息
         return;
     }
-    struct task *dst_task = pid_to_task(dst_pid);
+    struct task *dst_task = get_task_by_pid(dst_pid);
     if (dst_task == NULL)
     {
         // 目标已经退出, 它的邮箱随之失效
@@ -142,6 +142,8 @@ static void mailbox_send_reclaim(struct mailbox *cur)
         list_remove(&cur->send_node);
     }
     spin_unlock(&dst->send_lock);
+
+    put_task_struct(dst_task);
     return;
 }
 

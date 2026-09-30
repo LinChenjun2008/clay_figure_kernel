@@ -6,7 +6,7 @@
 #include <bootloader.h>
 #include <elf.h>
 
-static int load_exec(void *file, uintptr_t relocate_base, uintptr_t *entry)
+size_t calculate_load_size(void *file)
 {
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)file;
     Elf64_Phdr *phdr = (Elf64_Phdr *)((uintptr_t)ehdr + ehdr->e_phoff);
@@ -31,44 +31,12 @@ static int load_exec(void *file, uintptr_t relocate_base, uintptr_t *entry)
             addr_hi = phdr[i].p_vaddr + phdr[i].p_memsz;
         }
     }
-
-    if (addr_hi - addr_lo > 0x2fffff)
+    if (addr_hi < addr_lo)
     {
-        return -1;
+        return 0;
     }
-    size_t pages = (addr_hi - addr_lo) / 0x1000 + 1;
-    int    status;
-
-    uintptr_t offset        = -relocate_base;
-    uintptr_t physical_base = addr_lo + offset;
-
-    status = boot_services->allocate_pages(
-        EFI_ALLOCATE_ADDRESS, EFI_LOADER_DATA, pages, &physical_base
-    );
-    if (EFI_ERROR(status))
-    {
-        printf(L"load_exec: allocate_pages(): failed.\r\n");
-        return status;
-    }
-
-    for (i = 0; i < ehdr->e_phnum; i++)
-    {
-        if (phdr[i].p_type != PT_LOAD)
-        {
-            continue;
-        }
-        uintptr_t destination = phdr[i].p_vaddr + offset;
-        uintptr_t source      = (uintptr_t)file + phdr[i].p_offset;
-        size_t    mem_size    = phdr[i].p_memsz;
-        size_t    file_size   = phdr[i].p_filesz;
-
-        boot_services->set_mem((void *)destination, mem_size, 0);
-        boot_services->copy_mem((void *)destination, (void *)source, file_size);
-    }
-    *entry = ehdr->e_entry;
-    return 0;
+    return addr_hi - addr_lo;
 }
-
 
 static int load_dyn(
     void      *file,
@@ -80,8 +48,7 @@ static int load_dyn(
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)file;
     Elf64_Phdr *phdr = (Elf64_Phdr *)((uintptr_t)ehdr + ehdr->e_phoff);
 
-    uintptr_t addr_lo = 0xffffffffffffffff;
-    uintptr_t addr_hi = 0;
+    uintptr_t addr_lo = -1ULL;
 
     Elf64_Half dynamic_index = 0;
     Elf64_Half i;
@@ -100,10 +67,6 @@ static int load_dyn(
         {
             addr_lo = phdr[i].p_vaddr;
         }
-        if (addr_hi < phdr[i].p_vaddr + phdr[i].p_memsz)
-        {
-            addr_hi = phdr[i].p_vaddr + phdr[i].p_memsz;
-        }
     }
 
     if (dynamic_index == 0)
@@ -112,12 +75,7 @@ static int load_dyn(
         return -1;
     }
 
-    if (addr_hi - addr_lo > 0x2fffff)
-    {
-        printf(L"load_dyn: Too large.\r\n");
-        return -2;
-    }
-    size_t pages = (addr_hi - addr_lo) / 0x1000 + 1;
+    size_t pages = DIV_ROUND_UP(calculate_load_size(file), PG_SIZE);
     int    status;
 
     status = boot_services->allocate_pages(
@@ -130,7 +88,7 @@ static int load_dyn(
     }
 
     uintptr_t offset          = *physical_base - addr_lo;
-    uintptr_t relocate_offset = *relocate_base - addr_lo + *physical_base;
+    off_t     relocate_offset = *relocate_base - addr_lo;
 
     for (i = 0; i < ehdr->e_phnum; i++)
     {
@@ -156,19 +114,10 @@ static int load_dyn(
     Elf64_Rela *reloc          = NULL;
     size_t      relocate_count = 0;
 
-    // char       *strtab        = NULL;
-    // Elf64_sym_t  *symtab        = NULL;
-
     while (dyn->d_tag != DT_NULL)
     {
         switch (dyn->d_tag)
         {
-            // case DT_STRTAB:
-            //     strtab = (char *)(dyn->d_un.d_ptr + offset);
-            //     break;
-            // case DT_SYMTAB:
-            //     symtab = (Elf64_sym_t *)(dyn->d_un.d_ptr + offset);
-            //     break;
             case DT_RELA:
                 reloc = (Elf64_Rela *)(dyn->d_un.d_ptr + offset);
                 break;
@@ -187,21 +136,11 @@ static int load_dyn(
         Elf64_Rela *rela = &reloc[i];
         uint32_t    type = ELF64_R_TYPE(rela->r_info);
 
-        // uint32_t      sym_idx  = ELF64_R_SYM(rela->r_info);
-        // Elf64_sym_t  *sym     = &symtab[sym_idx];
-        // const char *sym_name = strtab + sym->st_name;
-
         uintptr_t *address;
         address = (uintptr_t *)(rela->r_offset + offset);
 
-        // uintptr_t value = sym->st_value + relocate_offset;
-
         switch (type)
         {
-            // case R_X86_64_GLOB_DAT:
-            // case R_X86_64_JUMP_SLOT:
-            //     *address = value;
-            //     break;
             case R_X86_64_RELATIVE:
                 *address = rela->r_addend + relocate_offset;
                 break;
@@ -252,9 +191,11 @@ int load_segment(
     int status = 0;
     if (ehdr->e_type == ET_EXEC)
     {
-        printf(L"load_segment: Load exec.\r\n");
-        status = load_exec(file, *relocate_base, entry);
-        return status;
+        // printf(L"load_segment: Load exec.\r\n");
+        // status = load_exec(file, *relocate_base, entry);
+        // return status;
+        printf(L"load_segment: Not dynamic file.\r\n");
+        return -1;
     }
     if (ehdr->e_type == ET_DYN)
     {

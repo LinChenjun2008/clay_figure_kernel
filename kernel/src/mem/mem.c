@@ -182,20 +182,50 @@ void destroy_mm_struct(struct mm_struct *mm)
     return;
 }
 
+static int is_user_address(uintptr_t addr, size_t size)
+{
+    if ((addr & (PG_SIZE - 1)) != 0)
+    {
+        return 0;
+    }
+    if (!USER_VMA_SPACE(addr))
+    {
+        return 0;
+    }
+    if (!USER_VMA_SPACE(addr + size - 1))
+    {
+        return 0;
+    }
+    return 1;
+}
+
 uintptr_t mm_allocate_address(uintptr_t addr, size_t pages)
 {
-    struct task      *task = get_current_task();
-    struct vm_struct *vm   = &task->mm->vm_map;
+    if (pages == 0 || pages > ((size_t)-1 >> PG_SIZE_SHIFT))
+    {
+        return 0;
+    }
+    size_t size = pages << PG_SIZE_SHIFT;
 
-    uintptr_t start = addr;
-    size_t    size  = pages << PG_SIZE_SHIFT;
+    if (addr != 0 && !is_user_address(addr, size))
+    {
+        return 0;
+    }
+
+    struct task *task = get_current_task();
+    if (task->mm == NULL)
+    {
+        return 0;
+    }
+    struct vm_struct *vm = &task->mm->vm_map;
+
     if (addr != 0)
     {
-        if (free_table_remove(&vm->table[VM_TAB], start, size) < 0)
+        if (free_table_remove(&vm->table[VM_TAB], addr, size) < 0)
         {
             return 0;
         }
-        free_table_add(&vm->table[VM_UMP], start, size);
+        free_table_add(&vm->table[VM_UMP], addr, size);
         return addr;
     }
 
@@ -204,7 +234,7 @@ uintptr_t mm_allocate_address(uintptr_t addr, size_t pages)
     {
         return 0;
     }
-    start = (uintptr_t)got;
+    uintptr_t start = (uintptr_t)got;
     free_table_add(&vm->table[VM_UMP], start, size);
     return start;
 }
@@ -378,9 +408,23 @@ void mm_free_address(uintptr_t addr, size_t pages)
     {
         return;
     }
-    struct task      *task = get_current_task();
-    struct vm_struct *vm   = &task->mm->vm_map;
-    struct pg_struct *pg   = &task->mm->pg_map;
+    if (pages == 0 || pages > ((size_t)-1 >> PG_SIZE_SHIFT))
+    {
+        return;
+    }
+    size_t size = pages << PG_SIZE_SHIFT;
+    if (!is_user_address(addr, size))
+    {
+        return;
+    }
+
+    struct task *task = get_current_task();
+    if (task->mm == NULL)
+    {
+        return;
+    }
+    struct vm_struct *vm = &task->mm->vm_map;
+    struct pg_struct *pg = &task->mm->pg_map;
 
     uintptr_t start = addr;
 
@@ -394,8 +438,11 @@ void mm_free_address(uintptr_t addr, size_t pages)
         int unmapped = free_table_find(&vm->table[VM_UMP], start);
         int cow      = free_table_find(&vm->table[VM_COW], start);
 
-        ASSERT(mapped || unmapped || cow);
-        ASSERT(mapped + unmapped + cow == 1);
+        // 地址未分配(或表状态不一致)
+        if (mapped + unmapped + cow != 1)
+        {
+            return;
+        }
 
         if (unmapped)
         {
@@ -405,6 +452,10 @@ void mm_free_address(uintptr_t addr, size_t pages)
         else
         {
             page_struct = get_page_by_virt(pg, start);
+            if (page_struct == NULL)
+            {
+                return;
+            }
             if (cow)
             {
                 free_table_remove(&vm->table[VM_COW], start, PG_SIZE);

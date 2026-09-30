@@ -4,6 +4,7 @@ ENTRY(kernel_entry)
 
 SECTIONS
 {
+    . = 0;
     _kernel_start = .;
 
     _text = .;
@@ -44,7 +45,7 @@ SECTIONS
     .bss :
     {
         *(.bss .bss.*)
-    }
+    } :data
     _ebss = .;
 
     _kernel_end = .;

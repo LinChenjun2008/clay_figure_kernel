@@ -32,22 +32,30 @@ sudo apt-get install gcc gcc-mingw-w64-x86-64 qemu-system-x86 ovmf
 - [x] APIC - 高级可编程中断控制器
 - [x] HPET - 高精度事件定时器
 - [x] SMP - 对称多处理器
+- [x] 虚拟内存管理（四级页表、懒分配、写时复制）
+- [x] 任务调度（类CFS调度器）
+- [x] 系统调用
+- [x] 进程间通信（IPC）
+- [x] 信号（类POSIX信号）
+- [x] VFS服务框架（用户态）
+- [ ] execve
+- [ ] 完整VFS
 
 ## 许可协议
 本项目使用GPL-3.0 许可协议.
 ```
 Clay Figure Kernel is free software: you can redistribute it and/or modify
-it underthe terms of the GNU Lesser General Public License as published by
-the Free Software Foundation,either version 3 of the License, or (at your option)
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or (at your option)
 any later version.
 
 Clay Figure Kernel is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY;without even the implied warranty of
+but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
+GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License
-along with Clay Figure Kernel.If not, see
+You should have received a copy of the GNU General Public License
+along with Clay Figure Kernel. If not, see
 <https://www.gnu.org/licenses/>.
 ```
 
@@ -69,4 +77,4 @@ along with Clay Figure Kernel.If not, see
 
 Copyright &copy; 2026 Clay-Figure-Neo Developers
 
-(本文档更新日期: 2026年8月13日)
+(本文档更新日期: 2026年9月29日)

@@ -13,6 +13,7 @@
 #include <asm/x86.h>
 
 #include <errno.h>
+#include <mem.h>
 #include <panic.h>
 #include <std/string.h>
 #include <task.h>
@@ -202,12 +203,9 @@ void signal_check(struct pt_regs *regs)
         if (pending & (1ULL << sig))
         {
             task->signal.pending &= ~(1ULL << sig);
+            status = signal_deliver(task, regs, sig);
             break;
         }
-    }
-    if (sig != 32)
-    {
-        status = signal_deliver(task, regs, sig);
     }
     spin_unlock(&task->signal.lock);
     if (status < 0)
@@ -244,7 +242,30 @@ word_t sys_sigret(struct pt_regs *regs)
     struct task *task = get_current_task();
 
     // handler 的 ret 已弹出 retcode, 故 rsp 指向 frame->signum, 即 frame + 8
-    struct sigframe *frame = (struct sigframe *)(regs->rsp - 8);
+    uintptr_t frame_addr = regs->rsp - 8;
+
+    if (!IS_USER_TASK(task) || task->mm == NULL)
+    {
+        return -EFAULT;
+    }
+    uintptr_t stack_lo = USER_STACK_VADDR_TOP - (task->ustack_pages * PG_SIZE);
+    if (frame_addr < stack_lo)
+    {
+        return -EFAULT;
+    }
+    if (frame_addr > USER_STACK_VADDR_TOP - sizeof(struct sigframe))
+    {
+        return -EFAULT;
+    }
+    int status = mm_check_addr(
+        task, (void *)frame_addr, sizeof(struct sigframe), ADDR_ALLOCATED
+    );
+    if (status < 0)
+    {
+        return -EFAULT;
+    }
+
+    struct sigframe *frame = (struct sigframe *)frame_addr;
 
     task->signal.blocked = frame->blocked;
 
