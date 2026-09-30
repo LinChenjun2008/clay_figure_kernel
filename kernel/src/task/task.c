@@ -362,7 +362,10 @@ void pid_table_remove(struct task *task)
 struct task *allocate_task_struct(void)
 {
     struct task *task = kmalloc(sizeof(*task), 0, 0);
-    memset(task, 0, sizeof(*task));
+    if (task != NULL)
+    {
+        memset(task, 0, sizeof(*task));
+    }
 
     return task;
 }

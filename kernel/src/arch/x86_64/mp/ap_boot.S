@@ -3,6 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
+#include <base.h>
+
 #include <asm/desc.h>
 #include <asm/page.h>
 #include <asm/mp.h>
@@ -86,21 +88,30 @@ AP_CODE64_BASE:
     movq                    %rax, %gs
     movq                    %rax, %ss
 
-    lock incq AP_BOOT_FLAG
+    movq     $KERNEL_VMA_BASE, %rbx
+    lock incq AP_BOOT_FLAG(%rbx)
+
+
+    movq AP_SYS_INFO(%rbx), %rdi
+    movq            (%rdi), %rsi
+
+    leaq   .ap_stack_loop(%rip), %rax
+    addq                   %rbx, %rax
+    jmpq *%rax
 
 .ap_stack_loop:
-    movq             $0, %rdi
-    lock xchgq AP_STACK, %rdi
-    cmpq             $0, %rdi
+    movq                   $0, %rdi
+    lock xchgq AP_STACK(%rbx), %rdi
+    cmpq                   $0, %rdi
     jz .ap_stack_loop
     movq %rdi, %rsp
 
     movq %rdi,%rsi
-    movq AP_SYS_INFO, %rdi
+    movq AP_SYS_INFO(%rbx), %rdi
 
 .ap_loop:
-    movq AP_ENTRY, %rax
-    cmpq       $0, %rax
+    movq AP_ENTRY(%rbx), %rax
+    cmpq             $0, %rax
     jz .ap_loop
 
     jmpq *%rax

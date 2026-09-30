@@ -203,12 +203,9 @@ void signal_check(struct pt_regs *regs)
         if (pending & (1ULL << sig))
         {
             task->signal.pending &= ~(1ULL << sig);
+            status = signal_deliver(task, regs, sig);
             break;
         }
-    }
-    if (sig != 32)
-    {
-        status = signal_deliver(task, regs, sig);
     }
     spin_unlock(&task->signal.lock);
     if (status < 0)

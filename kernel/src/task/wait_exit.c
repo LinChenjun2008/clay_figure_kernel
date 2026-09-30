@@ -133,6 +133,10 @@ static int task_release_resources(struct task *task)
     release_pid(task->pid);
 
     struct task *parent_task = get_task_by_pid(task->ppid);
+    if (parent_task == NULL)
+    {
+        PANIC("Cannot get parent of child task.");
+    }
     ASSERT(get_current_task() == parent_task);
 
     kfree_pages((void *)task->kstack_base, task->kstack_pages);
