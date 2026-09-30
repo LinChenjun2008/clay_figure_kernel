@@ -46,8 +46,8 @@ of the USB drive. Then simply boot from the USB drive.
 - [x] Inter-process communication (IPC)
 - [x] Signals (POSIX-like signals)
 - [x] VFS service framework (user-space)
-- [ ] execve (not yet implemented)
-- [ ] Full VFS (not yet implemented)
+- [ ] execve
+- [ ] Full VFS
 
 ## License
 

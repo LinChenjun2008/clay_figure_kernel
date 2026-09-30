@@ -38,8 +38,8 @@ sudo apt-get install gcc gcc-mingw-w64-x86-64 qemu-system-x86 ovmf
 - [x] 进程间通信（IPC）
 - [x] 信号（类POSIX信号）
 - [x] VFS服务框架（用户态）
-- [ ] execve（尚未实现）
-- [ ] 完整VFS（尚未实现）
+- [ ] execve
+- [ ] 完整VFS
 
 ## 许可协议
 本项目使用GPL-3.0 许可协议.
