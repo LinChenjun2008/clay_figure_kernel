@@ -30,7 +30,8 @@ void                init_task_mgr(struct system_info *system_info);
 efi_status_t read_acpi_tables(struct boot_info *boot_info);
 
 // elf.c
-int load_segment(
+size_t calculate_load_size(void *file);
+int    load_segment(
     void      *file,
     uintptr_t *physical_base,
     uintptr_t *relocate_base,
@@ -48,7 +49,13 @@ int compare_guid(struct efi_guid *guid1, struct efi_guid *guid2);
 // memory.c
 void        *efi_malloc(size_t size);
 efi_status_t get_memory_map(struct memory_map *memmap);
-efi_status_t create_page_table(void *pg_dir);
+efi_status_t create_page_table(
+    void              *pg_dir,
+    struct memory_map *memmap,
+    uintptr_t          phy_base,
+    uintptr_t          rel_base,
+    size_t             load_size
+);
 efi_status_t init_page_mgr(struct system_info *system_info);
 
 // std.c

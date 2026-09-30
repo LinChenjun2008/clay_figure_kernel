@@ -146,52 +146,6 @@ boot_page_map(uint64_t *pg_dir, void *phys, void *virt, uint64_t pages)
     }
 }
 
-efi_status_t create_page_table(void *pg_dir)
-{
-    efi_status_t status     = EFI_SUCCESS;
-    uint64_t    *page_table = NULL;
-
-    status = boot_services->allocate_pages(
-        EFI_ALLOCATE_ANY_PAGES,
-        EFI_LOADER_DATA,
-        1,
-        (efi_physical_address_t *)&page_table
-    );
-    if (EFI_ERROR(status))
-    {
-        printf(
-            L"create_page_table: boot_services->allcate_pages: ERROR(%d).\r\n",
-            status
-        );
-        return status;
-    }
-
-    boot_services->set_mem(page_table, PT_SIZE, 0);
-
-    uintptr_t *phys, *virt;
-
-    // 0 - 4 GiB
-    phys = (uintptr_t *)0;
-    virt = PHYS_TO_VIRT(phys);
-    printf(L"mmap: %p - %p.\r\n", phys, virt);
-    boot_page_map(page_table, phys, virt, 1 << 20);
-    boot_page_map(page_table, phys, phys, 1 << 20);
-
-    // frame buffer
-    phys           = (void *)gop->mode->frame_buffer_base;
-    virt           = PHYS_TO_VIRT(phys);
-    uint64_t pages = (gop->mode->frame_buffer_size + PG_SIZE - 1) / PG_SIZE;
-    printf(L"mmap: %p - %p.\r\n", phys, virt);
-    boot_page_map(page_table, phys, virt, pages);
-
-    // kernel code
-    printf(L"mmap: %p - %p.\r\n", 0, KERNEL_TEXT_BASE);
-    boot_page_map(page_table, (void *)0, (void *)KERNEL_TEXT_BASE, 512);
-
-    *(uint64_t **)pg_dir = page_table;
-    return status;
-}
-
 // 计算efi_memory_descriptor的个数
 static int efi_mem_desc_count(struct memory_map *memmap)
 {
@@ -272,6 +226,68 @@ static size_t calculate_max_pfn(struct memory_map *memmap)
         if (end_pfn > max_pfn) max_pfn = end_pfn;
     }
     return max_pfn;
+}
+
+efi_status_t create_page_table(
+    void              *pg_dir,
+    struct memory_map *memmap,
+    uintptr_t          phy_base,
+    uintptr_t          rel_base,
+    size_t             load_size
+)
+{
+    efi_status_t status     = EFI_SUCCESS;
+    uint64_t    *page_table = NULL;
+
+    status = boot_services->allocate_pages(
+        EFI_ALLOCATE_ANY_PAGES,
+        EFI_LOADER_DATA,
+        1,
+        (efi_physical_address_t *)&page_table
+    );
+    if (EFI_ERROR(status))
+    {
+        printf(
+            L"create_page_table: boot_services->allcate_pages: ERROR(%d).\r\n",
+            status
+        );
+        return status;
+    }
+
+    boot_services->set_mem(page_table, PT_SIZE, 0);
+
+    uintptr_t *phys, *virt;
+
+    // 0 - 4GiB - Max PFN
+    size_t max_pfn = calculate_max_pfn(memmap);
+    if (max_pfn < 1 << 20)
+    {
+        max_pfn = 1 << 20;
+    }
+
+    phys = (uintptr_t *)0;
+    virt = PHYS_TO_VIRT(phys);
+    printf(L"mmap: %p - %p.\r\n", phys, virt);
+    boot_page_map(page_table, phys, virt, max_pfn);
+    boot_page_map(page_table, phys, phys, max_pfn);
+
+    // frame buffer
+    phys              = (void *)gop->mode->frame_buffer_base;
+    virt              = PHYS_TO_VIRT(phys);
+    uint64_t fb_pages = DIV_ROUND_UP(gop->mode->frame_buffer_size, PG_SIZE);
+    printf(L"mmap: %p - %p.\r\n", phys, virt);
+    boot_page_map(page_table, phys, virt, fb_pages);
+
+    // kernel code
+    uint64_t load_pages = DIV_ROUND_UP(load_size, PG_SIZE);
+
+    phys = (void *)phy_base;
+    virt = (void *)rel_base;
+    printf(L"mmap: %p - %p.\r\n", phys, virt);
+    boot_page_map(page_table, phys, virt, load_pages);
+
+    *(uint64_t **)pg_dir = page_table;
+    return status;
 }
 
 // 为内核初始化page_mgr

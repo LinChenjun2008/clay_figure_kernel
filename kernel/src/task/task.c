@@ -93,6 +93,7 @@ void task_init(struct system_info *system_info)
     int status = pid_table_insert(cpu->main_task);
     ASSERT(status == 0);
     struct task *init = process_execute("init", IDLE_PRIO, 1, 1, NULL);
+    ASSERT(init != NULL);
     ASSERT(init->pid == 1);
 
     return;

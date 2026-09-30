@@ -40,12 +40,12 @@
 
 #define ALIGN_PAD(X, ALIGN) (((ALIGN) - ((X) & ((ALIGN) - 1))) & ((ALIGN) - 1))
 
-#define BI_INITRAMFS      0
-#define BI_INITRAMFS_SIZE 8
-#define BI_PAGE_TABLE_POS 16
-#define BI_RELOCATE_BASE  24
-#define BI_STACK_BASE     32
-#define BI_STACK_PAGES    40
+#define BI_INITRAMFS       0
+#define BI_INITRAMFS_SIZE  8
+#define BI_PAGE_TABLE_POS  16
+#define BI_RELOCATE_OFFSET 24
+#define BI_STACK_BASE      32
+#define BI_STACK_PAGES     40
 
 #ifndef __ASSEMBLER__
 

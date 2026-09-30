@@ -76,21 +76,17 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
         printf(L"Failed to read kernel/system\r\n");
         return EFI_ERR;
     }
-    uintptr_t physical_base = 0x100000;
-    uintptr_t relocate_base = KERNEL_TEXT_BASE;
+    uintptr_t phy_base  = 0x100000;
+    uintptr_t rel_base  = KERNEL_TEXT_BASE;
+    size_t    load_size = 0;
     uintptr_t entry;
-    if (load_segment(sys_addr, &physical_base, &relocate_base, &entry) < 0)
+    if (load_segment(sys_addr, &phy_base, &rel_base, &entry) < 0)
     {
         printf(L"load_segment error.\r\n");
         return EFI_ERR;
     }
-    printf(
-        L"Physical: %p,Relocate: %p,Entry: %p.\r\n",
-        physical_base,
-        relocate_base,
-        entry
-    );
-    boot_info->relocate_base = relocate_base;
+    boot_info->relocate_offset = rel_base - phy_base;
+    load_size                  = calculate_load_size(sys_addr);
 
     // Allocate kernel stack (4kib)
     efi_physical_address_t kstack;
@@ -136,17 +132,6 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     );
     printf(L"Video: frame buffer: %p.\r\n", graphic_info->frame_buffer_base);
 
-    // Create page table
-    uintptr_t pg_dir;
-    status = create_page_table(&pg_dir);
-    if (EFI_ERROR(status))
-    {
-        printf(L"create_page_table: ERROR(%d).\r\n", status);
-        return status;
-    }
-    boot_info->pg_dir = pg_dir;
-    printf(L"Page table: %p.\r\n", boot_info->pg_dir);
-
     // Init page_mgr
     boot_info->memory_map.map_size           = 4096 * 4;
     boot_info->memory_map.buffer             = NULL;
@@ -166,6 +151,18 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     {
         printf(L"Failed to init page manager.\r\n");
     }
+
+    // Create page table
+    struct memory_map *memmap = &boot_info->memory_map;
+    uintptr_t          pg_dir;
+    status = create_page_table(&pg_dir, memmap, phy_base, rel_base, load_size);
+    if (EFI_ERROR(status))
+    {
+        printf(L"create_page_table: ERROR(%d).\r\n", status);
+        return status;
+    }
+    boot_info->pg_dir = pg_dir;
+    printf(L"Page table: %p.\r\n", boot_info->pg_dir);
 
     // Get memory map (final).
     printf(L"Get memory map & exit boot service.\r\n");

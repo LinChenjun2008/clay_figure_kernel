@@ -4,6 +4,7 @@ ENTRY(kernel_entry)
 
 SECTIONS
 {
+    . = 0;
     _kernel_start = .;
 
     _text = .;
