@@ -33,23 +33,14 @@ void mem_init(struct system_info *system_info)
 
 static void init_vm_struct(struct vm_struct *vm)
 {
-    int i;
-    for (i = 0; i < MAX_VM_TYPE; i++)
-    {
-        init_free_table(&vm->table[i], 8);
-    }
+    init_free_table(&vm->table, 8);
     return;
 }
 
+// dst 必须是空表
 static int copy_vm_struct(struct vm_struct *dst, struct vm_struct *src)
 {
-    // VM_MAP 在copy_pg_struct时已加入COW
-    int ret = copy_free_table(&dst->table[VM_TAB], &src->table[VM_TAB]);
-    if (ret < 0)
-    {
-        return ret;
-    }
-    return copy_free_table(&dst->table[VM_UMP], &src->table[VM_UMP]);
+    return copy_free_table(&dst->table, &src->table);
 }
 
 static void destroy_vm_struct(struct vm_struct *vm)
@@ -58,11 +49,7 @@ static void destroy_vm_struct(struct vm_struct *vm)
     {
         return;
     }
-    int i;
-    for (i = 0; i < MAX_VM_TYPE; i++)
-    {
-        destroy_free_table(&vm->table[i]);
-    }
+    destroy_free_table(&vm->table);
     return;
 }
 
@@ -156,14 +143,15 @@ struct mm_struct *allocate_mm_struct(void)
 
 int copy_mm_struct(struct task *dst, struct task *src)
 {
-    // copy pg_struct
-    if (!copy_pg_struct(dst, src))
+    int ret = copy_vm_struct(&dst->mm->vm_map, &src->mm->vm_map);
+    if (ret < 0)
     {
-        return -ENOMEM;
+        return ret;
     }
 
-    // copy vm_struct
-    if (copy_vm_struct(&dst->mm->vm_map, &src->mm->vm_map) < 0)
+    // copy pg_struct
+    // 遍历src的页结构,为dst建立页结构,并把双方共享的页转为COW
+    if (!copy_pg_struct(dst, src))
     {
         return -ENOMEM;
     }
@@ -221,21 +209,23 @@ uintptr_t mm_allocate_address(uintptr_t addr, size_t pages)
 
     if (addr != 0)
     {
-        if (free_table_remove(&vm->table[VM_TAB], addr, size) < 0)
+        // 未分配 -> 已分配但未映射
+        if (ft_remove(&vm->table, addr, size, VM_FRE) < 0)
         {
             return 0;
         }
-        free_table_add(&vm->table[VM_UMP], addr, size);
+        int add_status = ft_add(&vm->table, addr, size, VM_UMP);
+        ASSERT(add_status == 0);
         return addr;
     }
 
-    intptr_t got = free_table_allocate(&vm->table[VM_TAB], size);
-    if (got < 0)
+    uintptr_t start = ft_allocate(&vm->table, size, VM_FRE);
+    if ((intptr_t)start < 0)
     {
         return 0;
     }
-    uintptr_t start = (uintptr_t)got;
-    free_table_add(&vm->table[VM_UMP], start, size);
+    int add_status = ft_add(&vm->table, start, size, VM_UMP);
+    ASSERT(add_status == 0);
     return start;
 }
 
@@ -305,9 +295,9 @@ int mm_check_addr(struct task *task, void *addr, size_t size, int flags)
 
     while (page <= (end & ~(PG_SIZE - 1)))
     {
-        int mapped   = free_table_find(&vm->table[VM_MAP], page);
-        int unmapped = free_table_find(&vm->table[VM_UMP], page);
-        int cow      = free_table_find(&vm->table[VM_COW], page);
+        int mapped   = ft_find(&vm->table, page, VM_MAP);
+        int unmapped = ft_find(&vm->table, page, VM_UMP);
+        int cow      = ft_find(&vm->table, page, VM_COW);
 
         // 页必须已分配给该任务
         if (!mapped && !unmapped && !cow)
@@ -331,8 +321,9 @@ void mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
     struct vm_struct *vm = &task->mm->vm_map;
     struct pg_struct *pg = &task->mm->pg_map;
 
-    free_table_remove(&vm->table[VM_UMP], (uintptr_t)virt, PG_SIZE);
-    free_table_add(&vm->table[VM_MAP], (uintptr_t)virt, PG_SIZE);
+    // 已分配但未映射 -> 已映射
+    int set_status = ft_set_flags(&vm->table, virt, PG_SIZE, VM_MAP);
+    ASSERT(set_status == 0);
 
     struct list_node *node;
     node = list_traversal(&pg->list, traversal_by_phys, &phys);
@@ -356,8 +347,9 @@ void mm_unmap(struct task *task, uintptr_t virt)
     struct vm_struct *vm = &task->mm->vm_map;
     struct pg_struct *pg = &task->mm->pg_map;
 
-    free_table_remove(&vm->table[VM_MAP], virt, PG_SIZE);
-    free_table_add(&vm->table[VM_TAB], virt, PG_SIZE);
+    // 已映射 -> 未分配
+    int set_status = ft_set_flags(&vm->table, virt, PG_SIZE, VM_FRE);
+    ASSERT(set_status == 0);
 
     struct list_node *node;
     node = list_traversal(&pg->list, traversal_by_virt, &virt);
@@ -381,20 +373,22 @@ void mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt)
 
     struct vm_struct *vm = &task->mm->vm_map;
 
-    // 移除旧表中的页
-    if (free_table_find(&vm->table[VM_MAP], virt))
+    // 已映射的页转为写时复制
+    if (ft_find(&vm->table, virt, VM_MAP))
     {
-        free_table_remove(&vm->table[VM_MAP], virt, PG_SIZE);
+        int set_status = ft_set_flags(&vm->table, virt, PG_SIZE, VM_COW);
+        ASSERT(set_status == 0);
     }
 
     // 写时复制不对未映射的页生效
-    ASSERT(!free_table_find(&vm->table[VM_UMP], virt));
+    ASSERT(!ft_find(&vm->table, virt, VM_UMP));
 
     // 加入写时复制表
     // 如果该页已是cow页但未复制,则不重复添加.
-    if (!free_table_find(&vm->table[VM_COW], virt))
+    if (!ft_find(&vm->table, virt, VM_COW))
     {
-        free_table_add(&vm->table[VM_COW], virt, PG_SIZE);
+        int add_status = ft_add(&vm->table, virt, PG_SIZE, VM_COW);
+        ASSERT(add_status == 0);
     }
 
     // 设置页表中的标志
@@ -434,9 +428,9 @@ void mm_free_address(uintptr_t addr, size_t pages)
     {
         page_struct = NULL;
 
-        int mapped   = free_table_find(&vm->table[VM_MAP], start);
-        int unmapped = free_table_find(&vm->table[VM_UMP], start);
-        int cow      = free_table_find(&vm->table[VM_COW], start);
+        int mapped   = ft_find(&vm->table, start, VM_MAP);
+        int unmapped = ft_find(&vm->table, start, VM_UMP);
+        int cow      = ft_find(&vm->table, start, VM_COW);
 
         // 地址未分配(或表状态不一致)
         if (mapped + unmapped + cow != 1)
@@ -446,8 +440,9 @@ void mm_free_address(uintptr_t addr, size_t pages)
 
         if (unmapped)
         {
-            free_table_remove(&vm->table[VM_UMP], start, PG_SIZE);
-            free_table_add(&vm->table[VM_TAB], start, PG_SIZE);
+            // 已分配但未映射 -> 未分配
+            int set_status = ft_set_flags(&vm->table, start, PG_SIZE, VM_FRE);
+            ASSERT(set_status == 0);
         }
         else
         {
@@ -458,8 +453,10 @@ void mm_free_address(uintptr_t addr, size_t pages)
             }
             if (cow)
             {
-                free_table_remove(&vm->table[VM_COW], start, PG_SIZE);
-                free_table_add(&vm->table[VM_MAP], start, PG_SIZE);
+                // 写时复制 -> 已映射(mm_unmap 要求该页处于已映射状态)
+                int set_status =
+                    ft_set_flags(&vm->table, start, PG_SIZE, VM_MAP);
+                ASSERT(set_status == 0);
             }
             mm_unmap(task, page_struct->virt);
             flush_tlb(task, (void *)start);

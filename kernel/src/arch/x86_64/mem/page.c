@@ -14,6 +14,7 @@
 #include <mem.h>
 #include <mem/page.h>
 #include <mem/struct.h>
+#include <panic.h>
 #include <std/string.h>
 #include <sysinfo.h>
 #include <task.h>
@@ -240,7 +241,7 @@ static int page_lazy_allocate(struct task *task, uintptr_t fault_page)
 
 static int page_copy_on_write(struct task *task, uintptr_t fault_page)
 {
-    struct mm_struct *mm = task->mm;
+    struct vm_struct *vm = &task->mm->vm_map;
 
     phys_addr_t cow_page = to_physical_address(task->pg_dir, fault_page);
     // cow页已经映射,不可能为NULL
@@ -260,8 +261,9 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
 
     if (ref_count == 1)
     {
-        free_table_remove(&mm->vm_map.table[VM_COW], fault_page, PG_SIZE);
-        free_table_add(&mm->vm_map.table[VM_MAP], fault_page, PG_SIZE);
+        // 只有当前任务引用该页, 直接恢复为已映射
+        int set_status = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_MAP);
+        ASSERT(set_status == 0);
         set_page_flags(task->pg_dir, fault_page, PG_USER_FLAGS);
         flush_tlb(task, (void *)fault_page);
     }
@@ -274,9 +276,9 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
             goto end;
         }
         memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);
-        // 从cow中移除,转入unmapped表,由mm_map重新映射
-        free_table_remove(&mm->vm_map.table[VM_COW], fault_page, PG_SIZE);
-        free_table_add(&mm->vm_map.table[VM_UMP], fault_page, PG_SIZE);
+        // 从cow转为unmapped,由mm_map重新映射
+        int set_status = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_UMP);
+        ASSERT(set_status == 0);
         mm_map(task, new_page, fault_page);
         flush_tlb(task, (void *)fault_page);
 
@@ -320,8 +322,10 @@ void page_fault(struct pt_regs *regs)
     uintptr_t fault_addr = get_cr2();
     uintptr_t fault_page = fault_addr & ~(PG_SIZE - 1);
 
-    int unmapped = free_table_find(&mm->vm_map.table[VM_UMP], fault_page);
-    int cow      = free_table_find(&mm->vm_map.table[VM_COW], fault_page);
+    struct vm_struct *vm = &mm->vm_map;
+
+    int unmapped = ft_find(&vm->table, fault_page, VM_UMP);
+    int cow      = ft_find(&vm->table, fault_page, VM_COW);
 
     // 访问非法地址
     if (!unmapped && !cow)
