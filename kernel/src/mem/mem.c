@@ -89,8 +89,14 @@ static int traversal_copy_pg(struct list_node *node, void *arg)
     phys_addr_t new_page = PFN_TO_ADDR(new_pg->pfn);
     phys_addr_t src_page = PFN_TO_ADDR(src_pg->pfn);
     // 加入cow表
-    mm_map_cow(dst, new_page, new_pg->virt);
-    mm_map_cow(src, src_page, src_pg->virt);
+    if (mm_map_cow(dst, new_page, new_pg->virt) < 0)
+    {
+        return 1;
+    }
+    if (mm_map_cow(src, src_page, src_pg->virt) < 0)
+    {
+        return 1;
+    }
     return 0; // 返回0使list_traversal继续遍历
 }
 
@@ -206,26 +212,37 @@ uintptr_t mm_allocate_address(uintptr_t addr, size_t pages)
         return 0;
     }
     struct vm_struct *vm = &task->mm->vm_map;
+    uintptr_t         start;
 
     if (addr != 0)
     {
         // 未分配 -> 已分配但未映射
-        if (ft_remove(&vm->table, addr, size, VM_FRE) < 0)
+        start = addr;
+        if (ft_remove(&vm->table, start, size, VM_FRE) < 0)
         {
             return 0;
         }
-        int add_status = ft_add(&vm->table, addr, size, VM_UMP);
-        ASSERT(add_status == 0);
-        return addr;
+    }
+    else
+    {
+        start = ft_allocate(&vm->table, size, VM_FRE);
+        if ((intptr_t)start < 0)
+        {
+            return 0;
+        }
     }
 
-    uintptr_t start = ft_allocate(&vm->table, size, VM_FRE);
-    if ((intptr_t)start < 0)
+    // 已分配但未映射
+    int add_status = ft_add(&vm->table, start, size, VM_UMP);
+    if (add_status < 0)
     {
+        int back_status = ft_add(&vm->table, start, size, VM_FRE);
+        if (back_status < 0)
+        {
+            PANIC("mm_allocate_address: Cannot roll back the range.");
+        }
         return 0;
     }
-    int add_status = ft_add(&vm->table, start, size, VM_UMP);
-    ASSERT(add_status == 0);
     return start;
 }
 
@@ -314,7 +331,7 @@ int mm_check_addr(struct task *task, void *addr, size_t size, int flags)
     return 0;
 }
 
-void mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
+int mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
 {
     ASSERT(task->mm != NULL && phys != 0 && virt != 0);
 
@@ -323,7 +340,10 @@ void mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
 
     // 已分配但未映射 -> 已映射
     int set_status = ft_set_flags(&vm->table, virt, PG_SIZE, VM_MAP);
-    ASSERT(set_status == 0);
+    if (set_status < 0)
+    {
+        return set_status;
+    }
 
     struct list_node *node;
     node = list_traversal(&pg->list, traversal_by_phys, &phys);
@@ -340,10 +360,10 @@ void mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
     page_struct->virt = virt;
 
     arch_mm_map(task, phys, virt);
-    return;
+    return 0;
 }
 
-void mm_unmap(struct task *task, uintptr_t virt)
+int mm_unmap(struct task *task, uintptr_t virt)
 {
     ASSERT(task->mm != NULL && virt != 0);
 
@@ -352,7 +372,10 @@ void mm_unmap(struct task *task, uintptr_t virt)
 
     // 已映射 -> 未分配
     int set_status = ft_set_flags(&vm->table, virt, PG_SIZE, VM_FRE);
-    ASSERT(set_status == 0);
+    if (set_status < 0)
+    {
+        return set_status;
+    }
 
     struct list_node *node;
     node = list_traversal(&pg->list, traversal_by_virt, &virt);
@@ -369,11 +392,11 @@ void mm_unmap(struct task *task, uintptr_t virt)
     page_struct->virt = 0;
 
     arch_mm_unmap(task, virt);
-    return;
+    return 0;
 }
 
 // 将页映射为copy-on-write页
-void mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt)
+int mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt)
 {
     ASSERT(task->mm != NULL && phys != 0 && virt != 0);
 
@@ -383,7 +406,10 @@ void mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt)
     if (ft_find(&vm->table, virt, VM_MAP))
     {
         int set_status = ft_set_flags(&vm->table, virt, PG_SIZE, VM_COW);
-        ASSERT(set_status == 0);
+        if (set_status < 0)
+        {
+            return set_status;
+        }
     }
 
     // 写时复制不对未映射的页生效
@@ -394,12 +420,15 @@ void mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt)
     if (!ft_find(&vm->table, virt, VM_COW))
     {
         int add_status = ft_add(&vm->table, virt, PG_SIZE, VM_COW);
-        ASSERT(add_status == 0);
+        if (add_status < 0)
+        {
+            return add_status;
+        }
     }
 
     // 设置页表中的标志
     arch_mm_map_cow(task, phys, virt);
-    return;
+    return 0;
 }
 
 void mm_free_address(uintptr_t addr, size_t pages)
@@ -453,7 +482,10 @@ void mm_free_address(uintptr_t addr, size_t pages)
         {
             // 已分配但未映射 -> 未分配
             int set_status = ft_set_flags(&vm->table, start, PG_SIZE, VM_FRE);
-            ASSERT(set_status == 0);
+            if (set_status < 0)
+            {
+                return;
+            }
         }
         else
         {
@@ -467,9 +499,15 @@ void mm_free_address(uintptr_t addr, size_t pages)
                 // 写时复制 -> 已映射(mm_unmap 要求该页处于已映射状态)
                 int set_status = 0;
                 set_status = ft_set_flags(&vm->table, start, PG_SIZE, VM_MAP);
-                ASSERT(set_status == 0);
+                if (set_status < 0)
+                {
+                    return;
+                }
             }
-            mm_unmap(task, page_struct->virt);
+            if (mm_unmap(task, page_struct->virt) < 0)
+            {
+                return;
+            }
             flush_tlb(task, (void *)start);
 
             mm_free_a_page(PFN_TO_ADDR(page_struct->pfn));

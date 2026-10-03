@@ -246,7 +246,12 @@ static int page_lazy_allocate(struct task *task, uintptr_t fault_page)
     {
         return -ENOMEM;
     }
-    mm_map(task, phy_page, fault_page);
+    int status = mm_map(task, phy_page, fault_page);
+    if (status < 0)
+    {
+        mm_free_a_page(phy_page);
+        return status;
+    }
     flush_tlb(task, (void *)fault_page);
     return 0;
 }
@@ -274,8 +279,11 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
     if (ref_count == 1)
     {
         // 只有当前任务引用该页, 直接恢复为已映射
-        int set_status = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_MAP);
-        ASSERT(set_status == 0);
+        ret = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_MAP);
+        if (ret < 0)
+        {
+            goto end;
+        }
         set_page_flags(task->pg_dir, fault_page, PG_USER_FLAGS);
         flush_tlb(task, (void *)fault_page);
     }
@@ -289,9 +297,24 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
         }
         memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);
         // 从cow转为unmapped,由mm_map重新映射
-        int set_status = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_UMP);
-        ASSERT(set_status == 0);
-        mm_map(task, new_page, fault_page);
+        ret = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_UMP);
+        if (ret < 0)
+        {
+            mm_free_a_page(new_page);
+            goto end;
+        }
+        ret = mm_map(task, new_page, fault_page);
+        if (ret < 0)
+        {
+            int back_status = 0;
+            back_status = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_COW);
+            if (back_status < 0)
+            {
+                PANIC("page_copy_on_write: Cannot roll back the cow page.");
+            }
+            mm_free_a_page(new_page);
+            goto end;
+        }
         flush_tlb(task, (void *)fault_page);
 
         // 减少引用,并从pg_struct链表中移除
