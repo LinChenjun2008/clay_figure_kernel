@@ -270,16 +270,30 @@ size_t free_pages(phys_addr_t addr, size_t pages)
     page_struct_lock(pfn);
     struct page *head_page = &page_mgr->pages[pfn];
 
-    uint32_t ref_count;
+    int32_t ref_count;
     ref_count = page_reference_dec_lock(pfn);
 
-    ASSERT(head_page->flags & PAGE_HEAD);
-    ASSERT(head_page->count == pages);
+    // 引用计数已经为0(重复释放)或pfn越界
+    if (ref_count <= 0)
+    {
+        PANIC("free_pages: Page reference count underflow.");
+    }
+    if (!(head_page->flags & PAGE_HEAD))
+    {
+        PANIC("free_pages: The page is not a head page.");
+    }
+    if (head_page->count != pages)
+    {
+        PANIC("free_pages: The page count is mismatch.");
+    }
 
     // dec之前只有一个引用,释放页
     if (ref_count == 1)
     {
-        ASSERT(head_page->reference_count == 0);
+        if (head_page->reference_count != 0)
+        {
+            PANIC("free_pages: The page is still referenced.");
+        }
         head_page->flags &= ~PAGE_HEAD;
         head_page->count = 0;
     }

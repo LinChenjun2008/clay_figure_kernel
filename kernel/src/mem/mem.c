@@ -180,7 +180,7 @@ static int is_user_address(uintptr_t addr, size_t size)
     {
         return 0;
     }
-    if (!USER_VMA_SPACE(addr + size - 1))
+    if (size > USER_VMA_TOP - addr)
     {
         return 0;
     }
@@ -327,12 +327,15 @@ void mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
 
     struct list_node *node;
     node = list_traversal(&pg->list, traversal_by_phys, &phys);
-    ASSERT(node != NULL);
+    if (node == NULL)
+    {
+        PANIC("Cannot find the page struct of the physical address.");
+    }
 
     struct page_struct *page_struct = NULL;
     page_struct = CONTAINER_OF(struct page_struct, node, node);
 
-    // 这里其实和ASSERT(node != NULL)等价
+    // 这里其实和node != NULL等价
     ASSERT(page_struct->pfn == ADDR_TO_PFN(phys));
     page_struct->virt = virt;
 
@@ -353,12 +356,15 @@ void mm_unmap(struct task *task, uintptr_t virt)
 
     struct list_node *node;
     node = list_traversal(&pg->list, traversal_by_virt, &virt);
-    ASSERT(node != NULL);
+    if (node == NULL)
+    {
+        PANIC("Cannot find the page struct of the virtual address.");
+    }
 
     struct page_struct *page_struct = NULL;
     page_struct = CONTAINER_OF(struct page_struct, node, node);
 
-    // 这里其实和ASSERT(node != NULL)等价
+    // 这里其实和node != NULL等价
     ASSERT(page_struct->virt == virt);
     page_struct->virt = 0;
 
@@ -432,10 +438,15 @@ void mm_free_address(uintptr_t addr, size_t pages)
         int unmapped = ft_find(&vm->table, start, VM_UMP);
         int cow      = ft_find(&vm->table, start, VM_COW);
 
-        // 地址未分配(或表状态不一致)
-        if (mapped + unmapped + cow != 1)
+        // 一张表里都没有: 已释放或未分配
+        if (mapped + unmapped + cow == 0)
         {
             return;
+        }
+        // 同一页同时出现在多张表里: 内存管理状态已损坏
+        if (mapped + unmapped + cow > 1)
+        {
+            PANIC("The address is in more than one vm table.");
         }
 
         if (unmapped)
@@ -449,13 +460,13 @@ void mm_free_address(uintptr_t addr, size_t pages)
             page_struct = get_page_by_virt(pg, start);
             if (page_struct == NULL)
             {
-                return;
+                PANIC("Cannot find the page struct of the mapped address.");
             }
             if (cow)
             {
                 // 写时复制 -> 已映射(mm_unmap 要求该页处于已映射状态)
-                int set_status =
-                    ft_set_flags(&vm->table, start, PG_SIZE, VM_MAP);
+                int set_status = 0;
+                set_status = ft_set_flags(&vm->table, start, PG_SIZE, VM_MAP);
                 ASSERT(set_status == 0);
             }
             mm_unmap(task, page_struct->virt);
@@ -506,7 +517,7 @@ void mm_remove_a_page(phys_addr_t addr)
     struct page_struct *page_struct = get_page_by_phys(pg, addr);
     if (page_struct == NULL)
     {
-        return;
+        PANIC("Cannot find the page struct of the physical page.");
     }
     ASSERT(page_struct->pfn == pfn);
     list_remove(&page_struct->node);

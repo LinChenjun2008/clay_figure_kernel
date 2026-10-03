@@ -41,6 +41,10 @@ static void page_map_sub(phys_addr_t pg_dir, phys_addr_t phys, uintptr_t virt)
     if (!(*pml4e & PG_P))
     {
         pdpt = kallocate_a_page();
+        if (pdpt == NULL)
+        {
+            PANIC("Cannot allocate a page table for PML4.");
+        }
         memset(pdpt, 0, PT_SIZE);
         *pml4e = VIRT_TO_PHYS(pdpt) | PG_DEFAULT_FLAGS;
     }
@@ -49,6 +53,10 @@ static void page_map_sub(phys_addr_t pg_dir, phys_addr_t phys, uintptr_t virt)
     if (!(*pdpte & PG_P))
     {
         pdt = kallocate_a_page();
+        if (pdt == NULL)
+        {
+            PANIC("Cannot allocate a page table for PDPT.");
+        }
         memset(pdt, 0, PT_SIZE);
         *pdpte = VIRT_TO_PHYS(pdt) | PG_DEFAULT_FLAGS;
     }
@@ -57,6 +65,10 @@ static void page_map_sub(phys_addr_t pg_dir, phys_addr_t phys, uintptr_t virt)
     if (!(*pde & PG_P))
     {
         pt = kallocate_a_page();
+        if (pt == NULL)
+        {
+            PANIC("Cannot allocate a page table for PDT.");
+        }
         memset(pt, 0, PT_SIZE);
         *pde = VIRT_TO_PHYS(pt) | PG_DEFAULT_FLAGS;
     }

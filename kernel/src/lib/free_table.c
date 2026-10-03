@@ -192,6 +192,10 @@ int ft_add(struct free_table *ft, uintptr_t start, size_t size, int flags)
     {
         return -EINVAL;
     }
+    if (size == 0 || start + size < start)
+    {
+        return -EINVAL;
+    }
     if (ft->free >= ft->capacity)
     {
         if (grow(ft) != 0 || ft->free >= ft->capacity)
@@ -314,6 +318,10 @@ static int split_block_at(struct free_table *ft, uintptr_t addr)
 int ft_remove(struct free_table *ft, uintptr_t start, size_t size, int flags)
 {
     if (flags < 0)
+    {
+        return -EINVAL;
+    }
+    if (size == 0 || start + size < start)
     {
         return -EINVAL;
     }
@@ -491,9 +499,15 @@ int ft_set_flags(struct free_table *ft, uintptr_t start, size_t size, int flags)
 
     // 让 start 与 end 成为块的边界(区间已校验存在, 不应失败)
     int split_status = split_block_at(ft, start);
-    ASSERT(split_status == 0);
+    if (split_status != 0)
+    {
+        PANIC("ft_set_flags: Cannot split the block at the range start.");
+    }
     split_status = split_block_at(ft, end);
-    ASSERT(split_status == 0);
+    if (split_status != 0)
+    {
+        PANIC("ft_set_flags: Cannot split the block at the range end.");
+    }
 
     // 把覆盖 [start, end) 的整块改为新 flags
     int i;
