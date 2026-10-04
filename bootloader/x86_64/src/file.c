@@ -6,8 +6,6 @@
 #include <bootloader.h>
 #include <ramfs/struct.h>
 
-#define ALIGN_PAD(X, ALIGN) (((ALIGN) - ((X) & ((ALIGN) - 1))) & ((ALIGN) - 1))
-
 efi_status_t
 read_file(char16_t *file_name, void **file_buffer_base, efi_uint_t *file_size)
 {

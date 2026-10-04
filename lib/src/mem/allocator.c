@@ -140,7 +140,7 @@ static void *small_allocate(struct mem_group *g)
 
 static void *large_allocate(size_t size)
 {
-    size_t pages = (MIN_BLOCK_SIZE + size + PG_SIZE - 1) / PG_SIZE;
+    size_t pages = DIV_ROUND_UP(MIN_BLOCK_SIZE + size, PG_SIZE);
 
     struct mem_cache *c = (struct mem_cache *)allocate_pages(NULL, pages);
     if (c == NULL)

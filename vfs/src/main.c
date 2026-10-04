@@ -42,7 +42,7 @@ static int read_ramfs(void)
     }
 
     // 2. 读取数据
-    size_t ramfs_pages = (total_size + PG_SIZE - 1) / PG_SIZE;
+    size_t ramfs_pages = DIV_ROUND_UP(total_size, PG_SIZE);
     ramfs_base         = allocate_pages(NULL, ramfs_pages);
     if (ramfs_base == NULL)
     {

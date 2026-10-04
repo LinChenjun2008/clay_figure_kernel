@@ -54,7 +54,7 @@ void *load_segment(void *file)
     {
         return NULL;
     }
-    size_t pages = (addr_hi - addr_lo + (PG_SIZE - 1)) & ~PG_SIZE;
+    size_t pages = DIV_ROUND_UP(addr_hi - addr_lo, PG_SIZE);
 
     uintptr_t base_address = mm_allocate_address(0, pages);
     if (base_address == 0)
@@ -115,9 +115,13 @@ void *load_segment(void *file)
                 *address = rela->r_addend + offset;
                 break;
             default:
-                return NULL;
+                goto fail;
                 break;
         }
     }
     return (void *)(ehdr->e_entry + offset);
+
+fail:
+    mm_free_address(base_address, pages);
+    return NULL;
 }
