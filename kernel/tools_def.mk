@@ -5,8 +5,9 @@ AS      = as
 CC      = gcc
 ECHO    = echo
 LD      = ld
+MKDIR   = mkdir
 OBJCOPY = objcopy
-RM      = rm
+RM      = rm -f
 
 CFLAGS += -Wall -Wextra -Werror
 CFLAGS += -Wredundant-decls -Wnested-externs

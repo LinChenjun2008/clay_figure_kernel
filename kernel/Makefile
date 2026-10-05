@@ -1,23 +1,31 @@
 PROJECT_ROOT = ..
 SRC_DIR      = ./src
+OBJ_DIR      = $(PROJECT_ROOT)/build/objects/$(MODULE_NAME)
+MODULE_NAME  = kernel
 
 include ./tools_def.mk
 include $(PROJECT_ROOT)/scripts/rules.mk
 
 include src_list.mk
 
+A_OBJ = $(call to_obj,$(A_SRC),S)
+C_OBJ = $(call to_obj,$(C_SRC),c)
+A_DEP = $(patsubst %.o,%.dep,$(A_OBJ))
+C_DEP = $(patsubst %.o,%.dep,$(C_OBJ))
+
+OBJ   = $(A_OBJ) $(C_OBJ)
+DEP   = $(A_DEP) $(C_DEP)
+
 .PHONY: all
 all: $(TARGET)
 
-$(TARGET): $(C_SRC:.c=.o) $(A_SRC:.S=.o) $(LD_SCRIPT)
+$(TARGET): $(OBJ) $(LD_SCRIPT)
 	@$(ECHO) "LD      $@"
-	@"$(LD)" $(LDFLAGS) -o $@ $(C_SRC:.c=.o) $(A_SRC:.S=.o)
+	@$(LD) $(LDFLAGS) -o $@ $(OBJ)
 
 .PHONY: clean
 clean:
-	-@$(RM) $(C_SRC:.c=.o) $(C_SRC:.c=.dep)
-	-@$(RM) $(A_SRC:.S=.o) $(A_SRC:.S=.dep)
-	-@$(RM) $(TARGET)
+	@$(RM) $(OBJ) $(DEP)
+	@$(RM) $(TARGET)
 
--include $(C_SRC:.c=.dep)
--include $(A_SRC:.S=.dep)
+-include $(DEP)

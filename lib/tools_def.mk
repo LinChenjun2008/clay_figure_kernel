@@ -1,9 +1,10 @@
 TARGET = $(PROJECT_ROOT)/build/lib/libsys.a
 
-AR   = ar
-AS   = as
-CC   = gcc
-ECHO = echo
+AR    = ar
+AS    = as
+CC    = gcc
+ECHO  = echo
+MKDIR = mkdir
 
 ARFLAGS = rcs
 
