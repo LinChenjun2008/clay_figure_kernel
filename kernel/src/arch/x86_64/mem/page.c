@@ -279,7 +279,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
     if (ref_count == 1)
     {
         // 只有当前任务引用该页, 直接恢复为已映射
-        ret = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_MAP);
+        ret = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_MAPPED);
         if (ret < 0)
         {
             goto end;
@@ -297,7 +297,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
         }
         memcpy(PHYS_TO_VIRT(new_page), PHYS_TO_VIRT(cow_page), PG_SIZE);
         // 从cow转为unmapped,由mm_map重新映射
-        ret = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_UMP);
+        ret = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_UNMAPPED);
         if (ret < 0)
         {
             mm_free_a_page(new_page);
@@ -359,17 +359,9 @@ void page_fault(struct pt_regs *regs)
 
     struct vm_struct *vm = &mm->vm_map;
 
-    int unmapped = ft_find(&vm->table, fault_page, VM_UMP);
-    int cow      = ft_find(&vm->table, fault_page, VM_COW);
+    int flags = ft_query_flags(&vm->table, fault_page, PG_SIZE);
 
-    // 访问非法地址
-    if (!unmapped && !cow)
-    {
-        page_fault_fail(task, regs, SEGV_MAPERR, fault_addr);
-        return;
-    }
-
-    if (unmapped)
+    if (flags == VM_UNMAPPED)
     {
         if (page_lazy_allocate(task, fault_page) < 0)
         {
@@ -379,7 +371,7 @@ void page_fault(struct pt_regs *regs)
     }
 
     // cow 页
-    if (cow)
+    else if (flags == VM_COW)
     {
         if (!(regs->error_code & PG_RW_W))
         {
@@ -393,7 +385,12 @@ void page_fault(struct pt_regs *regs)
         }
         return;
     }
-
+    else
+    {
+        // 访问非法地址
+        page_fault_fail(task, regs, SEGV_MAPERR, fault_addr);
+        return;
+    }
     // 不应该到这里
     general_handler(regs);
     return;

@@ -63,11 +63,21 @@ struct task *process_execute(
 
     struct vm_struct *vm = &task->mm->vm_map;
     uintptr_t         user_space_size;
-    user_space_size    = USER_STACK_VADDR_TOP - (ustack_pages + 1) * PG_SIZE;
-    size_t ustack_size = task->ustack_pages << PG_SIZE_SHIFT;
+
+    user_space_size = USER_STACK_VADDR_TOP - USER_VADDR_START;
+    // 扣除用户栈页和1页地址保护页
+    user_space_size -= (ustack_pages + 1) * PG_SIZE;
+
+    size_t ustack_size = task->ustack_pages * PG_SIZE;
     size_t ustack_base = USER_STACK_VADDR_TOP - ustack_size;
-    ft_add(&vm->table, USER_VADDR_START, user_space_size, VM_FRE);
-    ft_add(&vm->table, ustack_base, ustack_size, VM_FRE);
+    if (ft_add(&vm->table, USER_VADDR_START, user_space_size, VM_FREE) < 0)
+    {
+        goto fail;
+    }
+    if (ft_add(&vm->table, ustack_base, ustack_size, VM_FREE) < 0)
+    {
+        goto fail;
+    }
 
     // read executable file
     struct system_info *sys_info = get_system_info();

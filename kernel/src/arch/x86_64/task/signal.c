@@ -98,7 +98,7 @@ static int setup_sigframe(
     sp -= 8;
 
     uintptr_t stack_lo;
-    stack_lo = USER_STACK_VADDR_TOP - (task->ustack_pages << PG_SIZE_SHIFT);
+    stack_lo = USER_STACK_VADDR_TOP - (task->ustack_pages * PG_SIZE);
     if (sp < stack_lo || sp + sizeof(struct sigframe) > USER_STACK_VADDR_TOP)
     {
         return -EFAULT;

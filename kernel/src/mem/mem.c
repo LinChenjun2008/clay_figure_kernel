@@ -199,7 +199,7 @@ uintptr_t mm_allocate_address(uintptr_t addr, size_t pages)
     {
         return 0;
     }
-    size_t size = pages << PG_SIZE_SHIFT;
+    size_t size = pages * PG_SIZE;
 
     if (addr != 0 && !is_user_address(addr, size))
     {
@@ -218,14 +218,14 @@ uintptr_t mm_allocate_address(uintptr_t addr, size_t pages)
     {
         // 未分配 -> 已分配但未映射
         start = addr;
-        if (ft_remove(&vm->table, start, size, VM_FRE) < 0)
+        if (ft_remove(&vm->table, start, size, VM_FREE) < 0)
         {
             return 0;
         }
     }
     else
     {
-        start = ft_allocate(&vm->table, size, VM_FRE);
+        start = ft_allocate(&vm->table, size, VM_FREE);
         if ((intptr_t)start < 0)
         {
             return 0;
@@ -233,10 +233,10 @@ uintptr_t mm_allocate_address(uintptr_t addr, size_t pages)
     }
 
     // 已分配但未映射
-    int add_status = ft_add(&vm->table, start, size, VM_UMP);
+    int add_status = ft_add(&vm->table, start, size, VM_UNMAPPED);
     if (add_status < 0)
     {
-        int back_status = ft_add(&vm->table, start, size, VM_FRE);
+        int back_status = ft_add(&vm->table, start, size, VM_FREE);
         if (back_status < 0)
         {
             PANIC("mm_allocate_address: Cannot roll back the range.");
@@ -312,17 +312,20 @@ int mm_check_addr(struct task *task, void *addr, size_t size, int flags)
 
     while (page <= (end & ~(PG_SIZE - 1)))
     {
-        int mapped   = ft_find(&vm->table, page, VM_MAP);
-        int unmapped = ft_find(&vm->table, page, VM_UMP);
-        int cow      = ft_find(&vm->table, page, VM_COW);
+        int page_flags = ft_query_flags(&vm->table, page, PG_SIZE);
 
         // 页必须已分配给该任务
-        if (!mapped && !unmapped && !cow)
+        switch (page_flags)
         {
-            return -EFAULT; // 地址未分配
+            case VM_MAPPED:
+            case VM_UNMAPPED:
+            case VM_COW:
+                break;
+            default:
+                return -EFAULT;
         }
         // 要求已映射时, 不允许懒分配页
-        if (flags == ADDR_MAPPED && !mapped)
+        if (flags == ADDR_MAPPED && page_flags != VM_MAPPED)
         {
             return -EFAULT;
         }
@@ -339,7 +342,11 @@ int mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
     struct pg_struct *pg = &task->mm->pg_map;
 
     // 已分配但未映射 -> 已映射
-    int set_status = ft_set_flags(&vm->table, virt, PG_SIZE, VM_MAP);
+    if (ft_query_flags(&vm->table, virt, PG_SIZE) != VM_UNMAPPED)
+    {
+        return -EINVAL;
+    }
+    int set_status = ft_set_flags(&vm->table, virt, PG_SIZE, VM_MAPPED);
     if (set_status < 0)
     {
         return set_status;
@@ -371,7 +378,12 @@ int mm_unmap(struct task *task, uintptr_t virt)
     struct pg_struct *pg = &task->mm->pg_map;
 
     // 已映射 -> 未分配
-    int set_status = ft_set_flags(&vm->table, virt, PG_SIZE, VM_FRE);
+    int page_flags = ft_query_flags(&vm->table, virt, PG_SIZE);
+    if (page_flags != VM_MAPPED && page_flags != VM_COW)
+    {
+        return -EINVAL;
+    }
+    int set_status = ft_set_flags(&vm->table, virt, PG_SIZE, VM_FREE);
     if (set_status < 0)
     {
         return set_status;
@@ -403,7 +415,7 @@ int mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt)
     struct vm_struct *vm = &task->mm->vm_map;
 
     // 已映射的页转为写时复制
-    if (ft_find(&vm->table, virt, VM_MAP))
+    if (ft_find(&vm->table, virt, VM_MAPPED))
     {
         int set_status = ft_set_flags(&vm->table, virt, PG_SIZE, VM_COW);
         if (set_status < 0)
@@ -413,7 +425,7 @@ int mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt)
     }
 
     // 写时复制不对未映射的页生效
-    ASSERT(!ft_find(&vm->table, virt, VM_UMP));
+    ASSERT(!ft_find(&vm->table, virt, VM_UNMAPPED));
 
     // 加入写时复制表
     // 如果该页已是cow页但未复制,则不重复添加.
@@ -441,7 +453,7 @@ void mm_free_address(uintptr_t addr, size_t pages)
     {
         return;
     }
-    size_t size = pages << PG_SIZE_SHIFT;
+    size_t size = pages * PG_SIZE;
     if (!is_user_address(addr, size))
     {
         return;
@@ -457,62 +469,39 @@ void mm_free_address(uintptr_t addr, size_t pages)
 
     uintptr_t start = addr;
 
-    struct page_struct *page_struct = NULL;
-    size_t              remain_pages;
+    size_t remain_pages;
     for (remain_pages = pages; remain_pages > 0; remain_pages--)
     {
-        page_struct = NULL;
+        int page_flags = ft_query_flags(&vm->table, start, PG_SIZE);
 
-        int mapped   = ft_find(&vm->table, start, VM_MAP);
-        int unmapped = ft_find(&vm->table, start, VM_UMP);
-        int cow      = ft_find(&vm->table, start, VM_COW);
-
-        // 一张表里都没有: 已释放或未分配
-        if (mapped + unmapped + cow == 0)
-        {
-            return;
-        }
-        // 同一页同时出现在多张表里: 内存管理状态已损坏
-        if (mapped + unmapped + cow > 1)
-        {
-            PANIC("The address is in more than one vm table.");
-        }
-
-        if (unmapped)
+        if (page_flags == VM_UNMAPPED)
         {
             // 已分配但未映射 -> 未分配
-            int set_status = ft_set_flags(&vm->table, start, PG_SIZE, VM_FRE);
+            int set_status = ft_set_flags(&vm->table, start, PG_SIZE, VM_FREE);
             if (set_status < 0)
             {
                 return;
             }
         }
-        else
+        else if (page_flags == VM_MAPPED || page_flags == VM_COW)
         {
-            page_struct = get_page_by_virt(pg, start);
+            struct page_struct *page_struct = get_page_by_virt(pg, start);
             if (page_struct == NULL)
             {
                 PANIC("Cannot find the page struct of the mapped address.");
             }
-            if (cow)
-            {
-                // 写时复制 -> 已映射(mm_unmap 要求该页处于已映射状态)
-                int set_status = 0;
-                set_status = ft_set_flags(&vm->table, start, PG_SIZE, VM_MAP);
-                if (set_status < 0)
-                {
-                    return;
-                }
-            }
-            if (mm_unmap(task, page_struct->virt) < 0)
+            if (mm_unmap(task, start) < 0)
             {
                 return;
             }
             flush_tlb(task, (void *)start);
-
             mm_free_a_page(PFN_TO_ADDR(page_struct->pfn));
         }
-
+        // 没有分配的地址
+        else
+        {
+            return;
+        }
         start += PG_SIZE;
     }
     return;

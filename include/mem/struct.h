@@ -58,11 +58,11 @@ struct page
 
 enum vm_type
 {
-    VM_FRE = 1, // 所有未分配的地址空间
-    VM_MAP,     // 已分配并映射到物理页的地址空间
-    VM_UMP,     // 已分配但未映射到物理页的地址空间
-    VM_COW,     // 用作copy-on-write的页面
-    VM_MIO,     // mmio空间
+    VM_FREE = 1, // 所有未分配的地址空间
+    VM_MAPPED,   // 已分配并映射到物理页的地址空间
+    VM_UNMAPPED, // 已分配但未映射到物理页的地址空间(lazy allocate)
+    VM_COW,      // 用作copy-on-write的页面
+    VM_MMIO,     // mmio空间
 };
 
 struct vm_struct
