@@ -1,5 +1,5 @@
 RAMFS_DIR = $(PROJECT_ROOT)/build/ramfs
-TARGET    = $(RAMFS_DIR)/
+TARGET    = $(RAMFS_DIR)/module_name
 
 CC    = gcc
 ECHO  = echo

@@ -5,6 +5,7 @@ AS    = as
 CC    = gcc
 ECHO  = echo
 MKDIR = mkdir
+RM    = rm -r
 
 ARFLAGS = rcs
 
