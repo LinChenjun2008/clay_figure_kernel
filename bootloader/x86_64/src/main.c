@@ -76,17 +76,15 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
         printf(L"Failed to read kernel/system\r\n");
         return EFI_ERR;
     }
-    uintptr_t phy_base  = 0x100000;
-    uintptr_t rel_base  = KERNEL_TEXT_BASE;
-    size_t    load_size = 0;
-    uintptr_t entry;
-    if (load_segment(sys_addr, &phy_base, &rel_base, &entry) < 0)
+    uintptr_t phys = 0x100000;
+    uintptr_t virt;
+    void     *entry = load_segment(sys_addr, &phys, &virt);
+    if (entry == NULL)
     {
         printf(L"load_segment error.\r\n");
         return EFI_ERR;
     }
-    boot_info->relocate_offset = rel_base - phy_base;
-    load_size                  = calculate_load_size(sys_addr);
+    size_t load_size = calculate_load_size(sys_addr);
 
     // Allocate kernel stack (4kib)
     efi_physical_address_t kstack;
@@ -155,7 +153,7 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     // Create page table
     struct memory_map *memmap = &boot_info->memory_map;
     uintptr_t          pg_dir;
-    status = create_page_table(&pg_dir, memmap, phy_base, rel_base, load_size);
+    status = create_page_table(&pg_dir, memmap, phys, virt, load_size);
     if (EFI_ERROR(status))
     {
         printf(L"create_page_table: ERROR(%d).\r\n", status);
@@ -189,7 +187,7 @@ efi_main(efi_handle_t in_image_handle, struct efi_system_table *in_system_table)
     }
 
     preprocess_system_info(system_info);
-    int(SYSV_ABI * kernel)(struct system_info *, uintptr_t) = (void *)(entry);
+    int(SYSV_ABI * kernel)(struct system_info *, uintptr_t) = entry;
 
     status = kernel(system_info, pg_dir);
 

@@ -35,7 +35,6 @@ struct boot_info
     size_t initramfs_size;
 
     phys_addr_t pg_dir;
-    uintptr_t   relocate_offset;
 
     phys_addr_t stack_base;
     size_t      stack_pages;

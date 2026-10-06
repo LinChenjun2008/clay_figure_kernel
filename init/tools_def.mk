@@ -1,10 +1,11 @@
 RAMFS_DIR = $(PROJECT_ROOT)/build/ramfs
 TARGET    = $(RAMFS_DIR)/init
 
-CC   = gcc
-ECHO = echo
-LD   = ld
-RM   = rm
+CC    = gcc
+ECHO  = echo
+LD    = ld
+MKDIR = mkdir
+RM    = rm -f
 
 CFLAGS += -Wall -Wextra -Werror
 CFLAGS += -Wredundant-decls -Wnested-externs

@@ -189,7 +189,7 @@ void *kmalloc(size_t size, size_t alignment, size_t boundary)
         uintptr_t ptr       = (uintptr_t)c + MIN_BLOCK_SIZE;
         if (alignment != 0)
         {
-            ptr = (ptr + alignment - 1) & ~(alignment - 1);
+            ptr += ALIGN_PAD(ptr, alignment);
         }
         return (void *)ptr;
     }

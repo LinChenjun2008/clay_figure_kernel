@@ -10,6 +10,7 @@ struct free_block
 {
     uintptr_t start;
     size_t    size;
+    int       flags;
 };
 
 struct free_table
@@ -20,16 +21,21 @@ struct free_table
     int                free;
 };
 
-void init_free_table(struct free_table *free_table, int step);
-void destroy_free_table(struct free_table *free_table);
-int free_table_add(struct free_table *free_table, uintptr_t start, size_t size);
-int free_table_remove(
-    struct free_table *free_table,
+void init_free_table(struct free_table *ft, int step);
+void destroy_free_table(struct free_table *ft);
+
+int ft_add(struct free_table *ft, uintptr_t start, size_t size, int flags);
+int ft_remove(struct free_table *ft, uintptr_t start, size_t size, int flags);
+intptr_t ft_allocate(struct free_table *ft, size_t size, int flags);
+int      ft_find(struct free_table *ft, uintptr_t start, int flags);
+int      ft_query_flags(struct free_table *ft, uintptr_t start, size_t size);
+int      ft_set_flags(
+    struct free_table *ft,
     uintptr_t          start,
-    size_t             size
+    size_t             size,
+    int                flags
 );
-intptr_t free_table_allocate(struct free_table *free_table, size_t size);
-int      free_table_find(struct free_table *free_table, uintptr_t start);
-int      copy_free_table(struct free_table *dst, struct free_table *src);
+
+int copy_free_table(struct free_table *dst, struct free_table *src);
 
 #endif /* __LIB_FREE_TABLE_H__ */

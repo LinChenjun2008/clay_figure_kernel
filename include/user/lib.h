@@ -15,6 +15,8 @@
 #    define NULL ((void *)0)
 #endif
 
+#define DIV_ROUND_UP(X, STEP) (((X) + (STEP - 1)) / STEP)
+
 #define SIGHUP    1
 #define SIGINT    2
 #define SIGQUIT   3

@@ -1,9 +1,10 @@
 TARGET = $(PROJECT_ROOT)/build/esp/efi/boot/bootx64.efi
 
-CC   = x86_64-w64-mingw32-gcc
-ECHO = echo
-LD   = ld
-RM   = rm
+CC    = x86_64-w64-mingw32-gcc
+ECHO  = echo
+LD    = ld
+MKDIR = mkdir
+RM    = rm -f
 
 CFLAGS += -Wall -Wextra -Werror
 CFLAGS += -Wredundant-decls -Wnested-externs

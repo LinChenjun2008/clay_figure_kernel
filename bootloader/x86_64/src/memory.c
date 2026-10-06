@@ -231,8 +231,8 @@ static size_t calculate_max_pfn(struct memory_map *memmap)
 efi_status_t create_page_table(
     void              *pg_dir,
     struct memory_map *memmap,
-    uintptr_t          phy_base,
-    uintptr_t          rel_base,
+    uintptr_t          phys_base,
+    uintptr_t          virt_base,
     size_t             load_size
 )
 {
@@ -281,8 +281,8 @@ efi_status_t create_page_table(
     // kernel code
     uint64_t load_pages = DIV_ROUND_UP(load_size, PG_SIZE);
 
-    phys = (void *)phy_base;
-    virt = (void *)rel_base;
+    phys = (void *)phys_base;
+    virt = (void *)virt_base;
     printf(L"mmap: %p - %p.\r\n", phys, virt);
     boot_page_map(page_table, phys, virt, load_pages);
 

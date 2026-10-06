@@ -4,7 +4,7 @@ ENTRY(kernel_entry)
 
 SECTIONS
 {
-    . = 0;
+    . = 0xffffffff80000000;
     _kernel_start = .;
 
     _text = .;
@@ -22,13 +22,6 @@ SECTIONS
         *(.rodata .rodata.*)
     } :rodata
     _erodata = .;
-
-    . = ALIGN(8);
-
-    .dynamic :
-    {
-        *(.dynamic)
-    } :rodata :dynamic
 
     . = ALIGN(8);
 
@@ -58,8 +51,7 @@ SECTIONS
 
 PHDRS
 {
-    text    PT_LOAD    FLAGS(5); /* RX (0x5) */
-    rodata  PT_LOAD    FLAGS(4); /* R  (0x4) */
-    dynamic PT_DYNAMIC FLAGS(4); /* R  (0x4) */
-    data    PT_LOAD    FLAGS(6); /* RW (0x6) */
+    text   PT_LOAD FLAGS(5); /* RX (0x5) */
+    rodata PT_LOAD FLAGS(4); /* R  (0x4) */
+    data   PT_LOAD FLAGS(6); /* RW (0x6) */
 }

@@ -58,17 +58,16 @@ struct page
 
 enum vm_type
 {
-    VM_TAB, // 所有未分配的地址空间
-    VM_MAP, // 已分配并映射到物理页的地址空间
-    VM_UMP, // 已分配但未映射到物理页的地址空间
-    VM_COW, // 用作copy-on-write的页面
-    VM_MIO, // mmio空间
-    MAX_VM_TYPE,
+    VM_FRE = 1, // 所有未分配的地址空间
+    VM_MAP,     // 已分配并映射到物理页的地址空间
+    VM_UMP,     // 已分配但未映射到物理页的地址空间
+    VM_COW,     // 用作copy-on-write的页面
+    VM_MIO,     // mmio空间
 };
 
 struct vm_struct
 {
-    struct free_table table[MAX_VM_TYPE];
+    struct free_table table;
 };
 
 struct page_struct
