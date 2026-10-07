@@ -1,12 +1,9 @@
 PROJECT_ROOT = ..
 SRC_DIR      = ./
-OBJ_DIR      = $(PROJECT_ROOT)/build/$(MODULE_NAME)
-MODULE_NAME  = tools/imgcopy
+OBJ_DIR      = $(PROJECT_ROOT)/build/objects/$(MODULE_NAME)
+MODULE_NAME  = imgcopy
 
-CC    = gcc
-ECHO  = echo
-MKDIR = mkdir
-RM    = rm
+include $(PROJECT_ROOT)/scripts/tools_def.mk
 
 CFLAGS = -I$(PROJECT_ROOT)/include/
 
@@ -25,8 +22,16 @@ DEP   = $(A_DEP) $(C_DEP)
 TARGET = $(PROJECT_ROOT)/build/tools/imgcopy/imgcopy
 
 $(TARGET): $(OBJ)
+	@$(MKDIR) -p $(@D)
+	@$(ECHO) "LD      $@"
 	@$(CC) -o $@ $(OBJ)
 
+.PHONY: all
 all: $(TARGET)
+
+.PHONY: clean
+clean:
+	@$(RM) $(OBJ) $(DEP)
+	@$(RM) $(TARGET)
 
 -include $(DEP)
