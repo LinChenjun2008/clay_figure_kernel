@@ -89,7 +89,7 @@ int ipc_send(struct msg_head *msg, pid_t dst_pid)
         return -ESRCH;
     }
     dst = &dst_task->mailbox;
-    if (TASK_STATUS(dst_task->status) == TASK_DIED)
+    if (TASK_STATUS(dst_task) == TASK_DIED)
     {
         status = -ESRCH;
         goto end;

@@ -9,7 +9,7 @@
 #define TASK_STATUS_MASK  0x7
 #define TASK_STATUS_SHIFT 0
 
-#define TASK_STATUS(X) GET_FIELD(X, TASK_STATUS)
+#define TASK_STATUS(TASK) GET_FIELD((TASK)->status, TASK_STATUS)
 
 #define TASK_READY      1
 #define TASK_RUNNING    2
@@ -20,10 +20,15 @@
 #define TASK_DIED       7
 #define UNINTERRUPTABLE (1 << 3)
 
-#define TASK_FLAG_USER 1
+#define TASK_FLAG_MASK   1
+#define TASK_FLAG_KERNEL 0
+#define TASK_FLAG_USER   1
 
-#define IS_USER_TASK(TASK)   (((TASK)->task_flags & TASK_FLAG_USER) != 0)
-#define IS_KERNEL_TASK(TASK) (((TASK)->task_flags & TASK_FLAG_USER) == 0)
+#define IS_USER_TASK(TASK) \
+    (((TASK)->task_flags & TASK_FLAG_MASK) == TASK_FLAG_USER)
+
+#define IS_KERNEL_TASK(TASK) \
+    (((TASK)->task_flags & TASK_FLAG_MASK) == TASK_FLAG_KERNEL)
 
 #define SLOTS_PER_LEVEL 256
 

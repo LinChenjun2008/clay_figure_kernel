@@ -468,6 +468,7 @@ struct task *task_start(
         goto fail;
     }
     init_task_struct(task, name, prio, kstack_base, kstack_pages, 0);
+    task->task_flags = TASK_FLAG_KERNEL;
 
     task->pg_dir = get_task_mgr()->kernel_pg_dir;
 

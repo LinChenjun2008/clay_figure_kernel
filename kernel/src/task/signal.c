@@ -103,7 +103,7 @@ int send_signal(pid_t pid, int sig, struct siginfo *info)
     {
         return -ESRCH;
     }
-    if (TASK_STATUS(task->status) == TASK_DIED)
+    if (TASK_STATUS(task) == TASK_DIED)
     {
         status = -ESRCH;
     }
@@ -143,7 +143,7 @@ int send_signal_child(pid_t pid, int code, pid_t child, int status)
     {
         return -ESRCH;
     }
-    if (TASK_STATUS(task->status) == TASK_DIED)
+    if (TASK_STATUS(task) == TASK_DIED)
     {
         ret = -ESRCH;
     }
