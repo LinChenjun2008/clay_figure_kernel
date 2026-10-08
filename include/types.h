@@ -16,7 +16,7 @@ typedef int pid_t;
 typedef unsigned char char8_t;
 typedef unsigned short char16_t;
 
-typedef uint32_t cap_handle_t;
+typedef int32_t cap_handle_t;
 
 // other types
 #include <types/message.h>
