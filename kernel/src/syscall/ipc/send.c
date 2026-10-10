@@ -70,7 +70,7 @@ int ipc_send(struct msg_head *msg, pid_t dst_pid)
         return -EDEADLK;
     }
 
-    if (IS_USER_TASK(src_task))
+    if (IS_USER_PROG(src_task))
     {
         status = mm_check_addr(src_task, msg->data, msg->size, ADDR_MAPPED);
         if (status < 0)

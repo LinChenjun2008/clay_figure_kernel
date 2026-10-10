@@ -33,7 +33,7 @@ static int check_user_address(const void *addr, size_t size)
         return 0;
     }
     struct task *task = get_current_task();
-    if (!IS_USER_TASK(task))
+    if (!IS_USER_PROG(task))
     {
         return 0;
     }

@@ -20,7 +20,7 @@
 int check_message(struct task *task, struct msg_head *msg)
 {
     // 1. 用户消息头必须位于任务对应的地址空间, 且必须已映射
-    if (IS_USER_TASK(task))
+    if (IS_USER_PROG(task))
     {
         if (!USER_VMA_SPACE(msg))
         {

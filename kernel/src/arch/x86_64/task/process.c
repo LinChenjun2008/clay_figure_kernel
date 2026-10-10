@@ -56,7 +56,7 @@ void switch_to_user(void *func, void *arg)
 
     regs->rip    = (word_t)func;
     regs->cs     = SELECTOR_USER_CODE64;
-    regs->rflags = EFLAGS_IOPL_0 | EFLAGS_MBS | EFLAGS_IF_1;
+    regs->rflags = EFLAGS_IOPL_3 | EFLAGS_MBS | EFLAGS_IF_1;
     regs->rsp    = (word_t)USER_STACK_VADDR_TOP;
     regs->ss     = SELECTOR_USER_DATA64;
 

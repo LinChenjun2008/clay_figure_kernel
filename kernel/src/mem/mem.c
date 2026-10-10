@@ -295,7 +295,7 @@ int mm_check_addr(struct task *task, void *addr, size_t size, int flags)
     {
         return 0;
     }
-    ASSERT(IS_USER_TASK(task) && task->mm != NULL);
+    ASSERT(IS_USER_PROG(task) && task->mm != NULL);
 
     uintptr_t start = (uintptr_t)addr;
     uintptr_t end   = start + size - 1;

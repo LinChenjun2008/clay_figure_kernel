@@ -178,7 +178,7 @@ void signal_check(struct pt_regs *regs)
     {
         return;
     }
-    if (IS_KERNEL_TASK(task))
+    if (IS_KERN_TASK(task))
     {
         return;
     }
@@ -244,7 +244,7 @@ word_t sys_sigret(struct pt_regs *regs)
     // handler 的 ret 已弹出 retcode, 故 rsp 指向 frame->signum, 即 frame + 8
     uintptr_t frame_addr = regs->rsp - 8;
 
-    if (!IS_USER_TASK(task) || task->mm == NULL)
+    if (!IS_USER_PROG(task) || task->mm == NULL)
     {
         return -EFAULT;
     }

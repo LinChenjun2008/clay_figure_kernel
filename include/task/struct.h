@@ -20,15 +20,16 @@
 #define TASK_DIED       7
 #define UNINTERRUPTABLE (1 << 3)
 
-#define TASK_FLAG_MASK   1
-#define TASK_FLAG_KERNEL 0
-#define TASK_FLAG_USER   1
+#define KERN_TASK 0 // 内核态任务
+#define SERV_TASK 1 // 用户态服务任务
+#define USER_TASK 2 // 用户态普通任务
 
-#define IS_USER_TASK(TASK) \
-    (((TASK)->task_flags & TASK_FLAG_MASK) == TASK_FLAG_USER)
+#define IS_KERN_TASK(TASK) (((TASK)->task_flags) == KERN_TASK)
+#define IS_SERV_TASK(TASK) (((TASK)->task_flags) == SERV_TASK)
+#define IS_USER_TASK(TASK) (((TASK)->task_flags) == SERV_TASK)
 
-#define IS_KERNEL_TASK(TASK) \
-    (((TASK)->task_flags & TASK_FLAG_MASK) == TASK_FLAG_KERNEL)
+// 判断是否是运行在用户态的任务
+#define IS_USER_PROG(TASK) (((TASK)->task_flags) >= SERV_TASK)
 
 #define SLOTS_PER_LEVEL 256
 

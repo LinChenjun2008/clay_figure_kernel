@@ -18,7 +18,7 @@
 // 取得src_task地址空间中addr处msg_head的可访问指针
 static struct msg_head *msg_from_other(struct task *src_task, uintptr_t addr)
 {
-    if (IS_KERNEL_TASK(src_task))
+    if (IS_KERN_TASK(src_task))
     {
         return (struct msg_head *)addr;
     }
@@ -33,7 +33,7 @@ static struct msg_head *msg_from_other(struct task *src_task, uintptr_t addr)
 // 将用户进程的地址转为内核空间的地址
 static void *to_kernel_address(struct task *src_task, uintptr_t addr)
 {
-    if (IS_KERNEL_TASK(src_task))
+    if (IS_KERN_TASK(src_task))
     {
         return (void *)addr;
     }
@@ -137,7 +137,7 @@ int ipc_recv(struct msg_head *msg, int option)
         return status;
     }
     // 接收方的数据区只要求地址已分配(未映射页由内核态缺页处理自动补页)
-    if (IS_USER_TASK(dst_task))
+    if (IS_USER_PROG(dst_task))
     {
         status = mm_check_addr(dst_task, msg->data, msg->size, ADDR_ALLOCATED);
         if (status < 0)
