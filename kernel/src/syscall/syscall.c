@@ -23,8 +23,11 @@
 #include <task/process.h>
 #include <task/signal.h>
 #include <task/wait.h>
+l
+//
+#include <print.h>
 
-void *syscall_table[NR_CONT];
+    void *syscall_table[NR_CONT];
 
 static int check_user_address(const void *addr, size_t size)
 {
@@ -74,6 +77,13 @@ static word_t sys_send(struct pt_regs *regs)
     struct msg_head *msg     = (struct msg_head *)regs->rsi;
     pid_t            dst_pid = (pid_t)regs->rdx;
 
+    // 此处为服务进程开后门,便于日志输出
+    // 后期将删除,切勿依赖
+    if (IS_SERV_TASK(get_current_task()) && msg->type == MSG_LOG)
+    {
+        printk(msg->data);
+        return 0;
+    }
     return (word_t)ipc_send(msg, dst_pid);
 }
 

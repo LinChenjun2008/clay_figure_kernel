@@ -66,3 +66,13 @@ int sigaction(int sig, const struct sigaction *act, struct sigaction *oldact)
 {
     return (int)syscall_3(NR_SACT, sig, (word_t)act, (word_t)oldact);
 }
+
+void dprintf(const char *str, size_t len)
+{
+    struct msg_head msg;
+    msg.data = (void *)str;
+    msg.size = len;
+    msg.type = MSG_LOG;
+    send(&msg, 0);
+    return;
+}

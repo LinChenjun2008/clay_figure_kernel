@@ -99,6 +99,9 @@ void  lib_allocator_init(void);
 void *malloc(size_t size);
 void  free(void *addr);
 
+// 字符串打印(调试用)
+void dprintf(const char *str, size_t len);
+
 // io.S
 uint32_t ASMLINKAGE io_in8(uint32_t port);
 uint32_t ASMLINKAGE io_in16(uint32_t port);

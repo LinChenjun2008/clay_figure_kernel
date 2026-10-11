@@ -75,5 +75,6 @@ void launch_services(struct system_info *sysinfo)
 {
     printk("launch VFS service.\n");
     launch_vfs(sysinfo);
+    process_execute("test", DEFAULT_PRIO, 1, 1, NULL);
     return;
 }

@@ -27,8 +27,8 @@
 #define PID_COUNT_SHIFT 16
 #define PID_COUNT_MASK  0xffff
 
-#define PID_NULL  -1
-#define PID_ANY   -2
+#define PID_ANY   -1
+#define PID_NULL  -2
 #define PID_ERROR -3
 
 #define MAX_NICE 20

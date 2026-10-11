@@ -80,8 +80,6 @@ copy_from_other(struct msg_head *dst_msg, uintptr_t src, struct task *src_task)
 
     if (src_msg->size > dst_capacity)
     {
-        // 接收方缓冲区不够: 回写自身容量, 供发送方重整后重试
-        src_msg->size = dst_capacity;
         return -E2BIG;
     }
 
