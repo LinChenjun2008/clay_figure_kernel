@@ -6,6 +6,8 @@
 #ifndef __USER_LIB_H__
 #define __USER_LIB_H__
 
+#define ASMLINKAGE __attribute__((sysv_abi))
+
 #include <types.h>
 
 // system calls
@@ -96,5 +98,14 @@ int   sigaction(int sig, const struct sigaction *act, struct sigaction *oldact);
 void  lib_allocator_init(void);
 void *malloc(size_t size);
 void  free(void *addr);
+
+// io.S
+uint32_t ASMLINKAGE io_in8(uint32_t port);
+uint32_t ASMLINKAGE io_in16(uint32_t port);
+uint32_t ASMLINKAGE io_in32(uint32_t port);
+
+void ASMLINKAGE io_out8(uint32_t port, uint32_t data);
+void ASMLINKAGE io_out16(uint32_t port, uint32_t data);
+void ASMLINKAGE io_out32(uint32_t port, uint32_t data);
 
 #endif /* __USER_LIB_H__ */
