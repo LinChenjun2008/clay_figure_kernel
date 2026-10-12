@@ -8,29 +8,13 @@
 #include <asm/page.h>
 
 #include <errno.h>
-#include <mem.h>
 #include <std/string.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
 #include <task/struct.h>
 
-// 取得src_task地址空间中addr处msg_head的可访问指针
-static struct msg_head *msg_from_other(struct task *src_task, uintptr_t addr)
-{
-    if (IS_KERN_TASK(src_task))
-    {
-        return (struct msg_head *)addr;
-    }
-    phys_addr_t src_phys = to_physical_address(src_task->pg_dir, addr);
-    if (src_phys == 0)
-    {
-        return NULL;
-    }
-    return (struct msg_head *)PHYS_TO_VIRT(src_phys);
-}
-
-// 将用户进程的地址转为内核空间的地址
+// 把发送方地址空间中addr处的地址换为内核可直接访问的地址(按页转换)
 static void *to_kernel_address(struct task *src_task, uintptr_t addr)
 {
     if (IS_KERN_TASK(src_task))
@@ -46,6 +30,7 @@ static void *to_kernel_address(struct task *src_task, uintptr_t addr)
     return (void *)((uintptr_t)PHYS_TO_VIRT(phys) + (addr - page));
 }
 
+// 把发送方的数据按页复制到接收方的缓冲区
 static int copy_data(void *dst, struct task *src_task, void *src, size_t size)
 {
     size_t done = 0;
@@ -53,8 +38,8 @@ static int copy_data(void *dst, struct task *src_task, void *src, size_t size)
     {
         uintptr_t src_addr = (uintptr_t)src + done;
         size_t chunk = MIN(size - done, PG_SIZE - (src_addr & (PG_SIZE - 1)));
+        void  *src_page = to_kernel_address(src_task, src_addr);
 
-        void *src_page = to_kernel_address(src_task, src_addr);
         if (src_page == NULL)
         {
             return -EFAULT;
@@ -65,15 +50,13 @@ static int copy_data(void *dst, struct task *src_task, void *src, size_t size)
     return 0;
 }
 
-static int
-copy_from_other(struct msg_head *dst_msg, uintptr_t src, struct task *src_task)
+// 把发送方的消息复制到接收方的落地缓冲区
+static int copy_from_other(
+    struct msg_head *dst_msg,
+    struct msg_head *src_msg,
+    struct task     *src_task
+)
 {
-    struct msg_head *src_msg = msg_from_other(src_task, src);
-    if (src_msg == NULL)
-    {
-        return -EFAULT;
-    }
-
     // 接收方在接收前设置的落地缓冲区及其容量, 不能被发送方的消息覆盖
     void  *dst_data     = dst_msg->data;
     size_t dst_capacity = dst_msg->size;
@@ -86,7 +69,7 @@ copy_from_other(struct msg_head *dst_msg, uintptr_t src, struct task *src_task)
     *dst_msg      = *src_msg;
     dst_msg->data = dst_data;
 
-    // 把发送方的数据复制到data指针处
+    // 发送方的数据区属于发送方的地址空间, 按页转换后复制
     int ret = copy_data(dst_data, src_task, src_msg->data, src_msg->size);
     if (ret < 0)
     {
@@ -129,21 +112,6 @@ int ipc_recv(struct msg_head *msg, int option)
     int             recv_status = 0;
     int             wake_status = 0;
 
-    status = check_message(dst_task, msg);
-    if (status < 0)
-    {
-        return status;
-    }
-    // 接收方的数据区只要求地址已分配(未映射页由内核态缺页处理自动补页)
-    if (IS_USER_PROG(dst_task))
-    {
-        status = mm_check_addr(dst_task, msg->data, msg->size, ADDR_ALLOCATED);
-        if (status < 0)
-        {
-            return status;
-        }
-    }
-
     while (1)
     {
         struct mailbox  *src      = NULL;
@@ -159,7 +127,7 @@ int ipc_recv(struct msg_head *msg, int option)
         {
             // 2. 锁外拷贝
             src_task    = mailbox_to_task(src);
-            recv_status = copy_from_other(msg, (uintptr_t)src_msg, src_task);
+            recv_status = copy_from_other(msg, src_msg, src_task);
             // 3. 锁内回写结果
             spin_lock(&dst->send_lock);
             ipc_recv_inform(src, recv_status);

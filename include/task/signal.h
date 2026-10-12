@@ -7,6 +7,7 @@
 #define __TASK_SIGNAL_H__
 
 #include <sync/spinlock.h>
+#include <types/signal.h>
 
 #define SIGHUP    1
 #define SIGINT    2

@@ -14,7 +14,6 @@ struct mailbox;
 struct msg_head;
 struct task;
 
-int             check_message(struct task *task, struct msg_head *msg);
 struct mailbox *send_node_to_mailbox(struct list_node *node);
 struct task    *mailbox_to_task(struct mailbox *mailbox);
 

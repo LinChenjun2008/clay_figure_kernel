@@ -5,60 +5,14 @@
 
 #include <base.h>
 
-#include <asm/page.h>
-
 #include <errno.h>
-#include <panic.h>
 #include <std/string.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
 #include <task/struct.h>
 
-// 检查message结构是否正常设置
-/// TODO: 检查msg所在页面是否可读写(目前暂无只读/只写页面).
-int check_message(struct task *task, struct msg_head *msg)
-{
-    // 1. 用户消息头必须位于任务对应的地址空间, 且必须已映射
-    if (IS_USER_PROG(task))
-    {
-        if (!USER_VMA_SPACE(msg))
-        {
-            return -EINVAL;
-        }
-        if (to_physical_address(task->pg_dir, (uintptr_t)msg) == 0)
-        {
-            return -EFAULT;
-        }
-    }
-    // 内核任务消息需要在内核空间
-    else if (!KERN_VMA_SPACE(msg))
-    {
-        return -EINVAL;
-    }
-    // 2. 消息头(定长)必须完整落在同一物理页内
-    uintptr_t start = (uintptr_t)msg;
-    uintptr_t end   = start + sizeof(*msg) - 1;
-
-    // 用PFN辅助判断
-    if (ADDR_TO_PFN(start) != ADDR_TO_PFN(end))
-    {
-        return -EINVAL;
-    }
-    // 从此开始可以访问msg内部字段.
-    // 3. 数据区字段检查(地址范围与字节数由发送方/接收方各自按需校验):
-    //    发送方用data/size描述要发送的数据, 接收方用data/size描述接收缓冲区及其容量
-    if (msg->size == 0)
-    {
-        return 0;
-    }
-    if (msg->data == NULL)
-    {
-        return -EINVAL;
-    }
-    return 0;
-}
-
+// 由发送节点取得其所属的mailbox
 struct mailbox *send_node_to_mailbox(struct list_node *node)
 {
     if (node == NULL)
@@ -74,8 +28,6 @@ struct task *mailbox_to_task(struct mailbox *mailbox)
 }
 
 // wait_event 条件: 有可接收的消息
-// 这里不加锁读链表: 发送方先把自己挂进send_list再唤醒, 且等待者被唤醒后
-// 会在send_lock内重新确认, 所以读到旧值最多多循环一次
 int ipc_recv_wakeup_condition(void *arg)
 {
     struct mailbox *dst = arg;
