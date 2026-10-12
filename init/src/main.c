@@ -9,10 +9,11 @@ int main(void)
 {
     while (1)
     {
-        pid_t pid = wait(-1, NULL);
+        int   status = 0;
+        pid_t pid    = wait(-1, &status);
         if (pid >= 0)
         {
-            dprintf("init: task exit with status:\n", pid);
+            dprintf("init: exit{ pid=%d, status=%d }\n", pid, status);
         }
     }
     return 0;

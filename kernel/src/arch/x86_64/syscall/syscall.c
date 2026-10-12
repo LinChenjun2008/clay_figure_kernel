@@ -126,7 +126,11 @@ static word_t sys_send(struct pt_regs *regs)
         {
             return (word_t)-EINVAL;
         }
-        printk((char *)msg.data);
+        if (msg.size >= 256)
+        {
+            return (word_t)-E2BIG;
+        }
+        printk("%s", (char *)msg.data);
         return 0;
     }
 

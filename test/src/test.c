@@ -7,6 +7,6 @@
 
 int main(void)
 {
-    dprintf("Hello world!\n", 0);
+    dprintf("Hello world!\n");
     return 0;
 }
