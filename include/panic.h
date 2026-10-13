@@ -14,18 +14,23 @@
         panic_spin(__func__, __LINE__, MSG_HIGHLIGHT(MESSAGE) "\n"); \
     } while (0)
 
-#define ASSERT(CONDITION)                                             \
-    do                                                                \
-    {                                                                 \
-        if (!(CONDITION))                                             \
-        {                                                             \
-            panic_spin(                                               \
-                __func__,                                             \
-                __LINE__,                                             \
-                "Assertion '" MSG_HIGHLIGHT(#CONDITION) "' failed.\n" \
-            );                                                        \
-        }                                                             \
-    } while (0)
+#ifdef NDEBUG
+#    define ASSERT(CONDITION) ((void)0)
+#else
+
+#    define ASSERT(CONDITION)                                             \
+        do                                                                \
+        {                                                                 \
+            if (!(CONDITION))                                             \
+            {                                                             \
+                panic_spin(                                               \
+                    __func__,                                             \
+                    __LINE__,                                             \
+                    "Assertion '" MSG_HIGHLIGHT(#CONDITION) "' failed.\n" \
+                );                                                        \
+            }                                                             \
+        } while (0)
+#endif
 
 #define PERROR(ERRNO)            \
     do                           \

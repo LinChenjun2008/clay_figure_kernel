@@ -535,7 +535,6 @@ phys_addr_t mm_allocate_a_page(void)
 // 移除addr对应的page_struct,但不释放物理页
 void mm_remove_a_page(phys_addr_t addr)
 {
-    size_t       pfn  = ADDR_TO_PFN(addr);
     struct task *task = get_current_task();
     ASSERT(task->mm != NULL);
 
@@ -546,7 +545,7 @@ void mm_remove_a_page(phys_addr_t addr)
     {
         PANIC("Cannot find the page struct of the physical page.");
     }
-    ASSERT(page_struct->pfn == pfn);
+    ASSERT(page_struct->pfn == ADDR_TO_PFN(addr));
     list_remove(&page_struct->node);
     kfree(page_struct);
     return;

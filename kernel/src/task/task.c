@@ -91,11 +91,18 @@ void task_init(struct system_info *system_info)
 
     make_main_task(kstack_base, boot_info->stack_pages);
     int status = pid_table_insert(cpu->main_task);
+    if (status != 0)
+    {
+        PANIC("failed to create init task.\n");
+    }
     ASSERT(status == 0);
     struct task *init = process_execute("init", IDLE_PRIO, 1, 1, NULL);
     ASSERT(init != NULL);
     ASSERT(init->pid == 1);
-
+    if (init == NULL || init->pid != 1)
+    {
+        PANIC("failed to create init task.\n");
+    }
     return;
 }
 
