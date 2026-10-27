@@ -14,7 +14,7 @@
         panic_spin(__func__, __LINE__, MSG_HIGHLIGHT(MESSAGE) "\n"); \
     } while (0)
 
-#ifdef NDEBUG
+#if !defined DEBUG
 #    define ASSERT(CONDITION) ((void)0)
 #else
 

@@ -1,6 +1,6 @@
-TARGET_ARCH = x86_64
 MEMORY      = 512M
 SMP_CORES   = 2
+TARGET_ARCH = x86_64
 
 include $(PROJECT_ROOT)/scripts/tools_def.mk
 

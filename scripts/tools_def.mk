@@ -10,6 +10,9 @@ OVMF    = OVMF.fd
 QEMU    = qemu-system-x86_64
 RM      = rm -f
 
+# RELEASE_MODE = RELEASE
+RELEASE_MODE = DEBUG
+
 CFLAGS += -Wall -Wextra -Werror
 CFLAGS += -Wredundant-decls -Wnested-externs
 CFLAGS += -Winline -Wshadow -Wpointer-arith
@@ -26,3 +29,4 @@ CFLAGS += -fwrapv
 CFLAGS += -fno-omit-frame-pointer
 CFLAGS += -mno-red-zone -m64 -march=x86-64
 CFLAGS += -mstackrealign
+CFLAGS += -D$(RELEASE_MODE)
