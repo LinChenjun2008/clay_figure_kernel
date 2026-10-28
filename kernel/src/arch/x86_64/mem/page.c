@@ -11,11 +11,11 @@
 #include <asm/utils/regs.h>
 
 #include <errno.h>
+#include <lib/string.h>
 #include <mem.h>
 #include <mem/page.h>
 #include <mem/struct.h>
 #include <panic.h>
-#include <std/string.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/schedule.h>

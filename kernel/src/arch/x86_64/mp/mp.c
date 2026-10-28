@@ -11,10 +11,10 @@
 #include <asm/page.h>
 
 #include <drivers/timer.h>
+#include <lib/string.h>
 #include <mem/page.h>
 #include <panic.h>
 #include <print.h>
-#include <std/string.h>
 #include <sysinfo.h>
 
 extern uint8_t AP_BOOT_START[];

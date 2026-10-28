@@ -15,7 +15,6 @@ SUB_DIR += mem
 SUB_DIR += print
 SUB_DIR += services
 SUB_DIR += softirq
-SUB_DIR += std
 SUB_DIR += sync
 SUB_DIR += syscall
 SUB_DIR += syscall/ipc

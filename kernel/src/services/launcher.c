@@ -7,11 +7,11 @@
 
 #include <asm/page.h>
 
+#include <lib/string.h>
 #include <mem/page.h>
 #include <panic.h>
 #include <print.h>
 #include <services.h>
-#include <std/string.h>
 #include <syscall/ipc.h>
 #include <sysinfo.h>
 #include <task.h>

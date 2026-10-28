@@ -6,9 +6,9 @@
 #include <types.h>
 
 //
-#include <std/stdarg.h>
-#include <std/stdio.h>
-#include <std/string.h>
+#include <lib/stdarg.h>
+#include <lib/stdio.h>
+#include <lib/string.h>
 
 #define FORMAT_LEFT    (1 << 0)
 #define FORMAT_SPACE   (1 << 1)

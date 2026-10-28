@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __STDARG_H__
-#define __STDARG_H__
+#ifndef __LIB_STDARG_H__
+#define __LIB_STDARG_H__
 
 #define va_start(v, l) __builtin_va_start(v, l)
 #define va_end(v)      __builtin_va_end(v)
@@ -12,4 +12,4 @@
 #define va_copy(d, s)  __builtin_va_copy(d, s)
 #define va_list        __builtin_va_list
 
-#endif
+#endif /* __LIB_STDARG_H__ */

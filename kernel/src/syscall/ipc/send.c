@@ -6,8 +6,8 @@
 #include <base.h>
 
 #include <errno.h>
+#include <lib/string.h>
 #include <panic.h>
-#include <std/string.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>

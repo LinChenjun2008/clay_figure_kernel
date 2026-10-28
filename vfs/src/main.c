@@ -9,9 +9,9 @@
 #include <asm/page.h> // PG_SIZE
 
 #include <errno.h>
-#include <user/bitmap.h>
+#include <lib/bitmap.h>
+#include <lib/string.h>
 #include <user/services/vfs.h>
-#include <user/string.h>
 
 void *ramfs_base;
 

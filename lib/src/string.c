@@ -3,8 +3,8 @@
  * Copyright (C) 2025 Lin Chenjun
  */
 
-#include <user/lib.h>
-#include <user/string.h>
+#include <lib/string.h>
+#include <types.h>
 
 void *memset(void *dst, int value, size_t size)
 {

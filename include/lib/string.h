@@ -3,8 +3,14 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#ifndef __USER_STRING_H__
-#define __USER_STRING_H__
+#ifndef __LIB_STRING_H__
+#define __LIB_STRING_H__
+
+#include <types.h>
+
+#ifndef NULL
+#    define NULL ((void *)0)
+#endif
 
 void  *memset(void *dst, int value, size_t size);
 void  *memcpy(void *dst, const void *src, size_t size);
@@ -18,4 +24,4 @@ char  *strchr(const char *str, char ch);
 char  *strrchr(const char *str, char ch);
 char  *strcat(char *dst, char *src);
 
-#endif /* __USER_STRING_H__ */
+#endif /* __LIB_STRING_H__ */

@@ -9,7 +9,7 @@
 #include <asm/page.h> // PG_SIZE
 #include <asm/utils/desc_load.h>
 
-#include <std/string.h> // memset,memcpy
+#include <lib/string.h> // memset,memcpy
 #include <sysinfo.h>
 #include <task/struct.h>
 

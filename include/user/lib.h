@@ -99,11 +99,8 @@ void  lib_allocator_init(void);
 void *malloc(size_t size);
 void  free(void *addr);
 
-// stdio.c
-#include <std/stdarg.h>
-
-int vsprintf(char *buf, const char *fmt, va_list ap);
-int sprintf(char *buf, const char *fmt, ...);
+// lib/stdio.h
+#include <lib/stdio.h>
 
 // 字符串打印(调试用)
 void dprintf(const char *fmt, ...);

@@ -3,7 +3,7 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <std/stdarg.h>
+#include <lib/stdarg.h>
 #include <syscall.h>
 #include <user/lib.h>
 

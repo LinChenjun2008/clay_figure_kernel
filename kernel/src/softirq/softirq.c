@@ -7,9 +7,9 @@
 
 #include <asm/interrupt.h>
 
+#include <lib/string.h>
 #include <panic.h>
 #include <softirq.h>
-#include <std/string.h>
 #include <sync/spinlock.h>
 
 struct softirq_handle

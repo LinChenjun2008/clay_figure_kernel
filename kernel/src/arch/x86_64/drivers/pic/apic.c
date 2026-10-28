@@ -12,9 +12,9 @@
 #include <asm/drivers/pic.h>
 #include <asm/utils/io.h>
 
+#include <lib/string.h> // memset
 #include <panic.h>
 #include <print.h>
-#include <std/string.h> // memset
 
 struct apic apic;
 

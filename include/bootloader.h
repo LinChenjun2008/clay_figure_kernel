@@ -12,7 +12,7 @@
 #include <efi/acpi.h>
 #include <efi/protocol/graphics_output.h>
 #include <efi/protocol/loaded_image.h>
-#include <std/stdarg.h>
+#include <lib/stdarg.h>
 
 struct boot_info;
 struct memory_map;

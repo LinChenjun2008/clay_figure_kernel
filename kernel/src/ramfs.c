@@ -5,9 +5,9 @@
 
 #include <base.h>
 
+#include <lib/string.h>
 #include <ramfs.h>
 #include <ramfs/struct.h>
-#include <std/string.h>
 
 void *ramfs_read(void *fs, const char *filename)
 {

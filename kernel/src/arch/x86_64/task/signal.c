@@ -13,9 +13,9 @@
 #include <asm/x86.h>
 
 #include <errno.h>
+#include <lib/string.h>
 #include <mem.h>
 #include <panic.h>
-#include <std/string.h>
 #include <task.h>
 #include <task/process.h>
 #include <task/signal.h>

@@ -9,12 +9,12 @@
 #include <asm/page.h>
 #include <asm/task.h>
 
+#include <lib/stdio.h>
+#include <lib/string.h>
 #include <mem/allocator.h>
 #include <mem/page.h>
 #include <panic.h>
 #include <print.h>
-#include <std/stdio.h>
-#include <std/string.h>
 #include <syscall/ipc.h>
 #include <sysinfo.h>
 #include <task.h>

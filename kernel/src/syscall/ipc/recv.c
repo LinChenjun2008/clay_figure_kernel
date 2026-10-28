@@ -8,7 +8,7 @@
 #include <asm/page.h>
 
 #include <errno.h>
-#include <std/string.h>
+#include <lib/string.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
