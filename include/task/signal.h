@@ -24,12 +24,12 @@
 #define SIGPIPE   13
 #define SIGALRM   14
 #define SIGTERM   15
-#define SIGTKFLT  16
+#define SIGSTKFLT 16
 #define SIGCHLD   17
 #define SIGCONT   18
 #define SIGSTOP   19
 #define SIGTSTP   20
-#define SIGTITN   21
+#define SIGTTIN   21
 #define SIGTTOU   22
 #define SIGURG    23
 #define SIGXCPU   24

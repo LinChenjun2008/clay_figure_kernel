@@ -6,6 +6,12 @@
 #ifndef __LIB_LINKED_LIST_H__
 #define __LIB_LINKED_LIST_H__
 
+#include <types.h>
+
+#ifndef NULL
+#    define NULL ((void *)0)
+#endif
+
 struct list_node
 {
     struct list      *list;

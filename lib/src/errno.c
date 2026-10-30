@@ -3,8 +3,6 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <base.h>
-
 #include <errno.h>
 
 static const char *const err_tab[][2] = {

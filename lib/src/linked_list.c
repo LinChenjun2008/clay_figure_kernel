@@ -3,9 +3,8 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <base.h>
-
 #include <lib/linked_list.h>
+#include <types.h>
 
 void init_list(struct list *list)
 {

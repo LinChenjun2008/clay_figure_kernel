@@ -3,7 +3,17 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
+#include <errno.h>
 #include <user/lib.h>
+
+const char *sig_str[] = { "",          "SIGHUP",  "SIGINT",    "SIGQUIT",
+                          "SIGILL",    "SIGTRAP", "SIGABRT",   "SIGBUS",
+                          "SIGFPE",    "SIGKILL", "SIGUSR1",   "SIGSEGV",
+                          "SIGUSR2",   "SIGPIPE", "SIGALRM",   "SIGTERM",
+                          "SIGSTKFLT", "SIGCHLD", "SIGCONT",   "SIGSTOP",
+                          "SIGTSTP",   "SIGTTIN", "SIGTTOU",   "SIGURG",
+                          "SIGXCPU",   "SIGXFSZ", "SIGVTALRM", "SIGPROF",
+                          "SIGWINCH",  "SIGIO",   "SIGPWR" };
 
 int main(void)
 {
@@ -13,7 +23,21 @@ int main(void)
         pid_t pid    = wait(-1, &status);
         if (pid >= 0)
         {
-            dprintf("init: exit{ pid=%d, status=%d }\n", pid, status);
+            const char *s   = "Normal exit";
+            int         err = status > 0 ? status : -status;
+            if (err == 0)
+            {
+                ;
+            }
+            else if (err > 128)
+            {
+                s = sig_str[err - 128];
+            }
+            else
+            {
+                s = err_str(err);
+            }
+            dprintf("task %d exit: %d ( %s )\n", pid, status, s);
         }
     }
     return 0;
