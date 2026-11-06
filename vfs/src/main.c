@@ -3,17 +3,20 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <user/lib.h>
-
-//
 #include <asm/page.h> // PG_SIZE
 
+#include "file.h"
+#include "inode.h"
+#include "path.h"
 #include <errno.h>
 #include <lib/bitmap.h>
 #include <lib/string.h>
+#include <user/lib.h>
 #include <user/services/vfs.h>
 
-void *ramfs_base;
+struct vfs *fs = NULL;
+
+void *ramfs_base = NULL;
 
 static int read_ramfs(void)
 {
@@ -78,13 +81,17 @@ static int read_ramfs(void)
 int main()
 {
     int status = 0;
-
+    status     = init_vfs();
+    if (status < 0)
+    {
+        dprintf("Failed to create vfs.\n");
+        return status;
+    }
     status = read_ramfs();
     if (status < 0)
     {
         return status;
     }
-
     struct msg_head msg;
 
     msg.data = NULL;
