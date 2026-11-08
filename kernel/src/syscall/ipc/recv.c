@@ -9,6 +9,7 @@
 
 #include <errno.h>
 #include <lib/string.h>
+#include <panic.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
@@ -81,8 +82,7 @@ static int copy_from_other(
 }
 
 // 从自己的等待队列摘取队首消息
-static struct mailbox *
-ipc_get_msg(struct task *dst_task, struct msg_head **msg_from_src)
+static struct mailbox *ipc_recv_get_msg(struct task *dst_task)
 {
     struct list_node *node = list_pop(&dst_task->mailbox.send_list);
 
@@ -91,9 +91,14 @@ ipc_get_msg(struct task *dst_task, struct msg_head **msg_from_src)
         return NULL;
     }
     struct mailbox *src = send_node_to_mailbox(node);
-
-    *msg_from_src = src->msg;
     return src;
+}
+
+// 把消息放回等待队列队首
+static void ipc_recv_put_msg(struct task *dst_task, struct mailbox *src)
+{
+    list_push(&dst_task->mailbox.send_list, &src->send_node);
+    return;
 }
 
 // 回写投递结果, 使发送方可以返回(调用时必须持dst->send_lock)
@@ -114,68 +119,73 @@ int ipc_recv(struct msg_head *msg, int option)
 
     while (1)
     {
-        struct mailbox  *src      = NULL;
-        struct task     *src_task = NULL;
-        struct msg_head *src_msg  = NULL;
+        recv_status = 0;
 
-        // 1. 锁内摘取队首消息
+        struct mailbox *src      = NULL;
+        struct task    *src_task = NULL;
+
+        // 取队首消息
         spin_lock(&dst->send_lock);
-        src = ipc_get_msg(dst_task, &src_msg);
+        src = ipc_recv_get_msg(dst_task);
         spin_unlock(&dst->send_lock);
 
-        if (src != NULL)
+        // 处理没有消息的情况
+        if (src == NULL)
         {
-            // 2. 锁外拷贝
-            src_task    = mailbox_to_task(src);
-            recv_status = copy_from_other(msg, src_msg, src_task);
-            // 3. 锁内回写结果
-            spin_lock(&dst->send_lock);
-            ipc_recv_inform(src, recv_status);
-            spin_unlock(&dst->send_lock);
-        }
-        else
-        {
-            recv_status = -ENOENT;
-        }
-
-        wake_up(&dst->send_wq);
-
-        // 根据status判断接收情况
-
-        if (recv_status == 0)
-        {
-            // 顺利接收
-            status = 0;
-            break;
-        }
-        else if (recv_status == -E2BIG || recv_status == -EFAULT)
-        {
-            // 发送方数据区/容量问题: 丢弃该消息继续等待
-            continue;
-        }
-        else if (recv_status == -ENOENT)
-        {
-            // 没有消息
             if (option & IPC_NOWAIT)
             {
                 status = -EAGAIN;
                 break;
             }
+            // 等待收到消息
+            wake_status = wait_event(&dst->recv_wq, dst, TASK_RECEIVE);
+            // 被信号或其他原因打断
+            if (wake_status != 0)
+            {
+                status = wake_status;
+                break;
+            }
+            // 重新取消息
+            continue;
         }
-        else
+
+        // 读取消息
+        src_task    = mailbox_to_task(src);
+        recv_status = copy_from_other(msg, src->msg, src_task);
+
+        if (recv_status == -E2BIG && (option & IPC_PEEK))
         {
-            // 其他错误
-            status = recv_status;
+            // 若需要PEEK则回写容量并放回消息
+            void *origin_data = msg->data;
+            *msg              = *src->msg;
+            msg->data         = origin_data;
+
+            spin_lock(&dst->send_lock);
+            ipc_recv_put_msg(dst_task, src);
+            spin_unlock(&dst->send_lock);
+            status = -E2BIG;
             break;
         }
 
-        // 被信号或其他原因打断
-        if (wake_status != 0)
+        // 消息已被成功取走,通知发送方
+        spin_lock(&dst->send_lock);
+        ipc_recv_inform(src, recv_status);
+        spin_unlock(&dst->send_lock);
+
+        wake_up(&dst->send_wq);
+
+        // 根据status判断接收情况
+        if (recv_status == -EFAULT || recv_status == -E2BIG)
         {
-            status = wake_status;
+            // 发送方数据区问题: 丢弃该消息继续等待
+            continue;
+        }
+        else
+        {
+            // 其他情况一律结束接收
+            status = recv_status;
             break;
         }
-        wake_status = wait_event(&dst->recv_wq, dst, TASK_RECEIVE);
     }
     return status;
 }

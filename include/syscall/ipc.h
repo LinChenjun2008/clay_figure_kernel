@@ -6,8 +6,8 @@
 #ifndef __SYSCALL_IPC_H__
 #define __SYSCALL_IPC_H__
 
-// ipc_recv的option: 没有消息时立即返回-EAGAIN
-#define IPC_NOWAIT 1
+#define IPC_NOWAIT (1 << 0) // 没有消息时立即返回-EAGAIN
+#define IPC_PEEK   (1 << 1) // 缓冲区太小则回填所需大小并返回,未设置则丢弃消息
 
 struct list_node;
 struct mailbox;

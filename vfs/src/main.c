@@ -99,7 +99,7 @@ int main()
 
     while (1)
     {
-        status = recv(&msg, 0);
+        status = recv(&msg, IPC_PEEK);
         if (status < 0)
         {
             continue;
