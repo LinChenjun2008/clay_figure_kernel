@@ -16,8 +16,10 @@ clean:
 	@$(RM) $(OBJ) $(DEP)
 	@$(RM) $(TARGET)
 
+ifndef SKIP_COMMON_RULE
 $(TARGET): $(OBJ)
 	@$(ECHO) "LD      $@"
-	@$(LD) $(LDFLAGS) -o $@ $^ -L$(PROJECT_ROOT)/build/lib/ --start-group -lsys --end-group
+	@$(LD) $(LDFLAGS) -o $@ $^ -L$(PROJECT_ROOT)/build/lib/ -lsys
+endif
 
 -include $(DEP)

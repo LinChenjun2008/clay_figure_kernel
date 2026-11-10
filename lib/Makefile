@@ -11,6 +11,7 @@ SUB_DIR += user/mem
 include ./tools_def.mk
 include $(PROJECT_ROOT)/scripts/rules.mk
 
+SKIP_COMMON_RULE := 1
 include $(PROJECT_ROOT)/scripts/user/rules.mk
 
 $(TARGET): $(OBJ)
