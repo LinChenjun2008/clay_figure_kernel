@@ -18,6 +18,8 @@ struct msg_head
     int           key;
     enum msg_type type;
 
+    int args[8];
+
     void  *data;
     size_t size;
 };

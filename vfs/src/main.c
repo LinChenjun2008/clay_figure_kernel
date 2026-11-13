@@ -6,13 +6,9 @@
 #include <asm/page.h> // PG_SIZE
 
 #include "file.h"
-#include "inode.h"
-#include "path.h"
+#include "protocol.h"
 #include <errno.h>
-#include <lib/bitmap.h>
-#include <lib/string.h>
 #include <user/lib.h>
-#include <user/services/vfs.h>
 
 struct vfs *fs = NULL;
 
@@ -81,7 +77,8 @@ static int read_ramfs(void)
 int main()
 {
     int status = 0;
-    status     = init_vfs();
+
+    status = init_vfs();
     if (status < 0)
     {
         dprintf("Failed to create vfs.\n");
@@ -92,25 +89,7 @@ int main()
     {
         return status;
     }
-    struct msg_head msg;
 
-    msg.data = NULL;
-    msg.size = 0;
-
-    while (1)
-    {
-        status = recv(&msg, IPC_PEEK);
-        if (status < 0)
-        {
-            continue;
-        }
-        switch (msg.key)
-        {
-            case VFS_OPEN:
-                break;
-            default:
-                break;
-        }
-    }
-    return 0;
+    // 进入协议循环(正常情况下不返回)
+    return protocol_serve();
 }
