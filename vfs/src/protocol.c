@@ -110,7 +110,7 @@ int protocol_serve(void)
         // 1. 先探包: 容量声明为 0, 只为拿到 key/args 和需要的字节数
         msg.data = NULL;
         msg.size = 0;
-        ret      = recv(&msg, IPC_PEEK);
+        ret      = recv(&msg, MSG_PEEK);
 
         if (ret == -E2BIG)
         {
@@ -124,7 +124,7 @@ int protocol_serve(void)
             }
             msg.data = msg_buf;
             msg.size = msg_buf_cap;
-            ret      = recv(&msg, IPC_PEEK);
+            ret      = recv(&msg, MSG_PEEK);
             if (ret < 0)
             {
                 continue;

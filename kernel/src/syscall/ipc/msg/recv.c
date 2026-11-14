@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <lib/string.h>
 #include <panic.h>
-#include <syscall/ipc.h>
+#include <syscall/ipc/msg.h>
 #include <task.h>
 #include <task/schedule.h>
 #include <task/struct.h>
@@ -82,7 +82,7 @@ static int copy_from_other(
 }
 
 // 从自己的等待队列摘取队首消息
-static struct mailbox *ipc_recv_get_msg(struct task *dst_task)
+static struct mailbox *msg_recv_get_msg(struct task *dst_task)
 {
     struct list_node *node = list_pop(&dst_task->mailbox.send_list);
 
@@ -95,21 +95,21 @@ static struct mailbox *ipc_recv_get_msg(struct task *dst_task)
 }
 
 // 把消息放回等待队列队首
-static void ipc_recv_put_msg(struct task *dst_task, struct mailbox *src)
+static void msg_recv_put_msg(struct task *dst_task, struct mailbox *src)
 {
     list_push(&dst_task->mailbox.send_list, &src->send_node);
     return;
 }
 
 // 回写投递结果, 使发送方可以返回(调用时必须持dst->send_lock)
-static void ipc_recv_inform(struct mailbox *src, int ret)
+static void msg_recv_inform(struct mailbox *src, int ret)
 {
     src->send_status = ret;
     src->send_to     = PID_NULL;
     return;
 }
 
-int ipc_recv(struct msg_head *msg, int option)
+int msg_recv(struct msg_head *msg, int options)
 {
     struct task    *dst_task    = get_current_task();
     struct mailbox *dst         = &dst_task->mailbox;
@@ -126,13 +126,13 @@ int ipc_recv(struct msg_head *msg, int option)
 
         // 取队首消息
         spin_lock(&dst->send_lock);
-        src = ipc_recv_get_msg(dst_task);
+        src = msg_recv_get_msg(dst_task);
         spin_unlock(&dst->send_lock);
 
         // 处理没有消息的情况
         if (src == NULL)
         {
-            if (option & IPC_NOWAIT)
+            if (options & MSG_NOWAIT)
             {
                 status = -EAGAIN;
                 break;
@@ -153,7 +153,7 @@ int ipc_recv(struct msg_head *msg, int option)
         src_task    = mailbox_to_task(src);
         recv_status = copy_from_other(msg, src->msg, src_task);
 
-        if (recv_status == -E2BIG && (option & IPC_PEEK))
+        if (recv_status == -E2BIG && (options & MSG_PEEK))
         {
             // 若需要PEEK则回写容量并放回消息
             void *origin_data = msg->data;
@@ -161,7 +161,7 @@ int ipc_recv(struct msg_head *msg, int option)
             msg->data         = origin_data;
 
             spin_lock(&dst->send_lock);
-            ipc_recv_put_msg(dst_task, src);
+            msg_recv_put_msg(dst_task, src);
             spin_unlock(&dst->send_lock);
             status = -E2BIG;
             break;
@@ -169,7 +169,7 @@ int ipc_recv(struct msg_head *msg, int option)
 
         // 消息已被成功取走,通知发送方
         spin_lock(&dst->send_lock);
-        ipc_recv_inform(src, recv_status);
+        msg_recv_inform(src, recv_status);
         spin_unlock(&dst->send_lock);
 
         wake_up(&dst->send_wq);

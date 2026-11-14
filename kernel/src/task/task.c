@@ -15,7 +15,7 @@
 #include <mem/page.h>
 #include <panic.h>
 #include <print.h>
-#include <syscall/ipc.h>
+#include <syscall/ipc/msg.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/process.h>

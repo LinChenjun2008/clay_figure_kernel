@@ -8,14 +8,14 @@
 #include <errno.h>
 #include <lib/string.h>
 #include <panic.h>
-#include <syscall/ipc.h>
+#include <syscall/ipc/msg.h>
 #include <task.h>
 #include <task/schedule.h>
 #include <task/struct.h>
 
 // 发送消息
 static int
-ipc_do_send(struct task *dst_task, struct task *src_task, struct msg_head *msg)
+msg_do_send(struct task *dst_task, struct task *src_task, struct msg_head *msg)
 {
     struct mailbox *dst = &dst_task->mailbox;
     struct mailbox *src = &src_task->mailbox;
@@ -32,7 +32,7 @@ ipc_do_send(struct task *dst_task, struct task *src_task, struct msg_head *msg)
     return 0;
 }
 
-static int ipc_check_send_status(int wake_status, int send_status)
+static int msg_check_send_status(int wake_status, int send_status)
 {
     if (send_status <= 0)
     {
@@ -48,7 +48,7 @@ static int ipc_check_send_status(int wake_status, int send_status)
     return -EIO;
 }
 
-int ipc_send(struct msg_head *msg, pid_t dst_pid)
+int msg_send(struct msg_head *msg, pid_t dst_pid)
 {
     struct task    *src_task    = get_current_task();
     struct mailbox *src         = &src_task->mailbox;
@@ -79,7 +79,7 @@ int ipc_send(struct msg_head *msg, pid_t dst_pid)
 
     // 发送消息
     spin_lock(&dst->send_lock);
-    send_status = ipc_do_send(dst_task, src_task, msg);
+    send_status = msg_do_send(dst_task, src_task, msg);
     spin_unlock(&dst->send_lock);
 
     if (send_status < 0)
@@ -95,7 +95,7 @@ int ipc_send(struct msg_head *msg, pid_t dst_pid)
     ASSERT(wake_status != -EINTR);
     send_status = src->send_status;
 
-    status = ipc_check_send_status(wake_status, send_status);
+    status = msg_check_send_status(wake_status, send_status);
 
 end:
     spin_lock(&dst->send_lock);

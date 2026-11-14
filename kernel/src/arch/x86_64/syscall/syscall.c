@@ -20,7 +20,7 @@
 #include <errno.h>
 #include <mem.h>
 #include <print.h>
-#include <syscall/ipc.h>
+#include <syscall/ipc/msg.h>
 #include <task.h>
 #include <task/fork.h>
 #include <task/process.h>
@@ -102,7 +102,7 @@ static word_t sys_wait(struct pt_regs *regs)
 }
 
 // 发送消息
-// 校验用户参数并构造msg_head副本供ipc_send使用
+// 校验用户参数并构造msg_head副本供msg_send使用
 static word_t sys_send(struct pt_regs *regs)
 {
     struct task     *task     = get_current_task();
@@ -134,7 +134,7 @@ static word_t sys_send(struct pt_regs *regs)
         return 0;
     }
 
-    return (word_t)ipc_send(&msg, dst_pid);
+    return (word_t)msg_send(&msg, dst_pid);
 }
 
 // 接收消息
@@ -142,7 +142,7 @@ static word_t sys_send(struct pt_regs *regs)
 static word_t sys_recv(struct pt_regs *regs)
 {
     struct msg_head *user_msg = (struct msg_head *)regs->rsi;
-    int              option   = (int)regs->rdx;
+    int              options  = (int)regs->rdx;
     struct msg_head  msg;
     int              ret;
 
@@ -153,7 +153,7 @@ static word_t sys_recv(struct pt_regs *regs)
         return (word_t)ret;
     }
 
-    ret = ipc_recv(&msg, option);
+    ret = msg_recv(&msg, options);
 
     // 把接收结果(来源/类型/实际长度)写回用户消息头
     *user_msg = msg;

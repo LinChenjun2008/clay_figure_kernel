@@ -11,7 +11,7 @@
 #include <types.h>
 
 // system calls
-#include <syscall/ipc.h>
+#include <syscall/ipc/msg.h>
 
 #ifndef NULL
 #    define NULL ((void *)0)

@@ -12,7 +12,7 @@
 #include <panic.h>
 #include <print.h>
 #include <services.h>
-#include <syscall/ipc.h>
+#include <syscall/ipc/msg.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/process.h>
@@ -36,7 +36,7 @@ static void launch_vfs(struct system_info *system_info)
     msg.size = sizeof(total_size);
 
     int status = 0;
-    status     = ipc_send(&msg, task->pid);
+    status     = msg_send(&msg, task->pid);
     if (status < 0)
     {
         PERROR(status);
@@ -60,7 +60,7 @@ static void launch_vfs(struct system_info *system_info)
         msg.data = (void *)(ramfs_base + offset);
         msg.size = chunk;
 
-        status = ipc_send(&msg, task->pid);
+        status = msg_send(&msg, task->pid);
         if (status < 0)
         {
             PERROR(status);

@@ -7,7 +7,7 @@
 
 #include <errno.h>
 #include <lib/string.h>
-#include <syscall/ipc.h>
+#include <syscall/ipc/msg.h>
 #include <task.h>
 #include <task/schedule.h>
 #include <task/struct.h>
@@ -28,7 +28,7 @@ struct task *mailbox_to_task(struct mailbox *mailbox)
 }
 
 // wait_event 条件: 有可接收的消息
-int ipc_recv_wakeup_condition(void *arg)
+int msg_recv_wakeup_condition(void *arg)
 {
     struct mailbox *dst = arg;
 
@@ -40,7 +40,7 @@ int ipc_recv_wakeup_condition(void *arg)
 //      send_status > 0 发送中
 //      send_status = 0 完成
 //      send_status < 0 错误码
-int ipc_send_wakeup_condition(void *arg)
+int msg_send_wakeup_condition(void *arg)
 {
     struct mailbox *src = arg;
 
@@ -56,8 +56,8 @@ void init_mailbox(struct mailbox *mailbox)
     mailbox->send_status = 0;
     init_list(&mailbox->send_list);
     init_spinlock(&mailbox->send_lock);
-    init_wait_queue(&mailbox->recv_wq, ipc_recv_wakeup_condition);
-    init_wait_queue(&mailbox->send_wq, ipc_send_wakeup_condition);
+    init_wait_queue(&mailbox->recv_wq, msg_recv_wakeup_condition);
+    init_wait_queue(&mailbox->send_wq, msg_send_wakeup_condition);
     return;
 }
 
