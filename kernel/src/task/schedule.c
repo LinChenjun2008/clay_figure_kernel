@@ -300,7 +300,7 @@ void schedule(void)
     }
 
     check_dead_task(curr_cpu);
-    switch (TASK_STATUS(curr_task->status))
+    switch (TASK_STATUS(curr_task))
     {
         case TASK_RUNNING:
             cpu_task_list_insert(curr_cpu, curr_task);
@@ -436,7 +436,7 @@ void wake_up_signal(pid_t pid)
     struct cpu *cpu = get_cpu_struct(task->cpu_id);
 
     spin_lock(&task->lock);
-    switch (TASK_STATUS(task->status))
+    switch (TASK_STATUS(task))
     {
         case TASK_READY:
         case TASK_RUNNING:

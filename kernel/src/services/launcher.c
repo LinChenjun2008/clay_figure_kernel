@@ -7,11 +7,11 @@
 
 #include <asm/page.h>
 
+#include <lib/string.h>
 #include <mem/page.h>
 #include <panic.h>
 #include <print.h>
 #include <services.h>
-#include <std/string.h>
 #include <syscall/ipc.h>
 #include <sysinfo.h>
 #include <task.h>
@@ -75,5 +75,6 @@ void launch_services(struct system_info *sysinfo)
 {
     printk("launch VFS service.\n");
     launch_vfs(sysinfo);
+    process_execute("test", DEFAULT_PRIO, 1, 1, NULL);
     return;
 }

@@ -5,8 +5,8 @@
 
 #include <asm/page.h> // PG_SIZE
 
+#include <lib/linked_list.h>
 #include <user/lib.h>
-#include <user/list.h>
 
 #define MIN_BLOCK_SIZE  64   //   64 Byte
 #define MAX_BLOCK_SIZE  2048 //    2 KiB
@@ -49,7 +49,7 @@ void lib_allocator_init(void)
     {
         groups[i].block_size = block_size;
         groups[i].total_free = 0;
-        lib_init_list(&groups[i].free_block_list);
+        init_list(&groups[i].free_block_list);
         block_size *= 2;
     }
     return;
@@ -101,7 +101,7 @@ static struct mem_cache *allocate_cache(struct mem_group *g)
     for (idx = 0; idx < c->number_of_blocks; idx++)
     {
         struct mem_block *b = cache2block(c, idx);
-        lib_list_push(&g->free_block_list, &b->node);
+        list_push(&g->free_block_list, &b->node);
         b->magic = idx + c->number_of_blocks;
     }
     return c;
@@ -109,7 +109,7 @@ static struct mem_cache *allocate_cache(struct mem_group *g)
 
 static struct mem_block *find_block(struct mem_group *g)
 {
-    struct list_node *node = lib_list_pop(&g->free_block_list);
+    struct list_node *node = list_pop(&g->free_block_list);
     if (node == NULL)
     {
         return NULL;
@@ -196,7 +196,7 @@ void free(void *addr)
     }
     b->magic = block_index(c, b) + c->number_of_blocks;
 
-    lib_list_push(&g->free_block_list, &b->node);
+    list_push(&g->free_block_list, &b->node);
     g->total_free++;
     c->count++;
 
@@ -206,7 +206,7 @@ void free(void *addr)
         for (idx = 0; idx < c->number_of_blocks; idx++)
         {
             struct mem_block *block = cache2block(c, idx);
-            lib_list_remove(&block->node);
+            list_remove(&block->node);
         }
         g->total_free -= c->number_of_blocks;
         free_pages(c, 1);

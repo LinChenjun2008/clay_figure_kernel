@@ -5,12 +5,9 @@
 
 #include <base.h>
 
-#include <asm/page.h>
-
 #include <errno.h>
-#include <mem.h>
+#include <lib/string.h>
 #include <panic.h>
-#include <std/string.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
@@ -59,24 +56,9 @@ int ipc_send(struct msg_head *msg, pid_t dst_pid)
     int             send_status = 0;
     int             wake_status = 0;
 
-    // 检查参数状态
-    status = check_message(src_task, msg);
-    if (status < 0)
-    {
-        return status;
-    }
     if (dst_pid == src_task->pid)
     {
         return -EDEADLK;
-    }
-
-    if (IS_USER_TASK(src_task))
-    {
-        status = mm_check_addr(src_task, msg->data, msg->size, ADDR_MAPPED);
-        if (status < 0)
-        {
-            return status;
-        }
     }
 
     // 获取接收方相关信息
@@ -89,7 +71,7 @@ int ipc_send(struct msg_head *msg, pid_t dst_pid)
         return -ESRCH;
     }
     dst = &dst_task->mailbox;
-    if (TASK_STATUS(dst_task->status) == TASK_DIED)
+    if (TASK_STATUS(dst_task) == TASK_DIED)
     {
         status = -ESRCH;
         goto end;

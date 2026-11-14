@@ -9,12 +9,12 @@
 #include <asm/page.h>
 #include <asm/task.h>
 
+#include <lib/stdio.h>
+#include <lib/string.h>
 #include <mem/allocator.h>
 #include <mem/page.h>
 #include <panic.h>
 #include <print.h>
-#include <std/stdio.h>
-#include <std/string.h>
 #include <syscall/ipc.h>
 #include <sysinfo.h>
 #include <task.h>
@@ -91,11 +91,18 @@ void task_init(struct system_info *system_info)
 
     make_main_task(kstack_base, boot_info->stack_pages);
     int status = pid_table_insert(cpu->main_task);
+    if (status != 0)
+    {
+        PANIC("failed to create init task.\n");
+    }
     ASSERT(status == 0);
     struct task *init = process_execute("init", IDLE_PRIO, 1, 1, NULL);
     ASSERT(init != NULL);
     ASSERT(init->pid == 1);
-
+    if (init == NULL || init->pid != 1)
+    {
+        PANIC("failed to create init task.\n");
+    }
     return;
 }
 
@@ -468,6 +475,7 @@ struct task *task_start(
         goto fail;
     }
     init_task_struct(task, name, prio, kstack_base, kstack_pages, 0);
+    task->task_flags = KERN_TASK;
 
     task->pg_dir = get_task_mgr()->kernel_pg_dir;
 

@@ -3,11 +3,10 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <user/lib.h>
-//
 #include <errno.h>
-#include <user/bitmap.h>
-#include <user/string.h>
+#include <lib/bitmap.h>
+#include <lib/string.h>
+#include <types.h>
 
 void init_bitmap(struct bitmap *bitmap, size_t size, void *map)
 {

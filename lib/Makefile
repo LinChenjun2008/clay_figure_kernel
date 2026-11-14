@@ -3,29 +3,17 @@ SRC_DIR      = ./src
 OBJ_DIR      = $(PROJECT_ROOT)/build/objects/$(MODULE_NAME)
 MODULE_NAME  = lib
 
+SUB_DIR = .
+SUB_DIR += user
+SUB_DIR += user/arch/$(TARGET_ARCH)
+SUB_DIR += user/mem
+
 include ./tools_def.mk
 include $(PROJECT_ROOT)/scripts/rules.mk
 
-include src_list.mk
-
-A_OBJ = $(call to_obj,$(A_SRC),S)
-C_OBJ = $(call to_obj,$(C_SRC),c)
-A_DEP = $(patsubst %.o,%.dep,$(A_OBJ))
-C_DEP = $(patsubst %.o,%.dep,$(C_OBJ))
-
-OBJ   = $(A_OBJ) $(C_OBJ)
-DEP   = $(A_DEP) $(C_DEP)
-
-.PHONY: all
-all: $(TARGET)
+SKIP_COMMON_RULE := 1
+include $(PROJECT_ROOT)/scripts/user/rules.mk
 
 $(TARGET): $(OBJ)
 	@$(ECHO) "AR      $@"
 	@$(AR) $(ARFLAGS) $@ $(OBJ)
-
-.PHONY: clean
-clean:
-	@$(RM) $(OBJ) $(DEP)
-	@$(RM) $(TARGET)
-
--include $(DEP)

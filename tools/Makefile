@@ -3,19 +3,35 @@ SRC_DIR      = ./
 OBJ_DIR      = $(PROJECT_ROOT)/build/objects/$(MODULE_NAME)
 MODULE_NAME  = imgcopy
 
-CC = gcc
-RM = rm
+include $(PROJECT_ROOT)/scripts/tools_def.mk
 
-SRC = $(wildcard ./*.c)
+CFLAGS = -I$(PROJECT_ROOT)/include/
 
-TARGET = ./imgcopy
+include $(PROJECT_ROOT)/scripts/rules.mk
 
-%.o: %.c
-	@$(CC) -I$(PROJECT_ROOT)/include/ -MP -MD -MF $(@:.o=.dep) -c -o $@ $<
+C_SRC = $(wildcard ./*.c)
 
-$(TARGET): $(SRC:.c=.o)
-	$(CC) -o $@ $(SRC:.c=.o)
+A_OBJ = $(call to_obj,$(A_SRC),S)
+C_OBJ = $(call to_obj,$(C_SRC),c)
+A_DEP = $(patsubst %.o,%.dep,$(A_OBJ))
+C_DEP = $(patsubst %.o,%.dep,$(C_OBJ))
 
+OBJ   = $(A_OBJ) $(C_OBJ)
+DEP   = $(A_DEP) $(C_DEP)
+
+TARGET = $(PROJECT_ROOT)/build/tools/imgcopy/imgcopy
+
+$(TARGET): $(OBJ)
+	@$(MKDIR) -p $(@D)
+	@$(ECHO) "LD      $@"
+	@$(CC) -o $@ $(OBJ)
+
+.PHONY: all
 all: $(TARGET)
 
--include $(SRC:.c=.dep)
+.PHONY: clean
+clean:
+	@$(RM) $(OBJ) $(DEP)
+	@$(RM) $(TARGET)
+
+-include $(DEP)

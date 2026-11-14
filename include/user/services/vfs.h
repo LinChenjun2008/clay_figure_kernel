@@ -11,8 +11,10 @@
 #define VFS_WRITE  4
 #define VFS_CLOSE  5
 #define VFS_DELETE 6
+#define VFS_MKDIR  7
+#define VFS_MAX_NR 7
 
-#define VFS_MAX_NR 6
+#define VFS_O_CREATE 1
 
 #include <types/message.h>
 

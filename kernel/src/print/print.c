@@ -11,11 +11,11 @@
 #include <asm/utils/panic.h>
 
 #include <errno.h>
+#include <lib/stdarg.h>
+#include <lib/stdio.h>
+#include <lib/string.h>
 #include <panic.h>
 #include <print.h>
-#include <std/stdarg.h>
-#include <std/stdio.h>
-#include <std/string.h>
 #include <sync/spinlock.h>
 #include <sysinfo.h>
 

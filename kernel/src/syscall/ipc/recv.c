@@ -8,32 +8,17 @@
 #include <asm/page.h>
 
 #include <errno.h>
-#include <mem.h>
-#include <std/string.h>
+#include <lib/string.h>
+#include <panic.h>
 #include <syscall/ipc.h>
 #include <task.h>
 #include <task/schedule.h>
 #include <task/struct.h>
 
-// 取得src_task地址空间中addr处msg_head的可访问指针
-static struct msg_head *msg_from_other(struct task *src_task, uintptr_t addr)
-{
-    if (IS_KERNEL_TASK(src_task))
-    {
-        return (struct msg_head *)addr;
-    }
-    phys_addr_t src_phys = to_physical_address(src_task->pg_dir, addr);
-    if (src_phys == 0)
-    {
-        return NULL;
-    }
-    return (struct msg_head *)PHYS_TO_VIRT(src_phys);
-}
-
-// 将用户进程的地址转为内核空间的地址
+// 把发送方地址空间中addr处的地址换为内核可直接访问的地址(按页转换)
 static void *to_kernel_address(struct task *src_task, uintptr_t addr)
 {
-    if (IS_KERNEL_TASK(src_task))
+    if (IS_KERN_TASK(src_task))
     {
         return (void *)addr;
     }
@@ -46,6 +31,7 @@ static void *to_kernel_address(struct task *src_task, uintptr_t addr)
     return (void *)((uintptr_t)PHYS_TO_VIRT(phys) + (addr - page));
 }
 
+// 把发送方的数据按页复制到接收方的缓冲区
 static int copy_data(void *dst, struct task *src_task, void *src, size_t size)
 {
     size_t done = 0;
@@ -53,8 +39,8 @@ static int copy_data(void *dst, struct task *src_task, void *src, size_t size)
     {
         uintptr_t src_addr = (uintptr_t)src + done;
         size_t chunk = MIN(size - done, PG_SIZE - (src_addr & (PG_SIZE - 1)));
+        void  *src_page = to_kernel_address(src_task, src_addr);
 
-        void *src_page = to_kernel_address(src_task, src_addr);
         if (src_page == NULL)
         {
             return -EFAULT;
@@ -65,30 +51,26 @@ static int copy_data(void *dst, struct task *src_task, void *src, size_t size)
     return 0;
 }
 
-static int
-copy_from_other(struct msg_head *dst_msg, uintptr_t src, struct task *src_task)
+// 把发送方的消息复制到接收方的落地缓冲区
+static int copy_from_other(
+    struct msg_head *dst_msg,
+    struct msg_head *src_msg,
+    struct task     *src_task
+)
 {
-    struct msg_head *src_msg = msg_from_other(src_task, src);
-    if (src_msg == NULL)
-    {
-        return -EFAULT;
-    }
-
     // 接收方在接收前设置的落地缓冲区及其容量, 不能被发送方的消息覆盖
     void  *dst_data     = dst_msg->data;
     size_t dst_capacity = dst_msg->size;
 
     if (src_msg->size > dst_capacity)
     {
-        // 接收方缓冲区不够: 回写自身容量, 供发送方重整后重试
-        src_msg->size = dst_capacity;
         return -E2BIG;
     }
 
     *dst_msg      = *src_msg;
     dst_msg->data = dst_data;
 
-    // 把发送方的数据复制到data指针处
+    // 发送方的数据区属于发送方的地址空间, 按页转换后复制
     int ret = copy_data(dst_data, src_task, src_msg->data, src_msg->size);
     if (ret < 0)
     {
@@ -100,8 +82,7 @@ copy_from_other(struct msg_head *dst_msg, uintptr_t src, struct task *src_task)
 }
 
 // 从自己的等待队列摘取队首消息
-static struct mailbox *
-ipc_get_msg(struct task *dst_task, struct msg_head **msg_from_src)
+static struct mailbox *ipc_recv_get_msg(struct task *dst_task)
 {
     struct list_node *node = list_pop(&dst_task->mailbox.send_list);
 
@@ -110,9 +91,14 @@ ipc_get_msg(struct task *dst_task, struct msg_head **msg_from_src)
         return NULL;
     }
     struct mailbox *src = send_node_to_mailbox(node);
-
-    *msg_from_src = src->msg;
     return src;
+}
+
+// 把消息放回等待队列队首
+static void ipc_recv_put_msg(struct task *dst_task, struct mailbox *src)
+{
+    list_push(&dst_task->mailbox.send_list, &src->send_node);
+    return;
 }
 
 // 回写投递结果, 使发送方可以返回(调用时必须持dst->send_lock)
@@ -131,85 +117,75 @@ int ipc_recv(struct msg_head *msg, int option)
     int             recv_status = 0;
     int             wake_status = 0;
 
-    status = check_message(dst_task, msg);
-    if (status < 0)
-    {
-        return status;
-    }
-    // 接收方的数据区只要求地址已分配(未映射页由内核态缺页处理自动补页)
-    if (IS_USER_TASK(dst_task))
-    {
-        status = mm_check_addr(dst_task, msg->data, msg->size, ADDR_ALLOCATED);
-        if (status < 0)
-        {
-            return status;
-        }
-    }
-
     while (1)
     {
-        struct mailbox  *src      = NULL;
-        struct task     *src_task = NULL;
-        struct msg_head *src_msg  = NULL;
+        recv_status = 0;
 
-        // 1. 锁内摘取队首消息
+        struct mailbox *src      = NULL;
+        struct task    *src_task = NULL;
+
+        // 取队首消息
         spin_lock(&dst->send_lock);
-        src = ipc_get_msg(dst_task, &src_msg);
+        src = ipc_recv_get_msg(dst_task);
         spin_unlock(&dst->send_lock);
 
-        if (src != NULL)
+        // 处理没有消息的情况
+        if (src == NULL)
         {
-            // 2. 锁外拷贝
-            src_task    = mailbox_to_task(src);
-            recv_status = copy_from_other(msg, (uintptr_t)src_msg, src_task);
-            // 3. 锁内回写结果
-            spin_lock(&dst->send_lock);
-            ipc_recv_inform(src, recv_status);
-            spin_unlock(&dst->send_lock);
-        }
-        else
-        {
-            recv_status = -ENOENT;
-        }
-
-        wake_up(&dst->send_wq);
-
-        // 根据status判断接收情况
-
-        if (recv_status == 0)
-        {
-            // 顺利接收
-            status = 0;
-            break;
-        }
-        else if (recv_status == -E2BIG || recv_status == -EFAULT)
-        {
-            // 发送方数据区/容量问题: 丢弃该消息继续等待
-            continue;
-        }
-        else if (recv_status == -ENOENT)
-        {
-            // 没有消息
             if (option & IPC_NOWAIT)
             {
                 status = -EAGAIN;
                 break;
             }
+            // 等待收到消息
+            wake_status = wait_event(&dst->recv_wq, dst, TASK_RECEIVE);
+            // 被信号或其他原因打断
+            if (wake_status != 0)
+            {
+                status = wake_status;
+                break;
+            }
+            // 重新取消息
+            continue;
         }
-        else
+
+        // 读取消息
+        src_task    = mailbox_to_task(src);
+        recv_status = copy_from_other(msg, src->msg, src_task);
+
+        if (recv_status == -E2BIG && (option & IPC_PEEK))
         {
-            // 其他错误
-            status = recv_status;
+            // 若需要PEEK则回写容量并放回消息
+            void *origin_data = msg->data;
+            *msg              = *src->msg;
+            msg->data         = origin_data;
+
+            spin_lock(&dst->send_lock);
+            ipc_recv_put_msg(dst_task, src);
+            spin_unlock(&dst->send_lock);
+            status = -E2BIG;
             break;
         }
 
-        // 被信号或其他原因打断
-        if (wake_status != 0)
+        // 消息已被成功取走,通知发送方
+        spin_lock(&dst->send_lock);
+        ipc_recv_inform(src, recv_status);
+        spin_unlock(&dst->send_lock);
+
+        wake_up(&dst->send_wq);
+
+        // 根据status判断接收情况
+        if (recv_status == -EFAULT || recv_status == -E2BIG)
         {
-            status = wake_status;
+            // 发送方数据区问题: 丢弃该消息继续等待
+            continue;
+        }
+        else
+        {
+            // 其他情况一律结束接收
+            status = recv_status;
             break;
         }
-        wake_status = wait_event(&dst->recv_wq, dst, TASK_RECEIVE);
     }
     return status;
 }

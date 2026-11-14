@@ -13,9 +13,9 @@
 #include <asm/x86.h>
 
 #include <errno.h>
+#include <lib/string.h>
 #include <mem.h>
 #include <panic.h>
-#include <std/string.h>
 #include <task.h>
 #include <task/process.h>
 #include <task/signal.h>
@@ -98,7 +98,7 @@ static int setup_sigframe(
     sp -= 8;
 
     uintptr_t stack_lo;
-    stack_lo = USER_STACK_VADDR_TOP - (task->ustack_pages << PG_SIZE_SHIFT);
+    stack_lo = USER_STACK_VADDR_TOP - (task->ustack_pages * PG_SIZE);
     if (sp < stack_lo || sp + sizeof(struct sigframe) > USER_STACK_VADDR_TOP)
     {
         return -EFAULT;
@@ -178,7 +178,7 @@ void signal_check(struct pt_regs *regs)
     {
         return;
     }
-    if (IS_KERNEL_TASK(task))
+    if (IS_KERN_TASK(task))
     {
         return;
     }
@@ -244,7 +244,7 @@ word_t sys_sigret(struct pt_regs *regs)
     // handler 的 ret 已弹出 retcode, 故 rsp 指向 frame->signum, 即 frame + 8
     uintptr_t frame_addr = regs->rsp - 8;
 
-    if (!IS_USER_TASK(task) || task->mm == NULL)
+    if (!IS_USER_PROG(task) || task->mm == NULL)
     {
         return -EFAULT;
     }

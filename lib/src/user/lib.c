@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
+#include <lib/stdarg.h>
 #include <syscall.h>
 #include <user/lib.h>
 
@@ -65,4 +66,20 @@ int kill(pid_t pid, int sig)
 int sigaction(int sig, const struct sigaction *act, struct sigaction *oldact)
 {
     return (int)syscall_3(NR_SACT, sig, (word_t)act, (word_t)oldact);
+}
+
+void dprintf(const char *fmt, ...)
+{
+    char    buf[256];
+    va_list ap;
+    va_start(ap, fmt);
+    int len;
+    len = vsprintf(buf, fmt, ap);
+
+    struct msg_head msg;
+    msg.data = (void *)buf;
+    msg.size = len;
+    msg.type = MSG_LOG;
+    send(&msg, -1);
+    return;
 }

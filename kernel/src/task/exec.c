@@ -8,8 +8,8 @@
 #include <asm/page.h>
 
 #include <elf.h>
+#include <lib/string.h>
 #include <mem.h>
-#include <std/string.h>
 #include <task.h>
 #include <task/process.h>
 #include <task/struct.h>

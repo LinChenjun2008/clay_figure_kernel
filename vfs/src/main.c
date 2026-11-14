@@ -3,17 +3,16 @@
  * Copyright (C) 2026 Lin Chenjun
  */
 
-#include <user/lib.h>
-
-//
 #include <asm/page.h> // PG_SIZE
 
+#include "file.h"
+#include "protocol.h"
 #include <errno.h>
-#include <user/bitmap.h>
-#include <user/services/vfs.h>
-#include <user/string.h>
+#include <user/lib.h>
 
-void *ramfs_base;
+struct vfs *fs = NULL;
+
+void *ramfs_base = NULL;
 
 static int read_ramfs(void)
 {
@@ -79,31 +78,18 @@ int main()
 {
     int status = 0;
 
+    status = init_vfs();
+    if (status < 0)
+    {
+        dprintf("Failed to create vfs.\n");
+        return status;
+    }
     status = read_ramfs();
     if (status < 0)
     {
         return status;
     }
 
-    struct msg_head msg;
-
-    msg.data = NULL;
-    msg.size = 0;
-
-    while (1)
-    {
-        status = recv(&msg, 0);
-        if (status < 0)
-        {
-            continue;
-        }
-        switch (msg.key)
-        {
-            case VFS_OPEN:
-                break;
-            default:
-                break;
-        }
-    }
-    return 0;
+    // 进入协议循环(正常情况下不返回)
+    return protocol_serve();
 }

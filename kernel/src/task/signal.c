@@ -6,7 +6,7 @@
 #include <base.h>
 
 #include <errno.h>
-#include <std/string.h>
+#include <lib/string.h>
 #include <sync/spinlock.h>
 #include <task.h>
 #include <task/schedule.h>
@@ -103,7 +103,7 @@ int send_signal(pid_t pid, int sig, struct siginfo *info)
     {
         return -ESRCH;
     }
-    if (TASK_STATUS(task->status) == TASK_DIED)
+    if (TASK_STATUS(task) == TASK_DIED)
     {
         status = -ESRCH;
     }
@@ -143,7 +143,7 @@ int send_signal_child(pid_t pid, int code, pid_t child, int status)
     {
         return -ESRCH;
     }
-    if (TASK_STATUS(task->status) == TASK_DIED)
+    if (TASK_STATUS(task) == TASK_DIED)
     {
         ret = -ESRCH;
     }

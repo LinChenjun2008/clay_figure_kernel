@@ -6,6 +6,8 @@
 #ifndef __LIB_BITMAP_H__
 #define __LIB_BITMAP_H__
 
+#include <types.h>
+
 struct bitmap
 {
     size_t   map_size;
