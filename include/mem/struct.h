@@ -62,6 +62,7 @@ enum vm_type
     VM_MAPPED,   // 已分配并映射到物理页的地址空间
     VM_UNMAPPED, // 已分配但未映射到物理页的地址空间(lazy allocate)
     VM_COW,      // 用作copy-on-write的页面
+    VM_SHARED,   // 共享内存页面
     VM_MMIO,     // mmio空间
 };
 
@@ -82,10 +83,25 @@ struct pg_struct
     struct list list;
 };
 
+struct shm_area
+{
+    struct list_node node;  // 挂在shm_struct中
+    int              shmid; // 指向内核中的共享段
+    uintptr_t        virt;  // 在进程空间的虚拟地址
+    size_t           pages; // 共享页数
+};
+
+struct shm_struct
+{
+    struct list list;
+};
+
 struct mm_struct
 {
     struct vm_struct vm_map;
     struct pg_struct pg_map;
+
+    struct shm_struct sh_map;
 };
 
 struct page_mgr

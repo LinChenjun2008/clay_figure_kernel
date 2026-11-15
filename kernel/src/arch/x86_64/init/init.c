@@ -19,6 +19,7 @@
 #include <services.h>
 #include <softirq.h>
 #include <syscall.h>
+#include <syscall/ipc/shm.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/process.h>
@@ -48,6 +49,9 @@ void init_all(struct system_info *system_info)
 
     printk(MSG_INFO MSG_HIGHLIGHT("Memory management") " initializing...\n");
     mem_init(system_info);
+
+    printk(MSG_INFO MSG_HIGHLIGHT("SHM management") " initializing...\n");
+    shm_init();
 
     printk(MSG_INFO MSG_HIGHLIGHT("Task management") " initializing...\n");
     task_init(system_info);

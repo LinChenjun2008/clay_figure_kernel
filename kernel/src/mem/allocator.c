@@ -163,6 +163,10 @@ kmalloc_find(struct mem_group *g, size_t alignment, size_t boundary)
 
 void *kmalloc(size_t size, size_t alignment, size_t boundary)
 {
+    if (size == 0)
+    {
+        return NULL;
+    }
     if (size < MAX_BLOCK_SIZE && alignment > MAX_BLOCK_SIZE)
     {
         return NULL;

@@ -59,6 +59,12 @@ static void init_pg_struct(struct pg_struct *pg)
     return;
 }
 
+static void init_shm_struct(struct shm_struct *shm)
+{
+    init_list(&shm->list);
+    return;
+}
+
 struct copy_pg_pack
 {
     struct task *dst;
@@ -144,6 +150,7 @@ struct mm_struct *allocate_mm_struct(void)
     }
     init_vm_struct(&mm->vm_map);
     init_pg_struct(&mm->pg_map);
+    init_shm_struct(&mm->sh_map);
     return mm;
 }
 

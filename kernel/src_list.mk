@@ -18,6 +18,7 @@ SUB_DIR += softirq
 SUB_DIR += sync
 SUB_DIR += syscall
 SUB_DIR += syscall/ipc/msg
+SUB_DIR += syscall/ipc/shm
 SUB_DIR += task
 
 C_SRC = $(foreach DIR,$(SUB_DIR),$(wildcard $(SRC_DIR)/$(DIR)/*.c))
