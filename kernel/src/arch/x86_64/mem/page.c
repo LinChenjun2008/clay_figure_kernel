@@ -168,6 +168,14 @@ void arch_mm_map(struct task *task, phys_addr_t phys, uintptr_t virt)
     return;
 }
 
+// 建立只读映射, 用于 SHM_RDONLY 附着
+void arch_mm_map_ro(struct task *task, phys_addr_t phys, uintptr_t virt)
+{
+    page_map(task->pg_dir, phys, virt, 1);
+    set_page_flags(task->pg_dir, virt, PG_USER_RO_FLAGS);
+    return;
+}
+
 void arch_mm_unmap(struct task *task, uintptr_t virt)
 {
     set_page_flags(task->pg_dir, virt, PG_UNMAPPED);
@@ -241,7 +249,7 @@ void free_pg_table(phys_addr_t pg_dir)
 
 static int page_lazy_allocate(struct task *task, uintptr_t fault_page)
 {
-    phys_addr_t phy_page = mm_allocate_a_page();
+    phys_addr_t phy_page = mm_allocate_a_page(task);
     if (phy_page == 0)
     {
         return -ENOMEM;
@@ -249,7 +257,7 @@ static int page_lazy_allocate(struct task *task, uintptr_t fault_page)
     int status = mm_map(task, phy_page, fault_page);
     if (status < 0)
     {
-        mm_free_a_page(phy_page);
+        mm_free_a_page(task, phy_page);
         return status;
     }
     flush_tlb(task, (void *)fault_page);
@@ -289,7 +297,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
     }
     else
     {
-        phys_addr_t new_page = mm_allocate_a_page();
+        phys_addr_t new_page = mm_allocate_a_page(task);
         if (new_page == 0)
         {
             ret = -ENOMEM;
@@ -300,7 +308,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
         ret = ft_set_flags(&vm->table, fault_page, PG_SIZE, VM_UNMAPPED);
         if (ret < 0)
         {
-            mm_free_a_page(new_page);
+            mm_free_a_page(task, new_page);
             goto end;
         }
         ret = mm_map(task, new_page, fault_page);
@@ -312,7 +320,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
             {
                 PANIC("page_copy_on_write: Cannot roll back the cow page.");
             }
-            mm_free_a_page(new_page);
+            mm_free_a_page(task, new_page);
             goto end;
         }
         flush_tlb(task, (void *)fault_page);
@@ -320,7 +328,7 @@ static int page_copy_on_write(struct task *task, uintptr_t fault_page)
         // 减少引用,并从pg_struct链表中移除
         // 因为此时cow_page已经不属于当前任务了.
         page_reference_dec_lock(cow_pfn);
-        mm_remove_a_page(cow_page);
+        mm_remove_a_page(task, cow_page);
     }
 end:
     page_struct_unlock(cow_pfn);

@@ -17,6 +17,8 @@
 
 #define MAX_ALLOCATE_PAGES 2048
 
+struct shm_seg;
+
 enum mm_type
 {
     MM_TYPE_FREE = 1,
@@ -85,10 +87,11 @@ struct pg_struct
 
 struct shm_area
 {
-    struct list_node node;  // 挂在shm_struct中
-    int              shmid; // 指向内核中的共享段
-    uintptr_t        virt;  // 在进程空间的虚拟地址
-    size_t           pages; // 共享页数
+    struct list_node node;      // 挂在shm_struct中
+    struct shm_seg  *shm_seg;   // 内核共享段表
+    uintptr_t        virt;      // 在进程空间的虚拟地址
+    size_t           pages;     // 共享页数
+    int              read_only; // 可写标志
 };
 
 struct shm_struct

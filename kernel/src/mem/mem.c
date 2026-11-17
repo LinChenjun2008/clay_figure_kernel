@@ -319,22 +319,26 @@ int mm_check_addr(struct task *task, void *addr, size_t size, int flags)
 
     while (page <= (end & ~(PG_SIZE - 1)))
     {
-        int page_flags = ft_query_flags(&vm->table, page, PG_SIZE);
+        int pg_flags = ft_query_flags(&vm->table, page, PG_SIZE);
 
         // 页必须已分配给该任务
-        switch (page_flags)
+        switch (pg_flags)
         {
             case VM_MAPPED:
             case VM_UNMAPPED:
             case VM_COW:
+            case VM_SHARED:
                 break;
             default:
                 return -EFAULT;
         }
-        // 要求已映射时, 不允许懒分配页
-        if (flags == ADDR_MAPPED && page_flags != VM_MAPPED)
+        // 要求已映射时, 不允许懒分配页; 共享内存页在 shmat 时就已常驻
+        if (flags == ADDR_MAPPED)
         {
-            return -EFAULT;
+            if (pg_flags != VM_MAPPED && pg_flags != VM_SHARED)
+            {
+                return -EFAULT;
+            }
         }
         page += PG_SIZE;
     }
@@ -385,8 +389,8 @@ int mm_unmap(struct task *task, uintptr_t virt)
     struct pg_struct *pg = &task->mm->pg_map;
 
     // 已映射 -> 未分配
-    int page_flags = ft_query_flags(&vm->table, virt, PG_SIZE);
-    if (page_flags != VM_MAPPED && page_flags != VM_COW)
+    int pg_flags = ft_query_flags(&vm->table, virt, PG_SIZE);
+    if (pg_flags != VM_MAPPED && pg_flags != VM_COW && pg_flags != VM_SHARED)
     {
         return -EINVAL;
     }
@@ -474,50 +478,47 @@ void mm_free_address(uintptr_t addr, size_t pages)
     struct vm_struct *vm = &task->mm->vm_map;
     struct pg_struct *pg = &task->mm->pg_map;
 
-    uintptr_t start = addr;
-
-    size_t remain_pages;
-    for (remain_pages = pages; remain_pages > 0; remain_pages--)
+    size_t i;
+    for (i = 0; i < pages; i++)
     {
-        int page_flags = ft_query_flags(&vm->table, start, PG_SIZE);
+        uintptr_t start    = addr + i * PG_SIZE;
+        int       pg_flags = ft_query_flags(&vm->table, start, PG_SIZE);
 
-        if (page_flags == VM_UNMAPPED)
+        // 共享内存区只能通过 shmdt 解除附着, 否则引用计数会失衡
+        if (pg_flags == VM_SHARED)
+        {
+            continue;
+        }
+        if (pg_flags == VM_UNMAPPED)
         {
             // 已分配但未映射 -> 未分配
-            int set_status = ft_set_flags(&vm->table, start, PG_SIZE, VM_FREE);
-            if (set_status < 0)
-            {
-                return;
-            }
+            ft_set_flags(&vm->table, start, PG_SIZE, VM_FREE);
+            continue;
         }
-        else if (page_flags == VM_MAPPED || page_flags == VM_COW)
+        if (pg_flags == VM_MAPPED || pg_flags == VM_COW)
         {
             struct page_struct *page_struct = get_page_by_virt(pg, start);
             if (page_struct == NULL)
             {
                 PANIC("Cannot find the page struct of the mapped address.");
             }
+            phys_addr_t phys = PFN_TO_ADDR(page_struct->pfn);
             if (mm_unmap(task, start) < 0)
             {
-                return;
+                continue;
             }
             flush_tlb(task, (void *)start);
-            mm_free_a_page(PFN_TO_ADDR(page_struct->pfn));
+            mm_free_a_page(task, phys);
+            continue;
         }
-        // 没有分配的地址
-        else
-        {
-            return;
-        }
-        start += PG_SIZE;
+        // VM_FREE,VM_MMIO无需处理
     }
     return;
 }
 
-phys_addr_t mm_allocate_a_page(void)
+phys_addr_t mm_allocate_a_page(struct task *task)
 {
-    struct task *task = get_current_task();
-    ASSERT(task->mm != NULL);
+    ASSERT(task != NULL && task->mm != NULL);
 
     struct pg_struct *pg = &task->mm->pg_map;
 
@@ -540,10 +541,9 @@ phys_addr_t mm_allocate_a_page(void)
 }
 
 // 移除addr对应的page_struct,但不释放物理页
-void mm_remove_a_page(phys_addr_t addr)
+void mm_remove_a_page(struct task *task, phys_addr_t addr)
 {
-    struct task *task = get_current_task();
-    ASSERT(task->mm != NULL);
+    ASSERT(task != NULL && task->mm != NULL);
 
     struct pg_struct *pg = &task->mm->pg_map;
 
@@ -558,9 +558,130 @@ void mm_remove_a_page(phys_addr_t addr)
     return;
 }
 
-// 在mm_remve_a_page的基础上释放对应的物理页
-size_t mm_free_a_page(phys_addr_t addr)
+// 在mm_remove_a_page的基础上释放对应的物理页
+size_t mm_free_a_page(struct task *task, phys_addr_t addr)
 {
-    mm_remove_a_page(addr);
+    mm_remove_a_page(task, addr);
     return free_a_page(addr);
+}
+
+// 把 [virt, virt + pages * PG_SIZE) 从 VM_FREE 改成 VM_SHARED
+int mm_reserve_shared_range(struct task *task, uintptr_t virt, size_t pages)
+{
+    if (task == NULL || task->mm == NULL || pages == 0 ||
+        pages > ((size_t)-1 >> PG_SIZE_SHIFT))
+    {
+        return -EINVAL;
+    }
+    size_t size = pages * PG_SIZE;
+    if (!is_user_address(virt, size))
+    {
+        return -EINVAL;
+    }
+
+    struct vm_struct *vm = &task->mm->vm_map;
+
+    int ret = ft_remove(&vm->table, virt, size, VM_FREE);
+    if (ret < 0)
+    {
+        // 区间不属于本任务, 或者已被占用
+        return -EINVAL;
+    }
+
+    ret = ft_add(&vm->table, virt, size, VM_SHARED);
+    if (ret < 0)
+    {
+        int back_status = ft_add(&vm->table, virt, size, VM_FREE);
+        if (back_status < 0)
+        {
+            PANIC("mm_reserve_shared_range: Cannot roll back the range.");
+        }
+        return -ENOMEM;
+    }
+    return 0;
+}
+
+// 自高向低选一块足够大的空闲区并标记为 VM_SHARED.
+// 用户堆自低向高增长, 共享内存从高地址取可以减少两者碰撞.
+uintptr_t mm_allocate_high(struct task *task, size_t pages)
+{
+    if (task == NULL || task->mm == NULL || pages == 0)
+    {
+        return 0;
+    }
+    size_t size = pages * PG_SIZE;
+
+    struct vm_struct *vm = &task->mm->vm_map;
+
+    // free_table.table[] 按 start 升序, 逆序即从高地址开始
+    int i;
+    for (i = vm->table.free - 1; i >= 0; i--)
+    {
+        struct free_block *block = &vm->table.table[i];
+        if (block->flags != VM_FREE || block->size < size)
+        {
+            continue;
+        }
+        uintptr_t start = block->start + block->size - size;
+        if (mm_reserve_shared_range(task, start, pages) == 0)
+        {
+            return start;
+        }
+    }
+    return 0;
+}
+
+// 建立一页共享内存映射, 调用前该页必须已被预留为 VM_SHARED
+int mm_map_shared(struct task *task, phys_addr_t phys, uintptr_t virt, int ro)
+{
+    if (task == NULL || task->mm == NULL || phys == 0 || virt == 0)
+    {
+        return -EINVAL;
+    }
+    struct vm_struct *vm = &task->mm->vm_map;
+
+    if (ft_query_flags(&vm->table, virt, PG_SIZE) != VM_SHARED)
+    {
+        return -EINVAL;
+    }
+    if (ro)
+    {
+        arch_mm_map_ro(task, phys, virt);
+    }
+    else
+    {
+        arch_mm_map(task, phys, virt);
+    }
+    return 0;
+}
+
+// 解除 [virt, virt + pages * PG_SIZE) 的共享内存映射, 并把区间还原为空闲.
+// 已映射的页会 unmap 并释放本任务的持有; 仅预留未映射的页只还原区间类型.
+void mm_detach_shared(struct task *task, uintptr_t virt, size_t pages)
+{
+    if (task == NULL || task->mm == NULL)
+    {
+        return;
+    }
+    struct vm_struct *vm = &task->mm->vm_map;
+
+    size_t i;
+    for (i = 0; i < pages; i++)
+    {
+        uintptr_t   page = virt + i * PG_SIZE;
+        phys_addr_t phys = to_physical_address(task->pg_dir, page);
+
+        if (phys == 0)
+        {
+            ft_set_flags(&vm->table, page, PG_SIZE, VM_FREE);
+            continue;
+        }
+        if (mm_unmap(task, page) < 0)
+        {
+            continue;
+        }
+        flush_tlb(task, (void *)page);
+        mm_free_a_page(task, phys);
+    }
+    return;
 }

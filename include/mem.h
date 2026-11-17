@@ -25,8 +25,14 @@ int       mm_map(struct task *task, phys_addr_t phys, uintptr_t virt);
 int       mm_unmap(struct task *task, uintptr_t virt);
 int       mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt);
 void      mm_free_address(uintptr_t addr, size_t pages);
-phys_addr_t mm_allocate_a_page(void);
-void        mm_remove_a_page(phys_addr_t addr);
-size_t      mm_free_a_page(phys_addr_t addr);
+phys_addr_t mm_allocate_a_page(struct task *task);
+void        mm_remove_a_page(struct task *task, phys_addr_t addr);
+size_t      mm_free_a_page(struct task *task, phys_addr_t addr);
+
+// 共享内存(IPC SHM)相关的地址空间操作
+int mm_reserve_shared_range(struct task *task, uintptr_t virt, size_t pages);
+uintptr_t mm_allocate_high(struct task *task, size_t pages);
+int  mm_map_shared(struct task *task, phys_addr_t phys, uintptr_t virt, int ro);
+void mm_detach_shared(struct task *task, uintptr_t virt, size_t pages);
 
 #endif

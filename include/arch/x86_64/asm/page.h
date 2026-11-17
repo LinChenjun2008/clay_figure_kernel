@@ -30,6 +30,7 @@
 #define PG_DEFAULT_FLAGS  (PG_US_U | PG_RW_W | PG_P)
 #define PG_KERNEL_FLAGS   (PG_US_S | PG_RW_W | PG_P)
 #define PG_USER_FLAGS     (PG_US_U | PG_RW_W | PG_P)
+#define PG_USER_RO_FLAGS  (PG_US_U | PG_RW_R | PG_P)
 #define PG_USER_COW_FLAGS (PG_US_U | PG_RW_R | PG_P)
 #define PG_UNMAPPED       0
 
@@ -77,9 +78,11 @@ void page_map(phys_addr_t pg_dir, phys_addr_t phys, uintptr_t virt, int count);
 void set_page_flags(phys_addr_t pg_dir, uintptr_t virt, uint64_t flags);
 
 phys_addr_t to_physical_address(phys_addr_t pg_dir, uintptr_t virt);
-void        arch_mm_map(struct task *task, phys_addr_t phys, uintptr_t virt);
-void        arch_mm_unmap(struct task *task, uintptr_t virt);
+
+void arch_mm_map(struct task *task, phys_addr_t phys, uintptr_t virt);
+void arch_mm_map_ro(struct task *task, phys_addr_t phys, uintptr_t virt);
 void arch_mm_map_cow(struct task *task, phys_addr_t phys, uintptr_t virt);
+void arch_mm_unmap(struct task *task, uintptr_t virt);
 void free_pg_table(phys_addr_t pg_dir);
 void page_fault(struct pt_regs *regs);
 
