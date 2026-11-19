@@ -5,10 +5,14 @@
 
 #include <base.h>
 
+#include <asm/page.h>
+
 #include <errno.h>
 #include <lib/string.h>
+#include <mem.h>
 #include <mem/allocator.h>
 #include <mem/page.h>
+#include <mem/struct.h>
 #include <panic.h>
 #include <syscall/ipc/shm.h>
 #include <task.h>
@@ -258,4 +262,182 @@ int shm_get(size_t size, int key, int shmflg)
         // 其他任务抢先创建了同 key 的段, 回到循环按"已存在"处理
     }
     return 0;
+}
+
+// 按 shmid 找到段并持有引用(pin), 找到后必须 put_kobject 归还
+static struct shm_seg *shm_pin(int shmid)
+{
+    int slot = shm_id_slot(shmid);
+    if (slot < 0 || slot >= SHMMNI)
+    {
+        return NULL;
+    }
+
+    struct shm_seg *seg = NULL;
+
+    // 锁序: shm_table.lock -> kobj.lock, 反向加锁会死锁
+    spin_lock(&shm_table.lock);
+    struct shm_seg *cur = shm_table.slot[slot];
+    if (cur == NULL)
+    {
+        goto end;
+    }
+    if (shm_table.gen[slot] != shm_id_gen(shmid))
+    {
+        goto end;
+    }
+    if (get_kobject(&cur->kobj) <= 0)
+    {
+        goto end;
+    }
+    seg = cur;
+
+end:
+    spin_unlock(&shm_table.lock);
+
+    return seg;
+}
+
+// 创建者总能附着, 其它任务按 mode 位判断
+static int shm_access_check(struct task *task, struct shm_seg *seg, int ro)
+{
+    if (task->pid == seg->cpid)
+    {
+        return 1;
+    }
+    if (seg->mode == 0)
+    {
+        return 1;
+    }
+    int need = ro ? 0444 : 0666;
+    return (seg->mode & need) == need;
+}
+
+
+// 把段映射进当前任务的地址空间.
+// 成功返回用户虚拟地址; 失败返回负错误码, 调用方按 (intptr_t) 判断.
+uintptr_t shm_at(int shmid, uintptr_t shmaddr, int shmflg)
+{
+    struct task *task = get_current_task();
+    if (task->mm == NULL)
+    {
+        return (uintptr_t)-EPERM;
+    }
+
+    int ro = (shmflg & SHM_RDONLY) != 0;
+
+    struct shm_seg *seg = shm_pin(shmid);
+    if (seg == NULL)
+    {
+        return (uintptr_t)-EINVAL;
+    }
+
+    struct shm_area *area   = NULL;
+    uintptr_t        virt   = 0;
+    size_t           pages  = seg->pages;
+    int              status = 0;
+
+    if (!shm_access_check(task, seg, ro))
+    {
+        status = -EACCES;
+        goto end;
+    }
+
+    // 1) 预留用户虚拟地址区间
+    if (shmaddr != 0)
+    {
+        if ((shmaddr & (PG_SIZE - 1)) != 0)
+        {
+            status = -EINVAL;
+            goto end;
+        }
+        if (mm_reserve_shared_range(task, shmaddr, pages) < 0)
+        {
+            status = -EINVAL;
+            goto end;
+        }
+        virt = shmaddr;
+    }
+    else
+    {
+        virt = mm_allocate_high(task, pages);
+        if (virt == 0)
+        {
+            status = -ENOMEM;
+            goto end;
+        }
+    }
+
+    // 2) 逐页建立页结构并映射.
+    //    页结构登记在 mm->pg_map 中, 使 mm_unmap / mm_free_a_page 能找到它
+    size_t i;
+    for (i = 0; i < pages; i++)
+    {
+        struct page_struct *pg = kmalloc(sizeof(*pg), 0, 0);
+        if (pg == NULL)
+        {
+            status = -ENOMEM;
+            goto fail;
+        }
+        pg->pfn  = ADDR_TO_PFN(seg->phys[i]);
+        pg->virt = virt + i * PG_SIZE;
+
+        // 段自身持有的那份页引用之外, 每个附着再持有一份
+        page_reference_inc(pg->pfn);
+        list_append(&task->mm->pg_map.list, &pg->node);
+
+        if (mm_map_shared(task, seg->phys[i], pg->virt, ro) >= 0)
+        {
+            flush_tlb(task, (void *)pg->virt);
+            continue;
+        }
+        // 失败回滚
+        list_remove(&pg->node);
+        page_reference_dec(pg->pfn);
+        kfree(pg);
+        status = -EINVAL;
+        goto fail;
+    }
+
+    area = kmalloc(sizeof(*area), 0, 0);
+    if (area == NULL)
+    {
+        status = -ENOMEM;
+        goto fail;
+    }
+
+    // 3) 提交: 登记附着, 段的引用转由 area 持有
+    int removed = 0;
+
+    spin_lock(&shm_table.lock);
+    removed = (shm_table.slot[shm_id_slot(shmid)] != seg);
+    if (!removed)
+    {
+        seg->nattch++;
+    }
+    spin_unlock(&shm_table.lock);
+
+    // 期间被 IPC_RMID 摘除, 不再接受新的附着
+    if (removed)
+    {
+        kfree(area);
+        status = -EINVAL;
+        goto fail;
+    }
+
+    area->shm_seg   = seg;
+    area->virt      = virt;
+    area->pages     = pages;
+    area->read_only = ro;
+    list_append(&task->mm->sh_map.list, &area->node);
+
+    return virt;
+
+fail:
+    // 已映射的页会 unmap 并释放页引用, 仅预留未映射的页只还原区间类型
+    mm_detach_shared(task, virt, pages);
+
+end:
+    put_kobject(&seg->kobj);
+    return (uintptr_t)status;
 }
