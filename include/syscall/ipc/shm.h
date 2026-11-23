@@ -23,6 +23,9 @@
 #define SHMMNI 512
 #define SHMMAX (2048 * PG_SIZE) // 单个段的最大大小(字节)
 
+struct mm_struct;
+struct task;
+
 // 用于在shm_table中标记一块共享内存段
 struct shm_seg
 {
@@ -49,5 +52,10 @@ void      shm_init(void);
 int       create_shm_seg(size_t size, int key, uint32_t mode);
 int       shm_get(size_t size, int key, int shmflg);
 uintptr_t shm_at(int shmid, uintptr_t shmaddr, int shmflg);
+int       shm_dt(uintptr_t shmaddr);
+
+// 供内存管理层在 fork / 进程退出时调用
+int  shm_fork_discard(struct mm_struct *dst, struct mm_struct *src);
+void shm_release_mm(struct mm_struct *mm);
 
 #endif /* __SYSCALL_IPC_SHM_H__ */

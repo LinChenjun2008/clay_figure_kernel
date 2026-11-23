@@ -17,6 +17,7 @@
 #include <mem/struct.h>
 #include <panic.h>
 #include <print.h>
+#include <syscall/ipc/shm.h>
 #include <sysinfo.h>
 #include <task.h>
 #include <task/struct.h>
@@ -80,6 +81,18 @@ static int traversal_copy_pg(struct list_node *node, void *arg)
     struct list         *list = &dst->mm->pg_map.list;
 
     struct page_struct *src_pg = CONTAINER_OF(struct page_struct, node, node);
+
+    // 共享内存页不参与写时复制, 子进程也不继承该附着.
+    // 必须在 mm_map_cow 之前返回: 否则会往 VM_SHARED 区间再插一个 VM_COW 块.
+    if (src_pg->virt != 0)
+    {
+        struct vm_struct *vm = &src->mm->vm_map;
+        int pg_flag = ft_query_flags(&vm->table, src_pg->virt, PG_SIZE);
+        if (pg_flag == VM_SHARED)
+        {
+            return 0;
+        }
+    }
 
     // 创建新的页结构
     struct page_struct *new_pg = kmalloc(sizeof(*new_pg), 0, 0);
@@ -162,6 +175,13 @@ int copy_mm_struct(struct task *dst, struct task *src)
         return ret;
     }
 
+    // 子进程不继承共享内存附着, 必须在建立页结构之前丢弃这些区间
+    ret = shm_fork_discard(dst->mm, src->mm);
+    if (ret < 0)
+    {
+        return ret;
+    }
+
     // copy pg_struct
     // 遍历src的页结构,为dst建立页结构,并把双方共享的页转为COW
     if (!copy_pg_struct(dst, src))
@@ -177,6 +197,9 @@ void destroy_mm_struct(struct mm_struct *mm)
     {
         return;
     }
+    // 先解除共享内存附着(归还段引用), 页引用随后由 destroy_pg_struct 释放
+    shm_release_mm(mm);
+
     destroy_vm_struct(&mm->vm_map);
     destroy_pg_struct(&mm->pg_map);
     kfree(mm);

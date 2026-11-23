@@ -441,3 +441,112 @@ end:
     put_kobject(&seg->kobj);
     return (uintptr_t)status;
 }
+
+// 在 mm->sh_map 中按虚拟地址找到附着记录
+static struct shm_area *find_area(struct mm_struct *mm, uintptr_t virt)
+{
+    struct list      *list = &mm->sh_map.list;
+    struct list_node *node = list_next(list_head(list));
+
+    while (node != list_tail(list))
+    {
+        struct shm_area *area = CONTAINER_OF(struct shm_area, node, node);
+        if (area->virt == virt)
+        {
+            return area;
+        }
+        node = list_next(node);
+    }
+    return NULL;
+}
+
+// 解除一个附着: 先撤映射, 再归还段引用
+int shm_dt(uintptr_t shmaddr)
+{
+    struct task *task = get_current_task();
+    if (task->mm == NULL)
+    {
+        return -EPERM;
+    }
+
+    // shmaddr 必须是 shmat 返回的基地址
+    struct shm_area *area = find_area(task->mm, shmaddr);
+    if (area == NULL)
+    {
+        return -EINVAL;
+    }
+    struct shm_seg *seg = area->shm_seg;
+
+    // 撤映射会 unmap 页表项并把本任务的页引用减一
+    mm_detach_shared(task, area->virt, area->pages);
+
+    spin_lock(&shm_table.lock);
+    if (seg->nattch > 0)
+    {
+        seg->nattch--;
+    }
+    spin_unlock(&shm_table.lock);
+
+    list_remove(&area->node);
+    kfree(area);
+
+    // 归还附着引用; 若段已 IPC_RMID 且这是最后一个引用, 这里会触发销毁
+    put_kobject(&seg->kobj);
+    return 0;
+}
+
+// fork: 子进程不继承共享内存
+int shm_fork_discard(struct mm_struct *dst, struct mm_struct *src)
+{
+    if (dst == NULL || src == NULL)
+    {
+        return 0;
+    }
+
+    struct list      *list = &src->sh_map.list;
+    struct list_node *node = list_next(list_head(list));
+
+    while (node != list_tail(list))
+    {
+        struct shm_area *area = CONTAINER_OF(struct shm_area, node, node);
+
+        uintptr_t virt = area->virt;
+        size_t    size = area->pages * PG_SIZE;
+
+        struct vm_struct *vm = &dst->vm_map.table;
+
+        if (ft_set_flags(&vm->table, virt, size, VM_FREE) < 0)
+        {
+            return -EINVAL;
+        }
+        node = list_next(node);
+    }
+    return 0;
+}
+
+// 进程退出时解除本地址空间的全部附着.
+void shm_release_mm(struct mm_struct *mm)
+{
+    if (mm == NULL)
+    {
+        return;
+    }
+
+    struct list_node *node;
+    while ((node = list_pop(&mm->sh_map.list)) != NULL)
+    {
+        struct shm_area *area = CONTAINER_OF(struct shm_area, node, node);
+        struct shm_seg  *seg  = area->shm_seg;
+
+        spin_lock(&shm_table.lock);
+        if (seg->nattch > 0)
+        {
+            seg->nattch--;
+        }
+        spin_unlock(&shm_table.lock);
+
+        kfree(area);
+        put_kobject(&seg->kobj);
+    }
+    return;
+}
